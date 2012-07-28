@@ -30,6 +30,7 @@ void mrb_init_gc(mrb_state*);
 void mrb_init_print(mrb_state*);
 void mrb_init_mrblib(mrb_state*);
 void mrb_init_math(mrb_state*);
+void mrb_init_irep(mrb_state*);
 
 void
 mrb_init_core(mrb_state *mrb)
@@ -65,6 +66,9 @@ mrb_init_core(mrb_state *mrb)
 #endif
 #ifdef ENABLE_MATH
   mrb_init_math(mrb);
+#endif
+#ifdef ENABLE_IREP
+  mrb_init_irep(mrb);
 #endif
 
   mrb_init_mrblib(mrb);

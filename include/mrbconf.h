@@ -57,6 +57,9 @@ typedef intptr_t mrb_sym;
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
 #endif
+#ifndef DISABLE_IREP
+#define ENABLE_IREP
+#endif
 
 #ifndef FALSE
 # define FALSE 0
