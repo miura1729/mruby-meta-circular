@@ -68,6 +68,21 @@ mrb_irep_get_irep_by_no(mrb_state *mrb, mrb_value self)
   return mrb_irep_wrap(mrb, mrb_class_ptr(self), mrb->irep[no.value.i]);
 }
 
+static mrb_value
+mrb_irep_iseq(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value ary = mrb_ary_new_capa(mrb, irep->ilen);
+
+  
+  for (i = 0; i < irep->ilen; i++) {
+    mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int) irep->iseq[i]));
+  }
+
+  return ary;
+}
+
 void
 mrb_init_irep(mrb_state *mrb)
 {
@@ -78,6 +93,8 @@ mrb_init_irep(mrb_state *mrb)
 
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
   mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no,     ARGS_REQ(1));
+
+  mrb_define_method(mrb, a, "iseq", mrb_irep_iseq,     ARGS_NONE());
 }
 
 #endif /* ENABLE_IREP */
