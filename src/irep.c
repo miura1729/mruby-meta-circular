@@ -83,6 +83,15 @@ mrb_irep_iseq(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+static mrb_value
+mrb_irep_nregs(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+
+  return mrb_fixnum_value((mrb_int) irep->nregs);
+}
+
 void
 mrb_init_irep(mrb_state *mrb)
 {
@@ -95,6 +104,7 @@ mrb_init_irep(mrb_state *mrb)
   mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no,     ARGS_REQ(1));
 
   mrb_define_method(mrb, a, "iseq", mrb_irep_iseq,     ARGS_NONE());
+  mrb_define_method(mrb, a, "nregs", mrb_irep_nregs,     ARGS_NONE());
 }
 
 #endif /* ENABLE_IREP */
