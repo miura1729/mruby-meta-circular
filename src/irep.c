@@ -2,8 +2,48 @@
 #ifdef ENABLE_IREP
 #include "mruby/class.h"
 #include "mruby/data.h"
+#include "mruby/array.h"
 #include "opcode.h"
 #include "mruby/irep.h"
+
+static char *optable[] = {
+  "NOP", "MOVE",
+  "LOADL", "LOADI", "LOADSYM", "LOADNIL",
+  "LOADSELF", "LOADT", "LOADF",
+  "GETGLOBAL", "SETGLOBAL", "GETSPECIAL", "SETSPECIAL",
+  "GETIV", "SETIV", "GETCV", "SETCV",
+  "GETCONST", "SETCONST", "GETMCNST", "SETMCNST",
+  "GETUPVAR", "SETUPVAR",
+  "JMP", "JMPIF", "JMPNOT",
+  "ONERR", "RESCUE", "POPERR", "RAISE", "EPUSH", "EPOP",
+  "SEND", "FSEND", "VSEND",
+  "CALL", "SUPER", "ARGARY", "ENTER",
+  "KARG", "KDICT", "RETURN", "TAILCALL", "BLKPUSH",
+  "ADD", "ADDI", "SUB", "SUBI", "MUL", "DIV",
+  "EQ", "LT", "LE", "GT", "GE",
+  "ARRAY", "ARYCAT", "ARYPUSH", "AREF", "ASET", "APOST",
+  "STRING", "STRCAT", "HASH",
+  "LAMBDA", "RANGE", "OCLASS",
+  "CLASS", "MODULE", "EXEC",
+  "METHOD", "SCLASS", "TCLASS",
+  "DEBUG", "STOP", "ERR",
+};
+
+static mrb_value
+mrb_irep_make_optab(mrb_state *mrb)
+{
+  int i;
+  int siz = sizeof(optable) / sizeof(optable[0]);
+  mrb_value ary = mrb_ary_new_capa(mrb, siz);
+
+  for (i = 0; i < siz; i++) {
+    int ai = mrb_gc_arena_save(mrb);
+    mrb_ary_push(mrb, ary, mrb_str_new2(mrb, optable[i]));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  return ary;
+}
 
 static void
 mrb_irep_free(mrb_state *mrb, void *ptr)
@@ -33,9 +73,10 @@ mrb_init_irep(mrb_state *mrb)
 {
   struct RClass *a;
 
-  a = mrb->array_class = mrb_define_class(mrb, "Irep", mrb->object_class);
+  a = mrb_define_class(mrb, "Irep", mrb->object_class);
   MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);
 
+  mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
   mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no,     ARGS_REQ(1));
 }
 
