@@ -3,6 +3,7 @@
 #include "mruby/class.h"
 #include "mruby/data.h"
 #include "mruby/array.h"
+#include "mruby/proc.h"
 #include "opcode.h"
 #include "mruby/irep.h"
 
@@ -65,7 +66,26 @@ mrb_irep_get_irep_by_no(mrb_state *mrb, mrb_value self)
   mrb_value no;
   mrb_get_args(mrb, "i", &no);
 
-  return mrb_irep_wrap(mrb, mrb_class_ptr(self), mrb->irep[no.value.i]);
+  return mrb_irep_wrap(mrb, mrb_class_ptr(self), mrb->irep[mrb_fixnum(no)]);
+}
+
+static mrb_value
+mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
+{
+  mrb_value recv, name;
+  struct RProc *m;
+  struct RClass *c;
+
+  mrb_get_args(mrb, "oo", &recv, &name);
+  c = mrb_class(mrb, recv);
+  m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
+
+  if (m) {
+    return mrb_irep_wrap(mrb, mrb_class_ptr(self), m->body.irep);
+  }
+  else {
+    return mrb_nil_value();
+  }
 }
 
 static mrb_value
@@ -86,10 +106,17 @@ mrb_irep_iseq(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_irep_nregs(mrb_state *mrb, mrb_value self)
 {
-  int i;
   mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
 
   return mrb_fixnum_value((mrb_int) irep->nregs);
+}
+
+static mrb_value
+mrb_irep_nlocals(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+
+  return mrb_fixnum_value((mrb_int) irep->nlocals);
 }
 
 void
@@ -101,10 +128,12 @@ mrb_init_irep(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);
 
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
-  mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no,     ARGS_REQ(1));
+  mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no, ARGS_REQ(1));
+  mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
 
   mrb_define_method(mrb, a, "iseq", mrb_irep_iseq,     ARGS_NONE());
   mrb_define_method(mrb, a, "nregs", mrb_irep_nregs,     ARGS_NONE());
+  mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals,     ARGS_NONE());
 }
 
 #endif /* ENABLE_IREP */
