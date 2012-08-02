@@ -16,6 +16,10 @@
 #include "re.h"
 #endif
 
+#ifndef MRB_IV_INITIAL_SIZE
+#define MRB_IV_INITIAL_SIZE 8
+#endif
+
 static void
 mark_tbl(mrb_state *mrb, struct kh_iv *h)
 {
@@ -130,7 +134,7 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   khash_t(iv) *h;
 
   if (!obj->iv) {
-    h = obj->iv = kh_init(iv, mrb);
+    h = obj->iv = kh_init_size(iv, mrb, MRB_IV_INITIAL_SIZE);
   }
   else {
     h = obj->iv;
@@ -266,7 +270,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   c = mrb->ci->target_class;
   h = c->iv;
   if (!h) {
-    c->iv = h = kh_init(iv, mrb);
+    c->iv = h = kh_init_size(iv, mrb, MRB_IV_INITIAL_SIZE);
   }
   k = kh_put(iv, h, sym);
   kh_value(h, k) = v;
@@ -305,7 +309,8 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   struct RClass *c = base;
   khash_t(iv) *h;
   khiter_t k;
-  mrb_sym cm = mrb_intern(mrb, "const_missing");
+  int retry = 0;
+  mrb_sym cm;
 
  L_RETRY:
   while (c) {
@@ -315,17 +320,22 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
       if (k != kh_end(h)) {
         return kh_value(h, k);
       }
-      if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
-        mrb_value argv = mrb_symbol_value(sym);
-        return mrb_funcall_argv(mrb, mrb_obj_value(c), "const_missing", 1, &argv);
-      }
     }
     c = c->super;
   }
-
-  if (base->tt == MRB_TT_MODULE) {
-    c = base = mrb->object_class;
+  if (!retry && base->tt == MRB_TT_MODULE) {
+    c = mrb->object_class;
+    retry = 1;
     goto L_RETRY;
+  }
+  c = base;
+  cm = mrb_intern(mrb, "const_missing");
+  while (c) {
+    if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
+      mrb_value name = mrb_symbol_value(sym);
+      return mrb_funcall(mrb, mrb_obj_value(c), "const_missing", 1, name);
+    }
+    c = c->super;
   }
   mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
@@ -460,10 +470,6 @@ kiv_lookup(khash_t(iv)* table, mrb_sym key, mrb_value *value)
   khash_t(iv) *h=table;
   khiter_t k;
 
-  // you must check(iv==0), before you call this function.
-  //if (!obj->iv) {
-  //  return 0;
-  //}
   k = kh_get(iv, h, key);
   if (k != kh_end(h)) {
     *value = kh_value(h, k);
@@ -505,7 +511,6 @@ mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
-  //return ivar_get(obj, id, FALSE);
   return mrb_iv_get(mrb, obj, id);
 }
 

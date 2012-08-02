@@ -46,7 +46,7 @@ ary_new_capa(mrb_state *mrb, int capa)
   }
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
-  a->ptr = mrb_calloc(mrb, blen, 1);
+  a->ptr = (mrb_value *)mrb_calloc(mrb, blen, 1);
   a->aux.capa = capa;
   a->len = 0;
 
@@ -116,7 +116,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
 
       p = a->ptr;
       len = a->len * sizeof(mrb_value);
-      ptr = mrb_malloc(mrb, len);
+      ptr = (mrb_value *)mrb_malloc(mrb, len);
       if (p) {
 	memcpy(ptr, p, len);
       }
@@ -132,11 +132,11 @@ static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
   if (!(a->flags & MRB_ARY_SHARED)) {
-    struct mrb_shared_array *shared = mrb_malloc(mrb, sizeof(struct mrb_shared_array));
+    struct mrb_shared_array *shared = (struct mrb_shared_array *)mrb_malloc(mrb, sizeof(struct mrb_shared_array));
 
     shared->refcnt = 1;
     if (a->aux.capa > a->len) {
-      a->ptr = shared->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*a->len+1);
+      a->ptr = shared->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*a->len+1);
     }
     else {
       shared->ptr = a->ptr;
@@ -173,7 +173,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, int len)
 
   if (capa > a->aux.capa) {
     a->aux.capa = capa;
-    a->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 
@@ -195,7 +195,7 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 
   if (capa > a->len && capa < a->aux.capa) {
     a->aux.capa = capa;
-    a->ptr = mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
 }
 
@@ -682,10 +682,10 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     if (mrb_type(argv[0]) != MRB_TT_FIXNUM) {
       mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum");
     }
-    len = mrb_fixnum(argv[0]);
     if (index < 0) index += a->len;
     if (index < 0 || a->len < (int)index) return mrb_nil_value();
-    if ((len = mrb_fixnum(argv[0])) < 0) return mrb_nil_value();
+    len = mrb_fixnum(argv[0]);
+    if (len < 0) return mrb_nil_value();
     if (a->len == (int)index) return mrb_ary_new(mrb);
     if ((int)len > a->len - index) len = a->len - index;
     return ary_subseq(mrb, a, index, len);
@@ -763,6 +763,9 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
 
   if (mrb_get_args(mrb, "|i", &size) == 0) {
     return (a->len > 0)? a->ptr[0]: mrb_nil_value();
+  }
+  if (size < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
 
   if (size > a->len) size = a->len;
