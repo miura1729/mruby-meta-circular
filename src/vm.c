@@ -326,6 +326,32 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
+static void
+clear_method_cache(mrb_state *mrb)
+{
+  int i;
+  int j;
+  int ilen;
+  int plen;
+  mrb_irep *irep;
+  mrb_value *pool;
+  
+  ilen = mrb->irep_len;
+  for (i = 0; i < ilen; i++) {
+    irep = mrb->irep[i];
+    if (irep->is_method_cache_used) {
+      plen = irep->plen;
+      pool = irep->pool;
+      for (j = 0; j < plen; j++) {
+	if (pool[j].tt == MRB_TT_CACHE_VALUE) {
+	  pool[j].value.p = 0;
+	}
+      }
+      irep->is_method_cache_used = 0;
+    }
+  }
+}
+
 #define SET_TRUE_VALUE(r) {\
   (r).tt = MRB_TT_TRUE;\
   (r).value.i = 1;\
@@ -693,7 +719,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       mrb_sym mid = syms[GETARG_B(i)];
       int rcvoff = GETARG_Bx(*(pc + 1));
       int mthoff = rcvoff + 1;
-      struct RClass *orecv = (struct RClass *)(pool[rcvoff].value.i);
+      struct RClass *orecv = pool[rcvoff].value.p;
 
       recv = regs[a];
       c = mrb_class(mrb, recv);
@@ -714,12 +740,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  }
 	}
 	else {
-	  pool[rcvoff].value.i = (mrb_int) c;
-	  pool[mthoff].value.i = (mrb_int) m;
+	  mrb->is_method_cache_used = 1;
+	  irep->is_method_cache_used = 1;
+	  pool[rcvoff].value.p = c;
+	  pool[mthoff].value.p = m;
 	}
       }
       else {
-	m = (struct RProc *)(pool[mthoff].value.i);
+	m = pool[mthoff].value.p;
       }
 
       /* push callinfo */
@@ -1498,8 +1526,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);
       }
       else {
-        p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);
-      }
+        p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);      }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
       mrb->arena_idx = ai;
@@ -1596,6 +1623,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
 
+      if (mrb->is_method_cache_used) {
+	clear_method_cache(mrb);
+	mrb->is_method_cache_used = 0;
+      }
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
       mrb->arena_idx = ai;
       NEXT;

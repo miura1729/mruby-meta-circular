@@ -428,7 +428,7 @@ genop_send(codegen_scope *s, mrb_code i)
   int off;
 
   genop(s, i);
-  off = new_lit2(s, mrb_fixnum_value(1));
+  off = new_lit2(s, mrb_cache_value(0));
   new_lit2(s, mrb_fixnum_value(1));
   genop(s, MKOP_Bx(OP_NOP, off));
 }

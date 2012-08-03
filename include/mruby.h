@@ -60,7 +60,8 @@ enum mrb_vtype {
   MRB_TT_FILE,        /*  21 */
   MRB_TT_ENV,         /*  22 */
   MRB_TT_DATA,        /*  23 */
-  MRB_TT_MAXDEFINE    /*  24 */
+  MRB_TT_CACHE_VALUE, /*  24 */
+  MRB_TT_MAXDEFINE    /*  25 */
 };
 
 typedef struct mrb_value {
@@ -184,6 +185,16 @@ mrb_undef_value(void)
   return v;
 }
 
+static inline mrb_value
+mrb_cache_value(void *p)
+{
+  mrb_value v;
+
+  v.tt = MRB_TT_CACHE_VALUE;
+  v.value.p = p;
+  return v;
+}
+
 typedef int32_t mrb_code;
 
 struct mrb_state;
@@ -280,6 +291,7 @@ typedef struct mrb_state {
   struct RClass *eException_class;
   struct RClass *eStandardError_class;
 
+  mrb_int is_method_cache_used;
   void *ud; /* auxiliary data */
 } mrb_state;
 

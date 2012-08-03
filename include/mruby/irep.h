@@ -23,6 +23,8 @@ typedef struct mrb_irep {
   mrb_sym *syms;
 
   int ilen, plen, slen;
+
+  mrb_int is_method_cache_used;
 } mrb_irep;
 
 #define MRB_IREP_NOFREE 3
