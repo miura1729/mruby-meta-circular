@@ -323,12 +323,43 @@ mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t
   mrb_define_method_id(mrb, c, mrb_intern(mrb, name), func, aspec);
 }
 
+static void
+clear_method_cache(mrb_state *mrb)
+{
+  int i;
+  int j;
+  int ilen;
+  int plen;
+  mrb_irep *irep;
+  mrb_value *pool;
+  
+  ilen = mrb->irep_len;
+  for (i = 0; i < ilen; i++) {
+    irep = mrb->irep[i];
+    if (irep->is_method_cache_used) {
+      plen = irep->plen;
+      pool = irep->pool;
+      for (j = 0; j < plen; j++) {
+	if (pool[j].tt == MRB_TT_CACHE_VALUE) {
+	  pool[j].value.p = 0;
+	}
+      }
+      irep->is_method_cache_used = 0;
+    }
+  }
+}
+
 void
 mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value body)
 {
   khash_t(mt) *h = c->mt;
   khiter_t k;
 
+  if (mrb->is_method_cache_used) {
+    clear_method_cache(mrb);
+    mrb->is_method_cache_used = 0;
+  }
+  
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, h, name);
   kh_value(h, k) = mrb_proc_ptr(body);
