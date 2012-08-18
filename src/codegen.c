@@ -142,6 +142,9 @@ genop(codegen_scope *s, mrb_code i)
   s->pc++;
 }
 
+#define NOVAL  0
+#define VAL    1
+
 static void
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
@@ -217,6 +220,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_SETCV:
     case OP_SETCONST:
     case OP_SETMCNST:
+    case OP_SETGLOBAL:
       if (c0 == OP_MOVE) {
         if (GETARG_A(i) == GETARG_A(i0)) {
           s->iseq[s->pc-1] = MKOP_ABx(c1, GETARG_B(i0), GETARG_Bx(i));
@@ -247,8 +251,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
     case OP_RETURN:
       switch (c0) {
       case OP_MOVE:
-	s->iseq[s->pc-1] = MKOP_AB(OP_MOVE, 0, GETARG_B(i0));
-	genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+	s->iseq[s->pc-1] = MKOP_AB(OP_RETURN, GETARG_B(i0), OP_R_NORMAL);
 	return;
       case OP_LOADI:
 	s->iseq[s->pc-1] = MKOP_AsBx(OP_LOADI, 0, GETARG_sBx(i0));
@@ -261,6 +264,17 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       case OP_GETUPVAR:
 	s->iseq[s->pc-1] = MKOP_ABC(c0, 0, GETARG_B(i0), GETARG_C(i0));
 	genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+	return;
+      case OP_SETIV:
+      case OP_SETCV:
+      case OP_SETCONST:
+      case OP_SETMCNST:
+      case OP_SETUPVAR:
+      case OP_SETGLOBAL:
+	s->pc--;
+	genop_peep(s, i0, NOVAL);
+	i0 = s->iseq[s->pc-1];
+	genop(s, MKOP_AB(OP_RETURN, GETARG_A(i0), OP_R_NORMAL));
 	return;
       case OP_LOADSYM:
       case OP_GETGLOBAL:
@@ -364,7 +378,7 @@ new_lit(codegen_scope *s, mrb_value val)
   int i;
 
   for (i=0; i<s->plen; i++) {
-    if (memcmp(&s->pool[i], &val, sizeof(mrb_value)) == 0) return i;
+    if (mrb_obj_equal(s->mrb, s->pool[i], val)) return i;
   }
   if (s->plen == s->pcapa) {
     s->pcapa *= 2;
@@ -459,9 +473,6 @@ lv_idx(codegen_scope *s, mrb_sym id)
   }
   return 0;
 }
-
-#define NOVAL  0
-#define VAL    1
 
 static void
 for_body(codegen_scope *s, node *tree)
@@ -622,10 +633,10 @@ static int
 nosplat(node *t)
 {
   while (t) {
-    if ((intptr_t)t->car->car == NODE_SPLAT) return 0;
+    if ((intptr_t)t->car->car == NODE_SPLAT) return FALSE;
     t = t->cdr;
   }
-  return 1;
+  return TRUE;
 }
 
 static mrb_sym

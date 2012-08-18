@@ -367,31 +367,36 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 
   name = mrb_nil_value();
   rest = mrb_nil_value();
-  mrb_get_args(mrb, "&*", &b, &argv, &argc);
-  if (argc > 0) name = argv[0];
-  if (argc > 1) rest = argv[1];
-  if (mrb_type(rest) == MRB_TT_ARRAY) {
-    if (!mrb_nil_p(name) && SYMBOL_P(name)) {
-      /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-      mrb_ary_unshift(mrb, rest, name);
-      name = mrb_nil_value();
+  mrb_get_args(mrb, "*&", &argv, &argc, &b);
+  if (argc == 0) { /* special case to avoid crash */
+    rest = mrb_ary_new(mrb);
+  } 
+  else {   
+    if (argc > 0) name = argv[0];
+    if (argc > 1) rest = argv[1];
+    if (mrb_type(rest) == MRB_TT_ARRAY) {
+      if (!mrb_nil_p(name) && SYMBOL_P(name)) {
+        /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
+        mrb_ary_unshift(mrb, rest, name);
+        name = mrb_nil_value();
+      }
     }
-  }
-  else {
-    pargv = &argv[1];
-    argcnt = argc-1;
-    if (!mrb_nil_p(name) && SYMBOL_P(name)) {
-      /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-      name = mrb_nil_value();
-      pargv = &argv[0];
-      argcnt++;
+    else {
+      pargv = &argv[1];
+      argcnt = argc-1;
+      if (!mrb_nil_p(name) && SYMBOL_P(name)) {
+        /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
+        name = mrb_nil_value();
+        pargv = &argv[0];
+        argcnt++;
+      }
+      rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     }
-    rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
-  }
-  for (i=0; i<RARRAY_LEN(rest); i++) {
-    id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
-    RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
-  }
+    for (i=0; i<RARRAY_LEN(rest); i++) {
+      id = mrb_to_id(mrb, RARRAY_PTR(rest)[i]);
+      RARRAY_PTR(rest)[i] = mrb_symbol_value(id);
+    }
+  }  
   st = make_struct(mrb, name, rest, struct_class(mrb));
   if (!mrb_nil_p(b)) {
     mrb_funcall(mrb, b, "call", 1, &st);
@@ -400,7 +405,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   return st;
 }
 
-static long
+static int
 num_members(mrb_state *mrb, struct RClass *klass)
 {
     mrb_value members;
@@ -418,7 +423,7 @@ static mrb_value
 mrb_struct_initialize_withArg(mrb_state *mrb, int argc, mrb_value *argv, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
-  long n;
+  int n;
   struct RStruct *st;
 
   mrb_struct_modify(self);
@@ -447,34 +452,7 @@ mrb_struct_initialize_m(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value
 mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self, mrb_value values)
 {
-    return mrb_struct_initialize_withArg(mrb, RARRAY_LEN/*INT*/(values), RARRAY_PTR(values), self);
-}
-
-mrb_value
-mrb_struct_alloc(mrb_state *mrb, mrb_value klass, mrb_value values)
-{
-    return mrb_class_new_instance(mrb, RARRAY_LEN(values), RARRAY_PTR(values), mrb_class(mrb, klass));
-}
-
-mrb_value
-mrb_struct_new(mrb_state *mrb, struct RClass *klass, ...)
-{
-    mrb_value tmpargs[N_REF_FUNC], *mem = tmpargs;
-    int size, i;
-    va_list args;
-
-    size = mrb_long2int(num_members(mrb, klass));
-    if (size > numberof(tmpargs)) {
-      tmpargs[0] = mrb_ary_new_capa(mrb, size);
-      mem = RARRAY_PTR(tmpargs[0]);
-    }
-    va_start(args, klass);
-    for (i=0; i<size; i++) {
-      mem[i] = va_arg(args, mrb_value);
-    }
-    va_end(args);
-
-    return mrb_class_new_instance(mrb, size, mem, klass);
+  return mrb_struct_initialize_withArg(mrb, RARRAY_LEN(values), RARRAY_PTR(values), self);
 }
 
 static mrb_value

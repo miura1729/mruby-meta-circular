@@ -4810,9 +4810,9 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     int len = strlen(s);
-    char *p = (char *)mrb_malloc(mrb, len);
+    char *p = (char *)mrb_malloc(mrb, len + 1);
 
-    memcpy(p, s, len);
+    memcpy(p, s, len + 1);
     if (c->filename) mrb_free(mrb, c->filename);
     c->filename = p;
     c->lineno = 1;
@@ -4875,7 +4875,8 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
       return mrb_undef_value();
     }
     else {
-      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, "syntax error", 0));
+      static const char msg[] = "syntax error";
+      mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SYNTAX_ERROR, msg, sizeof(msg) - 1));
       mrb_parser_free(p);
       return mrb_nil_value();
     }
@@ -4883,7 +4884,8 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   n = mrb_generate_code(mrb, p->tree);
   mrb_parser_free(p);
   if (n < 0) {
-    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, "codegen error", 0));
+    static const char msg[] = "codegen error";
+    mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
     return mrb_nil_value();
   }
   if (c) {

@@ -13,13 +13,22 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
+/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
+#define MRB_NAN_BOXING
+
+/* define on big endian machines; used by MRB_NAN_BOXING */
+//#define MRB_ENDIAN_BIG
+
 /* argv max size in mrb_funcall */
 //#define MRB_FUNCALL_ARGC_MAX 16 
 
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
 
-/* initial size for IV khash */
+/* use segmented list for IV table */
+//#define MRB_USE_IV_SEGLIST
+
+/* initial size for IV khash; ignored when MRB_USE_IV_SEGLIST is set */
 //#define MRB_IV_INITIAL_SIZE 8
 
 /* default size of khash table bucket */
@@ -51,8 +60,13 @@ typedef double mrb_float;
 #endif
 #define readfloat(p) (mrb_float)strtod((p),NULL)
 
+#ifdef MRB_NAN_BOXING
+typedef int32_t mrb_int;
+typedef int32_t mrb_sym;
+#else
 typedef int mrb_int;
 typedef intptr_t mrb_sym;
+#endif
 
 /* define ENABLE_XXXX from DISABLE_XXX */
 #ifndef DISABLE_REGEXP
