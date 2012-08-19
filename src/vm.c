@@ -391,6 +391,7 @@ argnum_error(mrb_state *mrb, int num)
 #define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
 #define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
+#define NILVALUE (((unsigned long long)mrb_mktt(MRB_TT_FALSE)) << 32)
 #define SET_INT_VALUE(r,n) MRB_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) MRB_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) MRB_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
@@ -713,7 +714,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* A B    R(A) := nil */
       int a = GETARG_A(i);
 
-      SET_NIL_VALUE(regs[a]);
+#ifndef MRB_NAN_BOXING
+       SET_NIL_VALUE(regs[a]); 
+#else  /* MRB_NAN_BOXING */
+      *(unsigned long long *)(&regs[a]) = NILVALUE;
+#endif
+
       NEXT;
     }
 
