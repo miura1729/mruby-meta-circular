@@ -12,23 +12,25 @@ extern "C" {
 #endif
 
 typedef struct mrb_irep {
-  int idx;
-
-  int flags;
-  int nlocals;
-  int nregs;
+  int idx:16;
+  int nlocals:16;
+  int nregs:16;
+  int flags:8;
 
   mrb_code *iseq;
   mrb_value *pool;
   mrb_sym *syms;
+
+  /* debug info */
+  const char *filename;
+  short *lines;
 
   int ilen, plen, slen;
 
   mrb_int is_method_cache_used;
 } mrb_irep;
 
-#define MRB_IREP_NOFREE 3
-#define MRB_ISEQ_NOFREE 1
+#define MRB_ISEQ_NO_FREE 1
 
 void mrb_add_irep(mrb_state *mrb, int n);
 

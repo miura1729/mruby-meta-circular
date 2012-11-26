@@ -15,11 +15,6 @@ extern "C" {
 #include "oniguruma.h"
 #include "mruby/data.h"
 
-int mrb_tolower(int c);
-int mrb_toupper(int c);
-#define TOUPPER(c) mrb_toupper((unsigned char)(c))
-#define TOLOWER(c) mrb_tolower((unsigned char)(c))
-
 #define FL_USHIFT    12
 
 #define FL_USER0     (((int)1)<<(FL_USHIFT+0))
@@ -40,8 +35,8 @@ int mrb_toupper(int c);
 #define ENCODING_MASK (((unsigned int)ENCODING_INLINE_MAX)<<ENCODING_SHIFT)
 
 #define ENCODING_SET_INLINED(obj,i) do {\
-    RBASIC(obj)->flags &= ~ENCODING_MASK;\
-    RBASIC(obj)->flags |= (unsigned int)(i) << ENCODING_SHIFT;\
+    mrb_obj_ptr(obj)->flags &= ~ENCODING_MASK;\
+    mrb_obj_ptr(obj)->flags |= (unsigned int)(i) << ENCODING_SHIFT;\
 } while (0)
 #define ENCODING_SET(mrb, obj,i) do {\
     mrb_value mrb_encoding_set_obj = (obj); \

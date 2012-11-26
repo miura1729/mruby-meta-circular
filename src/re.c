@@ -65,8 +65,6 @@ static char * option_to_str(char str[4], int options);
 mrb_value
 mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value self)
 {
-  //obj = mrb_obj_alloc(klass);
-  //mrb_obj_call_init(obj, argc, argv);...mrb_funcall2(obj, idInitialize, argc, argv);
   mrb_value argv[16];
   int argc;
   struct RRegexp *re;
@@ -76,7 +74,7 @@ mrb_reg_s_new_instance(mrb_state *mrb, /*int argc, mrb_value *argv, */mrb_value 
   re->ptr = 0;
   re->src = 0;
   re->usecnt = 0;
-  return mrb_funcall_argv(mrb, mrb_obj_value(re), mrb_intern(mrb, "initialize"), argc, argv);
+  return mrb_funcall_argv(mrb, mrb_obj_value(re), mrb->init_sym, argc, argv);
 }
 
 mrb_value
@@ -262,7 +260,7 @@ match_backref_number(mrb_state *mrb, mrb_value match, mrb_value backref)
       return mrb_fixnum(backref);
 
     case MRB_TT_SYMBOL:
-      name = mrb_sym2name(mrb, SYM2ID(backref));
+      name = mrb_sym2name(mrb, mrb_symbol(backref));
       break;
 
     case MRB_TT_STRING:
@@ -346,8 +344,8 @@ mrb_reg_options(mrb_state *mrb, mrb_value re)
 
     mrb_reg_check(mrb, re);
     options = RREGEXP(re)->ptr->options & ARG_REG_OPTION_MASK;
-    if (RBASIC(re)->flags & KCODE_FIXED) options |= ARG_ENCODING_FIXED;
-    if (RBASIC(re)->flags & REG_ENCODING_NONE) options |= ARG_ENCODING_NONE;
+    if (mrb_basic(re)->flags & KCODE_FIXED) options |= ARG_ENCODING_FIXED;
+    if (mrb_basic(re)->flags & REG_ENCODING_NONE) options |= ARG_ENCODING_NONE;
     return options;
 }
 
@@ -363,7 +361,7 @@ mrb_reg_desc(mrb_state *mrb, const char *s, long len, mrb_value re)
     mrb_reg_check(mrb, re);
     if (*option_to_str(opts, RREGEXP(re)->ptr->options))
         mrb_str_buf_cat(mrb, str, opts, strlen(opts));//mrb_str_buf_cat2(str, opts);
-    if (RBASIC(re)->flags & REG_ENCODING_NONE)
+    if (mrb_basic(re)->flags & REG_ENCODING_NONE)
         mrb_str_buf_cat(mrb, str, "n", 1);
   }
 
@@ -1194,8 +1192,7 @@ mrb_match_aref(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value match)
 
       switch (mrb_type(idx)) {
         case MRB_TT_SYMBOL:
-          //p = mrb_id2name(SYM2ID(idx));
-          p = mrb_sym2name(mrb, SYM2ID(idx));
+          p = mrb_sym2name(mrb, mrb_symbol(idx));
           goto name_to_backref;
           break;
         case MRB_TT_STRING:

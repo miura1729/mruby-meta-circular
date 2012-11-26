@@ -333,7 +333,7 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   int len;
 
   str_modify(mrb, s1);
-  if (mrb_type(other) != MRB_TT_STRING) {
+  if (!mrb_string_p(other)) {
     other = mrb_str_to_str(mrb, other);
   }
   s2 = mrb_str_ptr(other);
@@ -379,7 +379,10 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 static mrb_value
 mrb_str_plus_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_nil_value();
+  mrb_value str;
+
+  mrb_get_args(mrb, "S", &str);
+  return mrb_str_plus(mrb, self, str);
 }
 
 /*
@@ -516,7 +519,7 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
   mrb_int result;
 
   mrb_get_args(mrb, "o", &str2);
-  if (mrb_type(str2) != MRB_TT_STRING) {
+  if (!mrb_string_p(str2)) {
     if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_s"))) {
       return mrb_nil_value();
     }
@@ -554,7 +557,7 @@ int
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
   if (mrb_obj_equal(mrb, str1, str2)) return TRUE;
-  if (mrb_type(str2) != MRB_TT_STRING) {
+  if (!mrb_string_p(str2)) {
     if (mrb_nil_p(str2)) return FALSE;
     if (!mrb_respond_to(mrb, str2, mrb_intern(mrb, "to_str"))) {
       return FALSE;
@@ -592,7 +595,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
   mrb_value s;
 
-  if (mrb_type(str) != MRB_TT_STRING) {
+  if (!mrb_string_p(str)) {
     s = mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
     if (mrb_nil_p(s)) {
       s = mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
@@ -606,7 +609,7 @@ mrb_value
 mrb_string_value(mrb_state *mrb, mrb_value *ptr)
 {
   mrb_value s = *ptr;
-  if (mrb_type(s) != MRB_TT_STRING) {
+  if (!mrb_string_p(s)) {
     s = mrb_str_to_str(mrb, s);
     *ptr = s;
   }
@@ -837,7 +840,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1)", argc);
   }
   return mrb_str_aref(mrb, str, a1);
 }
@@ -866,12 +869,12 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   if (s->len == 0 || !s->ptr) return mrb_nil_value();
   p = s->ptr; pend = s->ptr + s->len;
   if (ISLOWER(*p)) {
-    *p = toupper(*p);
+    *p = TOUPPER(*p);
     modify = 1;
   }
   while (++p < pend) {
     if (ISUPPER(*p)) {
-      *p = tolower(*p);
+      *p = TOLOWER(*p);
       modify = 1;
     }
   }
@@ -936,6 +939,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
     else {
       return mrb_nil_value();
     }
+    s->ptr[s->len] = '\0';
     return str;
   }
 
@@ -967,7 +971,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
      (rslen <= 1 ||
      memcmp(RSTRING_PTR(rs), pp, rslen) == 0)) {
     s->len = len - rslen;
-    p[len] = '\0';
+    p[s->len] = '\0';
     return str;
   }
   return mrb_nil_value();
@@ -1079,7 +1083,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   pend = s->ptr + s->len;
   while (p < pend) {
     if (ISUPPER(*p)) {
-      *p = tolower(*p);
+      *p = TOLOWER(*p);
       modify = 1;
     }
     p++;
@@ -1314,7 +1318,7 @@ str_gsub(mrb_state *mrb, mrb_value str, mrb_int bang)
     mrb_str_buf_cat(mrb, dest, cp, RSTRING_LEN(str) - offset);
   }
   mrb_reg_search(mrb, pat, str, last, 0);
-  RBASIC(dest)->c = mrb_obj_class(mrb, str);
+  mrb_basic(dest)->c = mrb_obj_class(mrb, str);
   return str;
 }
 
@@ -1522,7 +1526,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: %s given",
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
            mrb_obj_classname(mrb, sub));
       }
       sub = tmp;
@@ -1650,11 +1654,11 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str;
 
-  if (mrb_type(obj) == MRB_TT_STRING) {
+  if (mrb_string_p(obj)) {
     return obj;
   }
   str = mrb_funcall(mrb, obj, "to_s", 0);
-  if (mrb_type(str) != MRB_TT_STRING)
+  if (!mrb_string_p(str))
     return mrb_any_to_s(mrb, obj);
   return str;
 }
@@ -1721,7 +1725,6 @@ mrb_str_match_m(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1..2)", argc);
   re = argv[0];
   argv[0] = self;
-  //  result = mrb_funcall2(get_pat(re, 0), mrb_intern("match"), argc, argv);
   result = mrb_funcall(mrb, get_pat(mrb, re, 0), "match", 1, self);
   if (!mrb_nil_p(result) && mrb_block_given_p()) {
     return mrb_yield(mrb, b, result);
@@ -1929,7 +1932,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "type mismatch: %s given",
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
                  mrb_obj_classname(mrb, sub));
       }
       sub = tmp;
@@ -2122,7 +2125,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   mrb_value spat = mrb_nil_value();
   enum {awk, string, regexp} split_type = string;
   long beg, end, i = 0;
-  int lim = -1;
+  mrb_int lim = -1;
   mrb_value result, tmp;
 
   argc = mrb_get_args(mrb, "|oi", &spat, &lim);
@@ -2139,7 +2142,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     split_type = awk;
   }
   else {
-    if (mrb_type(spat) == MRB_TT_STRING) {
+    if (mrb_string_p(spat)) {
       split_type = string;
 #ifdef ENABLE_REGEXP
       if (RSTRING_LEN(spat) == 0) {
@@ -2464,7 +2467,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       break;
     default:
       if (base < 2 || 36 < base) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
       }
       if (base <= 32) {
         len = 5;
@@ -2492,7 +2495,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-  len *= strlen(str)*sizeof(char);
+  len *= strlen(str);
 
   val = strtoul((char*)str, &end, base);
 
@@ -2508,7 +2511,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     return mrb_fixnum_value(result);
   }
 bad:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
   /* not reached */
   return mrb_fixnum_value(0);
 }
@@ -2544,7 +2547,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
       char *p = (char *)mrb_malloc(mrb, len+1);
 
       //MEMCPY(p, s, char, len);
-      memcpy(p, s, sizeof(char)*len);
+      memcpy(p, s, len);
       p[len] = '\0';
       s = p;
     }
@@ -2587,7 +2590,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
     base = mrb_fixnum(argv[0]);
 
   if (base < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
   }
   return mrb_str_to_inum(mrb, self, base, 0/*Qfalse*/);
 }
@@ -2599,7 +2602,10 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   double d;
 //  const char *ellipsis = "";
 //  int w;
-#define DBL_DIG 16
+#if !defined(DBL_DIG)
+  #define DBL_DIG 16
+#endif
+
   enum {max_width = 20};
 #define OutOfRange() (((w = end - p) > max_width) ? \
       (w = max_width, ellipsis = "...") : \
@@ -2615,7 +2621,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
       /* not reached */
     }
     return d;
@@ -2677,7 +2683,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
     if (s[len]) {    /* no sentinel somehow */
       char *p = (char *)mrb_malloc(mrb, len+1);
 
-      memcpy(p, s, sizeof(char)*len);
+      memcpy(p, s, len);
       p[len] = '\0';
       s = p;
     }
@@ -2742,7 +2748,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   pend = RSTRING_END(str);
   while (p < pend) {
     if (ISLOWER(*p)) {
-      *p = toupper(*p);
+      *p = TOUPPER(*p);
       modify = 1;
     }
     p++;
@@ -2984,6 +2990,29 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     return result;
 }
 
+/*
+ * call-seq:
+ *   str.bytes   -> array of fixnums
+ *
+ * Returns an array of bytes in _str_.
+ *
+ *    str = "hello"
+ *    str.bytes       #=> [104, 101, 108, 108, 111]
+ */
+static mrb_value
+mrb_str_bytes(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  mrb_value a = mrb_ary_new_capa(mrb, s->len);
+  char *p = s->ptr, *pend = p + s->len;
+
+  while (p < pend) {
+    mrb_ary_push(mrb, a, mrb_fixnum_value(p[0]));
+    p++;
+  }
+  return a;
+}
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -3048,4 +3077,5 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          ARGS_REQ(1));              /* 15.2.10.5.42 */
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     ARGS_REQ(1));              /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         ARGS_NONE());              /* 15.2.10.5.46(x) */
+  mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           ARGS_NONE());
 }

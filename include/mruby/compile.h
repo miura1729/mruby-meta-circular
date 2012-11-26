@@ -20,7 +20,7 @@ typedef struct mrbc_context {
   mrb_sym *syms;
   int slen;
   char *filename;
-  int lineno;
+  short lineno;
   int capture_errors:1;
   int dump_result:1;
   int no_exec:1;
@@ -33,6 +33,7 @@ const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
 /* AST node structure */
 typedef struct mrb_ast_node {
   struct mrb_ast_node *car, *cdr;
+  short lineno;
 } mrb_ast_node;
 
 /* lexer states */
@@ -89,7 +90,7 @@ struct mrb_parser_state {
 
   int nerr;
   int nwarn;
-  mrb_ast_node *tree, *begin_tree;
+  mrb_ast_node *tree;
 
   int capture_errors;
   struct mrb_parser_message error_buffer[10];
@@ -107,7 +108,7 @@ void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
 struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
 struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
 struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,int,mrbc_context*);
-int mrb_generate_code(mrb_state*, mrb_ast_node*);
+int mrb_generate_code(mrb_state*, struct mrb_parser_state*);
 
 /* program load functions */
 mrb_value mrb_load_file(mrb_state*,FILE*);

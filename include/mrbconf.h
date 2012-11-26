@@ -13,6 +13,9 @@
 /* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
 //#define MRB_USE_FLOAT
 
+/* add -DMRB_INT64 to use 64bit integer for mrb_int */
+//#define MRB_INT64
+
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT */
 #define MRB_NAN_BOXING
 
@@ -29,7 +32,7 @@
 //#define MRB_USE_IV_SEGLIST
 
 /* initial size for IV khash; ignored when MRB_USE_IV_SEGLIST is set */
-//#define MRB_IV_INITIAL_SIZE 8
+//#define MRB_IVHASH_INIT_SIZE 8
 
 /* default size of khash table bucket */
 //#define KHASH_DEFAULT_SIZE 32
@@ -54,19 +57,41 @@
 /* end of configuration */
 
 #ifdef MRB_USE_FLOAT
-typedef float mrb_float;
+  typedef float mrb_float;
+# define mrb_float_to_str(buf, i) sprintf((buf), "%.7e", (i))
+# define str_to_mrb_float(buf) (mrb_float)strtof((buf),NULL)
 #else
-typedef double mrb_float;
+  typedef double mrb_float;
+# define mrb_float_to_str(buf, i) sprintf((buf), "%.16e", (i))
+# define str_to_mrb_float(buf) (mrb_float)strtod((buf),NULL)
 #endif
-#define readfloat(p) (mrb_float)strtod((p),NULL)
 
 #ifdef MRB_NAN_BOXING
-typedef int32_t mrb_int;
-typedef int32_t mrb_sym;
+# ifdef MRB_INT64
+#  error Cannot use NaN boxing when mrb_int is 64bit
+# else
+   typedef int32_t mrb_int;
+#  define MRB_INT_MIN INT32_MIN
+#  define MRB_INT_MAX INT32_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#  define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10)
+# endif
 #else
-typedef int mrb_int;
-typedef intptr_t mrb_sym;
+# ifdef MRB_INT64
+   typedef int64_t mrb_int;
+#  define MRB_INT_MIN INT64_MIN
+#  define MRB_INT_MAX INT64_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%ld", (i))
+#  define str_to_mrb_int(buf) (mrb_int)strtoll((buf), NULL, 10)
+# else
+   typedef int mrb_int;
+#  define MRB_INT_MIN INT_MIN
+#  define MRB_INT_MAX INT_MAX
+#  define mrb_int_to_str(buf, i) sprintf((buf), "%d", (i))
+#  define str_to_mrb_int(buf) (mrb_int)strtol((buf), NULL, 10)
+# endif
 #endif
+typedef short mrb_sym;
 
 /* define ENABLE_XXXX from DISABLE_XXX */
 #ifndef DISABLE_REGEXP

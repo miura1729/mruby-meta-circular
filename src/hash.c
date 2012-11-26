@@ -37,7 +37,7 @@ static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 static inline mrb_value
 mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 {
-  if (mrb_type(key) == MRB_TT_STRING)
+  if (mrb_string_p(key))
     return mrb_str_dup(mrb, key);
   else
     return key;
@@ -488,7 +488,7 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
   return ifnone;
 }
 
-static mrb_value
+mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
@@ -965,14 +965,15 @@ mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
  *
  */
 
-static mrb_value
+mrb_value
 mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
+  mrb_value ary;
 
-  if (!h) return ary;
+  if (!h) return mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)) {
       mrb_value v = kh_key(h,k);
@@ -1000,9 +1001,10 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
   khiter_t k;
-  mrb_value ary = mrb_ary_new_capa(mrb, kh_size(h));
+  mrb_value ary;
 
-  if (!h) return ary;
+  if (!h) return mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
     if (kh_exist(h, k)){
       mrb_value v = kh_value(h,k);
@@ -1104,7 +1106,7 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, int eql)
   khash_t(ht) *h1, *h2;
 
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
-  if (mrb_type(hash2) != MRB_TT_HASH) {
+  if (!mrb_hash_p(hash2)) {
       if (!mrb_respond_to(mrb, hash2, mrb_intern(mrb, "to_hash"))) {
           return mrb_false_value();
       }

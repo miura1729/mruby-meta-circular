@@ -61,6 +61,32 @@ assert('String#[]', '15.2.10.5.6') do
     a3 == 'bc' and b3 == nil
 end
 
+assert('String#[] with Range') do
+  a1 = 'abc'[1..0]
+  b1 = 'abc'[1..1]
+  c1 = 'abc'[1..2]
+  d1 = 'abc'[1..3]
+  e1 = 'abc'[1..4]
+  f1 = 'abc'[0..-2]
+  g1 = 'abc'[-2..3]
+  h1 = 'abc'[3..4]
+  i1 = 'abc'[4..5]
+  a2 = 'abc'[1...0]
+  b2 = 'abc'[1...1]
+  c2 = 'abc'[1...2]
+  d2 = 'abc'[1...3]
+  e2 = 'abc'[1...4]
+  f2 = 'abc'[0...-2]
+  g2 = 'abc'[-2...3]
+  h2 = 'abc'[3...4]
+  i2 = 'abc'[4...5]
+
+  a1 == ''   and b1 == 'b'  and c1 == 'bc' and d1 == 'bc' and e1 == 'bc' and
+  f1 == 'ab' and g1 == 'bc' and h1 == ''   and i2 == nil  and
+  a2 == ''   and b2 == ''   and c2 == 'b'  and d2 == 'bc' and e2 == 'bc' and
+  f2 == 'a'  and g2 == 'bc' and h2 == ''   and i2 == nil
+end
+
 assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
   a.capitalize
@@ -333,5 +359,26 @@ end
 assert('String interpolation (mrb_str_concat for shared strings)') do
   a = "A" * 32
   "#{a}:" == "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:"
+end
+
+assert('Check the usage of a NUL character') do
+  "qqq\0ppp"
+end
+
+assert('String#bytes') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+
+  str1.bytes == bytes1
+end
+
+assert('String#each_byte') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+  bytes2 = []
+
+  str1.each_byte {|b| bytes2 << b }
+
+  bytes1 == bytes2
 end
 

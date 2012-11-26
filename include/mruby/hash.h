@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 struct RHash {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
   struct kh_ht *ht;
 };
@@ -26,7 +26,9 @@ mrb_value mrb_hash_new(mrb_state *mrb);
 void mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val);
 mrb_value mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key);
 mrb_value mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def);
+mrb_value mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key);
 mrb_value mrb_hash(mrb_state *mrb, mrb_value obj);
+mrb_value mrb_hash_keys(mrb_state *mrb, mrb_value hash);
 
 /* RHASH_TBL allocates st_table if not available. */
 #define RHASH(obj)   ((struct RHash*)((obj).value.p))

@@ -17,7 +17,7 @@ struct mrb_data_type {
 };
 
 struct RData {
-  MRUBY_OBJECT_HEADER;
+  MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
   struct mrb_data_type *type;
   void *data;
@@ -30,7 +30,7 @@ struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass, void *
 
 #define Data_Make_Struct(mrb,klass,strct,type,sval) (\
   sval = mrb_malloc(mrb, sizeof(strct)),\
-  memset(sval, 0, sizeof(strct)),\
+  { static const strct zero = { 0 }; *sval = zero},\
   Data_Wrap_Struct(mrb,klass,type,sval)\
 )
 

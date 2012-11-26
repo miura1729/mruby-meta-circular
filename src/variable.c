@@ -71,13 +71,13 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 	t->size++;
 	return;
       }
-      if (key == 0 && !matched_seg) {
+      if (!matched_seg && key == 0) {
 	matched_seg = seg;
 	matched_idx = i;
       }
       else if (key == sym) {
-        seg->val[i] = val;
-        return;
+	seg->val[i] = val;
+	return;
       }
     }
     prev = seg;
@@ -223,10 +223,10 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
       mrb_sym key = seg->key[i];
       mrb_value val = seg->val[i];
 
-      iv_put(mrb, t2, key, val);
       if ((seg->next == NULL) && (i >= t->last_len)) {
         return t2;
       }
+      iv_put(mrb, t2, key, val);
     }
     seg = seg->next;
   }
@@ -251,8 +251,8 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 
 #include "mruby/khash.h"
 
-#ifndef MRB_IV_INITIAL_SIZE
-#define MRB_IV_INITIAL_SIZE 8
+#ifndef MRB_IVHASH_INIT_SIZE
+#define MRB_IVHASH_INIT_SIZE 8
 #endif
 
 KHASH_DECLARE(iv, mrb_sym, mrb_value, 1)
@@ -265,7 +265,7 @@ typedef struct iv_tbl {
 static iv_tbl*
 iv_new(mrb_state *mrb)
 {
-  return (iv_tbl*)kh_init_size(iv, mrb, MRB_IV_INITIAL_SIZE);
+  return (iv_tbl*)kh_init_size(iv, mrb, MRB_IVHASH_INIT_SIZE);
 }
 
 static void
@@ -420,6 +420,7 @@ obj_iv_p(mrb_value obj)
     case MRB_TT_OBJECT:
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
+    case MRB_TT_SCLASS:
     case MRB_TT_HASH:
     case MRB_TT_DATA:
       return TRUE;
@@ -549,7 +550,7 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     iv_tbl *t = mrb_obj_ptr(obj)->iv;
     mrb_value val;
 
-    if (iv_del(mrb, t, sym, &val)) {
+    if (t && iv_del(mrb, t, sym, &val)) {
       return val;
     }
   }
@@ -579,7 +580,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
-  if (len > 1 && s[0] == '@') {
+  if (len > 1 && s[0] == '@' && s[1] != '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
   return 0;
@@ -613,6 +614,50 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
   }
   return ary;
 }
+
+static int
+cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  mrb_value ary;
+  const char* s;
+  int len;
+
+  ary = *(mrb_value*)p;
+  s = mrb_sym2name_len(mrb, sym, &len);
+  if (len > 2 && s[0] == '@' && s[1] == '@') {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+  }
+  return 0;
+}
+
+/* 15.2.2.4.19 */
+/*
+ *  call-seq:
+ *     mod.class_variables   -> array
+ *
+ *  Returns an array of the names of class variables in <i>mod</i>.
+ *
+ *     class One
+ *       @@var1 = 1
+ *     end
+ *     class Two < One
+ *       @@var2 = 2
+ *     end
+ *     One.class_variables   #=> [:@@var1]
+ *     Two.class_variables   #=> [:@@var2]
+ */
+mrb_value
+mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value ary;
+
+  ary = mrb_ary_new(mrb);
+  if (obj_iv_p(mod) && mrb_obj_ptr(mod)->iv) {
+    iv_foreach(mrb, mrb_obj_ptr(mod)->iv, cv_i, &ary);
+  }
+  return ary;
+}
+
 
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
@@ -673,6 +718,7 @@ mod_const_check(mrb_state *mrb, mrb_value mod)
   switch (mrb_type(mod)) {
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
     break;
   default:
     mrb_raise(mrb, E_TYPE_ERROR, "constant look-up for non class/module");
@@ -698,7 +744,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
     }
     c = c->super;
   }
-  if (!retry && base->tt == MRB_TT_MODULE) {
+  if (!retry && base && base->tt == MRB_TT_MODULE) {
     c = mrb->object_class;
     retry = 1;
     goto L_RETRY;
@@ -708,11 +754,11 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   while (c) {
     if (mrb_respond_to(mrb, mrb_obj_value(c), cm)) {
       mrb_value name = mrb_symbol_value(sym);
-      return mrb_funcall(mrb, mrb_obj_value(c), "const_missing", 1, name);
+      return mrb_funcall_argv(mrb, mrb_obj_value(c), cm, 1, &name);
     }
     c = c->super;
   }
-  mrb_raise(mrb, E_NAME_ERROR, "uninitialized constant %s",
+  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized constant %s",
             mrb_sym2name(mrb, sym));
   /* not reached */
   return mrb_nil_value();
@@ -731,6 +777,22 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
+  if (c) {
+    struct RClass *c2 = c;
+    mrb_value v;
+
+    if (c->iv && iv_get(mrb, c->iv, sym, &v)) {
+      return v;
+    }
+    c2 = c;
+    for (;;) {
+      c2 = mrb_class_outer_module(mrb, c2);
+      if (!c2) break;
+      if (c2->iv && iv_get(mrb, c2->iv, sym, &v)) {
+	return v;
+      }
+    }
+  }
   return const_get(mrb, c, sym);
 }
 
@@ -747,13 +809,13 @@ mrb_vm_const_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
-  mrb_iv_set(mrb, mrb_obj_value(c), sym, v);
+  mrb_obj_iv_set(mrb, (struct RObject*)c, sym, v);
 }
 
 void
 mrb_define_const(mrb_state *mrb, struct RClass *mod, const char *name, mrb_value v)
 {
-  mrb_iv_set(mrb, mrb_obj_value(mod), mrb_intern(mrb, name), v);
+  mrb_obj_iv_set(mrb, (struct RObject*)mod, mrb_intern(mrb, name), v);
 }
 
 void
@@ -909,5 +971,5 @@ mrb_class_sym(mrb_state *mrb, struct RClass *c, struct RClass *outer)
       return arg.sym;
     }
   }
-  return SYM2ID(name);
+  return mrb_symbol(name);
 }
