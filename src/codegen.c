@@ -426,12 +426,12 @@ new_lit(codegen_scope *s, mrb_value val)
 static inline int
 new_lit2(codegen_scope *s, mrb_value val)
 {
-  if (s->plen == s->pcapa) {
+  if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->pool = (mrb_value *)codegen_realloc(s, s->pool, sizeof(mrb_value)*s->pcapa);
+    s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
   }
-  s->pool[s->plen] = val;
-  return s->plen++;
+  s->irep->pool[s->irep->plen] = val;
+  return s->irep->plen++;
 }
 
 static inline int
