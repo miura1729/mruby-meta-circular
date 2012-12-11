@@ -3,9 +3,27 @@
 
 # project-specific macros
 # extension of the executable-file is modifiable(.exe .out ...)
+MRUBY_ROOT := ../..
 BASEDIR = ../../src
 TARGET := ../../bin/mirb
 LIBR := ../../lib/libmruby.a
+
+ifeq ($(strip $(ENABLE_GEMS)),)
+  # by default GEMs are deactivated
+  ENABLE_GEMS = false
+endif
+
+ifeq ($(ENABLE_GEMS),false)
+  GEM_ARCHIVE_FILES =
+else
+  MAKEFILE_GEM_LIST := $(MRUBY_ROOT)/mrbgems/g/MakefileGemList
+  ifeq ($(wildcard $(MAKEFILE_GEM_LIST)),)
+    GEM_ARCHIVE_FILES =
+  else
+    include $(MAKEFILE_GEM_LIST)
+  endif
+endif
+
 ifeq ($(OS),Windows_NT)
   EXE := $(TARGET).exe
 else
@@ -36,9 +54,9 @@ endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 ifeq ($(OS),Windows_NT)
-  MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS="$(ALL_CFLAGS)"
+  MAKE_FLAGS = CC=$(CC) LL=$(LL) ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' 
 else
-  MAKE_FLAGS = CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)'
+  MAKE_FLAGS = CC='$(CC)' LL='$(LL)' ALL_CFLAGS='$(ALL_CFLAGS)' LDFLAGS='$(LDFLAGS)' 
 endif
 
 ##############################
@@ -49,7 +67,7 @@ all : $(LIBR) $(EXE)
 
 # executable constructed using linker from object files
 $(EXE) : $(LIBR) $(OBJS) $(EXTS)
-	$(LL) -o $@ $(CFLAGS) $(OBJS) $(LIBR) $(EXTS) $(LIBS)
+	$(LL) -o $@ $(LDFLAGS) $(OBJS) $(LIBR) $(GEM_ARCHIVE_FILES) $(EXTS) $(LIBS)
 
 -include $(OBJS:.o=.d)
 

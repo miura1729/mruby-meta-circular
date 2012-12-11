@@ -11,6 +11,7 @@
 #ifdef ENABLE_REGEXP
 #include "re.h"
 #endif
+#include "mruby/proc.h"
 #include "mruby/irep.h"
 
 typedef struct _RiteFILE
@@ -28,7 +29,7 @@ const char hex2bin[256] = {
   0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  0,  0,  0,  0,  0,  0,  //30-3f
   0, 10, 11, 12, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //40-4f
   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  //50-5f
-  0, 10, 11, 12, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0  //60-6f
+  0, 10, 11, 12, 13, 14, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0   //60-6f
   //70-ff
 };
 
@@ -46,7 +47,7 @@ static unsigned char* rite_fgets(RiteFILE*,unsigned char*,int,int);
 static int load_rite_header(FILE*,rite_binary_header*,unsigned char*);
 static int load_rite_irep_record(mrb_state*, RiteFILE*,unsigned char*,uint32_t*);
 static int read_rite_header(mrb_state*,unsigned char*,rite_binary_header*);
-static int read_rite_irep_record(mrb_state*,unsigned char*,mrb_irep*,uint32_t*);
+static int read_rite_irep_record(mrb_state*,unsigned char*,uint32_t*);
 
 
 static unsigned char
@@ -241,7 +242,7 @@ error_exit:
 }
 
 int
-mrb_load_irep(mrb_state *mrb, FILE* fp)
+mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   int ret, i;
   uint32_t  len, rlen = 0;
@@ -320,7 +321,7 @@ read_rite_header(mrb_state *mrb, unsigned char *bin, rite_binary_header*  bin_he
 }
 
 static int
-read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32_t* len)
+read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
 {
   int i, ret = MRB_DUMP_OK;
   char *buf;
@@ -328,7 +329,9 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
   uint16_t crc, tt, pdl, snl, offset, bufsize=MRB_DUMP_DEFAULT_STR_LEN;
   mrb_int fix_num;
   mrb_float f;
+  int plen;
   int ai = mrb_gc_arena_save(mrb);
+  mrb_irep *irep = mrb_add_irep(mrb);
 
   recordStart = src;
   buf = (char *)mrb_malloc(mrb, bufsize);
@@ -377,16 +380,16 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
   //POOL BLOCK
   pStart = src;
-  irep->plen = bin_to_uint32(src);          //pool length
+  plen = bin_to_uint32(src);          //pool length
   src += MRB_DUMP_SIZE_OF_LONG;
-  if (irep->plen > 0) {
-    irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * irep->plen);
+  if (plen > 0) {
+    irep->pool = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value) * plen);
     if (irep->pool == NULL) {
       ret = MRB_DUMP_INVALID_IREP;
       goto error_exit;
     }
 
-    for (i=0; i<irep->plen; i++) {
+    for (i=0; i<plen; i++) {
       tt = *src;                              //pool TT
       src += sizeof(unsigned char);
       pdl = bin_to_uint16(src);               //pool data length
@@ -429,6 +432,8 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
         irep->pool[i] = mrb_nil_value();
         break;
       }
+      irep->plen++;
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   crc = calc_crc_16_ccitt((unsigned char*)pStart, src - pStart);     //Calculate CRC
@@ -484,7 +489,6 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, mrb_irep *irep, uint32
 
   *len = src - recordStart;
 error_exit:
-  mrb_gc_arena_restore(mrb, ai);
   if (buf)
     mrb_free(mrb, buf);
 
@@ -508,25 +512,14 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
   //Read File Header Section
   if ((nirep = read_rite_header(mrb, src, &bin_header)) < 0)
     return nirep;
-
-  mrb_add_irep(mrb, sirep + nirep);
-
-  for (n=0,i=sirep; n<nirep; n++,i++) {
-    static const mrb_irep mrb_irep_zero = { 0 };
-    if ((mrb->irep[i] = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep))) == NULL) {
-      ret = MRB_DUMP_GENERAL_FAILURE;
-      goto error_exit;
-    }
-    *mrb->irep[i] = mrb_irep_zero;
-  }
+  
   src += sizeof(bin_header) + MRB_DUMP_SIZE_OF_SHORT;  //header + crc
 
   //Read Binary Data Section
   for (n=0,i=sirep; n<nirep; n++,i++) {
     src += MRB_DUMP_SIZE_OF_LONG;                      //record ren
-    if ((ret = read_rite_irep_record(mrb, src, mrb->irep[i], &len)) != MRB_DUMP_OK)
+    if ((ret = read_rite_irep_record(mrb, src, &len)) != MRB_DUMP_OK)
       goto error_exit;
-    mrb->irep[mrb->irep_len++]->idx = i;
     src += len;
   }
   if (0 != bin_to_uint32(src)) {              //dummy record len
@@ -535,7 +528,7 @@ mrb_read_irep(mrb_state *mrb, const char *bin)
 
 error_exit:
   if (ret != MRB_DUMP_OK) {
-    for (n=0,i=sirep; n<nirep; n++,i++) {
+    for (n=0,i=sirep; i<mrb->irep_len; n++,i++) {
       if (mrb->irep[i]) {
         if (mrb->irep[i]->iseq)
           mrb_free(mrb, mrb->irep[i]->iseq);
@@ -549,6 +542,7 @@ error_exit:
         mrb_free(mrb, mrb->irep[i]);
       }
     }
+    //    mrb->irep_len = sirep;
     return ret;
   }
   return sirep + hex_to_uint8(bin_header.sirep);
@@ -658,4 +652,35 @@ hex_to_str(char *hex, char *str, uint16_t *str_len)
     }
   }
   return str;
+}
+
+static void
+irep_error(mrb_state *mrb, int n)
+{
+  static const char msg[] = "irep load error";
+  mrb->exc = (struct RObject*)mrb_object(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
+}
+
+mrb_value
+mrb_load_irep_file(mrb_state *mrb, FILE* fp)
+{
+  int n = mrb_read_irep_file(mrb, fp);
+
+  if (n < 0) {
+    irep_error(mrb, n);
+    return mrb_nil_value();
+  }
+  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
+}
+
+mrb_value
+mrb_load_irep(mrb_state *mrb, const char *bin)
+{
+  int n = mrb_read_irep(mrb, bin);
+
+  if (n < 0) {
+    irep_error(mrb, n);
+    return mrb_nil_value();
+  }
+  return mrb_run(mrb, mrb_proc_new(mrb, mrb->irep[n]), mrb_top_self(mrb));
 }

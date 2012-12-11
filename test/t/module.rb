@@ -31,6 +31,22 @@ assert('Module#append_features', '15.2.2.4.10') do
   Test4AppendFeatures2.const_get(:Const4AppendFeatures2) == Test4AppendFeatures2
 end
 
+assert('Module#class_eval', '15.2.2.4.15') do
+  class Test4ClassEval
+    @a = 11
+    @b = 12
+  end
+  Test4ClassEval.class_eval do
+    def method1
+    end
+  end
+  r = Test4ClassEval.instance_methods
+  Test4ClassEval.class_eval{ @a } == 11 and
+  Test4ClassEval.class_eval{ @b } == 12 and
+  r.class == Array and r.include?(:method1)
+end
+
+
 assert('Module#class_variables', '15.2.2.4.19') do
   class Test4ClassVariables1
     @@var1 = 1
@@ -130,6 +146,34 @@ assert('Module#included_modules', '15.2.2.4.30') do
 
   r = Test4includedModules2.included_modules
   r.class == Array and r.include?(Test4includedModules)
+end
+
+assert('Module#instance_methods', '15.2.2.4.33') do
+   module Test4InstanceMethodsA
+     def method1()  end
+   end
+   class Test4InstanceMethodsB
+     def method2()  end
+   end
+   class Test4InstanceMethodsC < Test4InstanceMethodsB
+     def method3()  end
+   end
+
+   r = Test4InstanceMethodsC.instance_methods(true)
+
+   Test4InstanceMethodsA.instance_methods              == [:method1] and
+   Test4InstanceMethodsB.instance_methods(false)       == [:method2] and
+   Test4InstanceMethodsC.instance_methods(false)       == [:method3] and
+   r.class == Array and r.include?(:method3) and r.include?(:method2)
+end
+
+assert('Module#module_eval', '15.2.2.4.35') do
+   module Test4ModuleEval
+     @a = 11
+     @b = 12
+   end
+   Test4ModuleEval.module_eval{ @a } == 11 and
+   Test4ModuleEval.module_eval{ @b } == 12
 end
 
 # Not ISO specified

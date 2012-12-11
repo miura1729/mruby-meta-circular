@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -15,7 +16,7 @@
 #include "mruby/array.h"
 #include "error.h"
 
-KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal);
+KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
 typedef struct fc_result {
     mrb_sym name;
@@ -661,7 +662,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       }
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide argument specifier %c", c);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid argument specifier %c", c);
       break;
     }
   }
@@ -836,6 +837,73 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   }
 
   return result;
+}
+
+mrb_value class_instance_method_list(mrb_state*, int, mrb_value*, struct RClass*, int);
+
+/* 15.2.2.4.33 */
+/*
+ *  call-seq:
+ *     mod.instance_methods(include_super=true)   -> array
+ *
+ *  Returns an array containing the names of the public and protected instance
+ *  methods in the receiver. For a module, these are the public and protected methods;
+ *  for a class, they are the instance (not singleton) methods. With no
+ *  argument, or with an argument that is <code>false</code>, the
+ *  instance methods in <i>mod</i> are returned, otherwise the methods
+ *  in <i>mod</i> and <i>mod</i>'s superclasses are returned.
+ *
+ *     module A
+ *       def method1()  end
+ *     end
+ *     class B
+ *       def method2()  end
+ *     end
+ *     class C < B
+ *       def method3()  end
+ *     end
+ *
+ *     A.instance_methods                #=> [:method1]
+ *     B.instance_methods(false)         #=> [:method2]
+ *     C.instance_methods(false)         #=> [:method3]
+ *     C.instance_methods(true).length   #=> 43
+ */
+
+static mrb_value
+mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value *argv;
+  int argc;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return class_instance_method_list(mrb, argc, argv, c, 0);
+}
+
+mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
+
+/* 15.2.2.4.35 */
+/*
+ *  call-seq:
+ *     mod.class_eval {| | block }  -> obj
+ *     mod.module_eval {| | block } -> obj
+ *
+ *  Evaluates block in the context of _mod_. This can
+ *  be used to add methods to a class. <code>module_eval</code> returns
+ *  the result of evaluating its argument.
+ */
+
+mrb_value
+mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value a, b;
+  struct RClass *c;
+
+  if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
+  }
+  c = mrb_class_ptr(mod);
+  return mrb_yield_internal(mrb, b, 0, 0, mod, c);
 }
 
 mrb_value
@@ -1406,11 +1474,25 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
   return mrb_symbol(val);
 }
 
+static void
+check_const_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 1 || !ISUPPER(*s)) {
+    mrb_name_error(mrb, id, "wrong constant name %s", s);
+  }
+}
+
 mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym;
   mrb_get_args(mrb, "o", &sym);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   if(mrb_const_defined(mrb, mod, mrb_sym_value(mrb, sym))) {
     return mrb_true_value();
   }
@@ -1422,6 +1504,8 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym;
   mrb_get_args(mrb, "o", &sym);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   return mrb_const_get(mrb, mod, mrb_sym_value(mrb, sym));
 }
 
@@ -1430,6 +1514,8 @@ mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
 {
   mrb_value sym, value;
   mrb_get_args(mrb, "oo", &sym, &value);
+
+  check_const_name(mrb, mrb_sym_value(mrb,sym));
   mrb_const_set(mrb, mod, mrb_sym_value(mrb, sym), value);
   return value;
 }
@@ -1494,8 +1580,11 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
   mrb_define_method(mrb, mod, "include?", mrb_mod_include_p, ARGS_REQ(1));           /* 15.2.2.4.28 */
   mrb_define_method(mrb, mod, "append_features", mrb_mod_append_features, ARGS_REQ(1)); /* 15.2.2.4.10 */
-  mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.29 */
+  mrb_define_method(mrb, mod, "class_eval", mrb_mod_module_eval, ARGS_ANY());           /* 15.2.2.4.15 */
+  mrb_define_method(mrb, mod, "included", mrb_bob_init, ARGS_REQ(1));                     /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
+  mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
+  mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());

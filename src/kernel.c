@@ -564,7 +564,7 @@ check_iv_name(mrb_state *mrb, mrb_sym id)
   int len;
 
   s = mrb_sym2name_len(mrb, id, &len);
-  if (len < 2 || s[0] != '@') {
+  if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
     mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", s);
   }
 }
@@ -717,7 +717,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, mrb_value ary)
   }
 }
 
-static mrb_value
+mrb_value
 class_instance_method_list(mrb_state *mrb, int argc, mrb_value *argv, struct RClass* klass, int obj)
 {
   mrb_value ary;

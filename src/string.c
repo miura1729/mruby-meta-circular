@@ -2511,7 +2511,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
     return mrb_fixnum_value(result);
   }
 bad:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for number(%s)", str);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%s)", str);
   /* not reached */
   return mrb_fixnum_value(0);
 }
@@ -2544,12 +2544,8 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
   if (s) {
     len = RSTRING_LEN(str);
     if (s[len]) {    /* no sentinel somehow */
-      char *p = (char *)mrb_malloc(mrb, len+1);
-
-      //MEMCPY(p, s, char, len);
-      memcpy(p, s, len);
-      p[len] = '\0';
-      s = p;
+      struct RString *temp_str = str_new(mrb, s, len);
+      s = temp_str->ptr;
     }
   }
   return mrb_cstr_to_inum(mrb, s, base, badcheck);
@@ -2621,7 +2617,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalide string for float(%s)", p);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%s)", p);
       /* not reached */
     }
     return d;
@@ -2681,11 +2677,8 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "string for Float contains null byte");
     }
     if (s[len]) {    /* no sentinel somehow */
-      char *p = (char *)mrb_malloc(mrb, len+1);
-
-      memcpy(p, s, len);
-      p[len] = '\0';
-      s = p;
+      struct RString *temp_str = str_new(mrb, s, len);
+      s = temp_str->ptr;
     }
   }
   return mrb_cstr_to_dbl(mrb, s, badcheck);
