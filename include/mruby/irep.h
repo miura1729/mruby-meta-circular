@@ -28,6 +28,10 @@ typedef struct mrb_irep {
   int ilen, plen, slen;
 
   mrb_int is_method_cache_used;
+
+  /* JIT stuff */
+  mrb_value prof_info;
+  mrbjit_code *native_iseq;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1

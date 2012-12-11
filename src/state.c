@@ -93,8 +93,10 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb->stbase);
   mrb_free(mrb, mrb->cibase);
   for (i=0; i<mrb->irep_len; i++) {
-    if (!(mrb->irep[i]->flags & MRB_ISEQ_NO_FREE))
+    if (!(mrb->irep[i]->flags & MRB_ISEQ_NO_FREE)) {
       mrb_free(mrb, mrb->irep[i]->iseq);
+      mrb_free(mrb, mrb->irep[i]->native_iseq);
+    }
     mrb_free(mrb, mrb->irep[i]->pool);
     mrb_free(mrb, mrb->irep[i]->syms);
     mrb_free(mrb, mrb->irep[i]->lines);
