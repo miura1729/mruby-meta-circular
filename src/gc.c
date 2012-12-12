@@ -607,7 +607,7 @@ root_scan_phase(mrb_state *mrb)
     mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
     mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
   }
-  /* mark irep pool */
+  /* mark irep pool and  */
   if (mrb->irep) {
     size_t len = mrb->irep_len;
     if (len > mrb->irep_capa) len = mrb->irep_capa;
@@ -617,6 +617,7 @@ root_scan_phase(mrb_state *mrb)
       for (j=0; j<irep->plen; j++) {
 	mrb_gc_mark_value(mrb, irep->pool[j]);
       }
+      mrb_gc_mark_value(mrb, irep->prof_info);
     }
   }
 }
