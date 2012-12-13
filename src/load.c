@@ -487,6 +487,10 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   }
   src += MRB_DUMP_SIZE_OF_SHORT;
 
+  // JIT Block
+  irep->native_iseq = (mrbjit_code*)mrb_malloc(mrb, sizeof(mrbjit_code)*irep->ilen);
+  irep->prof_info = (int)mrb_calloc(mrb, 1, sizeof(mrbjit_code)*irep->ilen);
+
   *len = src - recordStart;
 error_exit:
   if (buf)

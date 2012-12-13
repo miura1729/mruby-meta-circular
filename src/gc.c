@@ -617,7 +617,6 @@ root_scan_phase(mrb_state *mrb)
       for (j=0; j<irep->plen; j++) {
 	mrb_gc_mark_value(mrb, irep->pool[j]);
       }
-      mrb_gc_mark_value(mrb, irep->prof_info);
     }
   }
 }

@@ -30,7 +30,7 @@ typedef struct mrb_irep {
   mrb_int is_method_cache_used;
 
   /* JIT stuff */
-  mrb_value prof_info;
+  int *prof_info;
   mrbjit_code *native_iseq;
 } mrb_irep;
 
