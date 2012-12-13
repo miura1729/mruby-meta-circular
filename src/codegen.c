@@ -554,7 +554,7 @@ for_body(codegen_scope *s, node *tree)
   genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx - base, OP_L_BLOCK));
   pop();
   idx = new_msym(s, mrb_intern(s->mrb, "each"));
-  genop_send(s, MKOP_ABC(OP_SEND, cursp(), idx, 0));
+  genop_send(s, MKOP_ABC(OP_SENDB, cursp(), idx, 0));
 }
 
 static int
