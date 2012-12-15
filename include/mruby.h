@@ -49,7 +49,6 @@ mrb_cache_value(void *p)
 }
 
 typedef int32_t mrb_code;
-typedef void *(*mrbjit_code)();
 
 struct mrb_state;
 

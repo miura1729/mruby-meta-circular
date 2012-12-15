@@ -13,10 +13,12 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   if (irep->prof_info) {
     irep->prof_info[n]++;
   }
+  irep->prev_pc = *ppc;
 }
 
 void
-mrbjit_dispatch_jump(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+mrbjit_dispatch_local_jump(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 {
   mrbjit_dispatch(mrb, irep, ppc, regs);
+  
 }
