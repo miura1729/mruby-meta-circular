@@ -2119,6 +2119,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
 static void
 scope_finish(codegen_scope *s)
 {
+  int i;
   mrb_state *mrb = s->mrb;
   mrb_irep *irep = s->irep;
     
@@ -2133,8 +2134,15 @@ scope_finish(codegen_scope *s)
       irep->lines = 0;
     }
   }
-  irep->native_iseq = (mrbjit_code*)mrb_malloc(mrb, sizeof(mrbjit_code)*s->pc);
-  irep->prof_info = (int)mrb_calloc(mrb, 1, sizeof(mrbjit_code)*s->pc);
+  irep->native_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*s->pc);
+  for (i = 0; i < s->pc; i++) {
+    irep->native_entry_tab[i].size = 2;
+    irep->native_entry_tab[i].element = 
+      (mrbjit_codeele *)mrb_malloc(mrb, sizeof(mrbjit_codeele)*2);
+  }
+  irep->compile_info = (mrbjit_comp_info *)mrb_malloc(mrb, sizeof(mrbjit_comp_info));
+
+  irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*s->pc);
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {

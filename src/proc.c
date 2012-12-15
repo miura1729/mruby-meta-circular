@@ -175,6 +175,9 @@ mrb_init_proc(mrb_state *mrb)
   call_irep->idx = -1;
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
+  call_irep->compile_info = (mrbjit_comp_info *)mrb_alloca(mrb, sizeof(mrbjit_comp_info));
+  call_irep->native_entry_tab = (mrbjit_codetab *)mrb_alloca(mrb, sizeof(mrbjit_codetab)*1);
+  call_irep->prof_info = (int *)mrb_alloca(mrb, sizeof(int));
 
   mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);
   MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);

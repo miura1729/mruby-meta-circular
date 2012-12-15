@@ -7,7 +7,15 @@
 #ifndef MRUBY_JIT_H
 #define MRUBY_JIT_H
 
-typedef void *(*mrbjit_code)();
+typedef struct mrbjit_codeele {
+  void *(*entry)();
+  mrb_code *prev_pc;
+} mrbjit_codeele;
+
+typedef struct mrbjit_codetab {
+  int size;
+  mrbjit_codeele *element;
+} mrbjit_codetab;
 
 typedef struct mrbjit_varinfo {
   int reg_no;

@@ -10,10 +10,8 @@ void
 mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 {
   size_t n = ISEQ_OFFSET_OF(*ppc);
-  if (irep->prof_info) {
-    irep->prof_info[n]++;
-  }
-  irep->prev_pc = *ppc;
+  irep->prof_info[n]++;
+  irep->compile_info->prev_pc = *ppc;
 }
 
 void

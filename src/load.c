@@ -488,8 +488,14 @@ read_rite_irep_record(mrb_state *mrb, unsigned char *src, uint32_t* len)
   src += MRB_DUMP_SIZE_OF_SHORT;
 
   // JIT Block
-  irep->native_iseq = (mrbjit_code*)mrb_malloc(mrb, sizeof(mrbjit_code)*irep->ilen);
-  irep->prof_info = (int)mrb_calloc(mrb, 1, sizeof(mrbjit_code)*irep->ilen);
+  irep->native_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*irep->ilen);
+  for (i = 0; i < irep->ilen; i++) {
+    irep->native_entry_tab[i].size = 2;
+    irep->native_entry_tab[i].element = 
+      (mrbjit_codeele *)mrb_malloc(mrb, sizeof(mrbjit_codeele)*2);
+  }
+  irep->compile_info = (mrbjit_comp_info *)mrb_malloc(mrb, sizeof(mrbjit_comp_info));
+  irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
 
   *len = src - recordStart;
 error_exit:
