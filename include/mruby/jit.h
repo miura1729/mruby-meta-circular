@@ -7,16 +7,6 @@
 #ifndef MRUBY_JIT_H
 #define MRUBY_JIT_H
 
-typedef struct mrbjit_codeele {
-  void *(*entry)();
-  mrb_code *prev_pc;
-} mrbjit_codeele;
-
-typedef struct mrbjit_codetab {
-  int size;
-  mrbjit_codeele *element;
-} mrbjit_codetab;
-
 typedef struct mrbjit_varinfo {
   int reg_no;
   enum {
@@ -30,9 +20,20 @@ typedef struct mrbjit_varinfo {
   } addr;
 } mrbjit_varinfo;
 
+typedef struct mrbjit_code_info {
+  void *(*code_base)();
+  mrb_code *prev_pc;
+  void *(*entry)();
+  mrbjit_varinfo varinfo;
+} mrbjit_code_info;
+
+typedef struct mrbjit_codetab {
+  int size;
+  mrbjit_code_info *codeinfo;
+} mrbjit_codetab;
+
 typedef struct mrbjit_comp_info {
   mrb_code *prev_pc;
-  mrbjit_varinfo varinfo;
 } mrbjit_comp_info;
 
 #endif  /* MRUBY_JIT_H */
