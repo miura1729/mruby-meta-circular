@@ -15,6 +15,7 @@ OBJ1 := $(patsubst %.c,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.c)))
 #OBJ2 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/regex/*.c))
 #OBJ3 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/ext/enc/*.c))
 OBJS := $(OBJ1) $(OBJ2) $(OBJ3)
+OBJP := $(patsubst %.cc,%.o,$(filter-out $(EXCEPT1),$(wildcard $(BASEDIR)/*.cc)))
 
 # libraries, includes
 INCLUDES = -I$(BASEDIR) -I$(BASEDIR)/../include
@@ -33,6 +34,7 @@ else ifeq ($(COMPILE_MODE),small)
 endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
+ALL_CPPFLAGS = -Wall -fno-operator-names $(CFLAGS) -I ../../../src/Regen/src
 
 
 ##############################
@@ -42,14 +44,18 @@ ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
 all : $(TARGET)
 
 # executable constructed using linker from object files
-$(TARGET) : $(OBJS) $(OBJY)
-	$(AR) r $@ $(OBJS) $(OBJY)
+$(TARGET) : $(OBJS) $(OBJY)  $(OBJP)
+	$(AR) r $@ $(OBJS) $(OBJY) $(OBJP)
 
--include $(OBJS:.o=.d) $(OBJY:.o=.d)
+-include $(OBJS:.o=.d) $(OBJY:.o=.d) $(OBJP:.o=.d)
 
 # objects compiled from source
 $(OBJS) : %.o : %.c
 	$(CC) $(ALL_CFLAGS) -MMD $(INCLUDES) -c $< -o $@
+
+# objects compiled from source written in C++
+$(OBJP) : %.o : %.cc
+	$(CC) $(ALL_CPPFLAGS) -MMD $(INCLUDES) -c $< -o $@
 
 # parser compile
 $(OBJY) : $(YC) $(LDEF)
@@ -66,6 +72,6 @@ $(LDEF) : $(KWD)
 .PHONY : clean #cleandep
 clean :
 	@echo "make: removing targets, objects and depend files of `pwd`"
-	-$(RM_F) $(TARGET) $(OBJS) $(OBJY) $(YC)
-	-$(RM_F) $(OBJS:.o=.d) $(OBJY:.o=.d)
+	-$(RM_F) $(TARGET) $(OBJS) $(OBJY) $(YC) $(OBJP)
+	-$(RM_F) $(OBJS:.o=.d) $(OBJY:.o=.d) $(OBJP:.o=.d)
 	-$(RM_F) $(patsubst %.c,%.o,$(EXCEPT1)) $(patsubst %.c,%.d,$(EXCEPT1))

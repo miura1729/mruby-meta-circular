@@ -36,7 +36,7 @@ OBJS := $(OBJ0)
 EXTS := $(EXT1)
 
 # libraries, includes
-LIBS = -lm
+LIBS = -lm -lstdc++
 INCLUDES = -I$(BASEDIR) -I$(BASEDIR)/../include
 
 ifeq ($(strip $(COMPILE_MODE)),)

@@ -19,7 +19,7 @@ OBJ0 := $(patsubst %.c,%.o,$(wildcard $(BASEDIR)/../tools/mrbc/*.c))
 OBJS := $(OBJ0)
 
 # libraries, includes
-LIBS = -lm
+LIBS = -lm -lstdc++
 INCLUDES = -I$(BASEDIR) -I$(BASEDIR)/../include
 
 # compiler, linker (gcc)

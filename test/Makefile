@@ -44,7 +44,7 @@ TESTRB_REP  := mrubytest.rb.report
 TESTMRB_REP := mrubytest.mrb.report
 
 # libraries, includes
-LIBS = -lm
+LIBS = -lm -lstdc++
 INCLUDES = -I$(BASEDIR)/../src -I$(BASEDIR)/../include
 
 ifeq ($(strip $(COMPILE_MODE)),)
