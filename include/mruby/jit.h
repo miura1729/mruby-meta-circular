@@ -8,15 +8,20 @@
 #define MRUBY_JIT_H
 
 typedef struct mrbjit_varinfo {
+  /* SRC */
   int reg_no;
+  int up;
+
+  /* DIST */
   enum {
-    REGSTOR,
+    REG,
     MEMORY,
     STACK_FRMAME
   } where;
   union {
     void *ptr;
     int no;
+    int offset;
   } addr;
 } mrbjit_varinfo;
 
