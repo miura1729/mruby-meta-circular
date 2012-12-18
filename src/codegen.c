@@ -831,6 +831,7 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
     idx = new_sym(s, sym(node));
     genop_peep(s, MKOP_ABx(OP_SETGLOBAL, sp, idx), val);
     break;
+
   case NODE_LVAR:
     idx = lv_idx(s, sym(node));
     if (idx > 0) {

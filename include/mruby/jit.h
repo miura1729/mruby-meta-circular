@@ -7,6 +7,8 @@
 #ifndef MRUBY_JIT_H
 #define MRUBY_JIT_H
 
+#define COMPILE_THRESHOLD 1000
+
 typedef struct mrbjit_varinfo {
   /* SRC */
   int reg_no;
