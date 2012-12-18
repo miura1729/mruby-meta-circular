@@ -1,0 +1,7 @@
+This is experimental JIT compiler implimentation for mruby.
+If you want to know about mruby, see README.md.
+
+This program uses xbyak (https://github.com/herumi/xbyak/tree/master/xbyak).
+
+author (JIT part only) 
+Miura Hideki (miura1729)

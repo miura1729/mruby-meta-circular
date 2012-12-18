@@ -34,7 +34,7 @@ else ifeq ($(COMPILE_MODE),small)
 endif
 
 ALL_CFLAGS = -Wall -Werror-implicit-function-declaration $(CFLAGS)
-ALL_CPPFLAGS = -Wall -fno-operator-names $(CFLAGS) -I ../../../src/Regen/src
+ALL_CPPFLAGS = -Wall -fno-operator-names $(CFLAGS) -I ../xbyak
 
 
 ##############################
