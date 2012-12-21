@@ -27,17 +27,26 @@ typedef struct mrbjit_varinfo {
   } addr;
 } mrbjit_varinfo;
 
-typedef union mrbjit_inst_spec_info {
-  mrbjit_varinfo varinfo;	/* For Local assignment */
-  mrb_code *branch_inst;	/* For conditional brnach */
-} mrbjit_inst_spec_info;
-
 typedef void * mrbjit_code_area;
+
+typedef struct mrbjit_branchinfo {
+  /* You can judge */
+  /* prev_base == current not branch */
+  /* prev_base != current branched   */
+  mrbjit_code_area *current_base;	/* code area of cureent */
+  mrbjit_code_area *branch_base;	/* code area of branched */
+} mrbjit_branchinfo;
+
+
+typedef union mrbjit_inst_spec_info {
+  mrbjit_branchinfo brainfo;	/* For Conditional Branch */
+} mrbjit_inst_spec_info;
 
 typedef struct mrbjit_code_info {
   mrbjit_code_area code_base;
   mrb_code *prev_pc;
   void *(*entry)();
+  mrbjit_varinfo dstinfo;	/* For Local assignment */
   mrbjit_inst_spec_info inst_spec;
 } mrbjit_code_info;
 
@@ -48,7 +57,7 @@ typedef struct mrbjit_codetab {
 
 typedef struct mrbjit_comp_info {
   mrb_code *prev_pc;
-  void *(*code_base)();
+  mrbjit_code_area code_base;
 } mrbjit_comp_info;
 
 #endif  /* MRUBY_JIT_H */

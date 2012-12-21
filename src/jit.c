@@ -12,7 +12,8 @@
 
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
-extern const void *mrbjit_emit_code(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrb_value *);
+extern const void *mrbjit_emit_code(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
+extern const void *mrbjit_emit_entry(mrbjit_code_area, mrb_state *, mrb_irep *);
 extern const mrbjit_code_area mrbjit_alloc_code();
 
 static mrbjit_code_info *
@@ -47,6 +48,10 @@ search_codeinfo_cbase(mrbjit_codetab *tab, mrbjit_code_area code_base)
   int i;
   mrbjit_code_info *entry;
 
+  if (code_base == NULL) {
+    return NULL;
+  }
+
   for (i = 0; i < tab->size; i++) {
     entry = tab->body + i;
     if (entry->code_base == code_base) {
@@ -74,7 +79,7 @@ search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc)
 }
 
 void
-mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
   size_t n = ISEQ_OFFSET_OF(*ppc);
   size_t pn;
@@ -94,7 +99,10 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 
   if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
     if (irep->compile_info->code_base == NULL) {
-      irep->compile_info->code_base = mrbjit_alloc_code();
+      /* Forst block */
+      cbase = mrbjit_alloc_code();
+      irep->compile_info->code_base = cbase;
+      mrbjit_emit_entry(cbase, mrb, irep);
     }
     if (ci) {
       /* Call generated code */
@@ -103,7 +111,7 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
     else {
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
       ci->code_base = irep->compile_info->code_base;
-      ci->entry = mrbjit_emit_code(ci->code_base, mrb, irep, ppc, regs);
+      ci->entry = mrbjit_emit_code(ci->code_base, mrb, irep, ppc);
     }
   }
   else {
@@ -115,8 +123,8 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 }
 
 void
-mrbjit_dispatch_local_jump(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+mrbjit_dispatch_local_jump(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
-  mrbjit_dispatch(mrb, irep, ppc, regs);
+  mrbjit_dispatch(mrb, irep, ppc);
   
 }

@@ -2139,9 +2139,9 @@ scope_finish(codegen_scope *s)
   for (i = 0; i < s->pc; i++) {
     irep->jit_entry_tab[i].size = 2;
     irep->jit_entry_tab[i].body = 
-      (mrbjit_code_info *)mrb_malloc(mrb, sizeof(mrbjit_code_info)*2);
+      (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*2);
   }
-  irep->compile_info = (mrbjit_comp_info *)mrb_malloc(mrb, sizeof(mrbjit_comp_info));
+  irep->compile_info = (mrbjit_comp_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_comp_info));
 
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*s->pc);
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
