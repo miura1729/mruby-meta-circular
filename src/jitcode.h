@@ -14,6 +14,8 @@ extern "C" {
 #include "mruby/jit.h"
 } /* extern "C" */
 
+/* Regs Map                               *
+ * EBP   -- pointer to regs               */
 class MRBJitCode: public Xbyak::CodeGenerator {
 
  public:
@@ -26,9 +28,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   const void *emit_entry(mrb_state *mrb, mrb_irep *irep) {
     const void* func_ptr = getCurr();
     push(ebp);
+    push(ecx);
     mov(ebp, (Xbyak::uint32)mrb->stbase);
     add(ebp, (Xbyak::uint32)mrb->ci->stackidx);
-    push(ecx);
 
     return func_ptr;
   }

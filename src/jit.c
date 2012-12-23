@@ -12,7 +12,7 @@
 
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
-extern const void *mrbjit_emit_code(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
+extern const void *mrbjit_emit_code(mrb_state *, mrb_irep *, mrb_code **);
 extern const void *mrbjit_emit_entry(mrbjit_code_area, mrb_state *, mrb_irep *);
 extern void mrbjit_emit_exit(mrbjit_code_area, mrb_state *, mrb_irep *);
 extern const mrbjit_code_area mrbjit_alloc_code();
@@ -23,17 +23,19 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
   int i;
   int oldsize;
   mrbjit_code_info *ele;
+  oldsize = -1;
 
  retry:
-  if (tab->body == NULL) {
+  if (tab->body == NULL || oldsize >= 0) {
     oldsize = tab->size;
     tab->size = tab->size + (tab->size >> 1) + 2;
-    tab->body = mrb_realloc(mrb, tab->body, sizeof(mrbjit_code_info) * tab->size);
+    tab->body = mrb_malloc(mrb, sizeof(mrbjit_code_info) * tab->size);
     for (i = oldsize; i < tab->size; i++) {
       tab->body[i].entry = NULL;
     }
   }
 
+  oldsize = tab->size;
   for (i = 0; i < tab->size; i++) {
     ele = tab->body + i;
     if (ele->entry == NULL) {
@@ -90,8 +92,6 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
-  void *(*entry)();
-
 
   prev_pc = irep->compile_info->prev_pc;
   cbase = irep->compile_info->code_base;
@@ -105,38 +105,31 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
     ci = NULL;
   }
 
-  if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
-    if (ci) {
-      //      printf("%x foo\n", cbase);
-      if (cbase == NULL) {
-	ci->entry();
-      }
-    }
-    else {
-      if (cbase == NULL) {
-	cbase = mrbjit_alloc_code();
-	irep->compile_info->code_base = cbase;
-	entry = mrbjit_emit_entry(cbase, mrb, irep);
-      }
-      else {
-	entry = 1;		/* dummy for mark of using */
-      }
-
-      ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
-      ci->code_base = irep->compile_info->code_base;
-      mrbjit_emit_code(ci->code_base, mrb, irep, ppc);
-      ci->entry = entry;
-      ci->prev_pc = prev_pc;
+  if (ci) {
+    if (cbase == NULL) {
+      ci->entry();
     }
   }
   else {
-    if (pci && cbase) {
+    if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
+      void *(*entry)();
+
+      entry = mrbjit_emit_code(mrb, irep, ppc);
+      if (entry) {
+	ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
+	ci->code_base = irep->compile_info->code_base;
+	ci->prev_pc = prev_pc;
+	ci->entry = entry;
+      }
+    }
+
+    if (pci && cbase && ci == NULL) {
       mrbjit_emit_exit(pci->code_base, mrb, irep);
       /* Finish compile */
       irep->compile_info->code_base = NULL;
     }
+    irep->compile_info->prev_pc = *ppc;
   }
-  irep->compile_info->prev_pc = *ppc;
 }
 
 void
