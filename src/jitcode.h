@@ -10,12 +10,16 @@
 #include <xbyak/xbyak.h>
 extern "C" {
 #include "mruby.h"
+#include "opcode.h"
+
 #include "mruby/irep.h"
 #include "mruby/jit.h"
 } /* extern "C" */
 
 /* Regs Map                               *
- * EBP   -- pointer to regs               */
+ * ebp   -- pointer to regs               *
+ * ecx   -- pointer to pool               *
+ * ebx   -- pointer to pc                 */
 class MRBJitCode: public Xbyak::CodeGenerator {
 
  public:
@@ -27,21 +31,20 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
   const void *emit_entry(mrb_state *mrb, mrb_irep *irep) {
     const void* func_ptr = getCurr();
-    push(ebp);
-    push(ecx);
-    mov(ebp, (Xbyak::uint32)mrb->stbase);
-    add(ebp, (Xbyak::uint32)mrb->ci->stackidx);
-
     return func_ptr;
   }
 
   void emit_exit() {
-    pop(ecx);
-    pop(ebp);
     ret();
   }
   
-  const void *emit_mov() {
+  const void *emit_mov(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+    const void *code = getCurr();
+
+    return code;
+  }
+
+  const void *emit_loadl(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
     const void *code = getCurr();
 
     return code;

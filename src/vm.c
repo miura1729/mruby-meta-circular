@@ -473,8 +473,8 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
-void mrbjit_dispatch(mrb_state *, mrb_irep *, mrb_code **);
-void mrbjit_dispatch_local_jump(mrb_state *, mrb_irep *, mrb_code **);
+void mrbjit_dispatch(mrb_state *, mrb_irep *, mrb_code **, mrb_value *);
+void mrbjit_dispatch_local_jump(mrb_state *, mrb_irep *, mrb_code **, mrb_value *);
 
 #ifdef __GNUC__
 #define DIRECT_THREADED
@@ -494,9 +494,9 @@ void mrbjit_dispatch_local_jump(mrb_state *, mrb_irep *, mrb_code **);
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
-#define NEXT mrbjit_dispatch(mrb, irep, &pc);i=*++pc; goto *optable[GET_OPCODE(i)]
-#define JUMP mrbjit_dispatch(mrb, irep, &pc);i=*pc; goto *optable[GET_OPCODE(i)]
-#define LJUMP mrbjit_dispatch_local_jump(mrb, irep, &pc);i=*pc; goto *optable[GET_OPCODE(i)]
+#define NEXT mrbjit_dispatch(mrb, irep, &pc, regs);i=*++pc; goto *optable[GET_OPCODE(i)]
+#define JUMP mrbjit_dispatch(mrb, irep, &pc, regs);i=*pc; goto *optable[GET_OPCODE(i)]
+#define LJUMP mrbjit_dispatch_local_jump(mrb, irep, &pc, regs);i=*pc; goto *optable[GET_OPCODE(i)]
 
 #define END_DISPATCH
 

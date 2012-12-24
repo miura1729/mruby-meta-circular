@@ -1,8 +1,6 @@
 #include "jitcode.h"
 
 extern "C" {
-#include "mruby.h"
-#include "mruby/jit.h"
 
 const void *
 mrbjit_emit_entry(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep)
@@ -33,7 +31,17 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
     entry = (void *)1;		/* dummy for mark of using */
   }
 
-  code->emit_mov();
+  switch(GET_OPCODE(**ppc)) {
+  case OP_MOVE:
+    code->emit_mov(mrb, irep, ppc);
+
+  case OP_LOADL:
+    code->emit_loadl(mrb, irep, ppc);
+
+  default:
+    //    return NULL;
+    return entry;
+  }
 
   return entry;
 }
