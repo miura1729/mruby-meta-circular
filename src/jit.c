@@ -13,7 +13,7 @@
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
 extern const void *mrbjit_emit_code(mrb_state *, mrb_irep *, mrb_code **);
-extern void mrbjit_emit_exit(mrbjit_code_area, mrb_state *, mrb_irep *);
+extern void mrbjit_emit_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
 
 static mrbjit_code_info *
 add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
@@ -138,7 +138,7 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
     }
 
     if (pci && cbase && ci == NULL) {
-      mrbjit_emit_exit(pci->code_base, mrb, irep);
+      mrbjit_emit_exit(pci->code_base, mrb, irep, ppc);
       /* Finish compile */
       irep->compile_info->code_base = NULL;
     }

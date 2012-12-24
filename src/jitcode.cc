@@ -10,10 +10,10 @@ mrbjit_emit_entry(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep)
 }
 
 void
-mrbjit_emit_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep)
+mrbjit_emit_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->emit_exit();
+  code->emit_exit(*ppc);
 }
 
 const void *
@@ -27,23 +27,17 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
     irep->compile_info->code_base = code;
     entry = code->emit_entry(mrb, irep);
   }
-  else {
-    entry = (void *)1;		/* dummy for mark of using */
-  }
 
   switch(GET_OPCODE(**ppc)) {
   case OP_MOVE:
-    code->emit_mov(mrb, irep, ppc);
+    return code->emit_mov(mrb, irep, ppc);
 
   case OP_LOADL:
-    code->emit_loadl(mrb, irep, ppc);
+    return code->emit_loadl(mrb, irep, ppc);
 
   default:
-    //    return NULL;
-    return entry;
+    return NULL;
   }
-
-  return entry;
 }
 
 } /* extern "C" */
