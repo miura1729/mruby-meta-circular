@@ -85,8 +85,6 @@ void
 mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 {
   size_t n = ISEQ_OFFSET_OF(*ppc);
-  size_t pn;
-  mrbjit_code_info *pci;
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
@@ -94,35 +92,34 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   prev_pc = irep->compile_info->prev_pc;
   cbase = irep->compile_info->code_base;
   if (prev_pc) {
-    pn = ISEQ_OFFSET_OF(irep->compile_info->prev_pc);
-    pci = search_codeinfo_cbase(irep->jit_entry_tab + pn, cbase);
     ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc);
   }
   else {
-    pci = NULL;
     ci = NULL;
   }
 
   if (ci) {
     if (cbase == NULL) {
-      asm("push %ecx");
-      asm("mov %0, %%ecx"
-	  :
-	  : "r"(irep->pool));
-
-      asm("push %ebx");
-      asm("mov %0, %%ebx"
-	  :
-	  : "r"(ppc));
-      asm("push %ebp");
-      asm("mov %0, %%ebp"
-	  :
-	  : "r"(regs));
-      ci->entry();
-      asm("pop %ebp");
-      asm("pop %ebx");
-      asm("pop %ecx");
+      mrbjit_emit_exit(ci->code_base, mrb, irep, ppc);
+      /* Finish compile */
+      irep->compile_info->code_base = NULL;
     }
+
+    asm("push %ecx");
+    asm("mov %0, %%ecx"
+	:
+	: "a"(regs)
+	: "%ecx");
+    asm("push %ebx");
+    asm("mov %0, %%ebx"
+	:
+	: "a"(ppc)
+	: "%ebx");
+
+    ci->entry();
+
+    asm("pop %ebx");
+    asm("pop %ecx");
   }
   else {
     if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
@@ -136,11 +133,17 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 	ci->entry = entry;
       }
     }
-
-    if (pci && cbase && ci == NULL) {
-      mrbjit_emit_exit(pci->code_base, mrb, irep, ppc);
+    if (cbase && ci == NULL) {
+      mrbjit_code_info *pci;
+      size_t pn;
+      
       /* Finish compile */
-      irep->compile_info->code_base = NULL;
+      pn = ISEQ_OFFSET_OF(irep->compile_info->prev_pc);
+      pci = search_codeinfo_cbase(irep->jit_entry_tab + pn, cbase);
+      if (pci) {
+	mrbjit_emit_exit(pci->code_base, mrb, irep, ppc);
+	irep->compile_info->code_base = NULL;
+      }
     }
     irep->compile_info->prev_pc = *ppc;
   }

@@ -13,12 +13,12 @@ extern "C" {
 #include "opcode.h"
 
 #include "mruby/irep.h"
+#include "mruby/value.h"
 #include "mruby/jit.h"
 } /* extern "C" */
 
 /* Regs Map                               *
- * ebp   -- pointer to regs               *
- * ecx   -- pointer to pool               *
+ * ecx   -- pointer to regs               *
  * ebx   -- pointer to pc                 */
 class MRBJitCode: public Xbyak::CodeGenerator {
 
@@ -39,21 +39,56 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     ret();
   }
   
-  const void *emit_mov(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *emit_move(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
-    movsd(xmm0, ptr [ebp + srcoff]);
-    movsd(ptr [ebp + dstoff], xmm0);
+    movsd(xmm0, ptr [ecx + srcoff]);
+    movsd(ptr [ecx + dstoff], xmm0);
     return code;
   }
 
   const void *emit_loadl(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    const Xbyak::uint32 srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
-    movsd(xmm0, ptr [ecx + srcoff]);
-    movsd(ptr [ebp + dstoff], xmm0);
+    const Xbyak::uint32 srcoff = GETARG_Bx(**ppc) * sizeof(mrb_value);
+    mov(eax, (Xbyak::uint32)irep->pool + srcoff);
+    movsd(xmm0, ptr [eax]);
+    movsd(ptr [ecx + dstoff], xmm0);
+
+    return code;
+  }
+
+  const void *emit_loadi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+    const void *code = getCurr();
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const Xbyak::uint32 src = GETARG_sBx(**ppc) * sizeof(mrb_value);
+    mov(eax, 0xfff00000 | MRB_TT_FIXNUM);
+    mov(dword [ecx + dstoff], eax);
+    mov(eax, src);
+    mov(dword [ecx + dstoff + 4], eax);
+
+    return code;
+  }
+
+  const void *emit_loadt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+    const void *code = getCurr();
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    mov(eax, 0xfff00000 | MRB_TT_TRUE);
+    mov(dword [ecx + dstoff], eax);
+    mov(eax, 1);
+    mov(dword [ecx + dstoff + 4], eax);
+
+    return code;
+  }
+
+  const void *emit_loadf(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+    const void *code = getCurr();
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    mov(eax, 0xfff00000 | MRB_TT_FALSE);
+    mov(dword [ecx + dstoff], eax);
+    xor(eax, eax);
+    mov(dword [ecx + dstoff + 4], eax);
 
     return code;
   }
