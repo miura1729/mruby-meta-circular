@@ -48,6 +48,7 @@ typedef struct mrbjit_code_info {
   void *(*entry)();
   mrbjit_varinfo dstinfo;	/* For Local assignment */
   mrbjit_inst_spec_info inst_spec;
+  int used;
 } mrbjit_code_info;
 
 typedef struct mrbjit_codetab {

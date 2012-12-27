@@ -27,16 +27,16 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
   if (tab->body == NULL || oldsize >= 0) {
     oldsize = tab->size;
     tab->size = tab->size + (tab->size >> 1) + 2;
-    tab->body = mrb_malloc(mrb, sizeof(mrbjit_code_info) * tab->size);
+    tab->body = mrb_realloc(mrb, tab->body, sizeof(mrbjit_code_info) * tab->size);
     for (i = oldsize; i < tab->size; i++) {
-      tab->body[i].entry = NULL;
+      tab->body[i].used = 0;
     }
   }
 
   oldsize = tab->size;
   for (i = 0; i < tab->size; i++) {
     ele = tab->body + i;
-    if (ele->entry == NULL) {
+    if (ele->used == 0) {
       return ele;
     }
   }
@@ -84,13 +84,14 @@ search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc)
 void
 mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 {
-  size_t n = ISEQ_OFFSET_OF(*ppc);
+  size_t n;
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
 
+ retry:
+  n = ISEQ_OFFSET_OF(*ppc);
   prev_pc = irep->compile_info->prev_pc;
-  cbase = irep->compile_info->code_base;
   if (prev_pc) {
     ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc);
   }
@@ -98,55 +99,57 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
     ci = NULL;
   }
 
+  cbase = irep->compile_info->code_base;
   if (ci) {
-    if (cbase == NULL) {
-      mrbjit_emit_exit(ci->code_base, mrb, irep, ppc);
+    if (cbase) {
+      mrbjit_emit_exit(cbase, mrb, irep, ppc);
       /* Finish compile */
       irep->compile_info->code_base = NULL;
     }
 
-    asm("push %ecx");
-    asm("mov %0, %%ecx"
-	:
-	: "a"(regs)
-	: "%ecx");
-    asm("push %ebx");
-    asm("mov %0, %%ebx"
-	:
-	: "a"(ppc)
-	: "%ebx");
+    if (ci->entry) {
+      //printf("%x %x \n", ci->entry, *ppc);
+      asm("push %ecx");
+      asm("mov %0, %%ecx"
+	  :
+	  : "a"(regs)
+	  : "%ecx");
+      asm("push %ebx");
+      asm("mov %0, %%ebx"
+	  :
+	  : "a"(ppc)
+	  : "%ebx");
 
-    ci->entry();
+      ci->entry();
 
-    asm("pop %ebx");
-    asm("pop %ecx");
+      asm("pop %ebx");
+      asm("pop %ecx");
+      //printf("%x \n", *ppc);
+
+      /* Updated pc, so dispatch try again */
+      goto retry;
+    }
   }
   else {
-    if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
-      void *(*entry)();
+    void *(*entry)() = NULL;
 
+    if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
       entry = mrbjit_emit_code(mrb, irep, ppc);
-      if (entry) {
-	ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
-	ci->code_base = irep->compile_info->code_base;
-	ci->prev_pc = prev_pc;
-	ci->entry = entry;
-      }
+      //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
+      ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
+      ci->code_base = irep->compile_info->code_base;
+      ci->prev_pc = prev_pc;
+      ci->used = 1;
+      ci->entry = entry;
     }
-    if (cbase && ci == NULL) {
-      mrbjit_code_info *pci;
-      size_t pn;
-      
+
+    if (cbase && entry == NULL) {
       /* Finish compile */
-      pn = ISEQ_OFFSET_OF(irep->compile_info->prev_pc);
-      pci = search_codeinfo_cbase(irep->jit_entry_tab + pn, cbase);
-      if (pci) {
-	mrbjit_emit_exit(pci->code_base, mrb, irep, ppc);
-	irep->compile_info->code_base = NULL;
-      }
+      mrbjit_emit_exit(cbase, mrb, irep, ppc);
+      irep->compile_info->code_base = NULL;
     }
-    irep->compile_info->prev_pc = *ppc;
   }
+  irep->compile_info->prev_pc = *ppc;
 }
 
 void
