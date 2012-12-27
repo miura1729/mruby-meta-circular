@@ -85,10 +85,32 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   const void *emit_loadf(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    mov(eax, 1);
+    mov(dword [ecx + dstoff], eax);
+    mov(eax, 0xfff00000 | MRB_TT_FALSE);
+    mov(dword [ecx + dstoff + 4], eax);
+
+    return code;
+  }
+
+  const void *emit_loadnil(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+    const void *code = getCurr();
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     xor(eax, eax);
     mov(dword [ecx + dstoff], eax);
     mov(eax, 0xfff00000 | MRB_TT_FALSE);
     mov(dword [ecx + dstoff + 4], eax);
+
+    return code;
+  }
+
+  const void *emit_addi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+    const void *code = getCurr();
+    const Xbyak::uint32 y = GETARG_C(**ppc);
+    const Xbyak::uint32 off = GETARG_A(**ppc) * sizeof(mrb_value);
+    mov(eax, dword [ecx + off]);
+    add(eax, y);
+    mov(dword [ecx + off], eax);
 
     return code;
   }

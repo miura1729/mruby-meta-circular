@@ -38,11 +38,20 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   case OP_LOADI:
     return code->emit_loadi(mrb, irep, ppc);
 
+    // OP_LOADSYM
+
+  case OP_LOADNIL:
+    return code->emit_loadnil(mrb, irep, ppc);
+
   case OP_LOADT:
     return code->emit_loadt(mrb, irep, ppc);
 
   case OP_LOADF:
     return code->emit_loadf(mrb, irep, ppc);
+
+
+  case OP_ADDI:
+    return code->emit_addi(mrb, irep, ppc);
 
   default:
     return NULL;
