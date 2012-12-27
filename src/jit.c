@@ -14,6 +14,7 @@
 
 extern const void *mrbjit_emit_code(mrb_state *, mrb_irep *, mrb_code **);
 extern void mrbjit_emit_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
+extern void mrbjit_emit_jump_block(mrbjit_code_area, void *);
 
 static mrbjit_code_info *
 add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
@@ -102,7 +103,13 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   cbase = irep->compile_info->code_base;
   if (ci) {
     if (cbase) {
-      mrbjit_emit_exit(cbase, mrb, irep, ppc);
+      if (ci->entry) {
+	mrbjit_emit_jump_block(cbase, ci->entry);
+      }
+      else {
+	mrbjit_emit_exit(cbase, mrb, irep, ppc);
+      }
+	
       /* Finish compile */
       irep->compile_info->code_base = NULL;
     }

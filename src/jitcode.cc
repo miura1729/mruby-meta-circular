@@ -16,6 +16,13 @@ mrbjit_emit_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_c
   code->emit_exit(*ppc);
 }
 
+void
+mrbjit_emit_jump_block(mrbjit_code_area coderaw, void *entry)
+{
+  MRBJitCode *code = (MRBJitCode *) coderaw;
+  code->emit_jump_block(entry);
+}
+
 const void *
 mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
