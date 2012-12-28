@@ -60,6 +60,21 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
   case OP_ADDI:
     return code->emit_addi(mrb, irep, ppc, regs);
 
+  case OP_EQ:
+    return code->emit_eq(mrb, irep, ppc, regs);
+
+  case OP_LT:
+    return code->emit_lt(mrb, irep, ppc, regs);
+
+  case OP_LE:
+    return code->emit_le(mrb, irep, ppc, regs);
+
+  case OP_GT:
+    return code->emit_gt(mrb, irep, ppc, regs);
+
+  case OP_GE:
+    return code->emit_ge(mrb, irep, ppc, regs);
+
   default:
     return NULL;
   }

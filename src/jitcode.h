@@ -165,6 +165,71 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     return code;
   }
+
+#define COMP_GEN(CMPINST)                                            \
+  do {                                                               \
+    int regno = GETARG_A(**ppc);                                     \
+    const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
+    const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
+    mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
+    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno]), *ppc);     \
+    mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
+    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno + 1]), *ppc); \
+\
+    mov(eax, dword [ecx + off0]);                                    \
+    cmp(eax, dword [ecx + off1]);                                    \
+    CMPINST(al);						     \
+    cwde();                                                          \
+    add(eax, eax);                                                   \
+    add(eax, 0xfff00001);                                            \
+    mov(dword [ecx + off0 + 4], eax);                                \
+    mov(dword [ecx + off0], 1);                                      \
+  } while(0)
+    
+  const void *
+    emit_eq(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    COMP_GEN(setz);
+
+    return code;
+  }
+
+  const void *
+    emit_lt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    COMP_GEN(setl);
+
+    return code;
+  }
+
+  const void *
+    emit_le(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    COMP_GEN(setle);
+
+    return code;
+  }
+
+  const void *
+    emit_gt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    COMP_GEN(setg);
+
+    return code;
+  }
+
+  const void *
+    emit_ge(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    COMP_GEN(setge);
+
+    return code;
+  }
 };
 
 #endif  /* MRUBY_JITCODE_H */
