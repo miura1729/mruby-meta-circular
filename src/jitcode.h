@@ -54,7 +54,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
-      ja("@f");
+      jb("@f");
     } 
     else {
       cmp(eax, 0xfff00000 | tt);
@@ -158,6 +158,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [ecx + off]);
     add(eax, y);
     mov(dword [ecx + off], eax);
+    jno("@f");
+    cvtsi2sd(xmm0, eax);
+    movsd(dword [ecx + off], xmm0);
+    L("@@");
 
     return code;
   }
