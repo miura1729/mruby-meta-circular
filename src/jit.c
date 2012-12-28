@@ -12,7 +12,7 @@
 
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
-extern const void *mrbjit_emit_code(mrb_state *, mrb_irep *, mrb_code **);
+extern const void *mrbjit_emit_code(mrb_state *, mrb_irep *, mrb_code **, mrb_value *);
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
 extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
 
@@ -141,7 +141,7 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
     void *(*entry)() = NULL;
 
     if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
-      entry = mrbjit_emit_code(mrb, irep, ppc);
+      entry = mrbjit_emit_code(mrb, irep, ppc, regs);
       //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
       ci->code_base = irep->compile_info->code_base;

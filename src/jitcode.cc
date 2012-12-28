@@ -24,7 +24,7 @@ mrbjit_gen_jump_block(mrbjit_code_area coderaw, void *entry)
 }
 
 const void *
-mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 {
   MRBJitCode *code = (MRBJitCode *) irep->compile_info->code_base;
   const void *entry;
@@ -58,7 +58,7 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 
 
   case OP_ADDI:
-    return code->emit_addi(mrb, irep, ppc);
+    return code->emit_addi(mrb, irep, ppc, regs);
 
   default:
     return NULL;

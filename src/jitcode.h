@@ -29,21 +29,48 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
   }
 
-  const void *gen_entry(mrb_state *mrb, mrb_irep *irep) {
+  const void *
+    gen_entry(mrb_state *mrb, mrb_irep *irep) 
+  {
     const void* func_ptr = getCurr();
     return func_ptr;
   }
 
-  void gen_exit(mrb_code *pc) {
+  void 
+    gen_exit(mrb_code *pc) 
+  {
     mov(dword [ebx], (Xbyak::uint32)pc);
     ret();
   }
   
-  void gen_jump_block(void *entry) {
+  void 
+    gen_jump_block(void *entry) 
+  {
     jmp(entry);
   }
 
-  const void *emit_move(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  void gen_type_guard(enum mrb_vtype tt, mrb_code *pc)
+  {
+    /* Input eax for type tag */
+    if (tt == MRB_TT_FLOAT) {
+      cmp(eax, 0xfff00000);
+      ja("@f");
+    } 
+    else {
+      cmp(eax, 0xfff00000 | tt);
+      jz("@f");
+    }
+
+    /* Guard fail exit code */
+    mov(dword [ebx], (Xbyak::uint32)pc);
+    ret();
+
+    L("@@");
+  }
+
+  const void *
+    emit_move(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
@@ -52,7 +79,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-  const void *emit_loadl(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *
+    emit_loadl(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 srcoff = GETARG_Bx(**ppc) * sizeof(mrb_value);
@@ -63,7 +92,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-  const void *emit_loadi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *
+    emit_loadi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+  {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 src = GETARG_sBx(**ppc);
@@ -75,7 +106,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-  const void *emit_loadt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *
+    emit_loadt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+  {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mov(eax, 1);
@@ -86,7 +119,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-  const void *emit_loadf(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *
+    emit_loadf(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+  {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mov(eax, 1);
@@ -97,7 +132,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-  const void *emit_loadnil(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *
+    emit_loadnil(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+  {
     const void *code = getCurr();
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     xor(eax, eax);
@@ -108,10 +145,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-  const void *emit_addi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) {
+  const void *
+    emit_addi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
     const void *code = getCurr();
     const Xbyak::uint32 y = GETARG_C(**ppc);
     const Xbyak::uint32 off = GETARG_A(**ppc) * sizeof(mrb_value);
+    int regno = GETARG_A(**ppc);
+    mov(eax, dword [ecx + off + 4]); /* Get type tag */
+    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno]), *ppc);
+
     mov(eax, dword [ecx + off]);
     add(eax, y);
     mov(dword [ecx + off], eax);
