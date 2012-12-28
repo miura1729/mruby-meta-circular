@@ -3,24 +3,24 @@
 extern "C" {
 
 const void *
-mrbjit_emit_entry(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep)
+mrbjit_gen_entry(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  return code->emit_entry(mrb, irep);
+  return code->gen_entry(mrb, irep);
 }
 
 void
-mrbjit_emit_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->emit_exit(*ppc);
+  code->gen_exit(*ppc);
 }
 
 void
-mrbjit_emit_jump_block(mrbjit_code_area coderaw, void *entry)
+mrbjit_gen_jump_block(mrbjit_code_area coderaw, void *entry)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->emit_jump_block(entry);
+  code->gen_jump_block(entry);
 }
 
 const void *
@@ -32,7 +32,7 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   if (code == NULL) {
     code = new MRBJitCode();
     irep->compile_info->code_base = code;
-    entry = code->emit_entry(mrb, irep);
+    entry = code->gen_entry(mrb, irep);
   }
 
   switch(GET_OPCODE(**ppc)) {

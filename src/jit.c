@@ -13,8 +13,8 @@
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
 extern const void *mrbjit_emit_code(mrb_state *, mrb_irep *, mrb_code **);
-extern void mrbjit_emit_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
-extern void mrbjit_emit_jump_block(mrbjit_code_area, void *);
+extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
+extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
 
 static mrbjit_code_info *
 add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
@@ -91,6 +91,7 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   mrb_code *prev_pc;
 
  retry:
+  cbase = irep->compile_info->code_base;
   n = ISEQ_OFFSET_OF(*ppc);
   prev_pc = irep->compile_info->prev_pc;
   if (prev_pc) {
@@ -100,14 +101,13 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
     ci = NULL;
   }
 
-  cbase = irep->compile_info->code_base;
   if (ci) {
     if (cbase) {
       if (ci->entry) {
-	mrbjit_emit_jump_block(cbase, ci->entry);
+	mrbjit_gen_jump_block(cbase, ci->entry);
       }
       else {
-	mrbjit_emit_exit(cbase, mrb, irep, ppc);
+	mrbjit_gen_exit(cbase, mrb, irep, ppc);
       }
 	
       /* Finish compile */
@@ -152,7 +152,7 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
 
     if (cbase && entry == NULL) {
       /* Finish compile */
-      mrbjit_emit_exit(cbase, mrb, irep, ppc);
+      mrbjit_gen_exit(cbase, mrb, irep, ppc);
       irep->compile_info->code_base = NULL;
     }
   }

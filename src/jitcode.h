@@ -29,17 +29,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
   }
 
-  const void *emit_entry(mrb_state *mrb, mrb_irep *irep) {
+  const void *gen_entry(mrb_state *mrb, mrb_irep *irep) {
     const void* func_ptr = getCurr();
     return func_ptr;
   }
 
-  void emit_exit(mrb_code *pc) {
+  void gen_exit(mrb_code *pc) {
     mov(dword [ebx], (Xbyak::uint32)pc);
     ret();
   }
   
-  void emit_jump_block(void *entry) {
+  void gen_jump_block(void *entry) {
     jmp(entry);
   }
 
