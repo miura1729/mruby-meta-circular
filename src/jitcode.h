@@ -49,7 +49,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     jmp(entry);
   }
 
-  void gen_type_guard(enum mrb_vtype tt, mrb_code *pc)
+  void 
+    gen_type_guard(enum mrb_vtype tt, mrb_code *pc)
   {
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
@@ -58,6 +59,25 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     } 
     else {
       cmp(eax, 0xfff00000 | tt);
+      jz("@f");
+    }
+
+    /* Guard fail exit code */
+    mov(dword [ebx], (Xbyak::uint32)pc);
+    ret();
+
+    L("@@");
+  }
+
+  void
+    gen_bool_guard(int b, mrb_code *pc)
+  {
+    /* Input eax for tested boolean */
+    cmp(eax, 0xfff00001);
+    if (b) {
+      jnz("@f");
+    } 
+    else {
       jz("@f");
     }
 
@@ -159,8 +179,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     add(eax, y);
     mov(dword [ecx + off], eax);
     jno("@f");
+    sub(esp, 8);
+    movsd(ptr [esp], xmm1);
+    mov(eax, dword [ecx + off]);
     cvtsi2sd(xmm0, eax);
+    mov(eax, y);
+    cvtsi2sd(xmm1, eax);
+    addsd(xmm0, xmm1);
     movsd(dword [ecx + off], xmm0);
+    movsd(xmm1, ptr [esp]);
+    add(esp, 8);
     L("@@");
 
     return code;
@@ -227,6 +255,42 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     COMP_GEN(setge);
+
+    return code;
+  }
+
+  const void *
+    emit_jmpif(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+  {
+    const void *code = getCurr();
+    const int cond = GETARG_A(**ppc);
+    const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
+    
+    mov(eax, ptr [ecx + coff + 4]);
+    if (mrb_test(regs[cond])) {
+      gen_bool_guard(1, *ppc + 1);
+    }
+    else {
+      gen_bool_guard(0, *ppc + GETARG_sBx(**ppc));
+    }
+
+    return code;
+  }
+
+  const void *
+    emit_jmpnot(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+  {
+    const void *code = getCurr();
+    const int cond = GETARG_A(**ppc);
+    const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
+    
+    mov(eax, ptr [ecx + coff + 4]);
+    if (!mrb_test(regs[cond])) {
+      gen_bool_guard(0, *ppc + 1);
+    }
+    else {
+      gen_bool_guard(1, *ppc + GETARG_sBx(**ppc));
+    }
 
     return code;
   }
