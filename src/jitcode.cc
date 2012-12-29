@@ -26,7 +26,7 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
 
   if (code == NULL) {
     code = the_code;
-    irep->compile_info->code_base = the_code;
+    irep->compile_info->code_base = code;
     entry = code->gen_entry(mrb, irep);
   }
 

@@ -185,9 +185,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [ecx + off]);
     add(eax, y);
     mov(dword [ecx + off], eax);
+
     jno("@f");
     sub(esp, 8);
-    movsd(ptr [esp], xmm1);
+    movsd(qword [esp], xmm1);
     mov(eax, dword [ecx + off]);
     cvtsi2sd(xmm0, eax);
     mov(eax, y);
@@ -201,16 +202,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-#define COMP_GEN(CMPINST)                                            \
-  do {                                                               \
-    int regno = GETARG_A(**ppc);                                     \
-    const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
-    const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
-    mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
-    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno]), *ppc);     \
-    mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
-    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno + 1]), *ppc); \
-\
+#define COMP_GEN_II(CMPINST)                                         \
+do {                                                                 \
     mov(eax, dword [ecx + off0]);                                    \
     cmp(eax, dword [ecx + off1]);                                    \
     CMPINST(al);						     \
@@ -219,13 +212,81 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     add(eax, 0xfff00001);                                            \
     mov(dword [ecx + off0 + 4], eax);                                \
     mov(dword [ecx + off0], 1);                                      \
-  } while(0)
+} while(0)
+
+#define COMP_GEN_IF(CMPINST)                                         \
+do {                                                                 \
+    cvtsi2sd(xmm0, ptr [ecx + off0]);                                \
+    comisd(xmm0, ptr [ecx + off1]);				     \
+    CMPINST(al);						     \
+    cwde();                                                          \
+    add(eax, eax);                                                   \
+    add(eax, 0xfff00001);                                            \
+    mov(dword [ecx + off0 + 4], eax);                                \
+    mov(dword [ecx + off0], 1);                                      \
+} while(0)
+
+#define COMP_GEN_FI(CMPINST)                                         \
+do {                                                                 \
+    sub(esp, 8); 					             \
+    movsd(qword [esp], xmm1);   				     \
+    movsd(xmm0, ptr [ecx + off0]);				     \
+    cvtsi2sd(xmm1, ptr [ecx + off1]);                                \
+    comisd(xmm0, xmm1);     			                     \
+    CMPINST(al);						     \
+    cwde();                                                          \
+    add(eax, eax);                                                   \
+    add(eax, 0xfff00001);                                            \
+    mov(dword [ecx + off0 + 4], eax);                                \
+    mov(dword [ecx + off0], 1);                                      \
+    movsd(xmm1, ptr [esp]);					     \
+    add(esp, 8);						     \
+} while(0)
+
+#define COMP_GEN_FF(CMPINST)                                         \
+do {                                                                 \
+    movsd(xmm0, dword [ecx + off0]);                                 \
+    comisd(xmm0, ptr [ecx + off1]);				     \
+    CMPINST(al);						     \
+    cwde();                                                          \
+    add(eax, eax);                                                   \
+    add(eax, 0xfff00001);                                            \
+    mov(dword [ecx + off0 + 4], eax);                                \
+    mov(dword [ecx + off0], 1);                                      \
+} while(0)
     
+#define COMP_GEN(CMPINSTI, CMPINSTF)				     \
+do {                                                                 \
+    int regno = GETARG_A(**ppc);                                     \
+    const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
+    const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
+    mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
+    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno]), *ppc);     \
+    mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
+    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno + 1]), *ppc); \
+                                                                     \
+    if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \
+             mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \
+          COMP_GEN_FI(CMPINSTF);                                     \
+    }                                                                \
+    else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&               \
+             mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {            \
+          COMP_GEN_IF(CMPINSTF);                                     \
+    }                                                                \
+    else if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                \
+             mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {            \
+          COMP_GEN_FF(CMPINSTF);                                     \
+    }                                                                \
+    else {                                                           \
+          COMP_GEN_II(CMPINSTI);                                     \
+    }                                                                \
+ } while(0)
+  
   const void *
     emit_eq(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
   {
     const void *code = getCurr();
-    COMP_GEN(setz);
+    COMP_GEN(setz, setz);
 
     return code;
   }
@@ -234,7 +295,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_lt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
   {
     const void *code = getCurr();
-    COMP_GEN(setl);
+    COMP_GEN(setl, setb);
 
     return code;
   }
@@ -243,7 +304,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_le(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
   {
     const void *code = getCurr();
-    COMP_GEN(setle);
+    COMP_GEN(setle, setbe);
 
     return code;
   }
@@ -252,7 +313,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_gt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
   {
     const void *code = getCurr();
-    COMP_GEN(setg);
+    COMP_GEN(setg, seta);
 
     return code;
   }
@@ -261,7 +322,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_ge(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
   {
     const void *code = getCurr();
-    COMP_GEN(setge);
+    COMP_GEN(setge, setae);
 
     return code;
   }
