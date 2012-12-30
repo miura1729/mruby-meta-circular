@@ -46,6 +46,38 @@ assert('Module#class_eval', '15.2.2.4.15') do
   r.class == Array and r.include?(:method1)
 end
 
+assert('Module#class_variable_defined?', '15.2.2.4.16') do
+  class Test4ClassVariableDefined
+    @@cv = 99
+  end
+
+  Test4ClassVariableDefined.class_variable_defined?(:@@cv) and
+  not Test4ClassVariableDefined.class_variable_defined?(:@@noexisting)
+end
+
+assert('Module#class_variable_get', '15.2.2.4.17') do
+  class Test4ClassVariableGet
+    @@cv = 99
+  end
+
+  Test4ClassVariableGet.class_variable_get(:@@cv) == 99
+end
+
+assert('Module#class_variable_set', '15.2.2.4.18') do
+  class Test4ClassVariableSet
+    @@foo = 100
+    def foo
+      @@foo
+    end
+  end
+
+  Test4ClassVariableSet.class_variable_set(:@@cv, 99)
+  Test4ClassVariableSet.class_variable_set(:@@foo, 101)
+
+  Test4ClassVariableSet.class_variables.include? :@@cv and
+  Test4ClassVariableSet.class_variable_get(:@@cv) == 99 and
+  Test4ClassVariableSet.new.foo == 101
+end
 
 assert('Module#class_variables', '15.2.2.4.19') do
   class Test4ClassVariables1
@@ -175,6 +207,35 @@ assert('Module#module_eval', '15.2.2.4.35') do
    Test4ModuleEval.module_eval{ @a } == 11 and
    Test4ModuleEval.module_eval{ @b } == 12
 end
+
+assert('Module#remove_class_variable', '15.2.2.4.39') do
+  class Test4RemoveClassVariable
+    @@cv = 99
+  end
+
+  Test4RemoveClassVariable.remove_class_variable(:@@cv) == 99 and
+  not Test4RemoveClassVariable.class_variables.include? :@@cv
+end
+
+assert('Module#remove_method', '15.2.2.4.41') do
+  module Test4RemoveMethod
+    class Parent
+      def hello
+      end
+     end
+
+     class Child < Parent
+      def hello
+      end
+     end
+  end
+
+  Test4RemoveMethod::Child.class_eval{ remove_method :hello }
+
+  Test4RemoveMethod::Child.instance_methods.include? :hello and
+  not Test4RemoveMethod::Child.instance_methods(false).include? :hello
+end
+
 
 # Not ISO specified
 

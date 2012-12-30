@@ -10,17 +10,16 @@ class Array
   #
   # ISO 15.2.12.5.10
   def each(&block)
-    idx = 0
+    idx, length = -1, self.length-1
     while(idx < length)
-      block.call(self[idx])
-      idx += 1
+      block.call(self[idx += 1])
     end
     self
   end
 
   ##
   # Calls the given block for each element of +self+
-  # and pass the index of the respective elment.
+  # and pass the index of the respective element.
   #
   # ISO 15.2.12.5.11
   def each_index(&block)

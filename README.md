@@ -59,6 +59,10 @@ To run the tests, execute the following from the project's root directory.
 
     $ make test
 
+Or
+
+    $ ruby ./minirake test
+
 ## Customization
 
 mruby contains a package manager called *mrbgems*. To create extensions

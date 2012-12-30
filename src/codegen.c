@@ -1230,6 +1230,9 @@ codegen(codegen_scope *s, node *tree, int val)
             pop();
             genop_send(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "===")), 1));
           }
+          else {
+	    pop();
+	  }
           tmp = new_label(s);
           genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
           pos2 = tmp;
@@ -1240,7 +1243,6 @@ codegen(codegen_scope *s, node *tree, int val)
           genop(s, MKOP_sBx(OP_JMP, 0));
           dispatch_linked(s, pos2);
         }
-	pop();			/* pop HEAD */
         codegen(s, tree->car->cdr, val);
 	if (val) pop();
         tmp = new_label(s);
@@ -1248,11 +1250,11 @@ codegen(codegen_scope *s, node *tree, int val)
         pos3 = tmp;
         if (pos1) dispatch(s, pos1);
         tree = tree->cdr;
-	push();			/* push HEAD */
       }
-      pop();			/* pop HEAD */
-      genop(s, MKOP_A(OP_LOADNIL, cursp()));
-      if (val) push();
+      if (val) {
+	genop(s, MKOP_A(OP_LOADNIL, cursp()));
+	push();
+      }
       if (pos3) dispatch_linked(s, pos3);
     }
     break;
@@ -2114,6 +2116,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   if (p->filename) {
     p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
   }
+  p->lineno = prev->lineno;
   return p;
 }
 
@@ -2390,7 +2393,7 @@ codedump(mrb_state *mrb, int n)
       break;
 
     case OP_LAMBDA:
-      printf("OP_LAMBDA\tR%d\tI(%d)\t%d\n", GETARG_A(c), n+GETARG_b(c), GETARG_c(c));
+      printf("OP_LAMBDA\tR%d\tI(%+d)\t%d\n", GETARG_A(c), GETARG_b(c), GETARG_c(c));
       break;
     case OP_RANGE:
       printf("OP_RANGE\tR%d\tR%d\t%d\n", GETARG_A(c), GETARG_B(c), GETARG_C(c));

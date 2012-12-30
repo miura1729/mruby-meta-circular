@@ -1173,10 +1173,14 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         int eidx;
 
       L_RAISE:
+	ci = mrb->ci;
 	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(pc));
-        ci = mrb->ci;
-	eidx = mrb->ci->eidx;
-        if (ci == mrb->cibase) goto L_STOP;
+	mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
+	eidx = ci->eidx;
+        if (ci == mrb->cibase) {
+	  if (ci->ridx == 0) goto L_STOP;
+	  goto L_RESCUE;
+	}
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->ci;
@@ -1195,6 +1199,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
             break;
           }
         }
+      L_RESCUE:
         irep = ci->proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
@@ -1216,7 +1221,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
               localjump_error(mrb, "return");
               goto L_RAISE;
             }
-            ci = mrb->ci = mrb->cibase + e->cioff;
+            ci = mrb->cibase + e->cioff;
+	    if (ci == mrb->cibase) {
+              localjump_error(mrb, "return");
+              goto L_RAISE;
+	    }
+	    mrb->ci = ci;
             break;
           }
         case OP_R_NORMAL:
@@ -1412,7 +1422,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  x = mrb_fixnum(regs[a]);
 	  y = mrb_fixnum(regs[a+1]);
 	  z = x - y;
-	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	  if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
 	    /* integer overflow */
 	    SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
 	    break;
@@ -1554,7 +1564,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	  mrb_int y = GETARG_C(i);
 	  mrb_int z = x - y;
 
-	  if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
+	  if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
 	    /* integer overflow */
 	    SET_FLT_VALUE(regs[a], (mrb_float)x - (mrb_float)y);
 	    break;

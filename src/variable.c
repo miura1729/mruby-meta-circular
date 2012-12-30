@@ -673,6 +673,82 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
+mrb_value
+mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
+{
+  struct RClass * cls = c;
+
+  while (c) {
+    if (c->iv) {
+      iv_tbl *t = c->iv;
+      mrb_value v;
+
+      if (iv_get(mrb, t, sym, &v))
+        return v;
+    }
+    c = c->super;
+  }
+  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized class variable %s in %s",
+             mrb_sym2name(mrb, sym), mrb_class_name(mrb, cls));
+  /* not reached */
+  return mrb_nil_value();
+}
+
+mrb_value
+mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  return mrb_mod_cv_get(mrb, mrb_class_ptr(mod), sym);
+}
+
+void
+mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v)
+{
+  struct RClass * cls = c;
+
+  while (c) {
+    if (c->iv) {
+      iv_tbl *t = c->iv;
+
+      if (iv_get(mrb, t, sym, NULL)) {
+        iv_put(mrb, t, sym, v);
+        return;
+      }
+    }
+    c = c->super;
+  }
+
+  if (!cls->iv) {
+    cls->iv = iv_new(mrb);
+  }
+
+  iv_put(mrb, cls->iv, sym, v);
+}
+
+void
+mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
+{
+  mrb_mod_cv_set(mrb, mrb_class_ptr(mod), sym, v);
+}
+
+int
+mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
+{
+  while (c) {
+    if (c->iv) {
+      iv_tbl *t = c->iv;
+      if (iv_get(mrb, t, sym, NULL)) return TRUE;
+    }
+    c = c->super;
+  }
+
+  return FALSE;
+}
+
+int
+mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
+}
 
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
@@ -680,17 +756,8 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
-  while (c) {
-    if (c->iv) {
-      iv_tbl *t = c->iv;
-      mrb_value v;
-
-      if (iv_get(mrb, t, sym, &v))
-	return v;
-    }
-    c = c->super;
-  }
-  return mrb_nil_value();
+ 
+  return mrb_mod_cv_get(mrb, c, sym);
 }
 
 void

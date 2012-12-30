@@ -9,6 +9,9 @@
 *.sav
 *.swp
 *.d
+*.tmp
+*.ctmp
+*.rbtmp
 *~
 .DS_Store
 .ccmalloc
@@ -19,10 +22,12 @@ cscope.out
 /bin
 /mrblib/mrblib.c
 /mrblib/*.*tmp
+/mrblib/mrblib.mrb
 /test/mrbtest
 /test/mrbtest.c
 /test/*.*tmp
 /test/mrubytest.*
+tools/mrbc/mrbc.mrb
 CMakeFiles
 CMakeCache.txt
 /mrbgems/generator

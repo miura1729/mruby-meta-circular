@@ -919,6 +919,7 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_TRUE:
     return mrb_obj_value(mrb->true_class);
   case MRB_TT_MAIN:
+  case MRB_TT_VOIDP:
     return mrb_obj_value(mrb->object_class);
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
@@ -1475,6 +1476,199 @@ mrb_sym_value(mrb_state *mrb, mrb_value val)
 }
 
 static void
+check_cv_name(mrb_state *mrb, mrb_sym id)
+{
+  const char *s;
+  int len;
+
+  s = mrb_sym2name_len(mrb, id, &len);
+  if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
+    mrb_name_error(mrb, id, "`%s' is not allowed as a class variable name", s);
+  }
+}
+
+/* 15.2.2.4.16 */
+/*
+ *  call-seq:
+ *     obj.class_variable_defined?(symbol)    -> true or false
+ *
+ *  Returns <code>true</code> if the given class variable is defined
+ *  in <i>obj</i>.
+ *
+ *     class Fred
+ *       @@foo = 99
+ *     end
+ *     Fred.class_variable_defined?(:@@foo)    #=> true
+ *     Fred.class_variable_defined?(:@@bar)    #=> false
+ */
+
+static mrb_value
+mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_sym id;
+  mrb_get_args(mrb, "o", &sym);
+
+  id = mrb_sym_value(mrb,sym);
+  check_cv_name(mrb, id);
+
+  if(mrb_cv_defined(mrb, mod, id))
+    return mrb_true_value();
+  return mrb_false_value();
+}
+
+/* 15.2.2.4.17 */
+/*
+ *  call-seq:
+ *     mod.class_variable_get(symbol)    -> obj
+ *
+ *  Returns the value of the given class variable (or throws a
+ *  <code>NameError</code> exception). The <code>@@</code> part of the
+ *  variable name should be included for regular class variables
+ *
+ *     class Fred
+ *       @@foo = 99
+ *     end
+ *     Fred.class_variable_get(:@@foo)     #=> 99
+ */
+
+static mrb_value
+mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym;
+  mrb_sym id;
+  mrb_get_args(mrb, "o", &sym);
+
+  id = mrb_sym_value(mrb,sym);
+  check_cv_name(mrb, id);
+  return mrb_cv_get(mrb, mod, id);
+}
+
+/* 15.2.2.4.18 */
+/*
+ *  call-seq:
+ *     obj.class_variable_set(symbol, obj)    -> obj
+ *
+ *  Sets the class variable names by <i>symbol</i> to
+ *  <i>object</i>.
+ *
+ *     class Fred
+ *       @@foo = 99
+ *       def foo
+ *         @@foo
+ *       end
+ *     end
+ *     Fred.class_variable_set(:@@foo, 101)     #=> 101
+ *     Fred.new.foo                             #=> 101
+ */
+
+static mrb_value
+mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym, value;
+  mrb_sym id;
+  mrb_get_args(mrb, "oo", &sym, &value);
+
+  id = mrb_sym_value(mrb,sym);
+
+  check_cv_name(mrb, id);
+  mrb_cv_set(mrb, mod, id, value);
+  return value;
+}
+
+/* 15.2.2.4.39 */
+/*
+ *  call-seq:
+ *     remove_class_variable(sym)    -> obj
+ *
+ *  Removes the definition of the <i>sym</i>, returning that
+ *  constant's value.
+ *
+ *     class Dummy
+ *       @@var = 99
+ *       puts @@var
+ *       p class_variables
+ *       remove_class_variable(:@@var)
+ *       p class_variables
+ *     end
+ *
+ *  <em>produces:</em>
+ *
+ *     99
+ *     [:@@var]
+ *     []
+ */
+
+mrb_value
+mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value sym, val;
+  mrb_sym id;
+
+  mrb_get_args(mrb, "o", &sym);
+
+  id = mrb_sym_value(mrb,sym);
+  check_cv_name(mrb, id);
+
+  val = mrb_iv_remove(mrb, mod, id);
+
+  if (!mrb_undef_p(val)) return val;
+
+  if (mrb_cv_defined(mrb, mod, id)){
+    mrb_name_error(mrb, id, "cannot remove %s for %s",
+        mrb_sym2name(mrb, id), mrb_class_name(mrb, mrb_class_ptr(mod)));
+  }
+
+  mrb_name_error(mrb, id, "class variable %s not defined for %s",
+      mrb_sym2name(mrb, id), mrb_class_name(mrb, mrb_class_ptr(mod)));
+
+ /* not reached */
+ return mrb_nil_value();
+}
+
+static void
+remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+{
+  khash_t(mt) *h = c->mt;
+  khiter_t k;
+
+  if (h) {
+    k = kh_get(mt, h, mid);
+    if (k != kh_end(h)) {
+      kh_del(mt, h, k);
+      return;
+    }
+  }
+
+  mrb_name_error(mrb, mid, "method `%s' not defined in %s",
+    mrb_sym2name(mrb, mid), mrb_class_name(mrb, c));
+}
+
+/* 15.2.2.4.41 */
+/*
+ *  call-seq:
+ *     remove_method(symbol)   -> self
+ *
+ *  Removes the method identified by _symbol_ from the current
+ *  class. For an example, see <code>Module.undef_method</code>.
+ */
+
+mrb_value
+mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
+{
+  struct RClass *c = mrb_class_ptr(mod);
+  int argc;
+  mrb_value *argv;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  while (argc--) {
+    remove_method(mrb, c, mrb_symbol(*argv));
+    argv++;
+  }
+  return mod;
+}
+
+static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
@@ -1575,6 +1769,9 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "superclass", mrb_class_superclass, ARGS_NONE());      /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new", mrb_instance_new, ARGS_ANY());                  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited", mrb_bob_init, ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined, ARGS_REQ(1));  /* 15.2.2.4.16 */
+  mrb_define_method(mrb, mod, "class_variable_get", mrb_mod_cvar_get, ARGS_REQ(1));  /* 15.2.2.4.17 */
+  mrb_define_method(mrb, mod, "class_variable_set", mrb_mod_cvar_set, ARGS_REQ(2));  /* 15.2.2.4.18 */
   mrb_define_method(mrb, mod, "extend_object", mrb_mod_extend_object, ARGS_REQ(1));  /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended", mrb_bob_init, ARGS_REQ(1));                /* 15.2.2.4.26 */
   mrb_define_method(mrb, mod, "include", mrb_mod_include, ARGS_ANY());               /* 15.2.2.4.27 */
@@ -1585,6 +1782,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "included_modules", mrb_mod_included_modules, ARGS_NONE()); /* 15.2.2.4.30 */
   mrb_define_method(mrb, mod, "instance_methods", mrb_mod_instance_methods, ARGS_ANY());  /* 15.2.2.4.33 */
   mrb_define_method(mrb, mod, "module_eval", mrb_mod_module_eval, ARGS_ANY());            /* 15.2.2.4.35 */
+  mrb_define_method(mrb, mod, "remove_class_variable", mrb_mod_remove_cvar, ARGS_REQ(1)); /* 15.2.2.4.39 */
+  mrb_define_method(mrb, mod, "remove_method", mrb_mod_remove_method, ARGS_ANY());        /* 15.2.2.4.41 */
 
   mrb_define_method(mrb, mod, "to_s", mrb_mod_to_s, ARGS_NONE());
   mrb_define_method(mrb, mod, "inspect", mrb_mod_to_s, ARGS_NONE());
