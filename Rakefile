@@ -34,7 +34,7 @@ else  # including 'debug'
   CFLAGS = if e then [e] else ['-g', '-O3'] end
 end
 LDFLAGS = [ENV['LDFLAGS']]
-LIBS    = [ENV['LIBS'] || '-lm']
+LIBS    = [ENV['LIBS'] || '-lm -lstdc++']
 
 if ENABLE_GEMS
   require './mrbgems/build_tasks'
