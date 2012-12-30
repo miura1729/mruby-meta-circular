@@ -134,6 +134,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
+    emit_loadself(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+  {
+    const void *code = getCurr();
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+
+    movsd(xmm0, ptr [ecx]);
+    movsd(ptr [ecx + dstoff], xmm0);
+    return code;
+  }
+
+  const void *
     emit_loadt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
   {
     const void *code = getCurr();

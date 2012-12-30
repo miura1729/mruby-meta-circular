@@ -45,6 +45,9 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
 
     // OP_LOADSYM
 
+  case OP_LOADSELF:
+    return code->emit_loadself(mrb, irep, ppc);
+
   case OP_LOADNIL:
     return code->emit_loadnil(mrb, irep, ppc);
 
