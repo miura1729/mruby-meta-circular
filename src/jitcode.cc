@@ -75,6 +75,9 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
   case OP_GE:
     return code->emit_ge(mrb, irep, ppc, regs);
 
+  case OP_JMP:
+    return code->emit_nop(mrb, irep, ppc);
+
   case OP_JMPIF:
     return code->emit_jmpif(mrb, irep, ppc, regs);
 
