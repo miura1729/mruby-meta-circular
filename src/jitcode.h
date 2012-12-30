@@ -183,33 +183,63 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
+#define ARTH_I_GEN(AINSTI, AINSTF)                                      \
+  do {                                                                  \
+    const Xbyak::uint32 y = GETARG_C(**ppc);                            \
+    const Xbyak::uint32 off = GETARG_A(**ppc) * sizeof(mrb_value);      \
+    int regno = GETARG_A(**ppc);                                        \
+    enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
+    mov(eax, dword [ecx + off + 4]); /* Get type tag */                 \
+    gen_type_guard(atype, *ppc);                                        \
+\
+    if (atype == MRB_TT_FIXNUM) {                                       \
+      mov(eax, dword [ecx + off]);                                      \
+      AINSTI(eax, y);                                                   \
+      mov(dword [ecx + off], eax);                                      \
+\
+      jno("@f");                                                        \
+      sub(esp, 8);                                                      \
+      movsd(qword [esp], xmm1);                                         \
+      mov(eax, dword [ecx + off]);                                      \
+      cvtsi2sd(xmm0, eax);                                              \
+      mov(eax, y);                                                      \
+      cvtsi2sd(xmm1, eax);                                              \
+      AINSTF(xmm0, xmm1);                                               \
+      movsd(dword [ecx + off], xmm0);                                   \
+      movsd(xmm1, ptr [esp]);                                           \
+      add(esp, 8);                                                      \
+      L("@@");                                                          \
+    }                                                                   \
+    else if (atype == MRB_TT_FLOAT) {					\
+      sub(esp, 8);                                                      \
+      movsd(qword [esp], xmm1);                                         \
+      movsd(xmm0, dword [ecx + off]);                                   \
+      mov(eax, y);                                                      \
+      cvtsi2sd(xmm1, eax);                                              \
+      AINSTF(xmm0, xmm1);                                               \
+      movsd(ptr [ecx + off], xmm0);                                     \
+      movsd(xmm1, ptr [esp]);                                           \
+      add(esp, 8);                                                      \
+    }                                                                   \
+    else {                                                              \
+      mov(dword [ebx], (Xbyak::uint32)*ppc);                            \
+      ret();                                                            \
+    }                                                                   \
+} while(0)
+    
   const void *
     emit_addi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
   {
     const void *code = getCurr();
-    const Xbyak::uint32 y = GETARG_C(**ppc);
-    const Xbyak::uint32 off = GETARG_A(**ppc) * sizeof(mrb_value);
-    int regno = GETARG_A(**ppc);
-    mov(eax, dword [ecx + off + 4]); /* Get type tag */
-    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno]), *ppc);
+    ARTH_I_GEN(add, addsd);
+    return code;
+  }
 
-    mov(eax, dword [ecx + off]);
-    add(eax, y);
-    mov(dword [ecx + off], eax);
-
-    jno("@f");
-    sub(esp, 8);
-    movsd(qword [esp], xmm1);
-    mov(eax, dword [ecx + off]);
-    cvtsi2sd(xmm0, eax);
-    mov(eax, y);
-    cvtsi2sd(xmm1, eax);
-    addsd(xmm0, xmm1);
-    movsd(dword [ecx + off], xmm0);
-    movsd(xmm1, ptr [esp]);
-    add(esp, 8);
-    L("@@");
-
+  const void *
+    emit_subi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    ARTH_I_GEN(sub, subsd);
     return code;
   }
 
