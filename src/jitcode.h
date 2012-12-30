@@ -219,11 +219,6 @@ do {                                                                 \
     cmp(eax, dword [ecx + off1]);                                    \
     CMPINST(al);						     \
     mov(ah, 0);							     \
-    cwde();                                                          \
-    add(eax, eax);                                                   \
-    add(eax, 0xfff00001);                                            \
-    mov(dword [ecx + off0 + 4], eax);                                \
-    mov(dword [ecx + off0], 1);                                      \
 } while(0)
 
 #define COMP_GEN_IF(CMPINST)                                         \
@@ -232,11 +227,6 @@ do {                                                                 \
     xor(eax, eax);					             \
     comisd(xmm0, ptr [ecx + off1]);				     \
     CMPINST(al);						     \
-    cwde();                                                          \
-    add(eax, eax);                                                   \
-    add(eax, 0xfff00001);                                            \
-    mov(dword [ecx + off0 + 4], eax);                                \
-    mov(dword [ecx + off0], 1);                                      \
 } while(0)
 
 #define COMP_GEN_FI(CMPINST)                                         \
@@ -248,11 +238,6 @@ do {                                                                 \
     xor(eax, eax);					             \
     comisd(xmm0, xmm1);     			                     \
     CMPINST(al);						     \
-    cwde();                                                          \
-    add(eax, eax);                                                   \
-    add(eax, 0xfff00001);                                            \
-    mov(dword [ecx + off0 + 4], eax);                                \
-    mov(dword [ecx + off0], 1);                                      \
     movsd(xmm1, ptr [esp]);					     \
     add(esp, 8);						     \
 } while(0)
@@ -263,11 +248,6 @@ do {                                                                 \
     xor(eax, eax);					             \
     comisd(xmm0, ptr [ecx + off1]);				     \
     CMPINST(al);						     \
-    cwde();                                                          \
-    add(eax, eax);                                                   \
-    add(eax, 0xfff00001);                                            \
-    mov(dword [ecx + off0 + 4], eax);                                \
-    mov(dword [ecx + off0], 1);                                      \
 } while(0)
     
 #define COMP_GEN(CMPINSTI, CMPINSTF)				     \
@@ -295,6 +275,11 @@ do {                                                                 \
     else {                                                           \
           COMP_GEN_II(CMPINSTI);                                     \
     }                                                                \
+    cwde();                                                          \
+    add(eax, eax);                                                   \
+    add(eax, 0xfff00001);                                            \
+    mov(dword [ecx + off0 + 4], eax);                                \
+    mov(dword [ecx + off0], 1);                                      \
  } while(0)
   
   const void *
