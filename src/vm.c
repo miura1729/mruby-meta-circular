@@ -164,6 +164,12 @@ uvget(mrb_state *mrb, int up, int idx)
   return e->stack[idx];
 }
 
+mrb_value
+mrb_uvget(mrb_state *mrb, int up, int idx)
+{
+  return uvget(mrb, up, idx);
+}
+
 static void
 uvset(mrb_state *mrb, int up, int idx, mrb_value v)
 {
@@ -172,6 +178,12 @@ uvset(mrb_state *mrb, int up, int idx, mrb_value v)
   if (!e) return;
   e->stack[idx] = v;
   mrb_write_barrier(mrb, (struct RBasic*)e);
+}
+
+void
+mrb_uvset(mrb_state *mrb, int up, int idx, mrb_value v)
+{
+  uvset(mrb, up, idx, v);
 }
 
 static inline int

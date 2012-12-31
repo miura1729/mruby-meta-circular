@@ -84,6 +84,12 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
   case OP_GE:
     return code->emit_ge(mrb, irep, ppc, regs);
 
+  case OP_GETUPVAR:
+    return code->emit_getupvar(mrb, irep, ppc);
+
+  case OP_SETUPVAR:
+    return code->emit_setupvar(mrb, irep, ppc);
+
   case OP_JMP:
     return code->emit_nop(mrb, irep, ppc);
 

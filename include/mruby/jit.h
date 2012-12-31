@@ -61,4 +61,8 @@ typedef struct mrbjit_comp_info {
   mrbjit_code_area code_base;
 } mrbjit_comp_info;
 
+
+mrb_value mrb_uvget(mrb_state *, int, int);
+void mrb_uvset(mrb_state *, int, int, mrb_value);
+
 #endif  /* MRUBY_JIT_H */

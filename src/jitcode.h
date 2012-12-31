@@ -405,6 +405,56 @@ do {                                                                 \
   }
 
   const void *
+    emit_getupvar(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
+    const void *code = getCurr();
+    const Xbyak::uint32 uppos = GETARG_C(**ppc);
+    const Xbyak::uint32 idxpos = GETARG_B(**ppc);
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int argsize = 3 * sizeof(void *);
+
+    push(ecx);
+    push(ebx);
+    push((Xbyak::uint32)idxpos);
+    push((Xbyak::uint32)uppos);
+    push((Xbyak::uint32)mrb);
+    call((void *)mrb_uvget);
+    add(sp, argsize);
+    pop(ebx);
+    pop(ecx);
+    mov(dword [ecx + dstoff], eax);
+    mov(dword [ecx + dstoff + 4], edx);
+
+    return code;
+  }
+
+  const void *
+    emit_setupvar(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
+    const void *code = getCurr();
+    const Xbyak::uint32 uppos = GETARG_C(**ppc);
+    const Xbyak::uint32 idxpos = GETARG_B(**ppc);
+    const Xbyak::uint32 valoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int argsize = 5 * sizeof(void *);
+
+    push(ecx);
+    push(ebx);
+    mov(eax, dword [ecx + valoff + 4]);
+    push(eax);
+    mov(eax, dword [ecx + valoff]);
+    push(eax);
+    push((Xbyak::uint32)idxpos);
+    push((Xbyak::uint32)uppos);
+    push((Xbyak::uint32)mrb);
+    call((void *)mrb_uvset);
+    add(sp, argsize);
+    pop(ebx);
+    pop(ecx);
+
+    return code;
+  }
+
+  const void *
     emit_jmpif(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   {
     const void *code = getCurr();
