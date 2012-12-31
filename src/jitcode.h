@@ -175,7 +175,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_getiv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   {
     const void *code = getCurr();
-    const Xbyak::uint32 idpos = GETARG_Bx(**ppc);
+    const int idpos = GETARG_Bx(**ppc);
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 2 * sizeof(void *);
 
@@ -197,7 +197,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_setiv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   {
     const void *code = getCurr();
-    const Xbyak::uint32 idpos = GETARG_Bx(**ppc);
+    const int idpos = GETARG_Bx(**ppc);
     const Xbyak::uint32 srcoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 4 * sizeof(void *);
 
@@ -214,6 +214,20 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ebx);
     pop(ecx);
 
+    return code;
+  }
+
+  const void *
+    emit_getconst(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
+    const void *code = getCurr();
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int sympos = GETARG_Bx(**ppc);
+    const mrb_value v = mrb_vm_const_get(mrb, irep->syms[sympos]);
+
+    mov(dword [ecx + dstoff], v.value.i);
+    mov(dword [ecx + dstoff + 4], v.ttt);
+    
     return code;
   }
 
@@ -498,8 +512,8 @@ do {                                                                 \
 
     push(ecx);
     push(ebx);
-    push((Xbyak::uint32)idxpos);
-    push((Xbyak::uint32)uppos);
+    push(idxpos);
+    push(uppos);
     push((Xbyak::uint32)mrb);
     call((void *)mrb_uvget);
     add(sp, argsize);
@@ -526,8 +540,8 @@ do {                                                                 \
     push(eax);
     mov(eax, dword [ecx + valoff]);
     push(eax);
-    push((Xbyak::uint32)idxpos);
-    push((Xbyak::uint32)uppos);
+    push(idxpos);
+    push(uppos);
     push((Xbyak::uint32)mrb);
     call((void *)mrb_uvset);
     add(sp, argsize);

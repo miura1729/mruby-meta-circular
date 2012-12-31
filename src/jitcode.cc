@@ -63,6 +63,9 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
   case OP_SETIV:
     return code->emit_setiv(mrb, irep, ppc);
 
+  case OP_GETCONST:
+    return code->emit_getconst(mrb, irep, ppc);
+
   case OP_ADD:
     return code->emit_add(mrb, irep, ppc, regs);
 
