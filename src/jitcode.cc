@@ -57,6 +57,9 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
   case OP_LOADF:
     return code->emit_loadf(mrb, irep, ppc);
 
+  case OP_GETIV:
+    return code->emit_getiv(mrb, irep, ppc);
+
   case OP_ADDI:
     return code->emit_addi(mrb, irep, ppc, regs);
 

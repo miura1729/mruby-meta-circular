@@ -14,6 +14,7 @@ extern "C" {
 
 #include "mruby/irep.h"
 #include "mruby/value.h"
+#include "mruby/variable.h"
 #include "mruby/jit.h"
 } /* extern "C" */
 
@@ -166,6 +167,28 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(dword [ecx + dstoff], eax);
     mov(eax, 0xfff00000 | MRB_TT_FALSE);
     mov(dword [ecx + dstoff + 4], eax);
+
+    return code;
+  }
+
+  const void *
+    emit_getiv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
+    const void *code = getCurr();
+    const Xbyak::uint32 idpos = GETARG_Bx(**ppc);
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int argsize = 2 * sizeof(void *);
+
+    push(ecx);
+    push(ebx);
+    push((Xbyak::uint32)irep->syms[idpos]);
+    push((Xbyak::uint32)mrb);
+    call((void *)mrb_vm_iv_get);
+    add(sp, argsize);
+    pop(ebx);
+    pop(ecx);
+    mov(dword [ecx + dstoff], eax);
+    mov(dword [ecx + dstoff + 4], edx);
 
     return code;
   }
