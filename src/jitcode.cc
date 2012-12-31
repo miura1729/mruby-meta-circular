@@ -63,6 +63,18 @@ mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs
   case OP_SETIV:
     return code->emit_setiv(mrb, irep, ppc);
 
+  case OP_ADD:
+    return code->emit_add(mrb, irep, ppc, regs);
+
+  case OP_SUB:
+    return code->emit_sub(mrb, irep, ppc, regs);
+
+  case OP_MUL:
+    return code->emit_mul(mrb, irep, ppc, regs);
+
+    //  case OP_DIV:
+    //    return code->emit_div(mrb, irep, ppc, regs);
+
   case OP_ADDI:
     return code->emit_addi(mrb, irep, ppc, regs);
 
