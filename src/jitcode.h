@@ -269,8 +269,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
 \
     if (r0type != r1type) {                                             \
-      mov(dword [ebx], (Xbyak::uint32)*ppc);                            \
-      ret();                                                            \
+      return NULL;                                                      \
     }                                                                   \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
     gen_type_guard(r0type, *ppc);                                       \
