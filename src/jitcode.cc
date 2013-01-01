@@ -19,9 +19,12 @@ mrbjit_gen_jump_block(mrbjit_code_area coderaw, void *entry)
 static MRBJitCode *the_code = new MRBJitCode();
 
 const void *
-mrbjit_emit_code(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
 {
-  MRBJitCode *code = (MRBJitCode *) irep->compile_info->code_base;
+  mrb_irep *irep = *status->irep;
+  MRBJitCode *code = (MRBJitCode *)irep->compile_info->code_base;
+  mrb_value *regs = *status->regs;
+  mrb_code **ppc = status->pc;
   const void *entry;
 
   if (code == NULL) {
