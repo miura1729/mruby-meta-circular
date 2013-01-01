@@ -83,8 +83,11 @@ search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc)
 }
 
 void
-mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 {
+  mrb_irep *irep = *status->irep;
+  mrb_code **ppc = status->pc;
+  mrb_value *regs = *status->regs;
   size_t n;
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
@@ -156,9 +159,3 @@ mrbjit_dispatch(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   irep->compile_info->prev_pc = *ppc;
 }
 
-void
-mrbjit_dispatch_local_jump(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
-{
-  mrbjit_dispatch(mrb, irep, ppc, regs);
-  
-}
