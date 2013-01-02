@@ -136,6 +136,12 @@ stack_extend(mrb_state *mrb, int room, int keep)
   }
 }
 
+void
+mrbjit_stack_extend(mrb_state *mrb, int room, int keep)
+{
+  stack_extend(mrb, room, keep);
+}
+
 int
 mrb_checkstack(mrb_state *mrb, int size)
 {
@@ -232,6 +238,12 @@ cipush(mrb_state *mrb)
   return mrb->ci;
 }
 
+mrb_callinfo*
+mrbjit_cipush(mrb_state *mrb)
+{
+  return cipush(mrb);
+}
+
 static void
 cipop(mrb_state *mrb)
 {
@@ -246,6 +258,12 @@ cipop(mrb_state *mrb)
   }
 
   mrb->ci--;
+}
+
+void
+mrbjit_cipop(mrb_state *mrb)
+{
+  cipop(mrb);
 }
 
 static void
@@ -530,7 +548,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
   jmp_buf c_jmp;
   mrbjit_vmstatus status = {
-    &irep, &pc, &pool, &syms, &regs
+    &irep, &proc, &pc, &pool, &syms, &regs, &ai
   };
 
 #ifdef DIRECT_THREADED

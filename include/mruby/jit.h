@@ -64,5 +64,8 @@ typedef struct mrbjit_comp_info {
 
 mrb_value mrb_uvget(mrb_state *, int, int);
 void mrb_uvset(mrb_state *, int, int, mrb_value);
+mrb_callinfo* mrbjit_cipush(mrb_state *);
+void mrbjit_cipop(mrb_state *);
+void mrbjit_stack_extend(mrb_state *, int, int);
 
 #endif  /* MRUBY_JIT_H */

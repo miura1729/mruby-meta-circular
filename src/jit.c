@@ -129,15 +129,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	  :
 	  : "a"(ppc)
 	  : "%ebx");
+      asm("push %0"
+	  :
+	  : "a"(status));
 
       ci->entry();
 
+      asm("add $0x4, %esp");
       asm("pop %ebx");
       asm("pop %ecx");
       //printf("%x \n", *ppc);
 
       irep = *status->irep;
       regs = *status->regs;
+      //      printf("%x %x \n", ci->entry, regs);
     }
   }
   else {
