@@ -286,9 +286,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Check IC is match */
-    mov(eax, (Xbyak::uint32)orecv);
-    mov(eax, ptr [eax]);
-    mov(edx, (Xbyak::uint32)c);
+    push(ecx);
+    push(ebx);
+    mov(edx, ptr [esp + 12]);	/* eax : status 12 means ret, ecx, ebx */
+    mov(edx, dword [edx + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(edx, dword [edx]);
+    mov(eax, dword [edx + aoff + 4]);
+    push(eax);
+    mov(eax, dword [edx + aoff]);
+    push(eax);
+    push((Xbyak::uint32)mrb);
+    call((void *)mrb_class);
+    add(esp, 3 * sizeof(void *));
+    pop(ebx);
+    pop(ecx);
+    mov(edx, (Xbyak::uint32)orecv);
     mov(edx, ptr [edx]);
     cmp(eax, edx);
     jz("@f");
