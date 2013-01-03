@@ -34,7 +34,6 @@ typedef struct mrb_irep {
   /* JIT stuff */
   int *prof_info;
   mrbjit_codetab *jit_entry_tab;
-  mrbjit_comp_info *compile_info;
 } mrb_irep;
 
 typedef struct mrbjit_vmstatus {

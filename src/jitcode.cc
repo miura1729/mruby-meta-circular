@@ -22,14 +22,14 @@ const void *
 mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   mrb_irep *irep = *status->irep;
-  MRBJitCode *code = (MRBJitCode *)irep->compile_info->code_base;
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
   mrb_value *regs = *status->regs;
   mrb_code **ppc = status->pc;
   const void *entry;
 
   if (code == NULL) {
     code = the_code;
-    irep->compile_info->code_base = code;
+    mrb->compile_info.code_base = code;
     entry = code->gen_entry(mrb, irep);
   }
 

@@ -18,6 +18,8 @@ extern "C" {
 #include "mruby/proc.h"
 #include "mruby/class.h"
 #include "mruby/jit.h"
+
+void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
 /* Regs Map                               *
@@ -253,190 +255,20 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_send(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
-
-    const mrb_code *pc = *status->pc;
-    const mrb_value *pool = *status->pool;
-    const int i = *pc;
-    const int rcvoff = GETARG_Bx(*(pc + 1));
-    struct RClass *orecv = (struct RClass *)pool[rcvoff].value.p;
-
-    const int a = GETARG_A(i);
-    const int aoff = (Xbyak::uint32)a * sizeof(mrb_value);
-    const mrb_value recv = (*status->regs)[a];
-    const struct RClass *c = mrb_class(mrb, recv);
-
-    const int mthoff = rcvoff + 1;
-    const struct RProc *m = (struct RProc *)pool[mthoff].value.p;
-
-    const int n = GETARG_C(i);
-
-    const mrb_sym mid = (*status->syms)[GETARG_B(i)];
-
-    if (orecv != c) {
-      /* IC miss */
-      return NULL;
-    }
-    if (n == CALL_MAXARGS) {
-      /* Variable arguments */
-      return NULL;
-    }
-
-    if (!MRB_PROC_CFUNC_P(m)) {
-      return NULL;
-    }
-
-    /* Check IC is match */
+    
     push(ecx);
     push(ebx);
-    mov(edx, ptr [esp + 12]);	/* eax : status 12 means ret, ecx, ebx */
-    mov(edx, dword [edx + OffsetOf(mrbjit_vmstatus, regs)]);
-    mov(edx, dword [edx]);
-    mov(eax, dword [edx + aoff + 4]);
+    mov(eax, ptr[esp + 12]);
     push(eax);
-    mov(eax, dword [edx + aoff]);
-    push(eax);
+    /* Update pc */
+    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(dword [eax], (Xbyak::uint32)(*status->pc));
+
     push((Xbyak::uint32)mrb);
-    call((void *)mrb_class);
-    add(esp, 3 * sizeof(void *));
+    call((void *)mrbjit_exec_send);
+    add(esp, 8);
     pop(ebx);
     pop(ecx);
-    mov(edx, (Xbyak::uint32)orecv);
-    mov(edx, ptr [edx]);
-    cmp(eax, edx);
-    jz("@f");
-    mov(dword [ebx], (Xbyak::uint32)pc);
-    ret();
-    L("@@");
-    
-    if (GET_OPCODE(i) != OP_SENDB) {
-      const Xbyak::uint32 blkoff = (a + n + 1) * sizeof(mrb_value);
-
-      /* Store block reg to nil */
-      xor(eax, eax);
-      mov(dword [ecx + blkoff], eax);
-      mov(eax, 0xfff00001);
-      mov(dword [ecx + blkoff + 4], eax);
-    }
-
-    push(ecx);
-    push(ebx);
-    push((Xbyak::uint32)mrb);
-    call((void *)mrbjit_cipush);
-    add(esp, 4);
-    pop(ebx);
-    pop(ecx);
-
-    mov(dword [eax + OffsetOf(mrb_callinfo, mid)], (Xbyak::uint32)mid);
-    mov(dword [eax + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
-    mov(dword [eax + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
-    mov(dword [eax + OffsetOf(mrb_callinfo, target_class)], (Xbyak::uint32)c);
-
-    char *mrbb = (char *)mrb;
-    mov(edx, ptr [mrbb + OffsetOf(mrb_state, stack)]);
-    sub(edx, ptr [mrbb + OffsetOf(mrb_state, stbase)]);
-    mov(dword [eax + OffsetOf(mrb_callinfo, stackidx)], edx);
-
-    mov(dword [eax + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
-
-    mov(dword [eax + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
-    mov(dword [eax + OffsetOf(mrb_callinfo, acc)], (Xbyak::uint32)a);
-
-    mov(eax, (Xbyak::uint32)mrb + OffsetOf(mrb_state, stack));
-    add(dword [eax], (Xbyak::uint32)aoff);
-    
-    if (MRB_PROC_CFUNC_P(m)) {
-      mov(eax, ((Xbyak::uint32)mrb) + OffsetOf(mrb_state, ci));
-      mov(dword [eax + OffsetOf(mrb_callinfo, nregs)], (Xbyak::uint32)(n + 2));
-
-      push(ecx);
-      push(ebx);
-
-      mov(edx, (Xbyak::uint32)mrb + OffsetOf(mrb_state, stack));
-      mov(edx, dword [edx]);
-      mov(eax, dword [edx + 4]); /* recv.tt */
-      push(eax);
-      mov(eax, dword [edx]);	/* recv.value */
-      push(eax);
-      push((Xbyak::uint32)mrb);
-      mov(eax, (Xbyak::uint32)m + OffsetOf(RProc, body.func));
-      call(ptr [eax]);
-      add(esp, 3 * sizeof(void *));
-      mov(ebx, (Xbyak::uint32)mrb + OffsetOf(mrb_state, stack));
-      mov(ebx, dword [ebx]);
-      mov(dword [ebx], eax);
-      mov(dword [ebx + 4], edx);
-
-      mov(ecx, ptr [esp + 12]);	/* eax : status 12 means ret, ecx, ebx */
-      mov(eax, ptr [ecx + OffsetOf(mrbjit_vmstatus, ai)]);
-      mov(eax, ptr [eax]);	/* status->ai is pointer */
-      push(eax);
-      push((Xbyak::uint32)mrb);
-      call((void *) mrb_gc_arena_restore);
-      add(esp, 2 * sizeof(void *));
-
-      mov(eax, (Xbyak::uint32)mrb + OffsetOf(mrb_state, ci));
-      mov(eax, dword [eax]);
-      mov(eax, dword [eax + OffsetOf(mrb_callinfo, stackidx)]);
-      mov(edx, (Xbyak::uint32)mrb + OffsetOf(mrb_state, stbase));
-      add(eax, dword [edx]);
-      mov(edx, (Xbyak::uint32)mrb + OffsetOf(mrb_state, stack));
-      mov(dword [edx], eax);
-      mov(edx, dword [ecx + OffsetOf(mrbjit_vmstatus, regs)]);
-      mov(dword [edx], eax);
-
-      push((Xbyak::uint32)mrb);
-      call((void *) mrbjit_cipop);
-      add(esp, 1 * sizeof(void *));
-
-      pop(ebx);
-      pop(ecx);
-    }
-    else {
-      printf("foo\n");
-      push(ecx);
-      push(ebx);
-
-      mov(ecx, ptr [esp + 12]);	/* ecx : status */
-
-      mov(ebx, ptr [ecx + OffsetOf(mrbjit_vmstatus, proc)]);
-      mov(eax, (Xbyak::uint32)m);
-      mov(dword [ebx], eax);
-      mov(ebx, ((Xbyak::uint32)mrb) + OffsetOf(mrb_state, ci));
-      mov(ebx, dword [ebx]);
-      mov(dword [ebx + OffsetOf(mrb_callinfo, proc)], eax);
-
-      mov(eax, ptr [eax + OffsetOf(struct RProc, body.irep)]);
-      mov(dword [ecx + OffsetOf(mrbjit_vmstatus, irep)], eax);
-
-      mov(ebx, ptr [eax + OffsetOf(mrb_irep, pool)]);
-      mov(dword [ecx + OffsetOf(mrbjit_vmstatus, pool)], ebx);
-
-      mov(ebx, ptr [eax + OffsetOf(mrb_irep, syms)]);
-      mov(dword [ecx + OffsetOf(mrbjit_vmstatus, syms)], eax);
-      
-      mov(ebx, ptr [eax + OffsetOf(mrb_irep, nregs)]);
-      mov(eax, ((Xbyak::uint32)mrb) + OffsetOf(mrb_state, ci));
-      mov(dword [eax + OffsetOf(mrb_irep, nregs)], ebx);
-
-      mov(eax, ptr [eax + OffsetOf(mrb_callinfo, argc)]); 
-      add(eax, 2);
-      push(eax);
-      push(ebx);
-      push((Xbyak::uint32)mrb);
-      call((void *) mrbjit_stack_extend);
-      add(esp, 3 * sizeof(void *));
-      
-      mov(eax, (Xbyak::uint32)mrb);
-      mov(eax, ptr [eax + OffsetOf(mrb_state, stack)]);
-      mov(dword [ecx + OffsetOf(mrbjit_vmstatus, irep)], eax);
-
-      mov(eax, ptr [ecx + OffsetOf(mrbjit_vmstatus, irep)]);
-      mov(eax, ptr [eax + OffsetOf(mrb_irep, iseq)]);
-      mov(dword [ecx + OffsetOf(mrbjit_vmstatus, pc)], eax);
-      
-      pop(ebx);
-      pop(ecx);
-    }
 
     return code;
   }

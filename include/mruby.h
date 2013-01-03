@@ -78,6 +78,12 @@ enum gc_state {
   GC_STATE_SWEEP
 };
 
+typedef void * mrbjit_code_area;
+typedef struct mrbjit_comp_info {
+  mrb_code *prev_pc;
+  mrbjit_code_area code_base;
+} mrbjit_comp_info;
+
 typedef struct mrb_state {
   void *jmp;
 
@@ -146,6 +152,7 @@ typedef struct mrb_state {
 
   mrb_int is_method_cache_used;
   void *ud; /* auxiliary data */
+  mrbjit_comp_info compile_info; /* JIT stuff */
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);

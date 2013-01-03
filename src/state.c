@@ -103,7 +103,6 @@ mrb_close(mrb_state *mrb)
     mrb_free(mrb, mrb->irep[i]->prof_info);
     mrb_free(mrb, mrb->irep[i]->jit_entry_tab->body);
     mrb_free(mrb, mrb->irep[i]->jit_entry_tab);
-    mrb_free(mrb, mrb->irep[i]->compile_info);
 
     mrb_free(mrb, mrb->irep[i]);
   }

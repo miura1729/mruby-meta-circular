@@ -27,8 +27,6 @@ typedef struct mrbjit_varinfo {
   } addr;
 } mrbjit_varinfo;
 
-typedef void * mrbjit_code_area;
-
 typedef struct mrbjit_branchinfo {
   /* You can judge */
   /* prev_base == current not branch */
@@ -56,16 +54,12 @@ typedef struct mrbjit_codetab {
   mrbjit_code_info *body;
 } mrbjit_codetab;
 
-typedef struct mrbjit_comp_info {
-  mrb_code *prev_pc;
-  mrbjit_code_area code_base;
-} mrbjit_comp_info;
-
-
 mrb_value mrb_uvget(mrb_state *, int, int);
 void mrb_uvset(mrb_state *, int, int, mrb_value);
 mrb_callinfo* mrbjit_cipush(mrb_state *);
 void mrbjit_cipop(mrb_state *);
 void mrbjit_stack_extend(mrb_state *, int, int);
+
+//void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *);
 
 #endif  /* MRUBY_JIT_H */
