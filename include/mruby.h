@@ -82,6 +82,7 @@ typedef void * mrbjit_code_area;
 typedef struct mrbjit_comp_info {
   mrb_code *prev_pc;
   mrbjit_code_area code_base;
+  int disable_jit;
 } mrbjit_comp_info;
 
 typedef struct mrb_state {

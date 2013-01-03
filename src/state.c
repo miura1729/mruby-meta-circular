@@ -25,6 +25,10 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
 
+  mrb->compile_info.prev_pc = NULL;
+  mrb->compile_info.code_base = NULL;
+  mrb->compile_info.disable_jit = 0;
+
   mrb_init_heap(mrb);
   mrb_init_core(mrb);
   mrb_init_ext(mrb);

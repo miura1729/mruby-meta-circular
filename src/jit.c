@@ -97,6 +97,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
 
+  if (mrb->compile_info.disable_jit) {
+    return;
+  }
+
   prev_pc = mrb->compile_info.prev_pc;
 
   cbase = mrb->compile_info.code_base;
@@ -208,9 +212,6 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
   }
   c = mrb_class(mrb, recv);
 
-  //printf("%x %x %x %x %x %x\n", i, irep->iseq, pc,regs[a].ttt, regs, n);
-  //puts(mrb_sym2name(mrb, mid));
-  //  mrb_p(mrb, recv);
   if (c != orecv) {
     m = mrb_method_search_vm(mrb, &c, mid);
     if (!m) {
@@ -253,6 +254,10 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
   /* prepare stack */
   mrb->stack += a;
 
+  // printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep->iseq, pc,regs[a].ttt, regs, n);
+  //puts(mrb_sym2name(mrb, mid));
+  //mrb_p(mrb, recv);
+
   if (MRB_PROC_CFUNC_P(m)) {
     if (n == CALL_MAXARGS) {
       ci->nregs = 3;
@@ -260,12 +265,13 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     else {
       ci->nregs = n + 2;
     }
+    //mrb_p(mrb, recv);
     result = m->body.func(mrb, recv);
     mrb->stack[0] = result;
     mrb_gc_arena_restore(mrb, ai);
     //    if (mrb->exc) goto L_RAISE;
     /* pop stackpos */
-    regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
+    regs = *status->regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
     mrbjit_cipop(mrb);
   }
   else {
