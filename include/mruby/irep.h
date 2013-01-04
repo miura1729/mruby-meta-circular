@@ -44,6 +44,8 @@ typedef struct mrbjit_vmstatus {
   mrb_sym **syms;
   mrb_value **regs;
   int *ai;
+  void **optable;
+  void **gototable;
 } mrbjit_vmstatus;
 
 #define MRB_ISEQ_NO_FREE 1

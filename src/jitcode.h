@@ -45,6 +45,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_exit(mrb_code *pc) 
   {
     mov(dword [ebx], (Xbyak::uint32)pc);
+    xor(eax, eax);
     ret();
   }
   
@@ -69,6 +70,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     /* Guard fail exit code */
     mov(dword [ebx], (Xbyak::uint32)pc);
+    xor(eax, eax);
     ret();
 
     L("@@");
@@ -88,6 +90,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     /* Guard fail exit code */
     mov(dword [ebx], (Xbyak::uint32)pc);
+    xor(eax, eax);
     ret();
 
     L("@@");
@@ -318,6 +321,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }                                                                   \
     else {                                                              \
       mov(dword [ebx], (Xbyak::uint32)*ppc);                            \
+      xor(eax, eax);                                                    \
       ret();                                                            \
     }                                                                   \
 } while(0)
@@ -395,6 +399,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }                                                                   \
     else {                                                              \
       mov(dword [ebx], (Xbyak::uint32)*ppc);                            \
+      xor(eax, eax);                                                    \
       ret();                                                            \
     }                                                                   \
 } while(0)
