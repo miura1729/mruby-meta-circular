@@ -189,7 +189,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 #define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 #define CALL_MAXARGS 127
 
-void
+void *
 mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
@@ -280,7 +280,9 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     result = m->body.func(mrb, recv);
     mrb->stack[0] = result;
     mrb_gc_arena_restore(mrb, ai);
-    //    if (mrb->exc) goto L_RAISE;
+    if (mrb->exc) {
+      return status->gototable[0];	/* goto L_RAISE; */
+    }
     /* pop stackpos */
     regs = *status->regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
     mrbjit_cipop(mrb);
@@ -301,4 +303,6 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     regs = *status->regs = mrb->stack;
     pc = *status->pc = irep->iseq;
   }
+
+  return NULL;
 }
