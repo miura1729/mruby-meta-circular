@@ -2,7 +2,7 @@ MRuby::Build.new do |conf|
   conf.cc = ENV['CC'] || 'gcc'
   conf.ld = ENV['LD'] || 'gcc'
   conf.ar = ENV['AR'] || 'ar'
-  # conf.cxx = conf.cc
+  conf.cxx = conf.cc
   # conf.objcc = conf.cc
   # conf.asm = conf.cc
   # conf.yacc = 'bison'
@@ -12,7 +12,7 @@ MRuby::Build.new do |conf|
 
   conf.cflags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration))
   conf.ldflags << (ENV['LDFLAGS'] || %w(-lm))
-  # conf.cxxflags = []
+  conf.cxxflags = conf.cflags + %w(-fno-operator-names)
   # conf.objccflags = []
   # conf.asmflags = []
 

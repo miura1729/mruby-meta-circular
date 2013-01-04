@@ -114,6 +114,7 @@ __EOF__
         {
           '.c' => proc { |t| build.compile_c t.name, t.prerequisites.first, cflags },
           '.cpp' => proc { |t| build.compile_cxx t.name, t.prerequisites.first, cflags },
+          '.cc' => proc { |t| build.compile_cxx t.name, t.prerequisites.first, cflags },
           '.m' => proc { |t| build.compile_objc t.name, t.prerequisites.first, cflags },
           '.S' => proc { |t| build.compile_asm t.name, t.prerequisites.first, cflags }
         }.each do |ext, compile|

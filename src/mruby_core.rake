@@ -3,6 +3,8 @@ dir = File.dirname(__FILE__).sub(%r|^\./|, '')
 MRuby.each_target do
   lex_def = "#{dir}/lex.def"
   objs = Dir.glob("src/*.{c}").map { |f| f.pathmap("#{build_dir}/%X.o") } + ["#{build_dir}/#{dir}/y.tab.o"]
+  objscc = Dir.glob("src/*.{cc}").map { |f| f.pathmap("#{build_dir}/%X.o") }
+  objs += objscc
   self.libmruby << objs
 
   file "#{build_dir}/lib/libmruby_core.a" => objs do |t|

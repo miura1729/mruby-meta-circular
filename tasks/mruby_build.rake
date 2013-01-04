@@ -30,8 +30,8 @@ module MRuby
     def initialize(&block)
       @name ||= 'host'
       @root = File.expand_path("#{File.dirname(__FILE__)}/..")
-      @cc, @cflags, @includes = 'gcc', %W(-DDISABLE_GEMS -MMD), %W(#{@root}/include)
-      @ldflags, @libs = [], %w(-lm)
+      @cc, @cflags, @includes = 'gcc', %W(-DDISABLE_GEMS -MMD), %W(#{@root}/include #{@root}/Xbyak)
+      @ldflags, @libs = [], %w(-lm -lstdc++)
       @ar = 'ar'
       @cxxflags, @objccflags, @asmflags = [], [], []
 
