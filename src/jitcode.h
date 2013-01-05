@@ -294,7 +294,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     push(ecx);
     push(ebx);
-    mov(eax, ptr[esp + 8]);
+    mov(eax, ptr[esp + 12]);
     push(eax);
     /* Update pc */
     mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, pc)]);
