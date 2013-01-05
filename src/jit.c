@@ -306,3 +306,82 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
 
   return NULL;
 }
+
+void *
+mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
+{
+  mrb_code *pc = *status->pc;
+  mrb_value *regs = *status->regs;
+  mrb_code i = *pc;
+
+  /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
+  /* number of optional arguments times OP_JMP should follow */
+  int ax = GETARG_Ax(i);
+  int m1 = (ax>>18)&0x1f;
+  int o  = (ax>>13)&0x1f;
+  int r  = (ax>>12)&0x1;
+  int m2 = (ax>>7)&0x1f;
+  /* unused
+     int k  = (ax>>2)&0x1f;
+     int kd = (ax>>1)&0x1;
+     int b  = (ax>>0)& 0x1;
+  */
+  int argc = mrb->ci->argc;
+  mrb_value *argv = regs+1;
+  mrb_value *argv0 = argv;
+  int len = m1 + o + r + m2;
+  mrb_value *blk = &argv[argc < 0 ? 1 : argc];
+
+  if (argc < 0) {
+    struct RArray *ary = mrb_ary_ptr(regs[1]);
+    argv = ary->ptr;
+    argc = ary->len;
+    mrb_gc_protect(mrb, regs[1]);
+  }
+  if (mrb->ci->proc && MRB_PROC_STRICT_P(mrb->ci->proc)) {
+    if (argc >= 0) {
+      if (argc < m1 + m2 || (r == 0 && argc > len)) {
+	mrbjit_argnum_error(mrb, m1+m2);
+	return status->gototable[0]; /* L_RAISE */
+      }
+    }
+  }
+  else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
+    argc = mrb_ary_ptr(argv[0])->len;
+    argv = mrb_ary_ptr(argv[0])->ptr;
+  }
+  mrb->ci->argc = len;
+  if (argc < len) {
+    regs[len+1] = *blk; /* move block */
+    if (argv0 != argv) {
+      memmove(&regs[1], argv, sizeof(mrb_value)*(argc-m2)); /* m1 + o */
+    }
+    if (m2) {
+      memmove(&regs[len-m2+1], &argv[argc-m2], sizeof(mrb_value)*m2); /* m2 */
+    }
+    if (r) {                  /* r */
+      regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
+    }
+    if (o == 0) {
+      *(status->pc) += 1;
+      return NULL;
+    }
+    else
+      *(status->pc) += argc - m1 - m2 + 1;
+  }
+  else {
+    if (argv0 != argv) {
+      memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
+    }
+    if (r) {                  /* r */
+      regs[m1+o+1] = mrb_ary_new_elts(mrb, argc-m1-o-m2, argv+m1+o);
+    }
+    if (m2) {
+      memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
+    }
+    regs[len+1] = *blk; /* move block */
+    *(status->pc) += o + 1;
+  }
+
+  return status->optable[GET_OPCODE(**(status->pc))];
+}

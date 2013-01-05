@@ -59,7 +59,6 @@ void mrb_uvset(mrb_state *, int, int, mrb_value);
 mrb_callinfo* mrbjit_cipush(mrb_state *);
 void mrbjit_cipop(mrb_state *);
 void mrbjit_stack_extend(mrb_state *, int, int);
-
-//void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *);
+void mrbjit_argnum_error(mrb_state *, int);
 
 #endif  /* MRUBY_JIT_H */

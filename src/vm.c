@@ -503,6 +503,12 @@ argnum_error(mrb_state *mrb, int num)
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
+void
+mrbjit_argnum_error(mrb_state *mrb, int num)
+{
+  argnum_error(mrb, num);
+}
+
 void *mrbjit_dispatch(mrb_state *, mrbjit_vmstatus *);
 
 #ifdef __GNUC__

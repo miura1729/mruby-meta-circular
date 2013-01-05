@@ -20,6 +20,7 @@ extern "C" {
 #include "mruby/jit.h"
 
 void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *);
+void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
 /* Regs Map                               *
@@ -272,6 +273,44 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     add(esp, 8);
     pop(ebx);
     pop(ecx);
+
+    cmp(eax, eax);
+    jz("@f");
+    mov(dword [ebx], (Xbyak::uint32)(**status->pc));
+    ret();
+    L("@@");
+
+    mov(eax, ptr[esp + 4]);
+    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(ecx, dword [eax]);
+
+    return code;
+  }
+
+  const void *
+    emit_enter(mrb_state *mrb, mrbjit_vmstatus *status)
+  {
+    const void *code = getCurr();
+
+    push(ecx);
+    push(ebx);
+    mov(eax, ptr[esp + 8]);
+    push(eax);
+    /* Update pc */
+    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(dword [eax], (Xbyak::uint32)(*status->pc));
+
+    push((Xbyak::uint32)mrb);
+    call((void *)mrbjit_exec_enter);
+    add(esp, 8);
+    pop(ebx);
+    pop(ecx);
+
+    cmp(eax, eax);
+    jz("@f");
+    mov(dword [ebx], (Xbyak::uint32)(*status->pc));
+    ret();
+    L("@@");
 
     return code;
   }

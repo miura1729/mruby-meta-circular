@@ -73,6 +73,9 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
   case OP_SEND:
     return code->emit_send(mrb, status);
 
+  case OP_ENTER:
+    return code->emit_enter(mrb, status);
+
   case OP_ADD:
     return code->emit_add(mrb, irep, ppc, regs);
 
