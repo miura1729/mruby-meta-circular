@@ -1,5 +1,5 @@
 def get_dependencies(file)
-  file = file.pathmap('%n.d') unless File.extname(file) == '.d'
+  file = file.ext('d') unless File.extname(file) == '.d'
   if File.exists?(file)
     File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
   else
@@ -12,6 +12,7 @@ MRuby.each_target do |t|
   {
     '.c' => proc { |t| compile_c t.name, t.prerequisites.first },
     '.cpp' => proc { |t| compile_cxx t.name, t.prerequisites.first },
+    '.cxx' => proc { |t| compile_cxx t.name, t.prerequisites.first },
     '.cc' => proc { |t| compile_cxx t.name, t.prerequisites.first },
     '.m' => proc { |t| compile_objc t.name, t.prerequisites.first },
     '.S' => proc { |t| compile_asm t.name, t.prerequisites.first }
