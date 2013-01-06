@@ -277,7 +277,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(dword [ebx], (Xbyak::uint32)(*status->pc));                  \
     ret();                                                           \
     L("@@");                                                         \
-  }while (1)
+  }while (0)
 
   const void *
     emit_send(mrb_state *mrb, mrbjit_vmstatus *status)
