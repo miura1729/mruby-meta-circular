@@ -112,19 +112,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     ci = NULL;
   }
 
-  if (ci) {
-    if (cbase) {
-      if (ci->entry) {
-	mrbjit_gen_jump_block(cbase, ci->entry);
-      }
-      else {
-	mrbjit_gen_exit(cbase, mrb, irep, ppc);
-      }
-	
-      /* Finish compile */
-      mrb->compile_info.code_base = NULL;
+  if (cbase && ci && *ppc == prev_pc + 1) {
+    if (ci->entry) {
+      mrbjit_gen_jump_block(cbase, ci->entry);
+    }
+    else {
+      mrbjit_gen_exit(cbase, mrb, irep, ppc);
     }
 
+    cbase = mrb->compile_info.code_base = NULL;
+  }
+
+  if (ci && cbase == NULL) {
     if (ci->entry) {
       void *rc;
 
