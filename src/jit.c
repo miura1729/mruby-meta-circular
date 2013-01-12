@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include "opcode.h"
+#include "mruby/jit.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
@@ -13,8 +14,7 @@
 #include "mruby/array.h"
 #include <stddef.h>
 #include <stdio.h>
-
-#define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
+#include <setjmp.h>
 
 extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *);
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
@@ -50,7 +50,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
   goto retry;
 }
 
-static mrbjit_code_info *
+mrbjit_code_info *
 search_codeinfo_cbase(mrbjit_codetab *tab, mrbjit_code_area code_base)
 {
   int i;
@@ -70,7 +70,7 @@ search_codeinfo_cbase(mrbjit_codetab *tab, mrbjit_code_area code_base)
   return NULL;
 }
 
-static mrbjit_code_info *
+mrbjit_code_info *
 search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc)
 {
   int i;
@@ -150,8 +150,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       asm("pop %ecx");
 
       asm("mov %%eax, %0"
-	  : "=g"(rc));
-      //printf("%x \n", *ppc);
+      	  : "=g"(rc));
 
       irep = *status->irep;
       regs = *status->regs;
@@ -159,7 +158,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrb->compile_info.prev_pc = *ppc;
 	return rc;
       }
-      //      printf("%x %x \n", ci->entry, regs);
+      //printf("%x %x \n", ci->entry, regs);
     }
   }
   else {

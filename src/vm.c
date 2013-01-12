@@ -217,6 +217,12 @@ top_env(mrb_state *mrb, struct RProc *proc)
   return e;
 }
 
+struct REnv*
+mrbjit_top_env(mrb_state *mrb, struct RProc *proc)
+{
+  return top_env(mrb, proc);
+}
+
 static mrb_callinfo*
 cipush(mrb_state *mrb)
 {
@@ -273,6 +279,7 @@ ecall(mrb_state *mrb, int i)
   mrb_callinfo *ci;
   mrb_value *self = mrb->stack;
   struct RObject *exc;
+  int orgdisflg = mrb->compile_info.disable_jit;
 
   p = mrb->ensure[i];
   ci = cipush(mrb);
@@ -285,8 +292,16 @@ ecall(mrb_state *mrb, int i)
   ci->target_class = p->target_class;
   mrb->stack = mrb->stack + ci[-1].nregs;
   exc = mrb->exc; mrb->exc = 0;
+  mrb->compile_info.disable_jit = 1;
   mrb_run(mrb, p, *self);
+  mrb->compile_info.disable_jit = orgdisflg;
   if (!mrb->exc) mrb->exc = exc;
+}
+
+void
+mrbjit_ecall(mrb_state *mrb, int i)
+{
+  ecall(mrb, i);
 }
 
 #ifndef MRB_FUNCALL_ARGC_MAX
@@ -483,6 +498,12 @@ localjump_error(mrb_state *mrb, const char *kind)
   mrb->exc = (struct RObject*)mrb_object(exc);
 }
 
+void
+mrbjit_localjump_error(mrb_state *mrb, const char *kind)
+{
+  localjump_error(mrb, kind);
+}
+
 static void
 argnum_error(mrb_state *mrb, int num)
 {
@@ -584,7 +605,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   };
 #endif
   mrbjit_vmstatus status = {
-    &irep, &proc, &pc, &pool, &syms, &regs, &ai, optable, gototable
+    &irep, &proc, &pc, &pool, &syms, &regs, &ai, 
+    optable, gototable, &prev_jmp
   };
 
 

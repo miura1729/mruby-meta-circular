@@ -21,6 +21,7 @@ extern "C" {
 
 void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *);
 void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
+void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
 /* Regs Map                               *
@@ -54,6 +55,23 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_jump_block(void *entry) 
   {
     jmp(entry);
+  }
+
+  void 
+    gen_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code *newpc) 
+  {
+    mrbjit_code_info *ci;
+    int n = ISEQ_OFFSET_OF(newpc);
+    ci = search_codeinfo_cbase(irep->jit_entry_tab + n, newpc);
+    if (ci) {
+      if (ci->entry) {
+	jmp((void *)ci->entry);
+      }
+      else {
+	gen_exit(newpc);
+      }
+      mrb->compile_info.code_base = NULL;
+    }
   }
 
   void 
@@ -297,6 +315,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     CALL_CFUNC_STATUS(mrbjit_exec_enter);
+
+    return code;
+  }
+
+  const void *
+    emit_return(mrb_state *mrb, mrbjit_vmstatus *status)
+  {
+    const void *code = getCurr();
+    CALL_CFUNC_STATUS(mrbjit_exec_return);
+
+    mov(eax, ptr[esp + 4]);
+    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(ecx, dword [eax]);
+    xor(eax, eax);
+    ret();
 
     return code;
   }
@@ -610,6 +643,14 @@ do {                                                                 \
   }
 
   const void *
+    emit_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+  {
+    const void *code = getCurr();
+    gen_jmp(mrb, irep, *ppc + GETARG_sBx(**ppc));
+    return code;
+  }
+
+  const void *
     emit_jmpif(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   {
     const void *code = getCurr();
@@ -619,6 +660,7 @@ do {                                                                 \
     mov(eax, ptr [ecx + coff + 4]);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(1, *ppc + 1);
+      gen_jmp(mrb, irep, *ppc + GETARG_sBx(**ppc));
     }
     else {
       gen_bool_guard(0, *ppc + GETARG_sBx(**ppc));
@@ -637,6 +679,7 @@ do {                                                                 \
     mov(eax, ptr [ecx + coff + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(0, *ppc + 1);
+      gen_jmp(mrb, irep, *ppc + GETARG_sBx(**ppc));
     }
     else {
       gen_bool_guard(1, *ppc + GETARG_sBx(**ppc));

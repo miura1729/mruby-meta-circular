@@ -8,6 +8,7 @@
 #define MRUBY_IREP_H
 
 #include "jit.h"
+#include <setjmp.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -46,6 +47,7 @@ typedef struct mrbjit_vmstatus {
   int *ai;
   void **optable;
   void **gototable;
+  jmp_buf **prev_jmp;
 } mrbjit_vmstatus;
 
 #define MRB_ISEQ_NO_FREE 1
