@@ -76,8 +76,8 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
   case OP_ENTER:
     return code->emit_enter(mrb, status);
 
-    //  case OP_RETURN:
-    //return code->emit_return(mrb, status);
+  case OP_RETURN:
+    return code->emit_return(mrb, status);
 
   case OP_ADD:
     return code->emit_add(mrb, irep, ppc, regs);
@@ -128,6 +128,7 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
     return code->emit_jmpnot(mrb, irep, ppc, regs);
 
   default:
+    mrb->compile_info.nest_level = 0;
     return NULL;
   }
 }

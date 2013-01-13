@@ -58,11 +58,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code *newpc) 
+    gen_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code *curpc, mrb_code *newpc) 
   {
     mrbjit_code_info *ci;
     int n = ISEQ_OFFSET_OF(newpc);
-    ci = search_codeinfo_cbase(irep->jit_entry_tab + n, newpc);
+    ci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc);
     if (ci) {
       if (ci->entry) {
 	jmp((void *)ci->entry);
@@ -75,8 +75,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_type_guard(enum mrb_vtype tt, mrb_code *pc)
+    gen_type_guard(mrb_state *mrb, enum mrb_vtype tt, mrb_code *pc)
   {
+    mrb->compile_info.nest_level = 0;
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -96,8 +97,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void
-    gen_bool_guard(int b, mrb_code *pc)
+    gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc)
   {
+    mrb->compile_info.nest_level = 0;
     /* Input eax for tested boolean */
     cmp(eax, 0xfff00001);
     if (b) {
@@ -306,6 +308,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, ptr[esp + 4]);
     mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
     mov(ecx, dword [eax]);
+    mrb->compile_info.nest_level++;
 
     return code;
   }
@@ -323,13 +326,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
+    mrb->compile_info.nest_level--;
+    if (mrb->compile_info.nest_level != 0) {
+      return NULL;
+    }
+
     CALL_CFUNC_STATUS(mrbjit_exec_return);
 
     mov(eax, ptr[esp + 4]);
     mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
     mov(ecx, dword [eax]);
-    xor(eax, eax);
-    ret();
 
     return code;
   }
@@ -362,9 +368,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;                                                      \
     }                                                                   \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
-    gen_type_guard(r0type, *ppc);                                       \
+    gen_type_guard(mrb, r0type, *ppc);					\
     mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */             \
-    gen_type_guard(r1type, *ppc);                                       \
+    gen_type_guard(mrb, r1type, *ppc);					\
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
       mov(eax, dword [ecx + reg0off]);                                  \
@@ -436,7 +442,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int regno = GETARG_A(**ppc);                                        \
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
     mov(eax, dword [ecx + off + 4]); /* Get type tag */                 \
-    gen_type_guard(atype, *ppc);                                        \
+    gen_type_guard(mrb, atype, *ppc);					\
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
       mov(eax, dword [ecx + off]);                                      \
@@ -521,9 +527,9 @@ do {                                                                 \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
     mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
-    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno]), *ppc);     \
+    gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), *ppc);	\
     mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
-    gen_type_guard((enum mrb_vtype)mrb_type(regs[regno + 1]), *ppc); \
+    gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno + 1]), *ppc); \
                                                                      \
     if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \
              mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \
@@ -646,7 +652,7 @@ do {                                                                 \
     emit_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   {
     const void *code = getCurr();
-    gen_jmp(mrb, irep, *ppc + GETARG_sBx(**ppc));
+    gen_jmp(mrb, irep,  *ppc, *ppc + GETARG_sBx(**ppc));
     return code;
   }
 
@@ -659,11 +665,11 @@ do {                                                                 \
     
     mov(eax, ptr [ecx + coff + 4]);
     if (mrb_test(regs[cond])) {
-      gen_bool_guard(1, *ppc + 1);
-      gen_jmp(mrb, irep, *ppc + GETARG_sBx(**ppc));
+      gen_bool_guard(mrb, 1, *ppc + 1);
+      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
-      gen_bool_guard(0, *ppc + GETARG_sBx(**ppc));
+      gen_bool_guard(mrb, 0, *ppc + GETARG_sBx(**ppc));
     }
 
     return code;
@@ -678,11 +684,11 @@ do {                                                                 \
     
     mov(eax, ptr [ecx + coff + 4]);
     if (!mrb_test(regs[cond])) {
-      gen_bool_guard(0, *ppc + 1);
-      gen_jmp(mrb, irep, *ppc + GETARG_sBx(**ppc));
+      gen_bool_guard(mrb, 0, *ppc + 1);
+      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
-      gen_bool_guard(1, *ppc + GETARG_sBx(**ppc));
+      gen_bool_guard(mrb, 1, *ppc + GETARG_sBx(**ppc));
     }
 
     return code;
