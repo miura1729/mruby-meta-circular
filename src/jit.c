@@ -51,34 +51,14 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
 }
 
 mrbjit_code_info *
-search_codeinfo_cbase(mrbjit_codetab *tab, mrbjit_code_area code_base)
-{
-  int i;
-  mrbjit_code_info *entry;
-
-  if (code_base == NULL) {
-    return NULL;
-  }
-
-  for (i = 0; i < tab->size; i++) {
-    entry = tab->body + i;
-    if (entry->code_base == code_base) {
-      return entry;
-    }
-  }
-
-  return NULL;
-}
-
-mrbjit_code_info *
-search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc)
+search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
 {
   int i;
   mrbjit_code_info *entry;
 
   for (i = 0; i < tab->size; i++) {
     entry = tab->body + i;
-    if (entry->prev_pc == prev_pc) {
+    if (entry->prev_pc == prev_pc && entry->caller_pc == caller_pc ) {
       return entry;
     }
   }
@@ -96,17 +76,19 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
+  mrb_code *caller_pc;
 
   if (mrb->compile_info.disable_jit) {
     return status->optable[GET_OPCODE(**ppc)];
   }
 
   prev_pc = mrb->compile_info.prev_pc;
+  caller_pc = mrb->ci->pc;
 
   cbase = mrb->compile_info.code_base;
   n = ISEQ_OFFSET_OF(*ppc);
   if (prev_pc) {
-    ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc);
+    ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
   }
   else {
     ci = NULL;
@@ -170,6 +152,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       if (ci == NULL) {
 	ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
 	ci->prev_pc = prev_pc;
+	ci->caller_pc = caller_pc;
 	ci->used = 1;
 	ci->code_base = mrb->compile_info.code_base;
       }
@@ -267,9 +250,8 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
   /* prepare stack */
   mrb->stack += a;
 
-  // printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep->iseq, pc,regs[a].ttt, regs, n);
+  //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep->iseq, pc,regs[a].ttt, regs, n);
   //puts(mrb_sym2name(mrb, mid));
-  //mrb_p(mrb, recv);
 
   if (MRB_PROC_CFUNC_P(m)) {
     if (n == CALL_MAXARGS) {
@@ -305,6 +287,7 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     regs = *status->regs = mrb->stack;
     pc = *status->pc = irep->iseq;
   }
+  //mrb_p(mrb, recv);
 
   return NULL;
 }

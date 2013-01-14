@@ -576,6 +576,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   jmp_buf c_jmp;
   void *gtptr;			/* Use in NEXT/JUMP */
 
+  mrb->compile_info.nest_level = 0;
 #ifdef DIRECT_THREADED
   static void *optable[] = {
     &&L_OP_NOP, &&L_OP_MOVE,

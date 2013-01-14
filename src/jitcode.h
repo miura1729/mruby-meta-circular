@@ -62,7 +62,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     mrbjit_code_info *ci;
     int n = ISEQ_OFFSET_OF(newpc);
-    ci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc);
+    ci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
     if (ci) {
       if (ci->entry) {
 	jmp((void *)ci->entry);
@@ -308,7 +308,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, ptr[esp + 4]);
     mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
     mov(ecx, dword [eax]);
-    mrb->compile_info.nest_level++;
 
     return code;
   }
@@ -319,6 +318,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     CALL_CFUNC_STATUS(mrbjit_exec_enter);
 
+    mrb->compile_info.nest_level++;
     return code;
   }
 
