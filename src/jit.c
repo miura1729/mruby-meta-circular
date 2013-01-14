@@ -254,6 +254,7 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
   //puts(mrb_sym2name(mrb, mid));
 
   if (MRB_PROC_CFUNC_P(m)) {
+    int orgdisflg = mrb->compile_info.disable_jit;
     if (n == CALL_MAXARGS) {
       ci->nregs = 3;
     }
@@ -261,7 +262,9 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
       ci->nregs = n + 2;
     }
     //mrb_p(mrb, recv);
+    mrb->compile_info.disable_jit = 1;
     result = m->body.func(mrb, recv);
+    mrb->compile_info.disable_jit = orgdisflg;
     mrb->stack[0] = result;
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc) {
