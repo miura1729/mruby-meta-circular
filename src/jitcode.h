@@ -62,7 +62,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     mrbjit_code_info *ci;
     int n = ISEQ_OFFSET_OF(newpc);
-    ci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
+    if (irep->ilen < NO_INLINE_METHOD_LEN) {
+      ci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
+    }
+    else {
+      ci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
+      mrb->compile_info.nest_level = 0;
+    }
     if (ci) {
       if (ci->entry) {
 	jmp((void *)ci->entry);
@@ -77,7 +83,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void 
     gen_type_guard(mrb_state *mrb, enum mrb_vtype tt, mrb_code *pc)
   {
-    mrb->compile_info.nest_level = 0;
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -99,7 +104,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void
     gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc)
   {
-    mrb->compile_info.nest_level = 0;
     /* Input eax for tested boolean */
     cmp(eax, 0xfff00001);
     if (b) {
@@ -327,7 +331,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     mrb->compile_info.nest_level--;
-    if (mrb->compile_info.nest_level != 0) {
+    if (mrb->compile_info.nest_level < 0) {
       return NULL;
     }
 
