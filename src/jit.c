@@ -16,9 +16,11 @@
 #include <stdio.h>
 #include <setjmp.h>
 
-extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *);
-extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
+extern const void *mrbjit_get_curr(mrb_state *);
+extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
+extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_code_info *);
 extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
+extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *);
 
 static mrbjit_code_info *
 add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
@@ -77,6 +79,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
   mrb_code *caller_pc;
+  void *(*entry)() = NULL;
 
   if (mrb->compile_info.disable_jit) {
     return status->optable[GET_OPCODE(**ppc)];
@@ -88,6 +91,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
   else {
     caller_pc = NULL;
+    mrb->compile_info.nest_level = 0;
   }
 
   cbase = mrb->compile_info.code_base;
@@ -98,22 +102,17 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   else {
     ci = NULL;
   }
-
-  if (cbase && ci) {
-    if (ci->entry) {
-      mrbjit_gen_jump_block(cbase, ci->entry);
+  if (ci) {
+    if (cbase) {
+      if (ci->used > 0) {
+	mrbjit_gen_jump_block(cbase, ci->entry);
+	cbase = mrb->compile_info.code_base = NULL;
+      }
     }
-    else {
-      mrbjit_gen_exit(cbase, mrb, irep, ppc);
-    }
-
-    cbase = mrb->compile_info.code_base = NULL;
-    mrb->compile_info.nest_level = 0;
-  }
-
-  if (ci && cbase == NULL) {
-    if (ci->entry) {
+    
+    if (cbase == NULL && ci->used > 0) {
       void *rc;
+      prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
       asm("push %ecx");
@@ -130,47 +129,83 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	  :
 	  : "a"(status));
 
-      ci->entry();
+      rc = ci->entry();
 
       asm("add $0x4, %esp");
       asm("pop %ebx");
       asm("pop %ecx");
 
-      asm("mov %%eax, %0"
-      	  : "=g"(rc));
+      /*      asm("mov %%eax, %0"
+	      : "=g"(rc));*/
+      asm("mov %%edx, %0"
+	  : "=g"(ci));
 
       irep = *status->irep;
       regs = *status->regs;
-      //printf("exit %x %x \n", ci->entry, regs);
+      n = ISEQ_OFFSET_OF(*ppc);
+      if (irep->ilen < NO_INLINE_METHOD_LEN) {
+	caller_pc = mrb->ci->pc;
+      }
+      else {
+	caller_pc = NULL;
+	mrb->compile_info.nest_level = 0;
+      }
+      //printf("exit %x \n", ci);
       if (rc) {
 	mrb->compile_info.prev_pc = *ppc;
 	return rc;
       }
-    }
-  }
-  else {
-    void *(*entry)() = NULL;
-
-    if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
-      entry = mrbjit_emit_code(mrb, status);
-      //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
-      if (ci == NULL) {
-	ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
-	ci->prev_pc = prev_pc;
-	ci->caller_pc = caller_pc;
-	ci->used = 1;
-	ci->code_base = mrb->compile_info.code_base;
+      if (ci && ci->used > 0) {
+	goto exit;
       }
-      ci->entry = entry;
-    }
-
-    if (cbase && entry == NULL) {
-      /* Finish compile */
-      mrbjit_gen_exit(cbase, mrb, irep, ppc);
-      mrb->compile_info.code_base = NULL;
-      mrb->compile_info.nest_level = 0;
+      if (ci == NULL) {
+	ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
+      }
     }
   }
+
+  if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
+    //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
+    if (ci == NULL) {
+      //printf("p %x %x\n", *ppc, prev_pc);
+      ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
+      ci->prev_pc = prev_pc;
+      ci->caller_pc = caller_pc;
+      ci->code_base = mrb->compile_info.code_base;
+      ci->entry = NULL;
+      ci->used = -1;
+    }
+
+    if (ci->used < 0) {
+      entry = mrbjit_emit_code(mrb, status, ci);
+      if (ci->entry && entry) {
+	cbase = mrb->compile_info.code_base;
+	mrbjit_gen_jmp_patch(cbase, ci->entry, entry);
+      }
+
+      if (entry) {
+	ci->entry = entry;
+	ci->used = 1;
+      }
+      else {
+	/* record contination patch entry */
+	if (cbase) {
+	  ci->entry = mrbjit_get_curr(cbase);
+	}
+	ci->used = -1;
+	// printf("%x %x %x\n", ci->entry, *ppc, ci);
+      }
+    }
+  }
+
+  if (cbase && entry == NULL) {
+    /* Finish compile */
+    mrbjit_gen_exit(cbase, mrb, irep, ppc, ci);
+    mrb->compile_info.code_base = NULL;
+    mrb->compile_info.nest_level = 0;
+  }
+
+ exit:
   mrb->compile_info.prev_pc = *ppc;
 
   return status->optable[GET_OPCODE(**ppc)];

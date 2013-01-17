@@ -3,10 +3,10 @@
 extern "C" {
 
 void
-mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_code_info *ci)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->gen_exit(*ppc);
+  code->gen_exit(*ppc, ci);
 }
 
 void
@@ -16,13 +16,26 @@ mrbjit_gen_jump_block(mrbjit_code_area coderaw, void *entry)
   code->gen_jump_block(entry);
 }
 
-static MRBJitCode *the_code = new MRBJitCode();
+void
+mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
+{
+  MRBJitCode *code = (MRBJitCode *) coderaw;
+  code->gen_jmp_patch(dst, target);
+}
 
 const void *
-mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
+mrbjit_get_curr(mrbjit_code_area coderaw)
+{
+  MRBJitCode *code = (MRBJitCode *) coderaw;
+  return code->getCurr();
+}
+
+static MRBJitCode *the_code = new MRBJitCode();
+
+static const void *
+mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *ci, MRBJitCode *code)
 {
   mrb_irep *irep = *status->irep;
-  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
   mrb_value *regs = *status->regs;
   mrb_code **ppc = status->pc;
   const void *entry;
@@ -74,9 +87,14 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
     return code->emit_send(mrb, status);
 
   case OP_ENTER:
+    mrb->compile_info.nest_level++;
     return code->emit_enter(mrb, status);
 
   case OP_RETURN:
+    mrb->compile_info.nest_level--;
+    if (mrb->compile_info.nest_level < 0) {
+      return NULL;
+    }
     return code->emit_return(mrb, status);
 
   case OP_ADD:
@@ -119,13 +137,13 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
     return code->emit_setupvar(mrb, irep, ppc);
 
   case OP_JMP:
-    return code->emit_jmp(mrb, irep, ppc);
+    return code->emit_jmp(mrb, irep, ppc, ci);
 
   case OP_JMPIF:
-    return code->emit_jmpif(mrb, irep, ppc, regs);
+    return code->emit_jmpif(mrb, irep, ppc, regs, ci);
 
   case OP_JMPNOT:
-    return code->emit_jmpnot(mrb, irep, ppc, regs);
+    return code->emit_jmpnot(mrb, irep, ppc, regs, ci);
 
   default:
     mrb->compile_info.nest_level = 0;
@@ -133,5 +151,16 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 }
 
+const void *
+mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *ci)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+  const void *rc = mrbjit_emit_code_aux(mrb, status, ci, code);
+  if (rc == NULL && code == NULL) {
+    mrb->compile_info.code_base = NULL;
+  }
+
+  return rc;
+}
 } /* extern "C" */
 
