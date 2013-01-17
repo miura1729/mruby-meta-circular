@@ -80,6 +80,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_code *prev_pc;
   mrb_code *caller_pc;
   void *(*entry)() = NULL;
+  void *(*prev_entry)() = NULL;
 
   if (mrb->compile_info.disable_jit) {
     return status->optable[GET_OPCODE(**ppc)];
@@ -138,7 +139,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       /*      asm("mov %%eax, %0"
 	      : "=g"(rc));*/
       asm("mov %%edx, %0"
-	  : "=g"(ci));
+	  : "=g"(prev_entry));
 
       irep = *status->irep;
       regs = *status->regs;
@@ -150,17 +151,11 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	caller_pc = NULL;
 	mrb->compile_info.nest_level = 0;
       }
-      //printf("exit %x \n", ci);
       if (rc) {
 	mrb->compile_info.prev_pc = *ppc;
 	return rc;
       }
-      if (ci && ci->used > 0) {
-	goto exit;
-      }
-      if (ci == NULL) {
-	ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
-      }
+      ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
     }
   }
 
@@ -178,9 +173,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
     if (ci->used < 0) {
       entry = mrbjit_emit_code(mrb, status, ci);
-      if (ci->entry && entry) {
+      if (prev_entry && entry) {
+	//printf("patch %x %x \n", prev_entry, entry);
 	cbase = mrb->compile_info.code_base;
-	mrbjit_gen_jmp_patch(cbase, ci->entry, entry);
+	mrbjit_gen_jmp_patch(cbase, prev_entry, entry);
       }
 
       if (entry) {
@@ -192,6 +188,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	if (cbase) {
 	  ci->entry = mrbjit_get_curr(cbase);
 	}
+	//	printf("set %x %x \n", ci->entry, entry);
 	ci->used = -1;
 	// printf("%x %x %x\n", ci->entry, *ppc, ci);
       }

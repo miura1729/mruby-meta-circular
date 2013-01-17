@@ -44,12 +44,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_exit(mrb_code *pc, mrbjit_code_info *ci)
+    gen_exit(mrb_code *pc)
   {
+    const void* exit_ptr = getCurr();
     mov(dword [ebx], (Xbyak::uint32)pc);
-    mov(edx, (Xbyak::uint32)ci);
     xor(eax, eax);
-    xor(edx, edx);
+    mov(edx, (Xbyak::uint32)exit_ptr);
     ret();
   }
   
@@ -89,7 +89,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       }
       else {
 	newci->entry = (void *(*)())getCurr();
-	gen_exit(newpc, ci);
+	gen_exit(newpc);
       }
       mrb->compile_info.code_base = NULL;
     }
@@ -98,6 +98,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void 
     gen_type_guard(mrb_state *mrb, enum mrb_vtype tt, mrb_code *pc)
   {
+    const void* exit_ptr;
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -109,9 +110,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
+    exit_ptr = getCurr();
     mov(dword [ebx], (Xbyak::uint32)pc);
     xor(eax, eax);
-    xor(edx, edx);
+    mov(edx, (Xbyak::uint32)exit_ptr);
     ret();
 
     L("@@");
@@ -120,6 +122,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void
     gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc)
   {
+    const void* exit_ptr = getCurr();
     /* Input eax for tested boolean */
     cmp(eax, 0xfff00001);
     if (b) {
@@ -130,9 +133,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
+    exit_ptr = getCurr();
     mov(dword [ebx], (Xbyak::uint32)pc);
     xor(eax, eax);
-    xor(edx, edx);
+    mov(edx, (Xbyak::uint32)exit_ptr);
     ret();
 
     L("@@");
