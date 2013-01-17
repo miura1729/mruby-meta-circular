@@ -3,7 +3,7 @@
 extern "C" {
 
 void
-mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_code_info *ci)
+mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
   code->gen_exit(*ppc);
@@ -33,7 +33,7 @@ mrbjit_get_curr(mrbjit_code_area coderaw)
 static MRBJitCode *the_code = new MRBJitCode();
 
 static const void *
-mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *ci, MRBJitCode *code)
+mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, MRBJitCode *code)
 {
   mrb_irep *irep = *status->irep;
   mrb_value *regs = *status->regs;
@@ -137,13 +137,13 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *
     return code->emit_setupvar(mrb, irep, ppc);
 
   case OP_JMP:
-    return code->emit_jmp(mrb, irep, ppc, ci);
+    return code->emit_jmp(mrb, irep, ppc);
 
   case OP_JMPIF:
-    return code->emit_jmpif(mrb, irep, ppc, regs, ci);
+    return code->emit_jmpif(mrb, irep, ppc, regs);
 
   case OP_JMPNOT:
-    return code->emit_jmpnot(mrb, irep, ppc, regs, ci);
+    return code->emit_jmpnot(mrb, irep, ppc, regs);
 
   default:
     mrb->compile_info.nest_level = 0;
@@ -152,10 +152,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *
 }
 
 const void *
-mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *ci)
+mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
-  const void *rc = mrbjit_emit_code_aux(mrb, status, ci, code);
+  const void *rc = mrbjit_emit_code_aux(mrb, status, code);
   if (rc == NULL && code == NULL) {
     mrb->compile_info.code_base = NULL;
   }

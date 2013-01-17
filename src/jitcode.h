@@ -72,7 +72,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code *curpc, mrb_code *newpc, mrbjit_code_info *ci)
+    gen_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code *curpc, mrb_code *newpc)
   {
     mrbjit_code_info *newci;
     int n = ISEQ_OFFSET_OF(newpc);
@@ -671,15 +671,15 @@ do {                                                                 \
   }
 
   const void *
-    emit_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_code_info *ci)
+    emit_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   {
     const void *code = getCurr();
-    gen_jmp(mrb, irep,  *ppc, *ppc + GETARG_sBx(**ppc), ci);
+    gen_jmp(mrb, irep,  *ppc, *ppc + GETARG_sBx(**ppc));
     return code;
   }
 
   const void *
-    emit_jmpif(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs, mrbjit_code_info *ci)
+    emit_jmpif(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   {
     const void *code = getCurr();
     const int cond = GETARG_A(**ppc);
@@ -688,7 +688,7 @@ do {                                                                 \
     mov(eax, ptr [ecx + coff + 4]);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 1, *ppc + 1);
-      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc), ci);
+      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
       gen_bool_guard(mrb, 0, *ppc + GETARG_sBx(**ppc));
@@ -698,7 +698,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_jmpnot(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs, mrbjit_code_info *ci)
+    emit_jmpnot(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
   {
     const void *code = getCurr();
     const int cond = GETARG_A(**ppc);
@@ -707,7 +707,7 @@ do {                                                                 \
     mov(eax, ptr [ecx + coff + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, *ppc + 1);
-      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc), ci);
+      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
       gen_bool_guard(mrb, 1, *ppc + GETARG_sBx(**ppc));

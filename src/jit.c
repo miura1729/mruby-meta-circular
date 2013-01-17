@@ -17,8 +17,8 @@
 #include <setjmp.h>
 
 extern const void *mrbjit_get_curr(mrb_state *);
-extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
-extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_code_info *);
+extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *);
+extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
 extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
 extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *);
 
@@ -172,7 +172,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->used < 0) {
-      entry = mrbjit_emit_code(mrb, status, ci);
+      entry = mrbjit_emit_code(mrb, status);
       if (prev_entry && entry) {
 	//printf("patch %x %x \n", prev_entry, entry);
 	cbase = mrb->compile_info.code_base;
@@ -197,12 +197,11 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   if (cbase && entry == NULL) {
     /* Finish compile */
-    mrbjit_gen_exit(cbase, mrb, irep, ppc, ci);
+    mrbjit_gen_exit(cbase, mrb, irep, ppc);
     mrb->compile_info.code_base = NULL;
     mrb->compile_info.nest_level = 0;
   }
 
- exit:
   mrb->compile_info.prev_pc = *ppc;
 
   return status->optable[GET_OPCODE(**ppc)];
