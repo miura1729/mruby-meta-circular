@@ -16,6 +16,12 @@
 #include <stdio.h>
 #include <setjmp.h>
 
+#ifdef JIT_DEBUG
+# define DEBUG(x) (x)
+#else
+# define DEBUG(x)
+#endif
+
 extern const void *mrbjit_get_curr(mrb_state *);
 extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *);
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
