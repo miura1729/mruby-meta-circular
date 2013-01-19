@@ -53,6 +53,7 @@ The following options can be configurated:
 * conf.objccflags (Object compiler flags)
 * conf.asmflags (Assembler flags)
 * conf.gem (A GEM which should be integrated - can be set several times)
+* conf.bins (Build binaries)
 
 To compile just call ```./minirake``` inside of the mruby source root. To
 generate the test tool environment call ```./minirake test```. To clean
@@ -82,7 +83,7 @@ MRuby::CrossBuild.new('i386') do |conf|
 end
 ```
 
-You can configurate the same options as for a normal build.
+You can configurate the same options as for a normal build. You can specified your own build_config.rb with *$MRUBY_CONFIG*.
 
 ## Build process
 

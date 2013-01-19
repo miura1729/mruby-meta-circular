@@ -147,8 +147,10 @@ gettimeofday_time(void)
 #ifdef GC_DEBUG
 #include <assert.h>
 #define gc_assert(expect) assert(expect)
+#define DEBUG(x) (x)
 #else
 #define gc_assert(expect) ((void)0)
+#define DEBUG(x)
 #endif
 
 #define GC_STEP_SIZE 1024
@@ -206,6 +208,7 @@ struct heap_page {
   struct heap_page *next;
   struct heap_page *free_next;
   struct heap_page *free_prev;
+  unsigned int old:1;
   RVALUE objects[MRB_HEAP_PAGE_SIZE];
 };
 
@@ -452,8 +455,10 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
     {
       struct RRange *r = (struct RRange*)obj;
 
-      mrb_gc_mark_value(mrb, r->edges->beg);
-      mrb_gc_mark_value(mrb, r->edges->end);
+      if (r->edges) {
+        mrb_gc_mark_value(mrb, r->edges->beg);
+        mrb_gc_mark_value(mrb, r->edges->end);
+      }
     }
     break;
 
@@ -763,6 +768,11 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
     int dead_slot = 1;
     int full = (page->freelist == NULL);
 
+    if (is_minor_gc(mrb) && page->old) {
+      /* skip a slot which doesn't contain any young object */
+      p = e;
+      dead_slot = 0;
+    }
     while (p<e) {
       if (is_dead(mrb, &p->as.basic)) {
         if (p->as.basic.tt != MRB_TT_FREE) {
@@ -773,7 +783,7 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
         }
       }
       else {
-        if (!is_minor_gc(mrb))
+        if (!is_generational(mrb))
           paint_partial_white(mrb, &p->as.basic); /* next gc target */
         dead_slot = 0;
       }
@@ -793,6 +803,10 @@ incremental_sweep_phase(mrb_state *mrb, size_t limit)
       if (full && freed > 0) {
         link_free_heap_page(mrb, page);
       }
+      if (page->freelist == NULL && is_minor_gc(mrb))
+        page->old = TRUE;
+      else
+        page->old = FALSE;
       page = page->next;
     }
     tried_sweep += MRB_HEAP_PAGE_SIZE;
@@ -852,11 +866,10 @@ clear_all_old(mrb_state *mrb)
   if (is_major_gc(mrb)) {
     advance_phase(mrb, GC_STATE_NONE);
   }
-  else {
-    mrb->is_generational_gc_mode = FALSE;
-    prepare_incremental_sweep(mrb);
-    advance_phase(mrb, GC_STATE_NONE);
-  }
+
+  mrb->is_generational_gc_mode = FALSE;
+  prepare_incremental_sweep(mrb);
+  advance_phase(mrb, GC_STATE_NONE);
   mrb->variable_gray_list = mrb->gray_list = NULL;
   mrb->is_generational_gc_mode = origin_mode;
 }
@@ -971,7 +984,7 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
   gc_assert(!is_dead(mrb, value) && !is_dead(mrb, obj));
   gc_assert(is_generational(mrb) || mrb->gc_state != GC_STATE_NONE);
 
-  if (is_minor_gc(mrb) || mrb->gc_state == GC_STATE_MARK) {
+  if (is_generational(mrb) || mrb->gc_state == GC_STATE_MARK) {
     add_gray_list(mrb, value);
   }
   else {
@@ -1131,13 +1144,8 @@ static void
 change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
 {
   if (is_generational(mrb) && !enable) {
-    if (is_major_gc(mrb)) {
-      advance_phase(mrb, GC_STATE_NONE);
-    }
-    else {
-      clear_all_old(mrb);
-      gc_assert(mrb->gc_state == GC_STATE_NONE);
-    }
+    clear_all_old(mrb);
+    gc_assert(mrb->gc_state == GC_STATE_NONE);
     mrb->gc_full = FALSE;
   }
   else if (!is_generational(mrb) && enable) {
@@ -1176,13 +1184,13 @@ gc_generational_mode_get(mrb_state *mrb, mrb_value self)
 static mrb_value
 gc_generational_mode_set(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enable;
+  int enable;
 
-  mrb_get_args(mrb, "o", &enable);
-  if (mrb->is_generational_gc_mode != mrb_test(enable))
-    change_gen_gc_mode(mrb, mrb_test(enable));
+  mrb_get_args(mrb, "b", &enable);
+  if (mrb->is_generational_gc_mode != enable)
+    change_gen_gc_mode(mrb, enable);
 
-  if (mrb_test(enable))
+  if (enable)
     return mrb_true_value();
   else
     return mrb_false_value();
