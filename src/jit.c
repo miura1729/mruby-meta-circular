@@ -122,19 +122,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
-      asm("push %ecx");
+      asm("mov %ecx, -0x4(%esp)");
       asm("mov %0, %%ecx"
 	  :
 	  : "a"(regs)
 	  : "%ecx");
-      asm("push %ebx");
+      asm("mov %ebx, -0x8(%esp)");
       asm("mov %0, %%ebx"
 	  :
 	  : "a"(ppc)
 	  : "%ebx");
-      asm("push %0"
+      asm("mov %0, -0xc(%%esp)"
 	  :
 	  : "a"(status));
+      asm("sub $0xc, %esp");
 
       rc = ci->entry();
 

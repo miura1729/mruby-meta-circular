@@ -11,7 +11,7 @@ MRuby::Build.new do |conf|
   # conf.cat = 'cat'
   # conf.git = 'git'
 
-  conf.cflags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return))
+  conf.cflags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer))
   conf.ldflags << (ENV['LDFLAGS'] || %w(-lm))
   conf.cxxflags = conf.cflags + %w(-fno-operator-names)
   # conf.objccflags = []
