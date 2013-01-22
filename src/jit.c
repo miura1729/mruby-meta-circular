@@ -125,28 +125,27 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       asm("mov %ecx, -0x4(%esp)");
       asm("mov %0, %%ecx"
 	  :
-	  : "a"(regs)
-	  : "%ecx");
+	  : "a"(regs));
       asm("mov %ebx, -0x8(%esp)");
       asm("mov %0, %%ebx"
 	  :
-	  : "a"(ppc)
-	  : "%ebx");
+	  : "a"(ppc));
       asm("mov %0, -0xc(%%esp)"
 	  :
 	  : "a"(status));
       asm("sub $0xc, %esp");
 
-      rc = ci->entry();
+      ci->entry();
 
-      asm("add $0x4, %esp");
-      asm("pop %ebx");
-      asm("pop %ecx");
+      asm("add $0xc, %esp");
 
-      /*      asm("mov %%eax, %0"
-	      : "=g"(rc));*/
+      asm("mov %%eax, %0"
+	  : "=c"(rc));
       asm("mov %%edx, %0"
-	  : "=g"(prev_entry));
+	  : "=c"(prev_entry));
+
+      asm("mov -0x8(%esp), %ebx");
+      asm("mov -0x4(%esp), %ecx");
 
       irep = *status->irep;
       regs = *status->regs;
