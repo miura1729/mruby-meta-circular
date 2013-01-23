@@ -122,30 +122,33 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
-      asm("mov %ecx, -0x4(%esp)");
-      asm("mov %0, %%ecx"
-	  :
-	  : "a"(regs));
-      asm("mov %ebx, -0x8(%esp)");
-      asm("mov %0, %%ebx"
-	  :
-	  : "a"(ppc));
-      asm("mov %0, -0xc(%%esp)"
-	  :
-	  : "a"(status));
-      asm("sub $0xc, %esp");
+      asm volatile("mov %ecx, -0x4(%esp)");
+      asm volatile("mov %0, %%ecx"
+		   :
+		   : "g"(regs));
+      asm volatile("mov %ebx, -0x8(%esp)");
+      asm volatile("mov %0, %%ebx"
+		   :
+		   : "g"(ppc));
+      asm volatile("mov %0, -0xc(%%esp)"
+		   :
+		   : "a"(status));
+      asm volatile("mov %0, %%eax"
+		   :
+		   : "g"(ci->entry));
 
+      asm volatile("sub $0xc, %esp");
+      //asm volatile("call *%edx");
       ci->entry();
+      asm volatile("add $0xc, %esp");
 
-      asm("add $0xc, %esp");
+      asm volatile("mov %%eax, %0"
+		   : "=c"(rc));
+      asm volatile("mov %%edx, %0"
+		   : "=c"(prev_entry));
 
-      asm("mov %%eax, %0"
-	  : "=c"(rc));
-      asm("mov %%edx, %0"
-	  : "=c"(prev_entry));
-
-      asm("mov -0x8(%esp), %ebx");
-      asm("mov -0x4(%esp), %ecx");
+      asm volatile("mov -0x8(%esp), %ebx");
+      asm volatile("mov -0x4(%esp), %ecx");
 
       irep = *status->irep;
       regs = *status->regs;
