@@ -123,34 +123,28 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
       //printf("%x %x \n", ci->entry, *ppc);
 
-      asm volatile("mov %0, %%ecx"
+      asm volatile("mov %0, %%ecx;"
+		   "mov %1, %%ebx;"
+		   "mov %2, -0x4(%%esp)"
 		   :
-		   : "g"(regs)
-		   : "%ecx");
-      asm volatile("mov %0, %%ebx"
-		   :
-		   : "g"(ppc)
-		   : "%ebx");
-      asm volatile("mov %0, -0x4(%%esp)"
-		   :
-		   : "d"(status)
-		   : "memory");
+		   : "g"(regs),
+		     "g"(ppc),
+		     "d"(status)
+		   : "%ecx",
+		     "%ebx",
+		     "memory");
 
-      asm volatile("sub $0x4, %esp");
-      asm volatile("call *%0"
+      asm volatile("sub $0x4, %%esp;"
+		   "call *%0;"
+		   "add $0x4, %%esp;"
 		   :
 		   : "g"(ci->entry)
 		   : "%edx");
-      //ci->entry();
-      asm volatile("add $0x4, %esp");
 
-      asm volatile("mov %%eax, %0"
+      asm volatile("mov %%eax, %0;"
 		   : "=c"(rc));
       asm volatile("mov %%edx, %0"
-		   : "=c"(prev_entry)
-		   :
-		   : "%edx");
-
+		   : "=c"(prev_entry));
 
       irep = *status->irep;
       regs = *status->regs;
