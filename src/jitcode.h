@@ -24,6 +24,8 @@ void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
+#define CALL_MAXARGS 127
+
 /* Regs Map                               *
  * ecx   -- pointer to regs               *
  * ebx   -- pointer to pc                 */
@@ -329,6 +331,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_send(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
+    if (GETARG_C(**(status->pc)) == CALL_MAXARGS) {
+      return NULL;
+    }
+
     CALL_CFUNC_STATUS(mrbjit_exec_send);
 
     mov(eax, ptr[esp + 4]);

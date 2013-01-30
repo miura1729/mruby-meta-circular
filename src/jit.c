@@ -213,7 +213,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 }
 
 #define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
-#define CALL_MAXARGS 127
 
 void *
 mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
@@ -240,12 +239,7 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
 
   recv = regs[a];
   if (GET_OPCODE(i) != OP_SENDB) {
-    if (n == CALL_MAXARGS) {
-      SET_NIL_VALUE(regs[a+2]);
-    }
-    else {
-      SET_NIL_VALUE(regs[a+n+1]);
-    }
+    SET_NIL_VALUE(regs[a+n+1]);
   }
   c = mrb_class(mrb, recv);
 
@@ -256,15 +250,10 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
 
       mid = mrb_intern(mrb, "method_missing");
       m = mrb_method_search_vm(mrb, &c, mid);
-      if (n == CALL_MAXARGS) {
-	mrb_ary_unshift(mrb, regs[a+1], sym);
-      }
-      else {
-	memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
+      memmove(regs+a+2, regs+a+1, sizeof(mrb_value)*(n+1));
 
-	regs[a+1] = sym;
-	n++;
-      }
+      regs[a+1] = sym;
+      n++;
     }
     else {
       mrb->is_method_cache_used = 1;
@@ -277,31 +266,21 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     m = pool[mthoff].value.p;
   }
 
-  /* push callinfo */
-  ci = mrbjit_cipush(mrb);
-  ci->mid = mid;
-  ci->proc = m;
-  ci->stackidx = mrb->stack - mrb->stbase;
-  ci->argc = n;
-  if (ci->argc == CALL_MAXARGS) ci->argc = -1;
-  ci->target_class = c;
-  ci->pc = pc + 1;
-  ci->acc = a;
-
-  /* prepare stack */
-  mrb->stack += a;
 
   //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep->iseq, pc,regs[a].ttt, regs, n);
   //puts(mrb_sym2name(mrb, mid));
 
   if (MRB_PROC_CFUNC_P(m)) {
     int orgdisflg = mrb->compile_info.disable_jit;
-    if (n == CALL_MAXARGS) {
-      ci->nregs = 3;
-    }
-    else {
-      ci->nregs = n + 2;
-    }
+    ci = mrbjit_cipush(mrb);
+    ci->stackidx = mrb->stack - mrb->stbase;
+    ci->argc = n;
+    ci->target_class = c;
+
+    /* prepare stack */
+    mrb->stack += a;
+
+    ci->nregs = n + 2;
     //mrb_p(mrb, recv);
     mrb->compile_info.disable_jit = 1;
     result = m->body.func(mrb, recv);
@@ -309,6 +288,8 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     mrb->stack[0] = result;
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc) {
+      ci->mid = mid;
+      ci->proc = m;
       return status->gototable[0];	/* goto L_RAISE; */
     }
     /* pop stackpos */
@@ -316,6 +297,19 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
     mrbjit_cipop(mrb);
   }
   else {
+    /* push callinfo */
+    ci = mrbjit_cipush(mrb);
+    ci->mid = mid;
+    ci->proc = m;
+    ci->stackidx = mrb->stack - mrb->stbase;
+    ci->argc = n;
+    ci->target_class = c;
+    ci->pc = pc + 1;
+    ci->acc = a;
+
+    /* prepare stack */
+    mrb->stack += a;
+
     /* setup environment for calling method */
     *status->proc = mrb->ci->proc = m;
     irep = *status->irep = m->body.irep;
