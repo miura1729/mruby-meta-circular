@@ -58,7 +58,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 static inline void
 stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {
-  int i;
+  size_t i;
 
   for (i = 0; i < size; i++) {
     dst[i] = src[i];
@@ -1210,6 +1210,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
       else {
         if (argv0 != argv) {
+          regs[len+1] = *blk; /* move block */
           memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
         }
         if (r) {                  /* r */
@@ -1218,7 +1219,9 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         if (m2) {
           memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
         }
-        regs[len+1] = *blk; /* move block */
+        if (argv0 == argv) {
+          regs[len+1] = *blk; /* move block */
+        }
         pc += o + 1;
       }
       JUMP;
@@ -1322,6 +1325,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->stack = mrb->stbase + ci->stackidx;
+        {
+          int idx = eidx;
+          while (idx > mrb->ci->eidx) {
+            mrb_gc_protect(mrb, mrb_obj_value(mrb->ensure[--idx]));
+          }
+        }
         while (eidx > mrb->ci->eidx) {
           ecall(mrb, --eidx);
         }

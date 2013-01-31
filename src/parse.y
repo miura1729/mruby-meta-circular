@@ -5,7 +5,6 @@
 */
 
 %{
-#undef PARSER_TEST
 #undef PARSER_DEBUG
 
 #define YYDEBUG 1
@@ -570,7 +569,7 @@ new_const(parser_state *p, mrb_sym sym)
 static node*
 new_undef(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_UNDEF, nsym(sym));
+  return list2((node*)NODE_UNDEF, nsym(sym));
 }
 
 // (:class class super body)
@@ -917,7 +916,7 @@ var_reference(parser_state *p, node *lhs)
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
-%type <nd> brace_block cmd_brace_block do_block lhs none fitem f_bad_arg
+%type <nd> brace_block cmd_brace_block do_block lhs none f_bad_arg
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
 %type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
@@ -1050,7 +1049,7 @@ bodystmt	: compstmt
 		      }
 		      else if ($3) {
 			yywarn(p, "else without rescue is useless");
-			$$ = append($$, $3);
+			$$ = push($1, $3);
 		      }
 		      else {
 			$$ = $1;
@@ -1485,19 +1484,13 @@ fsym		: fname
 		| basic_symbol
 		;
 
-fitem		: fsym
-		    {
-		      $$ = new_sym(p, $1);
-		    }
-		;
-
 undef_list	: fsym
 		    {
 		      $$ = new_undef(p, $1);
 		    }
-		| undef_list ',' {p->lstate = EXPR_FNAME;} fitem
+		| undef_list ',' {p->lstate = EXPR_FNAME;} fsym
 		    {
-		      $$ = push($1, (node*)$4);
+		      $$ = push($1, nsym($4));
 		    }
 		;
 
@@ -3434,36 +3427,39 @@ parse_string(parser_state *p, int term)
 }
 
 static node*
-qstring_node(parser_state *p, int term)
+qstring_node(parser_state *p, int beg, int end)
 {
   int c;
+  int nest_level = 0;
 
   newtok(p);
-  while ((c = nextc(p)) != term) {
+  while ((c = nextc(p)) != end || nest_level != 0) {
     if (c  == -1)  {
       yyerror(p, "unterminated string meets end of file");
       return 0;
     }
-    if (c == '\\') {
+    else if (c == beg) {
+      nest_level++;
+    }
+    else if (c == end) {
+      nest_level--;
+    }
+    else if (c == '\\') {
       c = nextc(p);
-      switch (c) {
-      case '\n':
-	p->lineno++;
-	p->column = 0;
-	continue;
+      if (c != beg && c != end) {
+        switch (c) {
+        case '\n':
+          p->lineno++;
+          p->column = 0;
+          continue;
 
-      case '\\':
-	c = '\\';
-	break;
+        case '\\':
+          c = '\\';
+          break;
 
-      case '\'':
-	if (term == '\'') {
-	  c = '\'';
-	  break;
-	}
-	/* fall through */
-      default:
-	tokadd(p, '\\');
+        default:
+          tokadd(p, '\\');
+        }
       }
     }
     tokadd(p, c);
@@ -3475,12 +3471,12 @@ qstring_node(parser_state *p, int term)
 }
 
 static int
-parse_qstring(parser_state *p, int term)
+parse_qstring(parser_state *p, int beg, int end)
 {
-  node *nd = qstring_node(p, term);
+  node *nd = qstring_node(p, beg, end);
 
   if (nd) {
-    yylval.nd = new_str(p, tok(p), toklen(p));
+    yylval.nd = nd;
     return tSTRING;
   }
   return 0;
@@ -3714,7 +3710,7 @@ parser_yylex(parser_state *p)
     return tSTRING_BEG;
 
   case '\'':
-    return parse_qstring(p, c);
+    return parse_qstring(p, '\'', '\'');
 
   case '?':
     if (IS_END()) {
@@ -4317,7 +4313,7 @@ parser_yylex(parser_state *p)
 
   case '%':
     if (IS_BEG()) {
-      int term;
+      int beg = 0, term;
 #if 0
       int paren;
 #endif
@@ -4329,7 +4325,7 @@ parser_yylex(parser_state *p)
 	c = 'Q';
       }
       else {
-	term = nextc(p);
+	beg = term = nextc(p);
 	if (isalnum(term)) {
 	  yyerror(p, "unknown type of %string");
 	  return 0;
@@ -4362,7 +4358,8 @@ parser_yylex(parser_state *p)
 #if 0
 	p->lex_strterm = new_strterm(p, str_squote, term, paren);
 #endif
-	return tSTRING_BEG;
+	p->sterm = 0;
+	return parse_qstring(p, beg, term);
 
       case 'W':
 #if 0
@@ -5458,8 +5455,15 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_UNDEF:
-    printf("NODE_UNDEF %s:\n",
-	   mrb_sym2name(mrb, sym(tree)));
+    printf("NODE_UNDEF");
+    {
+      node *t = tree;
+      while (t) {
+        printf(" %s", mrb_sym2name(mrb, sym(t->car)));
+        t = t->cdr;
+      }
+    }
+    printf(":\n");
     break;
 
   case NODE_CLASS:
@@ -5643,26 +5647,3 @@ parser_dump(mrb_state *mrb, node *tree, int offset)
   }
 #endif
 }
-
-#ifdef PARSER_TEST
-int
-main()
-{
-  mrb_state *mrb = mrb_open();
-  int n;
-
-  n = mrb_compile_string(mrb, "\
-def fib(n)\n\
-  if n<2\n\
-    n\n\
-  else\n\
-    fib(n-2)+fib(n-1)\n\
-  end\n\
-end\n\
-print(fib(20), \"\\n\")\n\
-");
-  printf("ret: %d\n", n);
-
-  return 0;
-}
-#endif

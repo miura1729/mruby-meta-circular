@@ -1,21 +1,21 @@
-dir = File.dirname(__FILE__).sub(%r|^\./|, '')
-
 MRuby.each_target do
+  dir = File.dirname(__FILE__).relative_path_from(root)
+
   gems.each do |g|
     test_rbc = "#{g.build_dir}/gem_test.c"
-    test_rbobj = test_rbc.ext('o')
+    test_rbobj = test_rbc.ext(exts.object)
 
-    Rake::FileTask.define_task g.testlib => g.test_objs + [test_rbobj] do |t|
-      g.build.archive t.name, 'rs', t.prerequisites
+    file g.testlib => [g.test_objs, test_rbobj].flatten do |t|
+      g.build.archiver.run t.name, t.prerequisites
     end
 
-    Rake::FileTask.define_task test_rbobj => test_rbc
-    Rake::FileTask.define_task test_rbc => g.test_rbfiles + [g.build.mrbcfile, "#{build_dir}/lib/libmruby.a"] do |t|
+    file test_rbobj => test_rbc
+    file test_rbc => [g.test_rbfiles].flatten + [g.build.mrbcfile, libfile("#{build_dir}/lib/libmruby")] do |t|
       open(t.name, 'w') do |f|
-        f.puts g.gem_init_header
-        g.build.compile_mruby f, g.test_preload, "gem_test_irep_#{g.funcname}_preload"
-        g.test_rbfiles.each_with_index do |rbfile, i|
-          g.build.compile_mruby f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
+        g.print_gem_init_header(f)
+        g.build.mrbc.run f, g.test_preload, "gem_test_irep_#{g.funcname}_preload"
+        g.test_rbfiles.flatten.each_with_index do |rbfile, i|
+          g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
         end
         f.puts %Q[void mrb_#{g.funcname}_gem_test(mrb_state *mrb);] unless g.test_objs.empty?
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
@@ -32,7 +32,17 @@ MRuby.each_target do
             f.puts %Q[    exit(0);]
             f.puts %Q[  }]
             f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
-            
+
+            if not g.test_args.empty?
+              f.puts %Q[  mrb_value test_args_hash = mrb_hash_new_capa(mrb, #{g.test_args.length}); ]
+              g.test_args.each do |arg_name, arg_value|
+                escaped_arg_name = arg_name.gsub('\\', '\\\\\\\\').gsub('"', '\"')
+                escaped_arg_value = arg_value.gsub('\\', '\\\\\\\\').gsub('"', '\"')
+                f.puts %Q[  mrb_hash_set(mrb2, test_args_hash, mrb_str_new(mrb2, "#{escaped_arg_name.to_s}", #{escaped_arg_name.to_s.length}), mrb_str_new(mrb2, "#{escaped_arg_value.to_s}", #{escaped_arg_value.to_s.length})); ]
+              end
+              f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern(mrb2, "TEST_ARGS"), test_args_hash); ]
+            end
+
             f.puts %Q[  mrb_#{g.funcname}_gem_test(mrb2);] unless g.test_objs.empty? 
             
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_#{i});]
