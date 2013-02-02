@@ -100,7 +100,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void 
     gen_type_guard(mrb_state *mrb, enum mrb_vtype tt, mrb_code *pc)
   {
-    const void* exit_ptr;
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -112,11 +111,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    exit_ptr = getCurr();
-    mov(dword [ebx], (Xbyak::uint32)pc);
-    xor(eax, eax);
-    mov(edx, (Xbyak::uint32)exit_ptr);
-    ret();
+    gen_exit(pc);
 
     L("@@");
   }
@@ -124,7 +119,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void
     gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc)
   {
-    const void* exit_ptr = getCurr();
     /* Input eax for tested boolean */
     cmp(eax, 0xfff00001);
     if (b) {
@@ -135,11 +129,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    exit_ptr = getCurr();
-    mov(dword [ebx], (Xbyak::uint32)pc);
-    xor(eax, eax);
-    mov(edx, (Xbyak::uint32)exit_ptr);
-    ret();
+    gen_exit(pc);
 
     L("@@");
   }
@@ -321,9 +311,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 \
     cmp(eax, eax);                                                   \
     jz("@f");                                                        \
-    mov(dword [ebx], (Xbyak::uint32)(*status->pc));                  \
-    xor(edx, edx);                                                   \
-    ret();                                                           \
+    gen_exit(*status->pc);                                           \
     L("@@");                                                         \
   }while (0)
 
@@ -410,10 +398,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       movsd(ptr [ecx + reg0off], xmm0);                                 \
     }                                                                   \
     else {                                                              \
-      mov(dword [ebx], (Xbyak::uint32)*ppc);                            \
-      xor(eax, eax);                                                    \
-      xor(edx, edx);                                                    \
-      ret();                                                            \
+      gen_exit(*ppc);                                                   \
     }                                                                   \
 } while(0)
 
@@ -489,10 +474,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       add(esp, 8);                                                      \
     }                                                                   \
     else {                                                              \
-      mov(dword [ebx], (Xbyak::uint32)*ppc);                            \
-      xor(eax, eax);                                                    \
-      xor(edx, edx);                                                    \
-      ret();                                                            \
+      gen_exit(*ppc);                                                   \
     }                                                                   \
 } while(0)
     
