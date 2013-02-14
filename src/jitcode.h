@@ -24,6 +24,7 @@ void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
+#define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
 #define CALL_MAXARGS 127
 
 /* Regs Map                               *
@@ -132,6 +133,48 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_exit(pc);
 
     L("@@");
+  }
+
+  /* Check current object blong to class. Difference of type guard is 
+   this guard chaeck obj->c when v is normal object.
+   input EAX Pointer to  checkee object
+     destroy EAX
+  */
+  void 
+    gen_class_guard(mrb_state *mrb, mrb_value v, mrb_code *pc)
+  {
+    enum mrb_vtype tt;
+    tt = (enum mrb_vtype)mrb_type(v);
+    if (tt == MRB_TT_FLOAT) {
+      cmp(dword [eax + 4], 0xfff00000);
+      jb("@f");
+    } 
+    else {
+      cmp(dword [eax + 4], 0xfff00000 | tt);
+      jz("@f");
+    }
+
+    /* Guard fail exit code */
+    gen_exit(pc);
+
+    L("@@");
+    /* Import from class.h */
+    switch (tt) {
+    case MRB_TT_FALSE:
+    case MRB_TT_TRUE:
+    case MRB_TT_SYMBOL:
+    case MRB_TT_FIXNUM:
+    case MRB_TT_FLOAT:
+    case MRB_TT_MAIN:
+      /* DO NOTHING */
+      break;
+
+    default:
+      mov(eax, dword [eax]);
+      cmp(eax, dword [eax + OffsetOf(struct RBasic, c)]);
+      gen_bool_guard(mrb, (int)mrb_object(v)->c, pc);
+      break;
+    }
   }
 
   const void *
@@ -289,8 +332,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
-#define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
-#define CALL_MAXARGS 127
 
 #define CALL_CFUNC_STATUS(func_name)                                 \
   do {                                                               \
