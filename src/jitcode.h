@@ -368,6 +368,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int n = GETARG_C(i);
     const void *code = getCurr();
 
+    if (GETARG_C(i) == CALL_MAXARGS) {
+      return NULL;
+    }
+
     if (GET_OPCODE(i) != OP_SENDB) {
       //SET_NIL_VALUE(regs[a+n+1]);
       int dstoff = (a + n + 1) * sizeof(mrb_value);
@@ -375,10 +379,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff], eax);
       mov(eax, 0xfff00000 | MRB_TT_FALSE);
       mov(dword [ecx + dstoff + 4], eax);
-    }
-
-    if (GETARG_C(i) == CALL_MAXARGS) {
-      return NULL;
     }
 
     CALL_CFUNC_BEGIN;
