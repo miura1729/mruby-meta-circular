@@ -238,9 +238,6 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status)
   struct RClass *orecv = pool[rcvoff].value.p;
 
   recv = regs[a];
-  if (GET_OPCODE(i) != OP_SENDB) {
-    SET_NIL_VALUE(regs[a+n+1]);
-  }
   c = mrb_class(mrb, recv);
 
   if (c != orecv) {
