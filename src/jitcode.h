@@ -19,7 +19,8 @@ extern "C" {
 #include "mruby/class.h"
 #include "mruby/jit.h"
 
-void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *);
+void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *, 
+		      struct RProc *, struct RClass *);
 void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
@@ -340,7 +341,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 #define CALL_CFUNC_STATUS(func_name, auxargs)			     \
   do {                                                               \
-    mov(eax, ptr[esp + 12]);                                         \
+    mov(eax, ptr[esp + 12 + auxargs * 4]);                           \
     push(eax);                                                       \
 \
     /* Update pc */                                                  \
@@ -363,14 +364,30 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_send(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     mrb_code *pc = *status->pc;
+    mrb_value *regs = *status->regs;
+    mrb_sym *syms = *status->syms;
     int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
+    struct RProc *m;
+    struct RClass *c;
     const void *code = getCurr();
+    mrb_value recv;
+    mrb_sym mid = syms[GETARG_B(i)];
 
     if (GETARG_C(i) == CALL_MAXARGS) {
       return NULL;
     }
+
+    recv = regs[a];
+    c = mrb_class(mrb, recv);
+    m = mrb_method_search_vm(mrb, &c, mid);
+    if (!m) {
+      return NULL;
+    }
+    
+    lea(eax, ptr [ecx + a * sizeof(mrb_value)]);
+    gen_class_guard(mrb, recv, pc);
 
     if (GET_OPCODE(i) != OP_SENDB) {
       //SET_NIL_VALUE(regs[a+n+1]);
@@ -382,7 +399,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     CALL_CFUNC_BEGIN;
-    CALL_CFUNC_STATUS(mrbjit_exec_send, 0);
+    mov(eax, (Xbyak::uint32)c);
+    push(eax);
+    mov(eax, (Xbyak::uint32)m);
+    push(eax);
+    CALL_CFUNC_STATUS(mrbjit_exec_send, 2);
 
     mov(eax, ptr[esp + 4]);
     mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
