@@ -293,6 +293,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, h, mid);
   kh_value(h, k) = p;
+  if (p) {
+    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  }
 }
 
 void
@@ -353,6 +356,9 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   k = kh_put(mt, h, name);
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
+  if (p) {
+    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
+  }
 }
 
 static mrb_value
@@ -625,8 +631,13 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 	  if (mrb_type(ss) == MRB_TT_SYMBOL) {
 	    *symp = mrb_symbol(ss);
 	  }
-	  else {
+	  else if (mrb_string_p(ss)) {
 	    *symp = mrb_intern_str(mrb, to_str(mrb, ss));
+	  }
+	  else {
+	    mrb_value obj = mrb_funcall(mrb, ss, "inspect", 0);
+	    mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
+		       mrb_string_value_ptr(mrb, obj));
 	  }
 	  i++;
 	}
@@ -1478,20 +1489,6 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   return blk;
 }
 
-static mrb_sym
-mrb_sym_value(mrb_state *mrb, mrb_value val)
-{
-  if (mrb_string_p(val)) {
-    return mrb_intern_str(mrb, val);
-  }
-  else if(!mrb_symbol_p(val)) {
-    mrb_value obj = mrb_funcall(mrb, val, "inspect", 0);
-    mrb_raisef(mrb, E_TYPE_ERROR, "%s is not a symbol",
-         mrb_string_value_ptr(mrb, obj));
-  }
-  return mrb_symbol(val);
-}
-
 static void
 check_cv_name(mrb_state *mrb, mrb_sym id)
 {
@@ -1522,13 +1519,10 @@ check_cv_name(mrb_state *mrb, mrb_sym id)
 static mrb_value
 mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym;
   mrb_sym id;
-  mrb_get_args(mrb, "o", &sym);
+  mrb_get_args(mrb, "n", &id);
 
-  id = mrb_sym_value(mrb,sym);
   check_cv_name(mrb, id);
-
   if(mrb_cv_defined(mrb, mod, id))
     return mrb_true_value();
   return mrb_false_value();
@@ -1552,11 +1546,9 @@ mrb_mod_cvar_defined(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym;
   mrb_sym id;
-  mrb_get_args(mrb, "o", &sym);
 
-  id = mrb_sym_value(mrb,sym);
+  mrb_get_args(mrb, "n", &id);
   check_cv_name(mrb, id);
   return mrb_cv_get(mrb, mod, id);
 }
@@ -1582,12 +1574,10 @@ mrb_mod_cvar_get(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym, value;
+  mrb_value value;
   mrb_sym id;
-  mrb_get_args(mrb, "oo", &sym, &value);
 
-  id = mrb_sym_value(mrb,sym);
-
+  mrb_get_args(mrb, "no", &id, &value);
   check_cv_name(mrb, id);
   mrb_cv_set(mrb, mod, id, value);
   return value;
@@ -1619,16 +1609,13 @@ mrb_mod_cvar_set(mrb_state *mrb, mrb_value mod)
 mrb_value
 mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym, val;
+  mrb_value val;
   mrb_sym id;
 
-  mrb_get_args(mrb, "o", &sym);
-
-  id = mrb_sym_value(mrb,sym);
+  mrb_get_args(mrb, "n", &id);
   check_cv_name(mrb, id);
 
   val = mrb_iv_remove(mrb, mod, id);
-
   if (!mrb_undef_p(val)) return val;
 
   if (mrb_cv_defined(mrb, mod, id)){
@@ -1673,12 +1660,9 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym;
   mrb_sym id;
 
-  mrb_get_args(mrb, "o", &sym);
-  id = mrb_sym_value(mrb,sym);
-
+  mrb_get_args(mrb, "n", &id);
   if (mrb_obj_respond_to(mrb_class_ptr(mod), id)) {
     return mrb_true_value();
   }
@@ -1742,11 +1726,11 @@ check_const_name(mrb_state *mrb, mrb_sym id)
 mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym;
-  mrb_get_args(mrb, "o", &sym);
+  mrb_sym id;
 
-  check_const_name(mrb, mrb_sym_value(mrb,sym));
-  if(mrb_const_defined(mrb, mod, mrb_sym_value(mrb, sym))) {
+  mrb_get_args(mrb, "n", &id);
+  check_const_name(mrb, id);
+  if(mrb_const_defined(mrb, mod, id)) {
     return mrb_true_value();
   }
   return mrb_false_value();
@@ -1755,24 +1739,39 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 mrb_value
 mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym;
-  mrb_get_args(mrb, "o", &sym);
+  mrb_sym id;
 
-  check_const_name(mrb, mrb_sym_value(mrb,sym));
-  return mrb_const_get(mrb, mod, mrb_sym_value(mrb, sym));
+  mrb_get_args(mrb, "n", &id);
+  check_const_name(mrb, id);
+  return mrb_const_get(mrb, mod, id);
 }
 
 mrb_value
 mrb_mod_const_set(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value sym, value;
-  mrb_get_args(mrb, "oo", &sym, &value);
+  mrb_sym id;
+  mrb_value value;
 
-  check_const_name(mrb, mrb_sym_value(mrb,sym));
-  mrb_const_set(mrb, mod, mrb_sym_value(mrb, sym), value);
+  mrb_get_args(mrb, "no", &id, &value);
+  check_const_name(mrb, id);
+  mrb_const_set(mrb, mod, id, value);
   return value;
 }
 
+mrb_value
+mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym id;
+  mrb_value val;
+
+  mrb_get_args(mrb, "n", &id);
+  check_const_name(mrb, id);
+  val = mrb_iv_remove(mrb, mod, id);
+  if (mrb_undef_p(val)) {
+    mrb_name_error(mrb, id, "constant %s not defined", mrb_sym2name(mrb, id));
+  }
+  return val;
+}
 
 static mrb_value
 mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
@@ -1853,6 +1852,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "const_defined?", mrb_mod_const_defined, ARGS_REQ(1)); /* 15.2.2.4.20 */
   mrb_define_method(mrb, mod, "const_get", mrb_mod_const_get, ARGS_REQ(1));          /* 15.2.2.4.21 */
   mrb_define_method(mrb, mod, "const_set", mrb_mod_const_set, ARGS_REQ(2));          /* 15.2.2.4.23 */
+  mrb_define_method(mrb, mod, "remove_const", mrb_mod_remove_const, ARGS_REQ(1));    /* 15.2.2.4.40 */
   mrb_define_method(mrb, mod, "define_method", mod_define_method, ARGS_REQ(1));
   mrb_define_method(mrb, mod, "class_variables", mrb_mod_class_variables, ARGS_NONE()); /* 15.2.2.4.19 */
 

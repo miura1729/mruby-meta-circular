@@ -12,10 +12,6 @@
 #include "mruby/string.h"
 #include "mruby/proc.h"
 
-#ifdef ENABLE_REGEXP
-#include "re.h"
-#endif
-
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
 #ifdef MRB_USE_IV_SEGLIST
@@ -889,13 +885,20 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   mrb_iv_set(mrb, mod, sym, v);
 }
 
-void
+ void
 mrb_vm_const_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   struct RClass *c = mrb->ci->proc->target_class;
 
   if (!c) c = mrb->ci->target_class;
   mrb_obj_iv_set(mrb, (struct RObject*)c, sym, v);
+}
+
+void
+mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  mod_const_check(mrb, mod);
+  mrb_iv_remove(mrb, mod, sym);
 }
 
 void

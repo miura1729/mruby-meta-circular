@@ -108,6 +108,9 @@ stack_extend(mrb_state *mrb, int room, int keep)
     size = mrb->stend - mrb->stbase;
     off = mrb->stack - mrb->stbase;
 
+    /* do not leave uninitialized malloc region */
+    if (keep > size) keep = size;
+
     /* Use linear stack growth.
        It is slightly slower than doubling thestack space,
        but it saves memory on small devices. */
@@ -536,6 +539,12 @@ mrbjit_argnum_error(mrb_state *mrb, int num)
 
 void *mrbjit_dispatch(mrb_state *, mrbjit_vmstatus *);
 
+#ifdef ENABLE_DEBUG
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs) ((mrb)->code_fetch_hook ? (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)) : NULL)
+#else
+#define CODE_FETCH_HOOK(mrb, irep, pc, regs)
+#endif
+
 #ifdef __GNUC__
 #define DIRECT_THREADED
 #endif
@@ -543,7 +552,7 @@ void *mrbjit_dispatch(mrb_state *, mrbjit_vmstatus *);
 #ifndef DIRECT_THREADED
 
 /* You can not execute by JIT sorry... */
-#define INIT_DISPATCH for (;;) { i = *pc; switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { i = *pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (GET_OPCODE(i)) {
 #define CASE(op) case op:
 #define NEXT pc++; break
 #define JUMP break
@@ -553,7 +562,9 @@ void *mrbjit_dispatch(mrb_state *, mrbjit_vmstatus *);
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
-#define NEXT ++pc;gtptr = mrbjit_dispatch(mrb, &status);i=*pc; goto *gtptr
+//#define NEXT  ++pc;gtptr = mrbjit_dispatch(mrb, &status);i=*pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *gtptr
+#define NEXT  ++pc;gtptr = mrbjit_dispatch(mrb, &status);i=*pc; goto *gtptr
+//#define JUMP gtptr = mrbjit_dispatch(mrb, &status);i=*pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *gtptr
 #define JUMP gtptr = mrbjit_dispatch(mrb, &status);i=*pc; goto *gtptr
 
 #define END_DISPATCH
@@ -624,6 +635,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
   if (!mrb->stack) {
     stack_init(mrb);
   }
+  stack_extend(mrb, irep->nregs, irep->nregs);
   mrb->ci->proc = proc;
   mrb->ci->nregs = irep->nregs + 2;
   regs = mrb->stack;
@@ -1249,7 +1261,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       L_RAISE:
 	ci = mrb->ci;
 	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(pc));
-	mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
+	mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->cibase));
 	eidx = ci->eidx;
         if (ci == mrb->cibase) {
 	  if (ci->ridx == 0) goto L_STOP;

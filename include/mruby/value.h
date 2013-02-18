@@ -29,15 +29,13 @@ enum mrb_vtype {
   MRB_TT_HASH,        /*  16 */
   MRB_TT_STRING,      /*  17 */
   MRB_TT_RANGE,       /*  18 */
-  MRB_TT_REGEX,       /*  19 */
-  MRB_TT_STRUCT,      /*  20 */
-  MRB_TT_EXCEPTION,   /*  21 */
-  MRB_TT_MATCH,       /*  22 */
-  MRB_TT_FILE,        /*  23 */
-  MRB_TT_ENV,         /*  24 */
-  MRB_TT_DATA,        /*  25 */
-  MRB_TT_CACHE_VALUE, /*  26 */
-  MRB_TT_MAXDEFINE    /*  27 */
+  MRB_TT_STRUCT,      /*  19 */
+  MRB_TT_EXCEPTION,   /*  20 */
+  MRB_TT_FILE,        /*  21 */
+  MRB_TT_ENV,         /*  22 */
+  MRB_TT_DATA,        /*  23 */
+  MRB_TT_CACHE_VALUE, /*  24 */
+  MRB_TT_MAXDEFINE    /*  25 */
 };
 
 typedef struct mrb_value {
@@ -56,7 +54,7 @@ typedef struct mrb_value {
 #define MRB_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\
   (o).attr = v;\
-} while (0);
+} while (0)
 
 static inline mrb_value
 mrb_float_value(mrb_float f)
@@ -92,15 +90,13 @@ enum mrb_vtype {
   MRB_TT_HASH,        /*  17 */
   MRB_TT_STRING,      /*  18 */
   MRB_TT_RANGE,       /*  19 */
-  MRB_TT_REGEX,       /*  20 */
-  MRB_TT_STRUCT,      /*  21 */
-  MRB_TT_EXCEPTION,   /*  22 */
-  MRB_TT_MATCH,       /*  23 */
-  MRB_TT_FILE,        /*  24 */
-  MRB_TT_ENV,         /*  25 */
-  MRB_TT_DATA,        /*  26 */
-  MRB_TT_CACHE_VALUE, /*  27 */
-  MRB_TT_MAXDEFINE    /*  28 */
+  MRB_TT_STRUCT,      /*  20 */
+  MRB_TT_EXCEPTION,   /*  21 */
+  MRB_TT_FILE,        /*  22 */
+  MRB_TT_ENV,         /*  23 */
+  MRB_TT_DATA,        /*  24 */
+  MRB_TT_CACHE_VALUE, /*  25 */
+  MRB_TT_MAXDEFINE    /*  26 */
 };
 
 #ifdef MRB_ENDIAN_BIG
@@ -133,7 +129,7 @@ typedef struct mrb_value {
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
   (o).ttt = mrb_mktt(tt);\
   (o).attr = v;\
-} while (0);
+} while (0)
 
 static inline mrb_value
 mrb_float_value(mrb_float f)

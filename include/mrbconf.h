@@ -44,12 +44,12 @@
 //#define POOL_PAGE_SIZE 16000
 
 /* -DDISABLE_XXXX to drop the feature */
-#define DISABLE_REGEXP	        /* regular expression classes */
 //#define DISABLE_SPRINTF	/* Kernel.sprintf method */
 //#define DISABLE_MATH		/* Math functions */
 //#define DISABLE_TIME		/* Time class */
 //#define DISABLE_STRUCT	/* Struct class */
 //#define DISABLE_STDIO		/* use of stdio */
+//#define ENABLE_DEBUG    /* hooks for debugger */
 
 /* Now DISABLE_GEMS is added as a command line flag in Rakefile, */
 /* we do not need to set it here. */
@@ -120,6 +120,9 @@ typedef short mrb_sym;
 #endif
 #ifndef DISABLE_IREP
 #define ENABLE_IREP
+#endif
+#ifndef ENABLE_DEBUG
+#define DISABLE_DEBUG
 #endif
 
 #ifndef FALSE
