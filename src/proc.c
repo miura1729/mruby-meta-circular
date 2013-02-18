@@ -176,9 +176,9 @@ mrb_init_proc(mrb_state *mrb)
   call_irep->iseq = call_iseq;
   call_irep->ilen = 1;
   call_irep->jit_entry_tab = (mrbjit_codetab *)mrb_alloca(mrb, sizeof(mrbjit_codetab)*1);
-  //  call_irep->jit_entry_tab[0].size = 0;
-  //call_irep->jit_entry_tab[0].body = 
-  //(mrbjit_code_info *)mrb_alloca(mrb, sizeof(mrbjit_code_info)*2);
+  call_irep->jit_entry_tab[0].size = 2;
+  call_irep->jit_entry_tab[0].body = 
+    (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*2);
   call_irep->prof_info = (int *)mrb_alloca(mrb, sizeof(int));
 
   mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);
