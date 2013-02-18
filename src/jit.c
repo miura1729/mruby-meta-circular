@@ -215,15 +215,13 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 #define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 
 void *
-mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status,
+mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 		 struct RProc *m, struct RClass *c)
 {
   /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
   mrb_code *pc = *status->pc;
-  mrb_irep *irep = *status->irep;
   mrb_value *regs = *status->regs;
   mrb_sym *syms = *status->syms;
-  mrb_value *pool =  *status->pool;
   int ai = *status->ai;
   mrb_code i = *pc;
 
@@ -232,63 +230,84 @@ mrbjit_exec_send(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_callinfo *ci;
   mrb_value recv, result;
   mrb_sym mid = syms[GETARG_B(i)];
-  int rcvoff = GETARG_Bx(*(pc + 1));
+  int orgdisflg = mrb->compile_info.disable_jit;
 
   recv = regs[a];
 
   //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep->iseq, pc,regs[a].ttt, regs, n);
   //puts(mrb_sym2name(mrb, mid));
 
-  if (MRB_PROC_CFUNC_P(m)) {
-    int orgdisflg = mrb->compile_info.disable_jit;
-    ci = mrbjit_cipush(mrb);
-    ci->stackidx = mrb->stack - mrb->stbase;
-    ci->argc = n;
-    ci->target_class = c;
+  ci = mrbjit_cipush(mrb);
+  ci->stackidx = mrb->stack - mrb->stbase;
+  ci->argc = n;
+  ci->target_class = c;
 
-    /* prepare stack */
-    mrb->stack += a;
+  /* prepare stack */
+  mrb->stack += a;
 
-    ci->nregs = n + 2;
-    //mrb_p(mrb, recv);
-    mrb->compile_info.disable_jit = 1;
-    result = m->body.func(mrb, recv);
-    mrb->compile_info.disable_jit = orgdisflg;
-    mrb->stack[0] = result;
-    mrb_gc_arena_restore(mrb, ai);
-    if (mrb->exc) {
-      ci->mid = mid;
-      ci->proc = m;
-      return status->gototable[0];	/* goto L_RAISE; */
-    }
-    /* pop stackpos */
-    regs = *status->regs = mrb->stack = mrb->stbase + mrb->ci->stackidx;
-    mrbjit_cipop(mrb);
-  }
-  else {
-    /* push callinfo */
-    ci = mrbjit_cipush(mrb);
+  ci->nregs = n + 2;
+  //mrb_p(mrb, recv);
+  mrb->compile_info.disable_jit = 1;
+  result = m->body.func(mrb, recv);
+  mrb->compile_info.disable_jit = orgdisflg;
+  mrb->stack[0] = result;
+  mrb_gc_arena_restore(mrb, ai);
+  if (mrb->exc) {
     ci->mid = mid;
     ci->proc = m;
-    ci->stackidx = mrb->stack - mrb->stbase;
-    ci->argc = n;
-    ci->target_class = c;
-    ci->pc = pc + 1;
-    ci->acc = a;
-
-    /* prepare stack */
-    mrb->stack += a;
-
-    /* setup environment for calling method */
-    *status->proc = mrb->ci->proc = m;
-    irep = *status->irep = m->body.irep;
-    pool = *status->pool = irep->pool;
-    syms = *status->syms = irep->syms;
-    ci->nregs = irep->nregs;
-    mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
-    regs = *status->regs = mrb->stack;
-    pc = *status->pc = irep->iseq;
+    return status->gototable[0];	/* goto L_RAISE; */
   }
+  /* pop stackpos */
+  mrb->stack = mrb->stbase + mrb->ci->stackidx;
+  mrbjit_cipop(mrb);
+
+  return NULL;
+}
+
+void *
+mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
+		 struct RProc *m, struct RClass *c)
+{
+  /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
+  mrb_code *pc = *status->pc;
+  mrb_irep *irep = *status->irep;
+  mrb_value *regs = *status->regs;
+  mrb_sym *syms = *status->syms;
+  mrb_code i = *pc;
+
+  int a = GETARG_A(i);
+  int n = GETARG_C(i);
+  mrb_callinfo *ci;
+  mrb_value recv;
+  mrb_sym mid = syms[GETARG_B(i)];
+
+  recv = regs[a];
+
+  //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep->iseq, pc,regs[a].ttt, regs, n);
+  //puts(mrb_sym2name(mrb, mid));
+
+  /* push callinfo */
+  ci = mrbjit_cipush(mrb);
+  ci->mid = mid;
+  ci->proc = m;
+  ci->stackidx = mrb->stack - mrb->stbase;
+  ci->argc = n;
+  ci->target_class = c;
+  ci->pc = pc + 1;
+  ci->acc = a;
+
+  /* prepare stack */
+  mrb->stack += a;
+
+  /* setup environment for calling method */
+  *status->proc = mrb->ci->proc = m;
+  irep = *status->irep = m->body.irep;
+  *status->pool = irep->pool;
+  *status->syms = irep->syms;
+  ci->nregs = irep->nregs;
+  mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
+  *status->regs = mrb->stack;
+  *status->pc = irep->iseq;
   //mrb_p(mrb, recv);
 
   return NULL;

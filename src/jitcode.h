@@ -19,7 +19,10 @@ extern "C" {
 #include "mruby/class.h"
 #include "mruby/jit.h"
 
-void mrbjit_exec_send(mrb_state *, mrbjit_vmstatus *, 
+void mrbjit_exec_send_c(mrb_state *, mrbjit_vmstatus *, 
+		      struct RProc *, struct RClass *);
+
+void mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
 void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
@@ -403,11 +406,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push(eax);
     mov(eax, (Xbyak::uint32)m);
     push(eax);
-    CALL_CFUNC_STATUS(mrbjit_exec_send, 2);
 
-    mov(eax, ptr[esp + 4]);
-    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
-    mov(ecx, dword [eax]);
+    if (MRB_PROC_CFUNC_P(m)) {
+      CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
+    }
+    else {
+      CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
+
+      mov(eax, ptr[esp + 4]);
+      mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+      mov(ecx, dword [eax]);
+    }
 
     return code;
   }
