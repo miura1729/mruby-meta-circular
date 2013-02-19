@@ -425,8 +425,20 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
-    CALL_CFUNC_BEGIN;
-    CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
+    mrb_code *pc = *status->pc;
+    mrb_code i = *pc;
+    /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
+    /* number of optional arguments times OP_JMP should follow */
+    int ax = GETARG_Ax(i);
+    /* int m1 = (ax>>18)&0x1f; */
+    int o  = (ax>>13)&0x1f;
+    int r  = (ax>>12)&0x1;
+    int m2 = (ax>>7)&0x1f;
+
+    if (o != 0 || r != 0 || m2 != 0) {
+      CALL_CFUNC_BEGIN;
+      CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
+    }
 
     return code;
   }
