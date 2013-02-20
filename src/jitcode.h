@@ -51,11 +51,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_exit(mrb_code *pc)
+    gen_exit(mrb_code *pc, int is_clr_rc)
   {
     const void* exit_ptr = getCurr();
     mov(dword [ebx], (Xbyak::uint32)pc);
-    xor(eax, eax);
+    if (is_clr_rc) {
+      xor(eax, eax);
+    }
     mov(edx, (Xbyak::uint32)exit_ptr);
     ret();
   }
@@ -96,7 +98,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       }
       else {
 	newci->entry = (void *(*)())getCurr();
-	gen_exit(newpc);
+	gen_exit(newpc, 1);
       }
       mrb->compile_info.code_base = NULL;
     }
@@ -116,7 +118,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc);
+    gen_exit(pc, 1);
 
     L("@@");
   }
@@ -134,7 +136,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc);
+    gen_exit(pc, 1);
 
     L("@@");
   }
@@ -159,7 +161,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc);
+    gen_exit(pc, 1);
 
     L("@@");
     /* Import from class.h */
@@ -357,9 +359,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ebx);                                                        \
     pop(ecx);                                                        \
 \
-    cmp(eax, eax);                                                   \
+    test(eax, eax);					             \
     jz("@f");                                                        \
-    gen_exit(*status->pc);                                           \
+    gen_exit(*status->pc, 0);					     \
     L("@@");                                                         \
   }while (0)
 
@@ -501,7 +503,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       movsd(ptr [ecx + reg0off], xmm0);                                 \
     }                                                                   \
     else {                                                              \
-      gen_exit(*ppc);                                                   \
+      gen_exit(*ppc, 1);						\
     }                                                                   \
 } while(0)
 
@@ -577,7 +579,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       add(esp, 8);                                                      \
     }                                                                   \
     else {                                                              \
-      gen_exit(*ppc);                                                   \
+      gen_exit(*ppc, 1);						\
     }                                                                   \
 } while(0)
     

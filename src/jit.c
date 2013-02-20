@@ -388,6 +388,9 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     regs[len+1] = *blk; /* move block */
     *(status->pc) += o + 1;
+    if (o == 0) {
+      return NULL;
+    }
   }
 
   return status->optable[GET_OPCODE(**(status->pc))];
