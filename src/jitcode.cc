@@ -106,8 +106,8 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, MRBJitCode *code)
   case OP_MUL:
     return code->emit_mul(mrb, irep, ppc, regs);
 
-    //case OP_DIV:
-    //return code->emit_div(mrb, irep, ppc, regs);
+  case OP_DIV:
+    return code->emit_div(mrb, irep, ppc, regs);
 
   case OP_ADDI:
     return code->emit_addi(mrb, irep, ppc, regs);
