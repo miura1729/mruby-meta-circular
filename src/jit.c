@@ -194,15 +194,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	ci->entry = entry;
 	ci->used = 1;
       }
-      else {
-	/* record contination patch entry */
-	if (cbase) {
-	  ci->entry = mrbjit_get_curr(cbase);
-	}
-	//	printf("set %x %x \n", ci->entry, entry);
-	ci->used = -1;
-	// printf("%x %x %x\n", ci->entry, *ppc, ci);
-      }
     }
   }
 
