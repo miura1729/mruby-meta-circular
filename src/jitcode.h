@@ -479,9 +479,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
 \
-    if (r0type != r1type) {                                             \
-      return NULL;                                                      \
-    }                                                                   \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
     gen_type_guard(mrb, r0type, *ppc);					\
     mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */             \
@@ -493,9 +490,23 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + reg0off], eax);                                  \
       OVERFLOW_CHECK_GEN(AINSTF);                                       \
     }                                                                   \
-    else if (r0type == MRB_TT_FLOAT && r1type == MRB_TT_FLOAT) {	\
-      movsd(xmm0, ptr [ecx + reg0off]);                                 \
-      AINSTF(xmm0, ptr [ecx + reg1off]);				\
+    else if ((r0type == MRB_TT_FLOAT || r0type == MRB_TT_FIXNUM) &&     \
+             (r1type == MRB_TT_FLOAT || r1type == MRB_TT_FIXNUM)) {	\
+      if (r0type == MRB_TT_FIXNUM) {                                    \
+        cvtsi2sd(xmm0, dword [ecx + reg0off]);                          \
+      }                                                                 \
+      else {                                                            \
+        movsd(xmm0, dword [ecx + reg0off]);                             \
+      }                                                                 \
+\
+      if (r1type == MRB_TT_FIXNUM) {                                    \
+        cvtsi2sd(xmm1, dword [ecx + reg1off]);                          \
+      }                                                                 \
+      else {                                                            \
+        movsd(xmm1, dword [ecx + reg1off]);                             \
+      }                                                                 \
+\
+      AINSTF(xmm0, xmm1);				                \
       movsd(ptr [ecx + reg0off], xmm0);                                 \
     }                                                                   \
     else {                                                              \
