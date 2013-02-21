@@ -58,8 +58,8 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
   goto retry;
 }
 
-mrbjit_code_info *
-search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
+static inline mrbjit_code_info *
+search_codeinfo_prev_inline(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
 {
   int i;
   mrbjit_code_info *entry;
@@ -72,6 +72,12 @@ search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc
   }
 
   return NULL;
+}
+
+mrbjit_code_info *
+search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
+{
+  return search_codeinfo_prev_inline(tab, prev_pc, caller_pc);
 }
 
 void *
@@ -104,7 +110,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   cbase = mrb->compile_info.code_base;
   n = ISEQ_OFFSET_OF(*ppc);
   if (prev_pc) {
-    ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
+    ci = search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
   }
   else {
     ci = NULL;
@@ -160,7 +166,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrb->compile_info.prev_pc = *ppc;
 	return rc;
       }
-      ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
+      ci = search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
     }
   }
 
