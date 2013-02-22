@@ -485,6 +485,17 @@ genop_send(codegen_scope *s, mrb_code i)
   genop(s, MKOP_Bx(OP_NOP, off));
 }
 
+static void
+genop_send_peep(codegen_scope *s, mrb_code i, int val)
+{
+  int off;
+
+  genop_peep(s, i, val);
+  off = new_lit2(s, mrb_fixnum_value(1));
+  new_lit2(s, mrb_fixnum_value(1));
+  genop(s, MKOP_Bx(OP_NOP, off));
+}
+
 static int
 node_len(node *tree)
 {
@@ -787,10 +798,10 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
     const char *name = mrb_sym2name_len(s->mrb, sym, &len);
 
     if (!noop && len == 1 && name[0] == '+')  {
-      genop_send(s, MKOP_ABC(OP_ADD, cursp(), idx, n));
+      genop_send_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, n), val);
     }
     else if (!noop && len == 1 && name[0] == '-')  {
-      genop_send(s, MKOP_ABC(OP_SUB, cursp(), idx, n));
+      genop_send_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, n), val);
     }
     else if (!noop && len == 1 && name[0] == '*')  {
       genop_send(s, MKOP_ABC(OP_MUL, cursp(), idx, n));
@@ -1508,10 +1519,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
       idx = new_msym(s, sym);
       if (len == 1 && name[0] == '+')  {
-        genop_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, 1), val);
+        genop_send_peep(s, MKOP_ABC(OP_ADD, cursp(), idx, 1), val);
       }
       else if (len == 1 && name[0] == '-')  {
-        genop_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, 1), val);
+        genop_send_peep(s, MKOP_ABC(OP_SUB, cursp(), idx, 1), val);
       }
       else if (len == 1 && name[0] == '<')  {
         genop_send(s, MKOP_ABC(OP_LT, cursp(), idx, 1));
