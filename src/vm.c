@@ -543,7 +543,179 @@ mrbjit_argnum_error(mrb_state *mrb, int num)
   argnum_error(mrb, num);
 }
 
-void *mrbjit_dispatch(mrb_state *, mrbjit_vmstatus *);
+extern const void *mrbjit_get_curr(mrb_state *);
+extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *);
+extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
+extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
+extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *);
+
+static inline mrbjit_code_info *
+add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
+{
+  int i;
+  int oldsize;
+  mrbjit_code_info *ele;
+  oldsize = -1;
+
+ retry:
+  if (tab->body == NULL || oldsize >= 0) {
+    oldsize = tab->size;
+    tab->size = tab->size + (tab->size >> 1) + 2;
+    tab->body = mrb_realloc(mrb, tab->body, sizeof(mrbjit_code_info) * tab->size);
+    for (i = oldsize; i < tab->size; i++) {
+      tab->body[i].used = 0;
+    }
+  }
+
+  oldsize = tab->size;
+  for (i = 0; i < tab->size; i++) {
+    ele = tab->body + i;
+    if (ele->used == 0) {
+      return ele;
+    }
+  }
+
+  /* Grow code info table */
+  goto retry;
+}
+
+static inline void *
+mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
+{
+  mrb_irep *irep = *status->irep;
+  mrb_code **ppc = status->pc;
+  mrb_value *regs = *status->regs;
+  size_t n;
+  mrbjit_code_info *ci;
+  mrbjit_code_area cbase;
+  mrb_code *prev_pc;
+  mrb_code *caller_pc;
+  void *(*entry)() = NULL;
+  void *(*prev_entry)() = NULL;
+
+  if (mrb->compile_info.disable_jit) {
+    return status->optable[GET_OPCODE(**ppc)];
+  }
+
+  prev_pc = mrb->compile_info.prev_pc;
+  if (irep->ilen < NO_INLINE_METHOD_LEN) {
+    caller_pc = mrb->ci->pc;
+  }
+  else {
+    caller_pc = NULL;
+    mrb->compile_info.nest_level = 0;
+  }
+
+  cbase = mrb->compile_info.code_base;
+  n = ISEQ_OFFSET_OF(*ppc);
+  if (prev_pc) {
+    ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
+  }
+  else {
+    ci = NULL;
+  }
+  if (ci) {
+    if (cbase) {
+      if (ci->used > 0) {
+	mrbjit_gen_jump_block(cbase, ci->entry);
+	cbase = mrb->compile_info.code_base = NULL;
+      }
+    }
+
+    if (cbase == NULL && ci->used > 0) {
+      void *rc;
+      prev_pc = *ppc;
+
+      //printf("%x %x \n", ci->entry, *ppc);
+
+      asm volatile("mov %0, %%ecx\n\t"
+		   "mov %1, %%ebx\n\t"
+		   "mov %2, -0x4(%%esp)\n\t"
+		   :
+		   : "g"(regs),
+		     "g"(ppc),
+		     "d"(status)
+		   : "%ecx",
+		     "%ebx",
+		     "memory");
+
+      asm volatile("sub $0x4, %%esp\n\t"
+		   "call *%0\n\t"
+		   "add $0x4, %%esp\n\t"
+		   :
+		   : "g"(ci->entry)
+		   : "%edx");
+
+      asm volatile("mov %%eax, %0\n\t"
+		   : "=c"(rc));
+      asm volatile("mov %%edx, %0\n\t"
+		   : "=c"(prev_entry));
+
+      irep = *status->irep;
+      regs = *status->regs;
+      n = ISEQ_OFFSET_OF(*ppc);
+      if (irep->ilen < NO_INLINE_METHOD_LEN) {
+	caller_pc = mrb->ci->pc;
+      }
+      else {
+	caller_pc = NULL;
+	mrb->compile_info.nest_level = 0;
+      }
+      if (rc) {
+	mrb->compile_info.prev_pc = *ppc;
+	return rc;
+      }
+      ci = search_codeinfo_prev(irep->jit_entry_tab + n, prev_pc, caller_pc);
+    }
+  }
+
+  if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
+    //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
+    if (ci == NULL) {
+      //printf("p %x %x\n", *ppc, prev_pc);
+      ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
+      ci->prev_pc = prev_pc;
+      ci->caller_pc = caller_pc;
+      ci->code_base = mrb->compile_info.code_base;
+      ci->entry = NULL;
+      ci->used = -1;
+    }
+
+    if (ci->used < 0) {
+      entry = mrbjit_emit_code(mrb, status);
+      if (prev_entry && entry) {
+	//printf("patch %x %x \n", prev_entry, entry);
+	cbase = mrb->compile_info.code_base;
+	mrbjit_gen_jmp_patch(cbase, prev_entry, entry);
+      }
+
+      if (entry) {
+	ci->entry = entry;
+	ci->used = 1;
+      }
+      else {
+	/* record contination patch entry */
+	if (cbase) {
+	  ci->entry = mrbjit_get_curr(cbase);
+	}
+	//	printf("set %x %x \n", ci->entry, entry);
+	ci->used = -1;
+	// printf("%x %x %x\n", ci->entry, *ppc, ci);
+      }
+    }
+  }
+
+  if (cbase && entry == NULL) {
+    /* Finish compile */
+    mrbjit_gen_exit(cbase, mrb, irep, ppc);
+    mrb->compile_info.code_base = NULL;
+    mrb->compile_info.nest_level = 0;
+  }
+
+  mrb->compile_info.prev_pc = *ppc;
+
+  return status->optable[GET_OPCODE(**ppc)];
+}
 
 #ifdef ENABLE_DEBUG
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs) ((mrb)->code_fetch_hook ? (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs)) : NULL)
@@ -568,8 +740,8 @@ void *mrbjit_dispatch(mrb_state *, mrbjit_vmstatus *);
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
 #define CASE(op) L_ ## op:
-#define NEXT  ++pc;gtptr = mrbjit_dispatch(mrb, &status);i=*pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *gtptr
-#define JUMP gtptr = mrbjit_dispatch(mrb, &status);i=*pc; CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *gtptr
+#define NEXT ++pc;goto L_DISPATCH
+#define JUMP goto L_DISPATCH
 
 #define END_DISPATCH
 
@@ -2054,4 +2226,11 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
     }
   }
   END_DISPATCH;
+  mrb_bug("never reach here"); /* should never happen */
+
+L_DISPATCH:
+  gtptr = mrbjit_dispatch(mrb, &status);
+  i=*pc;
+  CODE_FETCH_HOOK(mrb, irep, pc, regs);
+  goto *gtptr;
 }
