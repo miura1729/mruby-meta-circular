@@ -270,19 +270,22 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     const int idpos = GETARG_Bx(**ppc);
+    mrb_sym id = irep->syms[idpos];
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    const int argsize = 2 * sizeof(void *);
+    mrb_value self = mrb->stack[0];
+    const Xbyak::uint32 ivoff = mrbjit_iv_off(mrb, self, id);
 
-    push(ecx);
-    push(ebx);
-    push((Xbyak::uint32)irep->syms[idpos]);
-    push((Xbyak::uint32)mrb);
-    call((void *)mrb_vm_iv_get);
-    add(sp, argsize);
-    pop(ebx);
-    pop(ecx);
-    mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], edx);
+    if (ivoff < 0) {
+      return NULL;
+    }
+    mov(eax, ecx);
+    gen_class_guard(mrb, self, *ppc);
+
+    mov(eax, dword [ecx]);
+    mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+    mov(eax, dword [eax]);
+    movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
+    movsd(ptr [ecx + dstoff], xmm0);
 
     return code;
   }
@@ -291,22 +294,23 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_setiv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
   {
     const void *code = getCurr();
-    const int idpos = GETARG_Bx(**ppc);
     const Xbyak::uint32 srcoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    const int argsize = 4 * sizeof(void *);
+    const int idpos = GETARG_Bx(**ppc);
+    mrb_sym id = irep->syms[idpos];
+    mrb_value self = mrb->stack[0];
+    const Xbyak::uint32 ivoff = mrbjit_iv_off(mrb, self, id);
 
-    push(ecx);
-    push(ebx);
-    mov(eax, dword [ecx + srcoff + 4]);
-    push(eax);
-    mov(eax, dword [ecx + srcoff]);
-    push(eax);
-    push((Xbyak::uint32)irep->syms[idpos]);
-    push((Xbyak::uint32)mrb);
-    call((void *)mrb_vm_iv_set);
-    add(sp, argsize);
-    pop(ebx);
-    pop(ecx);
+    if (ivoff < 0) {
+      return NULL;
+    }
+    mov(eax, ecx);
+    gen_class_guard(mrb, self, *ppc);
+
+    mov(eax, dword [ecx]);
+    mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+    mov(eax, dword [eax]);
+    movsd(xmm0, ptr [ecx + srcoff]);
+    movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
 
     return code;
   }

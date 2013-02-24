@@ -17,13 +17,13 @@ typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 #ifdef MRB_USE_IV_SEGLIST
 
 #ifndef MRB_SEGMENT_SIZE
-#define MRB_SEGMENT_SIZE 4
+#define MRB_SEGMENT_SIZE 32
 #endif
 
 typedef struct segment
 {
-  mrb_sym key[MRB_SEGMENT_SIZE];
   mrb_value val[MRB_SEGMENT_SIZE];
+  mrb_sym key[MRB_SEGMENT_SIZE];
   struct segment *next;
 } segment;
 
@@ -433,6 +433,35 @@ mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   if (obj->iv && iv_get(mrb, obj->iv, sym, &v))
     return v;
   return mrb_nil_value();
+}
+
+int
+mrbjit_iv_off(mrb_state *mrb, mrb_value obj, mrb_sym sym)
+{
+  iv_tbl *t;
+  segment *seg;
+  int i;
+
+  if (obj_iv_p(obj)) {
+    t =  mrb_obj_ptr(obj)->iv;
+  }
+  else {
+    return -1;
+  }
+  seg = t->rootseg;
+  for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+    mrb_sym key = seg->key[i];
+
+    if (!seg->next && i >= t->last_len) {
+      return -1;
+    }
+    if (key == sym) {
+      return i;
+    }
+  }
+
+  /* JIT support only first segment */
+  return -1;
 }
 
 mrb_value
