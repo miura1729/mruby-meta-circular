@@ -177,8 +177,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     default:
       mov(eax, dword [eax]);
-      cmp(eax, dword [eax + OffsetOf(struct RBasic, c)]);
-      gen_bool_guard(mrb, (int)mrb_object(v)->c, pc);
+      mov(eax, dword [eax + OffsetOf(struct RBasic, c)]);
+      cmp(eax, (int)mrb_object(v)->c);
+      jz("@f");
+      /* Guard fail exit code */
+      gen_exit(pc, 1);
+
+      L("@@");
       break;
     }
   }
