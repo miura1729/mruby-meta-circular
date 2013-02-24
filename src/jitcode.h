@@ -278,7 +278,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_sym id = irep->syms[idpos];
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrb_value self = mrb->stack[0];
-    const Xbyak::uint32 ivoff = mrbjit_iv_off(mrb, self, id);
+    const int ivoff = mrbjit_iv_off(mrb, self, id);
 
     if (ivoff < 0) {
       return NULL;
@@ -303,7 +303,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const int idpos = GETARG_Bx(**ppc);
     mrb_sym id = irep->syms[idpos];
     mrb_value self = mrb->stack[0];
-    const Xbyak::uint32 ivoff = mrbjit_iv_off(mrb, self, id);
+    const int ivoff = mrbjit_iv_off(mrb, self, id);
 
     if (ivoff < 0) {
       return NULL;
