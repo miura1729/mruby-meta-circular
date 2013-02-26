@@ -86,10 +86,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_code_info *newci;
     int n = ISEQ_OFFSET_OF(newpc);
     if (irep->ilen < NO_INLINE_METHOD_LEN) {
-      newci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
+      newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
     }
     else {
-      newci = search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
+      newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
       mrb->compile_info.nest_level = 0;
     }
     if (newci) {

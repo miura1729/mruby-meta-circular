@@ -66,7 +66,7 @@ void mrbjit_ecall(mrb_state *, int);
 struct REnv* mrbjit_top_env(mrb_state *, struct RProc *);
 void mrbjit_localjump_error(mrb_state *, const char *);
 
-mrbjit_code_info *search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *);
+mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *);
 
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
