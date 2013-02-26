@@ -7,7 +7,7 @@
 #ifndef MRUBY_JIT_H
 #define MRUBY_JIT_H
 
-#define COMPILE_THRESHOLD 1000
+#define COMPILE_THRESHOLD 100
 #define NO_INLINE_METHOD_LEN 10
 
 typedef struct mrbjit_varinfo {
