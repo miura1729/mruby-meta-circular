@@ -87,6 +87,7 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
 
   int a = GETARG_A(i);
   int n = GETARG_C(i);
+  int ioff;
   mrb_callinfo *ci;
   mrb_value recv;
   mrb_sym mid = syms[GETARG_B(i)];
@@ -104,6 +105,8 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   ci->argc = n;
   ci->target_class = c;
   ci->pc = pc + 1;
+  ioff = ISEQ_OFFSET_OF(pc + 1);
+  ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
   ci->acc = a;
 
   /* prepare stack */

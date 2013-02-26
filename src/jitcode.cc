@@ -93,9 +93,11 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, MRBJitCode *code)
   case OP_RETURN:
     mrb->compile_info.nest_level--;
     if (mrb->compile_info.nest_level < 0) {
-      return NULL;
+      return code->emit_return(mrb, status);
     }
-    return code->emit_return(mrb, status);
+    else {
+      return code->emit_return_inline(mrb, status);
+    }
 
   case OP_ADD:
     return code->emit_add(mrb, irep, ppc, regs);

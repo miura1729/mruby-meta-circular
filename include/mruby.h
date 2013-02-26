@@ -65,6 +65,7 @@ typedef struct {
   int nregs;
   int argc;
   mrb_code *pc;
+  void *jit_entry;
   int acc;
   struct RClass *target_class;
   int ridx;

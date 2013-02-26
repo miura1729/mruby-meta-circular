@@ -458,6 +458,51 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
+
+    /* Set return address from callinfo */
+    mov(eax, (Xbyak::uint32)mrb);
+    mov(eax, dword [eax + OffsetOf(mrb_state, ci)]);
+    mov(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
+    test(eax, eax);
+    jnz("@f");
+    gen_exit(*status->pc, 1);
+    L("@@");
+    push(eax);
+    
+    push(ecx);
+    push(ebx);
+    mov(eax, ptr[esp + 12 + 4]);
+    push(eax);
+
+    /* Update pc */
+    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(dword [eax], (Xbyak::uint32)(*status->pc));
+
+    push((Xbyak::uint32)mrb);
+    call((void *)mrbjit_exec_return);
+    add(esp, 2 * 4);
+    pop(ebx);
+    pop(ecx);
+
+    test(eax, eax);
+    jz("@f");
+    pop(edx);			/* pop return address from callinfo */
+    gen_exit(*status->pc, 0);
+    L("@@");
+
+    mov(eax, ptr[esp + 4 + 4]);
+    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(ecx, dword [eax]);
+
+    ret();
+
+    return code;
+  }
+
+  const void *
+    emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status)
+  {
+    const void *code = getCurr();
     CALL_CFUNC_BEGIN;
     CALL_CFUNC_STATUS(mrbjit_exec_return, 0);
 

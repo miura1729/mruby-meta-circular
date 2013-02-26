@@ -249,6 +249,7 @@ cipush(mrb_state *mrb)
   mrb->ci->eidx = eidx;
   mrb->ci->ridx = ridx;
   mrb->ci->env = 0;
+  mrb->ci->jit_entry = NULL;
   return mrb->ci;
 }
 
