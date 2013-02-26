@@ -79,6 +79,12 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, MRBJitCode *code)
   case OP_SETIV:
     return code->emit_setiv(mrb, irep, ppc);
 
+  case OP_GETCV:
+    return code->emit_getcv(mrb, irep, ppc);
+
+  case OP_SETCV:
+    return code->emit_setcv(mrb, irep, ppc);
+
   case OP_GETCONST:
     return code->emit_getconst(mrb, irep, ppc);
 
