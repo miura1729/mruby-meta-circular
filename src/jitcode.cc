@@ -16,13 +16,6 @@ mrbjit_gen_jump_block(mrbjit_code_area coderaw, void *entry)
   code->gen_jump_block(entry);
 }
 
-void
-mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
-{
-  MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->gen_jmp_patch(dst, target);
-}
-
 const void *
 mrbjit_get_curr(mrbjit_code_area coderaw)
 {
@@ -31,6 +24,19 @@ mrbjit_get_curr(mrbjit_code_area coderaw)
 }
 
 static MRBJitCode *the_code = new MRBJitCode();
+
+void
+mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
+{
+  MRBJitCode *code;
+  if (coderaw == NULL) {
+    code = the_code;
+  } 
+  else {
+    code  = (MRBJitCode *) coderaw;
+  }
+  code->gen_jmp_patch(dst, target);
+}
 
 static const void *
 mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, MRBJitCode *code)
