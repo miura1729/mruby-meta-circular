@@ -150,13 +150,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val) /* mr
 }
 
 mrb_value
-mrb_hash_freeze(mrb_value hash)
-{
-  //return mrb_obj_freeze(hash);
-  return (hash);
-}
-
-mrb_value
 mrb_hash_dup(mrb_state *mrb, mrb_value hash)
 {
   struct RHash* ret;
@@ -181,12 +174,6 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   return mrb_obj_value(ret);
 }
 
-static void
-mrb_hash_modify_check(mrb_state *mrb, mrb_value hash)
-{
-  //if (OBJ_FROZEN(hash)) mrb_error_frozen("hash");
-}
-
 mrb_value
 mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 {
@@ -207,7 +194,6 @@ mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
-  //mrb_hash_modify_check(mrb, hash);
   mrb_hash_tbl(mrb, hash);
 }
 
@@ -755,7 +741,6 @@ mrb_hash_replace(mrb_state *mrb, mrb_value hash)
   khiter_t k;
 
   mrb_get_args(mrb, "o", &hash2);
-  mrb_hash_modify_check(mrb, hash);
   hash2 = to_hash(mrb, hash2);
   if (mrb_obj_equal(mrb, hash, hash2)) return hash;
   mrb_hash_clear(mrb, hash);

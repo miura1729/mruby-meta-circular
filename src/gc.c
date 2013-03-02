@@ -87,9 +87,10 @@ typedef struct {
     struct RHash hash;
     struct RRange range;
 #ifdef ENABLE_STRUCT
-    struct RStruct structdata;
+    struct RStruct strct;
 #endif
-    struct RProc procdata;
+    struct RData data;
+    struct RProc proc;
   } as;
 } RVALUE;
 
@@ -270,9 +271,9 @@ add_heap(mrb_state *mrb)
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
 #define DEFAULT_MAJOR_GC_INC_RATIO 200
-#define is_generational(mrb) (mrb->is_generational_gc_mode)
-#define is_major_gc(mrb) (is_generational(mrb) && mrb->gc_full)
-#define is_minor_gc(mrb) (is_generational(mrb) && !mrb->gc_full)
+#define is_generational(mrb) ((mrb)->is_generational_gc_mode)
+#define is_major_gc(mrb) (is_generational(mrb) && (mrb)->gc_full)
+#define is_minor_gc(mrb) (is_generational(mrb) && !(mrb)->gc_full)
 
 void
 mrb_init_heap(mrb_state *mrb)
@@ -600,7 +601,7 @@ root_scan_phase(mrb_state *mrb)
     mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
     mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
   }
-  /* mark irep pool and  */
+  /* mark irep pool */
   if (mrb->irep) {
     size_t len = mrb->irep_len;
     if (len > mrb->irep_capa) len = mrb->irep_capa;

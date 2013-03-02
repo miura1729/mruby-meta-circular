@@ -72,10 +72,6 @@ mrb_init_core(mrb_state *mrb)
 #ifdef ENABLE_IREP
   mrb_init_irep(mrb);
 #endif
-
-  mrb_init_mrblib(mrb);
-
-  mrb_gc_arena_restore(mrb, 0);
 }
 
 void

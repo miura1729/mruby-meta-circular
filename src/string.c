@@ -14,6 +14,7 @@
 #include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
+#include "mruby/numeric.h"
 #include <stdio.h>
 #include "re.h"
 
@@ -758,23 +759,22 @@ num_index:
         return mrb_str_dup(mrb, indx);
       return mrb_nil_value();
 
-    default:
+    case MRB_TT_RANGE:
       /* check if indx is Range */
       {
         mrb_int beg, len;
         mrb_value tmp;
 
         len = RSTRING_LEN(str);
-        switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, 0)) {
-          case FALSE:
-            break;
-          case 2/*OTHER*/:
-            return mrb_nil_value();
-          default:
-            tmp = mrb_str_subseq(mrb, str, beg, len);
-            return tmp;
+        if (mrb_range_beg_len(mrb, indx, &beg, &len, len)) {
+          tmp = mrb_str_subseq(mrb, str, beg, len);
+          return tmp;
+        }
+        else {
+          return mrb_nil_value();
         }
       }
+    default:
       idx = mrb_fixnum(indx);
       goto num_index;
     }
@@ -1319,7 +1319,6 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
       return mrb_true_value();
     return mrb_false_value();
   }
-  //StringValue(arg);
   mrb_string_value(mrb, &str2);
   i = mrb_str_index(mrb, self, str2, 0);
 
@@ -1985,14 +1984,6 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 }
 
 
-int
-mrb_block_given_p()
-{
-  /*if (ruby_frame->iter == ITER_CUR && ruby_block)
-    return 1;*//*Qtrue*/
-  return FALSE;
-}
-
 /* 15.2.10.5.37 */
 /*
  *  call-seq:
@@ -2281,8 +2272,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
 {
   char *end;
   double d;
-//  const char *ellipsis = "";
-//  int w;
 #if !defined(DBL_DIG)
   #define DBL_DIG 16
 #endif
@@ -2353,7 +2342,6 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
   char *s;
   int len;
 
-  //StringValue(str);
   mrb_string_value(mrb, &str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
@@ -2552,9 +2540,16 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
           *q++ = c;
       }
       else {
-          *q++ = '\\';
-          sprintf(q, "%03o", c&0xff);
-          q += 3;
+        mrb_value octstr;
+        mrb_value chr;
+        const char *ptr;
+        int len;
+        chr = mrb_fixnum_value(c & 0xff);
+        octstr = mrb_fix2str(mrb, chr, 8);
+        ptr = mrb_str_body(octstr, &len);
+        memcpy(q, "\\000", 4);
+        memcpy(q + 4 - len, ptr, len);
+        q += 4;
       }
     }
     *q++ = '"';
@@ -2637,9 +2632,17 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
           continue;
       }
       else {
-	int n = sprintf(buf, "\\%03o", c & 0377);
-	mrb_str_buf_cat(mrb, result, buf, n);
-          continue;
+        mrb_value octstr;
+        mrb_value chr;
+        const char *ptr;
+        int len;
+        chr = mrb_fixnum_value(c & 0xff);
+        octstr = mrb_fix2str(mrb, chr, 8);
+        ptr = mrb_str_body(octstr, &len);
+        memcpy(buf, "\\000", 4);
+        memcpy(buf + 4 - len, ptr, len);
+        mrb_str_buf_cat(mrb, result, buf, 4);
+        continue;
       }
     }
     mrb_str_buf_cat(mrb, result, "\"", 1);

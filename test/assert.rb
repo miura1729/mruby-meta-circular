@@ -41,9 +41,14 @@ def assert(str = 'Assertion failed', iso = '')
       print('.')
     end
   rescue Exception => e
-    $asserts.push(assertion_string('Error: ', str, iso, e))
-    $kill_test += 1
-    print('X')
+    if e.class.to_s == 'MRubyTestSkip'
+      $asserts.push "Skip: #{str} #{iso} #{e.cause}"
+      print('?')
+    else
+      $asserts.push(assertion_string('Error: ', str, iso, e))
+      $kill_test += 1
+      print('X')
+    end
   ensure
     $mrbtest_assert = nil
   end
@@ -62,6 +67,52 @@ def assert_true(ret, msg = nil, diff = nil)
       msg = "Expected #{ret.inspect} to be true" unless msg
       diff = assertion_diff(true, ret)  unless diff
       $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+    end
+  end
+  ret
+end
+
+def assert_equal(exp, act, msg = nil)
+  msg = "Expected to be equal" unless msg
+  diff = assertion_diff(exp, act)
+  assert_true(exp == act, msg, diff)
+end
+
+def assert_nil(obj, msg = nil)
+  msg = "Expected #{obj.inspect} to be nil" unless msg
+  diff = assertion_diff(nil, obj)
+  assert_true(obj.nil?, msg, diff)
+end
+
+def assert_include(collection, obj, msg = nil)
+  msg = "Expected #{collection.inspect} to include #{obj.inspect}" unless msg
+  diff = "    Collection: #{collection.inspect}\n" +
+         "        Object: #{obj.inspect}"
+  assert_true(collection.include?(obj), msg, diff)
+end
+
+def assert_raise(*exp)
+  if $mrbtest_assert
+    $mrbtest_assert_idx += 1
+    msg = exp.last.class == String ? exp.pop : nil
+    msg = msg.to_s + " : " if msg
+    should_raise = false
+    begin
+      yield
+      should_raise = true
+    rescue Exception => e
+      msg = "#{msg}#{exp.inspect} exception expected, not"
+      diff = "      Class: <#{e.class}>\n" +
+             "    Message: #{e.message}"
+      if exp.any?{|ex| ex.instance_of?(Module) ? e.kind_of?(ex) : ex == e.class }
+        $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+      end
+    end
+
+    exp = exp.first if exp.first
+    if should_raise
+      msg = "#{msg}#{exp.inspect} expected but nothing was raised."
+      $mrbtest_assert.push([$mrbtest_assert_idx, msg, nil])
     end
   end
   ret
@@ -123,4 +174,17 @@ def check_float(a, b)
   else
     true
   end
+end
+
+##
+# Skip the test
+class MRubyTestSkip < NotImplementedError
+  attr_accessor :cause
+  def initialize(cause)
+    @cause = cause
+  end
+end
+
+def skip(cause = "")
+  raise MRubyTestSkip.new(cause)
 end

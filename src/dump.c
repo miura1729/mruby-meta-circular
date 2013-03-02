@@ -10,6 +10,7 @@
 
 #include "mruby/string.h"
 #include "mruby/irep.h"
+#include "mruby/numeric.h"
 
 static const unsigned char def_rite_binary_header[] =
   RITE_FILE_IDENFIFIER
@@ -49,6 +50,8 @@ enum {
   DUMP_SYMS_BLOCK,
   DUMP_SECTION_NUM,
 };
+
+#ifdef ENABLE_STDIO
 
 uint16_t calc_crc_16_ccitt(unsigned char*,int);
 static inline int uint8_dump(uint8_t,char*,int);
@@ -187,8 +190,7 @@ str_dump_len(char *str, uint16_t len, int type)
         if (*src >= ' ' && *src <= '~') {
           dump_len++;
         } else {
-          // dump_len += sprintf(buf, "\\%03o", *src & 0377);
-          dump_len += 4;
+          dump_len += 4; /* octet "\\nnn" */
         }
         break;
       }
@@ -241,8 +243,8 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep, int type)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = mrb_int_to_str( buf, mrb_fixnum(irep->pool[pool_no]));
-      size += (uint32_t)len;
+      str = mrb_fix2str(mrb, irep->pool[pool_no], 10);
+      size += (uint32_t)RSTRING_LEN(str);
       break;
     case MRB_TT_FLOAT:
       len = mrb_float_to_str( buf, mrb_float(irep->pool[pool_no]));
@@ -358,7 +360,9 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_FIXNUM:
-      len = mrb_int_to_str(char_buf, mrb_fixnum(irep->pool[pool_no]));
+      str = mrb_fix2str(mrb, irep->pool[pool_no], 10);
+      memcpy(char_buf, RSTRING_PTR(str), RSTRING_LEN(str));
+      len = RSTRING_LEN(str);
       break;
 
     case MRB_TT_FLOAT:
@@ -742,3 +746,5 @@ mrb_bdump_irep(mrb_state *mrb, int n, FILE *f,const char *initname)
 
   return rc;
 }
+
+#endif /* ENABLE_STDIO */
