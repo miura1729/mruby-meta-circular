@@ -298,9 +298,13 @@ get_irep_record_size(mrb_state *mrb, int irep_no, int type)
 
   size += DUMP_SIZE(MRB_DUMP_SIZE_OF_LONG, type); /* rlen */
   size += get_irep_header_size(mrb, type);
+  mrb_gc_arena_restore(mrb, 0);
   size += get_iseq_block_size(mrb, irep, type);
+  mrb_gc_arena_restore(mrb, 0);
   size += get_pool_block_size(mrb, irep, type);
+  mrb_gc_arena_restore(mrb, 0);
   size += get_syms_block_size(mrb, irep, type);
+  mrb_gc_arena_restore(mrb, 0);
 
   return size;
 }
@@ -329,6 +333,7 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, char *buf, int type)
 
   for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
     buf += uint32_dump((uint32_t)irep->iseq[iseq_no], buf, type); /* opcode */
+    mrb_gc_arena_restore(mrb, 0);
   }
 
   return (int)(buf - buf_top);
@@ -604,6 +609,7 @@ write_irep_record(mrb_state *mrb, int irep_no, char* bin, uint32_t *rlen, int ty
     case DUMP_SYMS_BLOCK: bin += write_syms_block(mrb, irep, bin, type); break;
     default: break;
     }
+    mrb_gc_arena_restore(mrb, 0);
 
     rc = calc_crc_section(mrb, irep, &crc, section);
     if (rc != MRB_DUMP_OK)
@@ -671,6 +677,7 @@ mrb_write_irep(mrb_state *mrb, int top, char *bin)
       return rc;
 
     bin += (rlen + DUMP_SIZE(MRB_DUMP_SIZE_OF_LONG, DUMP_TYPE_BIN));
+    mrb_gc_arena_restore(mrb, 0);
   }
 
   bin += uint32_dump(0, bin, DUMP_TYPE_BIN); /* end of file */
@@ -700,6 +707,7 @@ mrb_dump_irep(mrb_state *mrb, int top, FILE* fp)
       return rc;
 
     rbds += rlen;
+    mrb_gc_arena_restore(mrb, 0);
   }
 
   if (fwrite("00000000"/* end of file */, 8, 1, fp) != 1)
