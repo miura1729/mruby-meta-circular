@@ -33,7 +33,7 @@ void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 
 /* Regs Map                               *
  * ecx   -- pointer to regs               *
- * ebx   -- pointer to pc                 */
+ * ebx   -- pointer to status                 */
 class MRBJitCode: public Xbyak::CodeGenerator {
 
  public:
@@ -54,7 +54,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_exit(mrb_code *pc, int is_clr_rc)
   {
     const void* exit_ptr = getCurr();
-    mov(dword [ebx], (Xbyak::uint32)pc);
+
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(dword [eax], (Xbyak::uint32)pc);
     if (is_clr_rc) {
       xor(eax, eax);
     }
@@ -333,7 +335,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push((Xbyak::uint32)irep->syms[idpos]);
     push((Xbyak::uint32)mrb);
     call((void *)mrb_vm_cv_get);
-    add(sp, argsize);
+    add(esp, argsize);
     pop(ebx);
     pop(ecx);
     mov(dword [ecx + dstoff], eax);
@@ -359,7 +361,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push((Xbyak::uint32)irep->syms[idpos]);
     push((Xbyak::uint32)mrb);
     call((void *)mrb_vm_cv_set);
-    add(sp, argsize);
+    add(esp, argsize);
     pop(ebx);
     pop(ecx);
 
@@ -401,11 +403,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 #define CALL_CFUNC_STATUS(func_name, auxargs)			     \
   do {                                                               \
-    mov(eax, ptr[esp + 12 + auxargs * 4]);                           \
-    push(eax);                                                       \
+    push(ebx);                                                       \
 \
     /* Update pc */                                                  \
-    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, pc)]);           \
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);           \
     mov(dword [eax], (Xbyak::uint32)(*status->pc));                  \
 \
     push((Xbyak::uint32)mrb);                                        \
@@ -470,8 +471,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     else {
       CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
 
-      mov(eax, ptr[esp + 4]);
-      mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
       mov(ecx, dword [eax]);
     }
 
@@ -517,11 +517,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     
     push(ecx);
     push(ebx);
-    mov(eax, ptr[esp + 12 + 4]);
-    push(eax);
 
+    push(ebx);
     /* Update pc */
-    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
 
     push((Xbyak::uint32)mrb);
@@ -536,8 +535,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_exit(*status->pc, 0);
     L("@@");
 
-    mov(eax, ptr[esp + 4 + 4]);
-    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
     mov(ecx, dword [eax]);
 
     ret();
@@ -552,8 +550,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     CALL_CFUNC_BEGIN;
     CALL_CFUNC_STATUS(mrbjit_exec_return, 0);
 
-    mov(eax, ptr[esp + 4]);
-    mov(eax, dword [eax + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
     mov(ecx, dword [eax]);
 
     return code;
@@ -852,7 +849,7 @@ do {                                                                 \
     push(uppos);
     push((Xbyak::uint32)mrb);
     call((void *)mrb_uvget);
-    add(sp, argsize);
+    add(esp, argsize);
     pop(ebx);
     pop(ecx);
     mov(dword [ecx + dstoff], eax);
@@ -880,7 +877,7 @@ do {                                                                 \
     push(uppos);
     push((Xbyak::uint32)mrb);
     call((void *)mrb_uvset);
-    add(sp, argsize);
+    add(esp, argsize);
     pop(ebx);
     pop(ecx);
 

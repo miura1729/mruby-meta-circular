@@ -660,18 +660,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
       asm volatile("mov %0, %%ecx\n\t"
 		   "mov %1, %%ebx\n\t"
-		   "mov %2, -0x4(%%esp)\n\t"
 		   :
 		   : "g"(regs),
-		     "g"(ppc),
-		     "d"(status)
+		     "g"(status)
 		   : "%ecx",
 		     "%ebx",
 		     "memory");
 
-      asm volatile("sub $0x4, %%esp\n\t"
-		   "call *%0\n\t"
-		   "add $0x4, %%esp\n\t"
+      asm volatile("call *%0\n\t"
 		   :
 		   : "g"(ci->entry)
 		   : "%edx");
