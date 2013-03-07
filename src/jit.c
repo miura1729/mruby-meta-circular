@@ -318,6 +318,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     (*status->regs)[acc] = v;
   }
 
+  //printf("return %x\n", *status->irep);
   //printf("rc %x %x %s\n", *status->pc, mrb->ci, mrb_sym2name(mrb, mrb->ci->mid));
   return NULL;
 }

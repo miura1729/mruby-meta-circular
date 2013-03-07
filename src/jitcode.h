@@ -446,7 +446,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (!m) {
       return NULL;
     }
-    
+
     lea(eax, ptr [ecx + a * sizeof(mrb_value)]);
     gen_class_guard(mrb, recv, pc);
 
@@ -457,6 +457,23 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff], eax);
       mov(eax, 0xfff00000 | MRB_TT_FALSE);
       mov(dword [ecx + dstoff + 4], eax);
+    }
+
+    if (!MRB_PROC_CFUNC_P(m)) {
+      mrb_irep *irep = m->body.irep;
+
+      /* Check call_proc */
+      if (irep->idx == -1) {
+	m = mrb_proc_ptr(recv);
+	c = mrb_class(mrb, mrb->stack[0]);
+
+	mov(eax, (Xbyak::uint32)m->env->stack);
+	movsd(xmm0, ptr [eax]);
+	movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+
+	mrb->compile_info.call_compiled = 1;
+	printf("Call! %x\n", m->body.irep);
+      }
     }
 
     CALL_CFUNC_BEGIN;

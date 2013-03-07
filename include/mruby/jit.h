@@ -8,7 +8,7 @@
 #define MRUBY_JIT_H
 
 #define COMPILE_THRESHOLD 100
-#define NO_INLINE_METHOD_LEN 10
+#define NO_INLINE_METHOD_LEN 20
 
 typedef struct mrbjit_varinfo {
   /* SRC */
