@@ -461,6 +461,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     if (!MRB_PROC_CFUNC_P(m)) {
       mrb_irep *irep = m->body.irep;
+      /* Callee sended with block is inline always */
+      if (GET_OPCODE(i) == OP_SENDB) {
+	irep->jit_inlinep = 1;
+      }
 
       /* Check call_proc */
       if (irep->idx == -1) {
@@ -491,6 +495,28 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
       mov(ecx, dword [eax]);
     }
+
+    return code;
+  }
+
+  const void *
+    emit_call(mrb_state *mrb, mrbjit_vmstatus *status)
+  {
+    const void *code = getCurr();
+    const void* exit_ptr;
+    
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
+    mov(eax, dword [eax]);
+    mov(eax, dword [eax + OffsetOf(mrb_irep, idx)]);
+    xor(eax, 0xffff);
+    jnz("@f");
+    exit_ptr = getCurr();
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(dword [eax], (Xbyak::uint32)(*status->pc));
+    xor(eax, eax);
+    mov(edx, (Xbyak::uint32)exit_ptr);
+    ret();
+    L("@@");
 
     return code;
   }

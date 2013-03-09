@@ -34,6 +34,7 @@ typedef struct mrb_irep {
 
   /* JIT stuff */
   int *prof_info;
+  int jit_inlinep;
   mrbjit_codetab *jit_entry_tab;
 } mrb_irep;
 

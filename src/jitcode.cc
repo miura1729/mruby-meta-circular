@@ -101,7 +101,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, MRBJitCode *code)
   case OP_CALL:
     if (mrb->compile_info.call_compiled) {
       mrb->compile_info.call_compiled = 0;
-      return code->emit_nop(mrb, irep, ppc);
+      return code->emit_call(mrb, status);
     }
     else {
       mrb->compile_info.nest_level = 0;

@@ -628,7 +628,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->compile_info.prev_pc;
-  if (irep->ilen < NO_INLINE_METHOD_LEN) {
+  if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
     caller_pc = mrb->ci->pc;
   }
   else {
