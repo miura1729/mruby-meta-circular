@@ -55,8 +55,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void* exit_ptr = getCurr();
 
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
-    mov(dword [eax], (Xbyak::uint32)pc);
+    mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(dword [edx], (Xbyak::uint32)pc);
     if (is_clr_rc) {
       xor(eax, eax);
     }
