@@ -333,7 +333,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push(ecx);
     push(ebx);
     push((Xbyak::uint32)irep->syms[idpos]);
-    push((Xbyak::uint32)mrb);
+    push(esi);
     call((void *)mrb_vm_cv_get);
     add(esp, argsize);
     pop(ebx);
@@ -359,7 +359,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [ecx + srcoff]);
     push(eax);
     push((Xbyak::uint32)irep->syms[idpos]);
-    push((Xbyak::uint32)mrb);
+    push(esi);
     call((void *)mrb_vm_cv_set);
     add(esp, argsize);
     pop(ebx);
@@ -409,7 +409,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);           \
     mov(dword [eax], (Xbyak::uint32)(*status->pc));                  \
 \
-    push((Xbyak::uint32)mrb);                                        \
+    push(esi);                                                       \
     call((void *)func_name);                                         \
     add(esp, (auxargs + 2) * 4);				     \
     pop(ebx);                                                        \
@@ -506,8 +506,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
 
     /* Set return address from callinfo */
-    mov(eax, (Xbyak::uint32)mrb);
-    mov(eax, dword [eax + OffsetOf(mrb_state, ci)]);
+    mov(eax, dword [esi + OffsetOf(mrb_state, ci)]);
     mov(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
     test(eax, eax);
     jnz("@f");
@@ -523,7 +522,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
 
-    push((Xbyak::uint32)mrb);
+    push(esi);
     call((void *)mrbjit_exec_return);
     add(esp, 2 * 4);
     pop(ebx);
@@ -847,7 +846,7 @@ do {                                                                 \
     push(ebx);
     push(idxpos);
     push(uppos);
-    push((Xbyak::uint32)mrb);
+    push(esi);
     call((void *)mrb_uvget);
     add(esp, argsize);
     pop(ebx);
@@ -875,7 +874,7 @@ do {                                                                 \
     push(eax);
     push(idxpos);
     push(uppos);
-    push((Xbyak::uint32)mrb);
+    push(esi);
     call((void *)mrb_uvset);
     add(esp, argsize);
     pop(ebx);
