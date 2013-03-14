@@ -469,7 +469,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       /* Check call_proc */
       if (irep->idx == -1) {
 	m = mrb_proc_ptr(recv);
-	c = mrb_class(mrb, mrb->stack[0]);
+	c = m->target_class;
 
 	mov(eax, (Xbyak::uint32)m->env->stack);
 	movsd(xmm0, ptr [eax]);
