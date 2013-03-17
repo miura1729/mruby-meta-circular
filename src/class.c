@@ -6,8 +6,8 @@
 
 #include "mruby.h"
 #include <stdarg.h>
-#include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
@@ -29,7 +29,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
     if (kh_exist(h, k)){
       struct RProc *m = kh_value(h, k);
       if (m) {
-	mrb_gc_mark(mrb, (struct RBasic*)m);
+        mrb_gc_mark(mrb, (struct RBasic*)m);
       }
     }
   }
@@ -204,6 +204,12 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   return c;
 }
 
+int
+mrb_class_defined(mrb_state *mrb, const char *name)
+{
+  return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_intern(mrb, name));
+}
+
 static struct RClass *
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -294,10 +300,12 @@ void
 mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, int aspec)
 {
   struct RProc *p;
+  int ai = mrb_gc_arena_save(mrb);
 
   p = mrb_proc_new_cfunc(mrb, func);
   p->target_class = c;
   mrb_define_method_raw(mrb, c, mid, p);
+  mrb_gc_arena_restore(mrb, ai);
 }
 
 void
@@ -387,7 +395,7 @@ to_hash(mrb_state *mrb, mrb_value val)
   retrieve arguments from mrb_state.
 
   mrb_get_args(mrb, format, ...)
-  
+
   returns number of arguments parsed.
 
   fortmat specifiers:
@@ -398,7 +406,7 @@ to_hash(mrb_state *mrb, mrb_value val)
    H: Hash [mrb_value]
    s: String [char*,int]
    z: String [char*]
-   a: Array [mrb_value*,int]
+   a: Array [mrb_value*,mrb_int]
    f: Float [mrb_float]
    i: Integer [mrb_int]
    b: Binary [int]
@@ -432,6 +440,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       if (argc <= i && !opt) {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
       }
+      break;
     }
 
     switch (c) {
@@ -520,10 +529,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value aa;
         struct RArray *a;
         mrb_value **pb;
-        int *pl;
+        mrb_int *pl;
 
         pb = va_arg(ap, mrb_value**);
-        pl = va_arg(ap, int*);
+        pl = va_arg(ap, mrb_int*);
         if (i < argc) {
           aa = to_ary(mrb, *sp++);
           a = mrb_ary_ptr(aa);
@@ -805,7 +814,7 @@ mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
   }
   return mrb_false_value();
 }
- 
+
 static mrb_value
 mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {
@@ -944,7 +953,7 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   default:
     break;
   }
-  obj = mrb_object(v);
+  obj = mrb_basic_ptr(v);
   prepare_singleton_class(mrb, obj);
   return mrb_obj_value(obj->c);
 }
@@ -1162,8 +1171,13 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
     mrb_raise(mrb, E_TYPE_ERROR, "name should be a symbol");
   }
 
-  inspect = mrb_funcall(mrb, mod, "inspect", 0);
-  if (RSTRING_LEN(inspect) > 64) {
+  if (mrb_respond_to(mrb,mod,mrb_intern(mrb,"inspect"))){
+    inspect = mrb_funcall(mrb, mod, "inspect", 0);
+    if (RSTRING_LEN(inspect) > 64) {
+      inspect = mrb_any_to_s(mrb, mod);
+    }
+  }
+  else {
     inspect = mrb_any_to_s(mrb, mod);
   }
 
@@ -1208,7 +1222,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
 {
   mrb_value path;
   const char *name;
-  int len;
+  size_t len;
 
   path = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern(mrb, "__classpath__"));
   if (mrb_nil_p(path)) {
@@ -1485,7 +1499,7 @@ static void
 check_cv_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
-  int len;
+  size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
@@ -1707,7 +1721,7 @@ static void
 check_const_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
-  int len;
+  size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 1 || !ISUPPER(*s)) {

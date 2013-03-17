@@ -19,8 +19,8 @@ struct _args {
   char *filename;
   char *initname;
   char *ext;
-  int check_syntax : 1;
-  int verbose      : 1;
+  mrb_bool check_syntax : 1;
+  mrb_bool verbose      : 1;
 };
 
 static void
@@ -83,6 +83,12 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
       switch ((*argv)[1]) {
       case 'o':
+        if (outfile) {
+          printf("%s: An output file is already specified. (%s)\n",
+                 *origargv, outfile);
+          result = -5;
+          goto exit;
+        }
         outfile = get_outfilename((*argv) + 2, "");
         break;
       case 'B':

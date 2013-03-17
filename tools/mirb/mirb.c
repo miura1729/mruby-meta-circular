@@ -6,6 +6,7 @@
 ** immediately. It's a REPL...
 */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include <mruby.h>
@@ -39,6 +40,13 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   /* check for unterminated string */
   if (parser->sterm) return TRUE;
+
+  /* check for heredoc */
+  if (parser->heredoc_starts_nextline) return TRUE;
+  if (parser->heredoc_end_now) {
+    parser->heredoc_end_now = FALSE;
+    return FALSE;
+  }
 
   /* check if parser error are available */
   if (0 < parser->nerr) {
@@ -125,7 +133,8 @@ is_code_block_open(struct mrb_parser_state *parser)
 }
 
 /* Print a short remark for the user */
-void print_hint(void)
+static void
+print_hint(void)
 {
   printf("mirb - Embeddable Interactive Ruby Shell\n");
   printf("\nThis is a very early version, please test and report errors.\n");
@@ -253,6 +262,9 @@ main(void)
 	else {
 	  /* no */
 	  printf(" => ");
+	  if (!mrb_respond_to(mrb,result,mrb_intern(mrb,"inspect"))){
+	    result = mrb_any_to_s(mrb,result);
+	  }
 	  p(mrb, result);
 	}
       }

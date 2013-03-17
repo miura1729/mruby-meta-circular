@@ -5,8 +5,9 @@
 */
 
 #include "mruby.h"
+#include <errno.h>
 #include <stdarg.h>
-#include <stdio.h>
+#include <stdlib.h>
 #include <setjmp.h>
 #include <string.h>
 #include "error.h"
@@ -90,7 +91,7 @@ exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
 
-  if (mrb_nil_p(mesg)) return mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+  if (mrb_nil_p(mesg)) return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
   return mesg;
 }
 
@@ -125,7 +126,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   mesg = mrb_attr_get(mrb, exc, mrb_intern(mrb, "mesg"));
   file = mrb_attr_get(mrb, exc, mrb_intern(mrb, "file"));
   line = mrb_attr_get(mrb, exc, mrb_intern(mrb, "line"));
-  
+
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
     str = file;
     mrb_str_cat2(mrb, str, ":");
@@ -141,7 +142,7 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
     }
   }
   else {
-    str = mrb_str_new2(mrb, mrb_obj_classname(mrb, exc));
+    str = mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
     if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
       mrb_str_cat2(mrb, str, ": ");
       mrb_str_append(mrb, str, mesg);
@@ -190,12 +191,12 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   ci--;
   while (ci >= mrb->cibase) {
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
-      mrb_irep *irep = ci->proc->body.irep;      
+      mrb_irep *irep = ci->proc->body.irep;
 
       if (irep->filename && irep->lines && irep->iseq <= pc && pc < irep->iseq + irep->ilen) {
-	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
-	mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
-	return;
+        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "file"), mrb_str_new_cstr(mrb, irep->filename));
+        mrb_obj_iv_set(mrb, exc, mrb_intern(mrb, "line"), mrb_fixnum_value(irep->lines[pc - irep->iseq - 1]));
+        return;
       }
     }
     pc = ci->pc;
@@ -206,12 +207,10 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
 void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
-  mrb->exc = (struct RObject*)mrb_object(exc);
+  mrb->exc = mrb_obj_ptr(exc);
   exc_debug_info(mrb, mrb->exc);
   if (!mrb->jmp) {
-#ifdef ENABLE_STDIO
     mrb_p(mrb, exc);
-#endif
     abort();
   }
   longjmp(*(jmp_buf*)mrb->jmp, 1);
@@ -221,7 +220,7 @@ void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
   mrb_value mesg;
-  mesg = mrb_str_new2(mrb, msg);
+  mesg = mrb_str_new_cstr(mrb, msg);
   mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 
@@ -280,23 +279,27 @@ mrb_sprintf(mrb_state *mrb, const char *fmt, ...)
 void
 mrb_warn(const char *fmt, ...)
 {
+#ifdef ENABLE_STDIO
   va_list args;
 
   va_start(args, fmt);
   printf("warning: ");
   vprintf(fmt, args);
   va_end(args);
+#endif
 }
 
 void
 mrb_bug(const char *fmt, ...)
 {
+#ifdef ENABLE_STDIO
   va_list args;
 
   va_start(args, fmt);
   printf("bug: ");
   vprintf(fmt, args);
   va_end(args);
+#endif
   exit(EXIT_FAILURE);
 }
 
@@ -366,14 +369,14 @@ make_exception(mrb_state *mrb, int argc, mrb_value *argv, int isstr)
       n = 1;
 exception_call:
       {
-	mrb_sym exc = mrb_intern(mrb, "exception");
-	if (mrb_respond_to(mrb, argv[0], exc)) {
-	  mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
-	}
-	else {
-	  /* undef */
-	  mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
-	}
+        mrb_sym exc = mrb_intern(mrb, "exception");
+        if (mrb_respond_to(mrb, argv[0], exc)) {
+          mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
+        }
+        else {
+          /* undef */
+          mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
+        }
       }
 
       break;
@@ -400,7 +403,20 @@ mrb_make_exception(mrb_state *mrb, int argc, mrb_value *argv)
 void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
-  mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  struct RClass *sce;
+  mrb_int no;
+
+  no = (mrb_int)errno;
+  if (mrb_class_defined(mrb, "SystemCallError")) {
+    sce = mrb_class_get(mrb, "SystemCallError");
+    if (mesg != NULL) {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+    } else {
+      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+    }
+  } else {
+    mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
+  }
 }
 
 void
