@@ -190,6 +190,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       break;
     }
   }
+  
+  void
+    gen_lvar_get(const Xbyak::Mmx& dst, int no, mrbjit_code_info *coi)
+  {
+    
+  }
 
   const void *
     emit_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
