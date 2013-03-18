@@ -992,6 +992,68 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
 }
 
 static void
+gen_send_intern(codegen_scope *s)
+{
+  pop();
+  genop_send(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "intern")), 0));
+  push();
+}
+static void
+gen_literal_array(codegen_scope *s, node *tree, int sym, int val)
+{
+  if (val) {
+    int i = 0, j = 0;
+
+    while (tree) {
+      switch ((intptr_t)tree->car->car) {
+      case NODE_STR:
+        if ((tree->cdr == NULL) && ((intptr_t)tree->car->cdr->cdr == 0))
+          break;
+        /* fall through */
+      case NODE_BEGIN:
+        codegen(s, tree->car, VAL);
+        ++j;
+        break;
+
+      case NODE_LITERAL_DELIM:
+        if (j > 0) {
+          j = 0;
+          ++i;
+          if (sym)
+            gen_send_intern(s);
+        }
+        break;
+      }
+      if (j >= 2) {
+        pop(); pop();
+        genop_peep(s, MKOP_AB(OP_STRCAT, cursp(), cursp()+1), VAL);
+        push();
+        j = 1;
+      }
+      tree = tree->cdr;
+    }
+    if (j > 0) {
+      j = 0;
+      ++i;
+      if (sym)
+        gen_send_intern(s);
+    }
+    pop_n(i);
+    genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), i));
+    push();
+  }
+  else {
+    while (tree) {
+      switch ((intptr_t)tree->car->car) {
+      case NODE_BEGIN: case NODE_BLOCK:
+        codegen(s, tree->car, NOVAL);
+      }
+      tree = tree->cdr;
+    }
+  }
+}
+
+static void
 raise_error(codegen_scope *s, const char *msg)
 {
   int idx = new_lit(s, mrb_str_new_cstr(s->mrb, msg));
@@ -1969,9 +2031,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_HEREDOC:
-    /*if(tree == NULL){printf("heredoc error 1\n");exit(11);}*/
     tree = ((struct mrb_parser_heredoc_info *)tree)->doc;
-    /*if(tree == NULL){printf("heredoc error 2\n");exit(12);}*/
     /* fall through */
   case NODE_DSTR:
     if (val) {
@@ -1999,6 +2059,10 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     break;
 
+  case NODE_WORDS:
+    gen_literal_array(s, tree, FALSE, val);
+    break;
+
   case NODE_REGX:
     if (val) {
       char *p1 = (char*)tree->car;
@@ -2021,7 +2085,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       pop();
       sym = new_sym(s, mrb_intern(s->mrb, "compile"));
-      genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
+      genop_send(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
       mrb_gc_arena_restore(s->mrb, ai);
       push();
     }
@@ -2069,7 +2133,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       pop();
       sym = new_sym(s, mrb_intern(s->mrb, "compile"));
-      genop(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
+      genop_send(s, MKOP_ABC(OP_SEND, cursp(), sym, argc));
       mrb_gc_arena_restore(s->mrb, ai);
       push();
     }
@@ -2097,9 +2161,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_DSYM:
     codegen(s, tree, val);
     if (val) {
-      pop();
-      genop_send(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern(s->mrb, "intern")), 0));
-      push();
+      gen_send_intern(s);
     }
     break;
 
