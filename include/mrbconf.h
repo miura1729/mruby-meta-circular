@@ -119,11 +119,18 @@ typedef short mrb_sym;
 # define strtoll _strtoi64
 # define PRId32 "I32d"
 # define PRId64 "I64d"
+# ifdef __cplusplus
+typedef bool mrb_bool;
+# else
 typedef unsigned int mrb_bool;
+# endif
 #else
 # include <inttypes.h>
-//typedef _Bool mrb_bool;
-typedef unsigned int mrb_bool;
+# ifdef __cplusplus
+typedef bool mrb_bool;
+# else
+typedef _Bool mrb_bool;
+# endif
 #endif
 
 #ifdef ENABLE_STDIO
