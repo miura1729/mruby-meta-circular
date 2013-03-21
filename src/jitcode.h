@@ -468,7 +468,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       /* Check call_proc */
       if (irep->idx == -1) {
+	irep->jit_inlinep = 1;	/* CALL IREP always inline */
 	m = mrb_proc_ptr(recv);
+	m->body.irep->jit_inlinep = 1;
 	c = m->target_class;
 
 	mov(eax, (Xbyak::uint32)m->env->stack);
@@ -514,7 +516,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
     xor(eax, eax);
-    mov(edx, (Xbyak::uint32)exit_ptr);
+    //    mov(edx, (Xbyak::uint32)exit_ptr);
+    xor(edx, edx);
     ret();
     L("@@");
 
