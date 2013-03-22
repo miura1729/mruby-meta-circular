@@ -582,7 +582,7 @@ mrbjit_argnum_error(mrb_state *mrb, int num)
 }
 
 extern const void *mrbjit_get_curr(mrb_state *);
-extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *);
+extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
 extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
 extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *);
@@ -741,6 +741,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("p %x %x\n", *ppc, prev_pc);
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
       ci->prev_pc = prev_pc;
+      if (prev_pc) {
+	ci->prev_coi = mrb->compile_info.prev_coi;
+      }
+      else {
+	ci->prev_coi = NULL;
+      }
       ci->caller_pc = caller_pc;
       ci->code_base = mrb->compile_info.code_base;
       ci->entry = NULL;
@@ -748,7 +754,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->used < 0) {
-      entry = mrbjit_emit_code(mrb, status);
+      entry = mrbjit_emit_code(mrb, status, ci);
       if (prev_entry && entry) {
 	//printf("patch %x %x \n", prev_entry, entry);
 	cbase = mrb->compile_info.code_base;
@@ -779,6 +785,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   mrb->compile_info.prev_pc = *ppc;
+  mrb->compile_info.prev_coi = ci;
 
   return status->optable[GET_OPCODE(**ppc)];
 }

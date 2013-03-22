@@ -44,7 +44,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    gen_entry(mrb_state *mrb, mrb_irep *irep) 
+    gen_entry(mrb_state *mrb, mrbjit_vmstatus *status) 
   {
     const void* func_ptr = getCurr();
     return func_ptr;
@@ -83,9 +83,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code *curpc, mrb_code *newpc)
+    gen_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrb_code *curpc, mrb_code *newpc)
   {
     mrbjit_code_info *newci;
+    mrb_irep *irep = *status->irep;
     int n = ISEQ_OFFSET_OF(newpc);
     if (irep->ilen < NO_INLINE_METHOD_LEN) {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
@@ -189,18 +190,25 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       break;
     }
   }
+  
+  void
+    gen_lvar_get(const Xbyak::Mmx& dst, int no, mrbjit_code_info *coi)
+  {
+    
+  }
 
   const void *
-    emit_nop(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     return code;
   }
 
   const void *
-    emit_move(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_move(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
     movsd(xmm0, ptr [ecx + srcoff]);
@@ -209,9 +217,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadl(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_loadl(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_irep *irep = *status->irep;
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 srcoff = GETARG_Bx(**ppc) * sizeof(mrb_value);
     mov(eax, (Xbyak::uint32)irep->pool + srcoff);
@@ -222,9 +232,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+    emit_loadi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 src = GETARG_sBx(**ppc);
     mov(eax, src);
@@ -236,9 +247,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadself(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+    emit_loadself(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
 
     movsd(xmm0, ptr [ecx]);
@@ -247,9 +259,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+    emit_loadt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mov(eax, 1);
     mov(dword [ecx + dstoff], eax);
@@ -260,9 +273,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadf(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+    emit_loadf(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mov(eax, 1);
     mov(dword [ecx + dstoff], eax);
@@ -273,10 +287,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getiv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_getiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const int idpos = GETARG_Bx(**ppc);
+    mrb_irep *irep = *status->irep;
     mrb_sym id = irep->syms[idpos];
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrb_value self = mrb->stack[0];
@@ -298,11 +314,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_setiv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_setiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 srcoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int idpos = GETARG_Bx(**ppc);
+    mrb_irep *irep = *status->irep;
     mrb_sym id = irep->syms[idpos];
     mrb_value self = mrb->stack[0];
     const int ivoff = mrbjit_iv_off(mrb, self, id);
@@ -323,12 +341,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getcv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_getcv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const int idpos = GETARG_Bx(**ppc);
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 2 * sizeof(void *);
+    mrb_irep *irep = *status->irep;
 
     push(ecx);
     push(ebx);
@@ -345,12 +365,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_setcv(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_setcv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const int idpos = GETARG_Bx(**ppc);
     const Xbyak::uint32 srcoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 4 * sizeof(void *);
+    mrb_irep *irep = *status->irep;
 
     push(ecx);
     push(ebx);
@@ -369,11 +391,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getconst(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_getconst(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int sympos = GETARG_Bx(**ppc);
+    mrb_irep *irep = *status->irep;
     const mrb_value v = mrb_vm_const_get(mrb, irep->syms[sympos]);
 
     mov(dword [ecx + dstoff], v.value.i);
@@ -383,9 +407,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadnil(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc) 
+    emit_loadnil(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     xor(eax, eax);
     mov(dword [ecx + dstoff], eax);
@@ -657,33 +682,37 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 } while(0)
 
   const void *
-    emit_add(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_add(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     ARTH_GEN(add, addsd);
     return code;
   }
 
   const void *
-    emit_sub(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_sub(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     ARTH_GEN(sub, subsd);
     return code;
   }
 
   const void *
-    emit_mul(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_mul(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     ARTH_GEN(imul, mulsd);
     return code;
   }
 
   const void *
-    emit_div(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_div(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     int reg0pos = GETARG_A(**ppc);
     int reg1pos = reg0pos + 1;
     const Xbyak::uint32 reg0off = reg0pos * sizeof(mrb_value);
@@ -754,17 +783,19 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 } while(0)
     
   const void *
-    emit_addi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_addi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     ARTH_I_GEN(add, addsd);
     return code;
   }
 
   const void *
-    emit_subi(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_subi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     ARTH_I_GEN(sub, subsd);
     return code;
   }
@@ -835,54 +866,60 @@ do {                                                                 \
  } while(0)
   
   const void *
-    emit_eq(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     COMP_GEN(setz, setz);
 
     return code;
   }
 
   const void *
-    emit_lt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_lt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     COMP_GEN(setl, setb);
 
     return code;
   }
 
   const void *
-    emit_le(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_le(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     COMP_GEN(setle, setbe);
 
     return code;
   }
 
   const void *
-    emit_gt(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_gt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     COMP_GEN(setg, seta);
 
     return code;
   }
 
   const void *
-    emit_ge(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs) 
+    emit_ge(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     COMP_GEN(setge, setae);
 
     return code;
   }
 
   const void *
-    emit_getupvar(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_getupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 uppos = GETARG_C(**ppc);
     const Xbyak::uint32 idxpos = GETARG_B(**ppc);
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
@@ -904,9 +941,10 @@ do {                                                                 \
   }
 
   const void *
-    emit_setupvar(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_setupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const Xbyak::uint32 uppos = GETARG_C(**ppc);
     const Xbyak::uint32 idxpos = GETARG_B(**ppc);
     const Xbyak::uint32 valoff = GETARG_A(**ppc) * sizeof(mrb_value);
@@ -930,24 +968,26 @@ do {                                                                 \
   }
 
   const void *
-    emit_jmp(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+    emit_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
-    gen_jmp(mrb, irep,  *ppc, *ppc + GETARG_sBx(**ppc));
+    mrb_code **ppc = status->pc;
+    gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     return code;
   }
 
   const void *
-    emit_jmpif(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+    emit_jmpif(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
     
     mov(eax, ptr [ecx + coff + 4]);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 1, *ppc + 1);
-      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc));
+      gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
       gen_bool_guard(mrb, 0, *ppc + GETARG_sBx(**ppc));
@@ -957,16 +997,17 @@ do {                                                                 \
   }
 
   const void *
-    emit_jmpnot(mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrb_value *regs)
+    emit_jmpnot(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
+    mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
     
     mov(eax, ptr [ecx + coff + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, *ppc + 1);
-      gen_jmp(mrb, irep, *ppc, *ppc + GETARG_sBx(**ppc));
+      gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
       gen_bool_guard(mrb, 1, *ppc + GETARG_sBx(**ppc));
