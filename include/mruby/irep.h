@@ -15,10 +15,10 @@ extern "C" {
 #endif
 
 typedef struct mrb_irep {
-  short idx;
-  short nlocals;
-  short nregs;
-  signed char flags;
+  uint16_t idx;
+  uint16_t nlocals;
+  uint16_t nregs;
+  uint8_t flags;
 
   mrb_code *iseq;
   mrb_value *pool;

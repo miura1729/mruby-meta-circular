@@ -59,10 +59,160 @@ assert('Literals Strings Quoted Expanded', '8.7.6.3.5') do
     e == 'abc' and f == 'ab/c' and g == 'abc'
 end
 
-# Not Implemented ATM assert('Literals Strings Here documents', '8.7.6.3.6') do
+assert('Literals Strings Here documents', '8.7.6.3.6') do
+  a = <<AAA
+aaa
+AAA
+   b = <<b_b
+bbb
+b_b
+    c = [<<CCC1, <<"CCC2", <<'CCC3']
+c1
+CCC1
+c 2
+CCC2
+c  3
+CCC3
 
-# Not Implemented ATM assert('Literals Array', '8.7.6.4') do
+      d = <<DDD
+d#{1+2}DDD
+d\t
+DDD\n
+DDD
+  e = <<'EEE'
+e#{1+2}EEE
+e\t
+EEE\n
+EEE
+  f = <<"FFF"
+F
+FF#{"f"}FFF
+F
+FFF
+
+  g = <<-GGG
+  ggg
+  GGG
+  h = <<-"HHH"
+  hhh
+  HHH
+  i = <<-'III'
+  iii
+  III
+  j = [<<-JJJ1   , <<-"JJJ2"   , <<-'JJJ3' ]
+  j#{1}j
+  JJJ1
+  j#{2}j
+  JJJ2
+  j#{3}j
+  JJJ3
+
+  k = <<'KKK'.to_i
+123
+KKK
+
+  z = <<'ZZZ'
+ZZZ
+
+  a == "aaa\n" and
+  b == "bbb\n" and
+  c == ["c1\n", "c 2\n", "c  3\n"] and
+  d == "d3DDD\nd\t\nDDD\n\n" and
+  e == "e\#{1+2}EEE\ne\\t\nEEE\\n\n" and
+  f == "F\nFFfFFF\nF\n" and
+  g == "  ggg\n" and
+  h == "  hhh\n" and
+  i == "  iii\n" and
+  j == ["  j1j\n", "  j2j\n", "  j\#{3}j\n"] and
+  k == 123 and
+  z == ""
+end
+
+assert('Literals Array', '8.7.6.4') do
+  a = %W{abc#{1+2}def \}g}
+  b = %W(abc #{2+3} def \(g)
+  c = %W[#{3+4}]
+  d = %W< #{4+5} >
+  e = %W//
+  f = %W[[ab cd][ef]]
+  g = %W{
+    ab
+    #{-1}1
+    2#{2}
+  }
+  h = %W(a\nb
+         test\ abc
+         c\
+d
+         x\y x\\y x\\\y)
+
+  test1 = (a == ['abc3def', '}g'] and
+           b == ['abc', '5', 'def', '(g'] and
+           c == ['7'] and
+           d == ['9'] and
+           e == [] and
+           f == ['[ab', 'cd][ef]'] and
+           g == ['ab', '-11', '22'] and
+           h == ["a\nb", 'test abc', "c\nd", "xy", "x\\y", "x\\y"]
+          )
+
+  a = %w{abc#{1+2}def \}g}
+  b = %w(abc #{2+3} def \(g)
+  c = %w[#{3+4}]
+  d = %w< #{4+5} >
+  e = %w//
+  f = %w[[ab cd][ef]]
+  g = %w{
+    ab
+    #{-1}1
+    2#{2}
+  }
+  h = %w(a\nb
+         test\ abc
+         c\
+d
+         x\y x\\y x\\\y)
+
+  test2 = (a == ['abc#{1+2}def', '}g'] and
+           b == ['abc', '#{2+3}', 'def', '(g'] and
+           c == ['#{3+4}'] and
+           d == ['#{4+5}'] and
+           e == [] and
+           f == ['[ab', 'cd][ef]'] and
+           g == ['ab', '#{-1}1', '2#{2}'] and
+           h == ["a\\nb", "test abc", "c\nd", "x\\y", "x\\y", "x\\\\y"]
+          ) 
+
+  test1 and test2
+end
+
+assert('Literals Symbol', '8.7.6.6') do
+  /* do not compile error */
+  :$asd
+  :@asd
+  :@@asd
+  :asd=
+  :asd!
+  :asd?
+  :+
+  :+@
+  :if
+  :BEGIN
+
+  a = :"asd qwe"
+  b = :'foo bar'
+  c = :"a#{1+2}b"
+  d = %s(asd)
+  e = %s( foo \))
+  f = %s[asd \[
+qwe]
+  g = %s/foo#{1+2}bar/
+  h = %s{{foo bar}}
+
+  a == :'asd qwe' and b == :"foo bar" and c == :a3b and d == :asd and
+  e == :' foo )' and f == :"asd [\nqwe" and g == :'foo#{1+2}bar' and
+  h == :'{foo bar}'
+end
 
 # Not Implemented ATM assert('Literals Regular expression', '8.7.6.5') do
 
-# Not Implemented ATM assert('Literals Symbol', '8.7.6.6') do

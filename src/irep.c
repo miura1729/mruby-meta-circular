@@ -353,7 +353,7 @@ mrb_irep_make_optab(mrb_state *mrb)
 
   for (i = 0; i < siz; i++) {
     int ai = mrb_gc_arena_save(mrb);
-    mrb_ary_push(mrb, ary, mrb_str_new2(mrb, optable[i]));
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, optable[i], strlen(optable[i])));
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -361,12 +361,12 @@ mrb_irep_make_optab(mrb_state *mrb)
 }
 
 static void
-mrb_irep_free(mrb_state *mrb, void *ptr)
+mrb_irep_free2(mrb_state *mrb, void *ptr)
 {
   /* Do nothing */
 }
 
-static struct mrb_data_type mrb_irep_type = { "Irep", mrb_irep_free };
+static struct mrb_data_type mrb_irep_type = { "Irep", mrb_irep_free2 };
 
 static mrb_value
 mrb_irep_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_irep *irep)

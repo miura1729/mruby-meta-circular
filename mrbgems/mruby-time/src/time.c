@@ -6,7 +6,6 @@
 
 
 #include "mruby.h"
-#include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include "mruby/class.h"
@@ -130,7 +129,7 @@ mrb_time_free(mrb_state *mrb, void *ptr)
 static struct mrb_data_type mrb_time_type = { "Time", mrb_time_free };
 
 /** Updates the datetime of a mrb_time based on it's timezone and
-seconds setting. Returns self on cussess, NULL of failure. */
+seconds setting. Returns self on success, NULL of failure. */
 static struct mrb_time*
 mrb_time_update_datetime(struct mrb_time *self)
 {
@@ -528,6 +527,8 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
   if (tm) {
     mrb_time_free(mrb, tm);
   }
+  DATA_TYPE(self) = &mrb_time_type;
+  DATA_PTR(self) = NULL;
 
   n = mrb_get_args(mrb, "|iiiiiii",
 		   &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
@@ -538,7 +539,6 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
     tm = time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL);
   }
   DATA_PTR(self) = tm;
-  DATA_TYPE(self) = &mrb_time_type;
   return self;
 }
 

@@ -32,7 +32,6 @@
 extern "C" {
 #endif
 
-#include <stdlib.h>
 #include "mrbconf.h"
 
 #include "mruby/value.h"
@@ -49,6 +48,7 @@ mrb_cache_value(void *p)
 }
 
 typedef int32_t mrb_code;
+typedef int32_t mrb_aspec;
 
 struct mrb_state;
 
@@ -142,17 +142,14 @@ typedef struct mrb_state {
   size_t gc_threshold;
   int gc_interval_ratio;
   int gc_step_ratio;
-  unsigned int gc_disabled:1;
-  unsigned int gc_full:1;
-  unsigned int is_generational_gc_mode:1;
+  mrb_bool gc_disabled:1;
+  mrb_bool gc_full:1;
+  mrb_bool is_generational_gc_mode:1;
   size_t majorgc_old_threshold;
   struct alloca_header *mems;
 
   mrb_sym symidx;
   struct kh_n2s *name2sym;      /* symbol table */
-#ifdef INCLUDE_REGEXP
-  struct RNode *local_svar;/* regexp */
-#endif
 
 #ifdef ENABLE_DEBUG
   void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
@@ -172,16 +169,17 @@ struct RClass *mrb_define_module(mrb_state *, const char*);
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
 void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
 
-void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
-void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, int);
-void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t,int);
-void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t,int);
+void mrb_define_method(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
+void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
+int mrb_class_defined(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_obj_get(mrb_state *mrb, const char *name);
 
@@ -192,22 +190,22 @@ struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, con
 struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 /* required arguments */
-#define ARGS_REQ(n)     (((n)&0x1f) << 19)
+#define ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 19)
 /* optional arguments */
-#define ARGS_OPT(n)     (((n)&0x1f) << 14)
+#define ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 14)
 /* rest argument */
-#define ARGS_REST()     (1 << 13)
+#define ARGS_REST()     ((mrb_aspec)(1 << 13))
 /* required arguments after rest */
-#define ARGS_POST(n)    (((n)&0x1f) << 8)
+#define ARGS_POST(n)    ((mrb_aspec)((n)&0x1f) << 8)
 /* keyword arguments (n of keys, kdict) */
-#define ARGS_KEY(n1,n2) ((((n1)&0x1f) << 3) | ((n2)?(1<<2):0))
+#define ARGS_KEY(n1,n2) ((mrb_aspec)((((n1)&0x1f) << 3) | ((n2)?(1<<2):0)))
 /* block argument */
-#define ARGS_BLOCK()    (1 << 1)
+#define ARGS_BLOCK()    ((mrb_aspec)(1 << 1))
 
 /* accept any number of arguments */
 #define ARGS_ANY()      ARGS_REST()
 /* accept no arguments */
-#define ARGS_NONE()     0
+#define ARGS_NONE()     ((mrb_aspec)0)
 
 int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
@@ -215,10 +213,10 @@ mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
 mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
 mrb_sym mrb_intern(mrb_state*,const char*);
-mrb_sym mrb_intern2(mrb_state*,const char*,int);
+mrb_sym mrb_intern2(mrb_state*,const char*,size_t);
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
-const char *mrb_sym2name_len(mrb_state*,mrb_sym,int*);
+const char *mrb_sym2name_len(mrb_state*,mrb_sym,size_t*);
 mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
 
 void *mrb_malloc(mrb_state*, size_t);
@@ -227,12 +225,12 @@ void *mrb_realloc(mrb_state*, void*, size_t);
 struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
 void *mrb_free(mrb_state*, void*);
 
-mrb_value mrb_str_new(mrb_state *mrb, const char *p, int len); /* mrb_str_new */
+mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
-mrb_value mrb_str_new2(mrb_state *mrb, const char *p);
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
+void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_close(mrb_state*);
 int mrb_checkstack(mrb_state*,int);
 
@@ -257,11 +255,11 @@ int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
-  if (mrb_type(val) >= MRB_TT_OBJECT) mrb_gc_mark((mrb), mrb_object(val));\
+  if (mrb_type(val) >= MRB_TT_OBJECT) mrb_gc_mark((mrb), mrb_basic_ptr(val));\
 } while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
-  if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), mrb_object(val));\
+  if ((val.tt >= MRB_TT_OBJECT)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val));\
 } while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 

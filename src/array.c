@@ -10,14 +10,18 @@
 #include "mruby/string.h"
 #include "mruby/class.h"
 
-#define ARY_DEFAULT_LEN   4
-#define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
-#ifdef INT_MAX
-#  define ARY_MAX_SIZE (INT_MAX / sizeof(mrb_value))
+/* SIZE_MAX is not supported by VC++. */
+#ifndef SIZE_MAX
+# define SIZE_MAX ((size_t)-1)
 #endif
 
+#define ARY_DEFAULT_LEN   4
+#define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
+#define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
+#define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX)
+
 static inline mrb_value
-ary_elt(mrb_value ary, int offset)
+ary_elt(mrb_value ary, mrb_int offset)
 {
   if (RARRAY_LEN(ary) == 0) return mrb_nil_value();
   if (offset < 0 || RARRAY_LEN(ary) <= offset) {
@@ -27,16 +31,14 @@ ary_elt(mrb_value ary, int offset)
 }
 
 static struct RArray*
-ary_new_capa(mrb_state *mrb, int capa)
+ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
   struct RArray *a;
-  int blen;
+  mrb_int blen;
 
-#ifdef INT_MAX
   if (capa > ARY_MAX_SIZE) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
   }
-#endif
   blen = capa * sizeof(mrb_value) ;
   if (blen < capa) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "ary size too big");
@@ -51,7 +53,7 @@ ary_new_capa(mrb_state *mrb, int capa)
 }
 
 mrb_value
-mrb_ary_new_capa(mrb_state *mrb, int capa)
+mrb_ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
   struct RArray *a = ary_new_capa(mrb, capa);
   return mrb_obj_value(a);
@@ -87,21 +89,6 @@ array_copy(mrb_value *dst, const mrb_value *src, size_t size)
   }
 }
 
-
-mrb_value
-mrb_ary_new_from_values(mrb_state *mrb, int size, mrb_value *vals)
-{
-  mrb_value ary;
-  struct RArray *a;
-
-  ary = mrb_ary_new_capa(mrb, size);
-  a = mrb_ary_ptr(ary);
-  array_copy(a->ptr, vals, size);
-  a->len = size;
-
-  return ary;
-}
-
 mrb_value
 mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 {
@@ -112,7 +99,7 @@ mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 }
 
 static void
-ary_fill_with_nil(mrb_value *ptr, int size)
+ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 {
   mrb_value nil = mrb_nil_value();
 
@@ -134,13 +121,13 @@ ary_modify(mrb_state *mrb, struct RArray *a)
     }
     else {
       mrb_value *ptr, *p;
-      int len;
+      mrb_int len;
 
       p = a->ptr;
       len = a->len * sizeof(mrb_value);
       ptr = (mrb_value *)mrb_malloc(mrb, len);
       if (p) {
-	array_copy(ptr, p, a->len);
+        array_copy(ptr, p, a->len);
       }
       a->ptr = ptr;
       a->aux.capa = a->len;
@@ -170,15 +157,13 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
 }
 
 static void
-ary_expand_capa(mrb_state *mrb, struct RArray *a, int len)
+ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
 {
-  int capa = a->aux.capa;
+  mrb_int capa = a->aux.capa;
 
-#ifdef INT_MAX
   if (len > ARY_MAX_SIZE) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
-#endif
 
   while(capa < len) {
     if (capa == 0) {
@@ -189,20 +174,24 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, int len)
     }
   }
 
-#ifdef INT_MAX
   if (capa > ARY_MAX_SIZE) capa = ARY_MAX_SIZE; /* len <= capa <= ARY_MAX_SIZE */
-#endif
 
   if (capa > a->aux.capa) {
+    mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+
+    if(!expanded_ptr) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "out of memory");
+    }
+
     a->aux.capa = capa;
-    a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
+    a->ptr = expanded_ptr;
   }
 }
 
 static void
 ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 {
-  int capa = a->aux.capa;
+  mrb_int capa = a->aux.capa;
 
   if (capa < ARY_DEFAULT_LEN * 2) return;
   if (capa <= a->len * ARY_SHRINK_RATIO) return;
@@ -228,13 +217,13 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value self)
   int len;
 
   mrb_get_args(mrb, "*", &vals, &len);
-  return mrb_ary_new_from_values(mrb, (int)len, vals);
+  return mrb_ary_new_from_values(mrb, len, vals);
 }
 
 static void
-ary_concat(mrb_state *mrb, struct RArray *a, mrb_value *ptr, int blen)
+ary_concat(mrb_state *mrb, struct RArray *a, mrb_value *ptr, mrb_int blen)
 {
-  int len = a->len + blen;
+  mrb_int len = a->len + blen;
 
   ary_modify(mrb, a);
   if (a->aux.capa < len) ary_expand_capa(mrb, a, len);
@@ -255,7 +244,7 @@ mrb_value
 mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *ptr;
-  int blen;
+  mrb_int blen;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
   ary_concat(mrb, mrb_ary_ptr(self), ptr, blen);
@@ -269,7 +258,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   struct RArray *a2;
   mrb_value ary;
   mrb_value *ptr;
-  int blen;
+  mrb_int blen;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
   ary = mrb_ary_new_capa(mrb, a1->len + blen);
@@ -305,7 +294,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   mrb_value ary2;
   struct RArray *a1, *a2;
   mrb_value r = mrb_nil_value();
-  int i, len;
+  mrb_int i, len;
 
   mrb_get_args(mrb, "o", &ary2);
   if (!mrb_array_p(ary2)) return mrb_nil_value();
@@ -329,7 +318,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 }
 
 static void
-ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, int len)
+ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, mrb_int len)
 {
   ary_modify(mrb, a);
   if (a->aux.capa < len)
@@ -429,23 +418,17 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_ary_new4(mrb_state *mrb, int n, const mrb_value *elts)
+mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
   mrb_value ary;
+  struct RArray *a;
 
-  ary = mrb_ary_new_capa(mrb, n);
-  if (n > 0 && elts) {
-    array_copy(RARRAY_PTR(ary), elts, n);
-    RARRAY_LEN(ary) = n;
-  }
+  ary = mrb_ary_new_capa(mrb, size);
+  a = mrb_ary_ptr(ary);
+  array_copy(a->ptr, vals, size);
+  a->len = size;
 
   return ary;
-}
-
-mrb_value
-mrb_ary_new_elts(mrb_state *mrb, int n, const mrb_value *elts)
-{
-  return mrb_ary_new4(mrb, n, elts);
 }
 
 void
@@ -505,7 +488,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_value *ptr = a->ptr;
-    int size = a->len;
+    mrb_int size = a->len;
 
     val = *ptr;
     while((int)(--size)) {
@@ -612,9 +595,9 @@ mrb_value
 mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_value rpl)
 {
   struct RArray *a = mrb_ary_ptr(ary);
-  int tail, size;
+  mrb_int tail, size;
   mrb_value *argv;
-  int i, argc;
+  mrb_int i, argc;
 
   ary_modify(mrb, a);
   /* range check */
@@ -660,7 +643,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   return ary;
 }
 
-int
+mrb_int
 mrb_ary_len(mrb_state *mrb, mrb_value ary)
 {
   return RARRAY_LEN(ary);
@@ -677,7 +660,7 @@ mrb_ary_decref(mrb_state *mrb, mrb_shared_array *shared)
 }
 
 static mrb_value
-ary_subseq(mrb_state *mrb, struct RArray *a, int beg, int len)
+ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
 {
   struct RArray *b;
 
@@ -714,11 +697,12 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     len = mrb_fixnum(argv[0]);
     if (len < 0) return mrb_nil_value();
     if (a->len == (int)index) return mrb_ary_new(mrb);
-    if ((int)len > a->len - index) len = a->len - index;
+    if (len > a->len - index) len = a->len - index;
     return ary_subseq(mrb, a, index, len);
 
   default:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    break;
   }
 
   return mrb_nil_value(); /* dummy to avoid warning : not reach here */
@@ -757,7 +741,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   mrb_int   index;
   mrb_value val;
   mrb_value *ptr;
-  int len;
+  mrb_int len;
 
   mrb_get_args(mrb, "i", &index);
   if (index < 0) index += a->len;
@@ -803,7 +787,7 @@ mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  int size;
+  mrb_int size;
   mrb_value *vals;
   int len;
 
@@ -830,7 +814,7 @@ mrb_value
 mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj;
-  int i;
+  mrb_int i;
 
   mrb_get_args(mrb, "o", &obj);
   for (i = 0; i < RARRAY_LEN(self); i++) {
@@ -845,7 +829,7 @@ mrb_value
 mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj;
-  int i;
+  mrb_int i;
 
   mrb_get_args(mrb, "o", &obj);
   for (i = RARRAY_LEN(self) - 1; i >= 0; i--) {
@@ -904,7 +888,7 @@ mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 }
 
 mrb_value
-mrb_ary_entry(mrb_value ary, int offset)
+mrb_ary_entry(mrb_value ary, mrb_int offset)
 {
   if (offset < 0) {
     offset += RARRAY_LEN(ary);
@@ -915,7 +899,7 @@ mrb_ary_entry(mrb_value ary, int offset)
 static mrb_value
 inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
 {
-  int i;
+  mrb_int i;
   mrb_value s, arystr;
   char head[] = { '[' };
   char sep[] = { ',', ' ' };
@@ -977,7 +961,7 @@ mrb_ary_inspect(mrb_state *mrb, mrb_value ary)
 static mrb_value
 join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 {
-  int i;
+  mrb_int i;
   mrb_value result, val, tmp;
 
   /* check recursive */
@@ -1092,7 +1076,7 @@ mrb_ary_equal(mrb_state *mrb, mrb_value ary1)
   }
   if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
   else {
-    int i;
+    mrb_int i;
 
     for (i=0; i<RARRAY_LEN(ary1); i++) {
       if (!mrb_equal(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
@@ -1121,11 +1105,11 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   if (!mrb_array_p(ary2)) return mrb_false_value();
   if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
   else {
-    int i;
+    mrb_int i;
 
     for (i=0; i<RARRAY_LEN(ary1); i++) {
       if (!mrb_eql(mrb, ary_elt(ary1, i), ary_elt(ary2, i)))
-	return mrb_false_value();
+        return mrb_false_value();
     }
     return mrb_true_value();
   }

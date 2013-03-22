@@ -148,7 +148,6 @@ mrb_float_value(mrb_float f)
 
 #define mrb_fixnum(o) (o).value.i
 #define mrb_symbol(o) (o).value.sym
-#define mrb_object(o) ((struct RBasic *) (o).value.p)
 #define mrb_voidp(o) (o).value.p
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
@@ -163,8 +162,8 @@ mrb_float_value(mrb_float f)
 
 #define MRB_OBJECT_HEADER \
   enum mrb_vtype tt:8;\
-  unsigned int color:3;\
-  unsigned int flags:21;\
+  uint32_t color:3;\
+  uint32_t flags:21;\
   struct RClass *c;\
   struct RBasic *gcnext
 
@@ -191,7 +190,9 @@ struct RBasic {
   MRB_OBJECT_HEADER;
 };
 
-#define mrb_basic(v)     ((struct RBasic*)((v).value.p))
+#define mrb_basic_ptr(v) ((struct RBasic*)((v).value.p))
+/* obsolete macro mrb_basic; will be removed soon */
+#define mrb_basic(v)     mrb_basic_ptr(v)
 
 struct RObject {
   MRB_OBJECT_HEADER;
@@ -199,6 +200,8 @@ struct RObject {
 };
 
 #define mrb_obj_ptr(v)   ((struct RObject*)((v).value.p))
+/* obsolete macro mrb_object; will be removed soon */
+#define mrb_object(o) mrb_obj_ptr(o)
 #define mrb_immediate_p(x) (mrb_type(x) <= MRB_TT_MAIN)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 

@@ -191,7 +191,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   mrb_sym name;
   mrb_value block, *argv;
   int argc;
-  
+
   mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
   return mrb_funcall_with_block(mrb,self, name, argc, argv, block);
 }
@@ -263,7 +263,7 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
 struct RClass*
 mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 {
-  struct RClass *klass = mrb_basic(obj)->c;
+  struct RClass *klass = mrb_basic_ptr(obj)->c;
 
   if (klass->tt != MRB_TT_SCLASS)
     return klass;
@@ -305,7 +305,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       case MRB_TT_SCLASS:
       case MRB_TT_HASH:
       case MRB_TT_DATA:
-	mrb_iv_copy(mrb, dest, obj);
+        mrb_iv_copy(mrb, dest, obj);
         break;
 
       default:
@@ -483,7 +483,7 @@ mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *a
  *  call-seq:
  *     obj.instance_eval {| | block }                       -> obj
  *
- *  Evaluates the given block,within  the context of the receiver (_obj_). 
+ *  Evaluates the given block,within  the context of the receiver (_obj_).
  *  In order to set the context, the variable +self+ is set to _obj_ while
  *  the code is executing, giving the code access to _obj_'s
  *  instance variables. In the version of <code>instance_eval</code>
@@ -518,6 +518,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   default:
     cv = mrb_singleton_class(mrb, self);
     c = mrb_class_ptr(cv);
+    break;
   }
   return mrb_yield_internal(mrb, b, 0, 0, self, c);
 }
@@ -555,7 +556,7 @@ static void
 check_iv_name(mrb_state *mrb, mrb_sym id)
 {
   const char *s;
-  int len;
+  size_t len;
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
@@ -913,7 +914,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
   int argc;
-  
+
 
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
   switch (argc) {
@@ -931,6 +932,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     exc = mrb_make_exception(mrb, argc, a);
     mrb_obj_iv_set(mrb, mrb_obj_ptr(exc), mrb_intern(mrb, "lastpc"), mrb_voidp_value(mrb->ci->pc));
     mrb_exc_raise(mrb, exc);
+    break;
   }
   return mrb_nil_value();            /* not reached */
 }
@@ -1107,11 +1109,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     ARGS_ANY());     /* 15.3.1.3.45 */
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    ARGS_NONE());    /* 15.3.1.3.46 */
-
-#ifdef ENABLE_SPRINTF
-  mrb_define_method(mrb, krn, "sprintf",                    mrb_f_sprintf,                   ARGS_ANY());     /* in sprintf.c */
-  mrb_define_method(mrb, krn, "format",                     mrb_f_sprintf,                   ARGS_ANY());     /* in sprintf.c */
-#endif
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
   mrb_alias_method(mrb, mrb->module_class, mrb_intern(mrb, "dup"), mrb_intern(mrb, "clone"));

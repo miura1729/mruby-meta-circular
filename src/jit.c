@@ -194,12 +194,14 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
     }
     if (r) {                  /* r */
-      regs[m1+o+1] = mrb_ary_new_elts(mrb, argc-m1-o-m2, argv+m1+o);
+      regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
     }
     if (m2) {
       memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
     }
-    regs[len+1] = *blk; /* move block */
+    if (argv0 == argv) {
+      regs[len+1] = *blk; /* move block */
+    }
     *(status->pc) += o + 1;
     if (o == 0) {
       return NULL;
@@ -213,6 +215,7 @@ void *
 mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   mrb_code i = **(status->pc);
+  void *rc = NULL;
 
   /* A      return R(A) */
   if (mrb->exc) {
@@ -269,30 +272,32 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	struct REnv *e = mrbjit_top_env(mrb, *status->proc);
 
 	if (e->cioff < 0) {
-	  mrbjit_localjump_error(mrb, "return");
+	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
 	}
 	ci = mrb->cibase + e->cioff;
 	if (ci == mrb->cibase) {
-	  mrbjit_localjump_error(mrb, "return");
+	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
 	}
+	rc = status->optable[GET_OPCODE(*ci->pc)];
 	mrb->ci = ci;
 	break;
       }
     case OP_R_NORMAL:
       if (ci == mrb->cibase) {
-	mrbjit_localjump_error(mrb, "return");
+	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	goto L_RAISE;
       }
       ci = mrb->ci;
       break;
     case OP_R_BREAK:
       if ((*status->proc)->env->cioff < 0) {
-	mrbjit_localjump_error(mrb, "break");
+	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
 	goto L_RAISE;
       }
       ci = mrb->ci = mrb->cibase + (*status->proc)->env->cioff + 1;
+      rc = status->optable[GET_OPCODE(*ci->pc)];
       break;
     default:
       /* cannot happen */
@@ -307,7 +312,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     if (acc < 0) {
       mrb->jmp = *status->prev_jmp;
-      return NULL;		/* return v */
+      return rc;		/* return v */
     }
     DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
     *status->proc = mrb->ci->proc;
@@ -320,5 +325,5 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
   //printf("return %x\n", *status->irep);
   //printf("rc %x %x %s\n", *status->pc, mrb->ci, mrb_sym2name(mrb, mrb->ci->mid));
-  return NULL;
+  return rc;
 }
