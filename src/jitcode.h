@@ -447,7 +447,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }while (0)
 
   const void *
-    emit_send(mrb_state *mrb, mrbjit_vmstatus *status)
+    emit_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_code *pc = *status->pc;
     mrb_value *regs = *status->regs;
@@ -521,6 +521,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
       mov(ecx, dword [eax]);
+
+      //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
+      mov(eax, dword [esi + OffsetOf(mrb_state, ci)]);
+      lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
+      mov(dword [eax], ((Xbyak::uint32)getCurr() + 6));
+      nop();
+      nop();
     }
 
     return code;

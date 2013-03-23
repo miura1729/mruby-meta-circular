@@ -105,7 +105,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   ci->target_class = c;
   ci->pc = pc + 1;
   ioff = ISEQ_OFFSET_OF(pc + 1);
-  ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
   ci->acc = a;
 
   /* prepare stack */

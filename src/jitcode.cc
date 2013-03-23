@@ -39,7 +39,7 @@ mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
 }
 
 static const void *
-mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status, 
+mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 		     MRBJitCode *code, mrbjit_code_info *coi)
 {
   mrb_value *regs = *status->regs;
@@ -96,7 +96,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   case OP_SENDB:
   case OP_SEND:
-    return code->emit_send(mrb, status);
+    return code->emit_send(mrb, status, coi);
 
   case OP_CALL:
     if (mrb->compile_info.call_compiled) {
