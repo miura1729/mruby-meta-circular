@@ -88,8 +88,15 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_code_info *newci;
     mrb_irep *irep = *status->irep;
     int n = ISEQ_OFFSET_OF(newpc);
-    if (irep->ilen < NO_INLINE_METHOD_LEN) {
-      newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, mrb->ci->pc);
+    if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+      if (irep->idx == 0xffff) {
+	newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
+					    curpc, mrb->ci[1].pc);
+      }
+      else {
+	newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
+					    curpc, mrb->ci->pc);
+      }
     }
     else {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
@@ -452,6 +459,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_code *pc = *status->pc;
     mrb_value *regs = *status->regs;
     mrb_sym *syms = *status->syms;
+    mrb_irep *irep = *status->irep;
     int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
@@ -485,15 +493,15 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     if (!MRB_PROC_CFUNC_P(m)) {
-      mrb_irep *irep = m->body.irep;
+      mrb_irep *mirep = m->body.irep;
       /* Callee sended with block is inline always */
       if (GET_OPCODE(i) == OP_SENDB) {
 	irep->jit_inlinep = 1;
       }
 
       /* Check call_proc */
-      if (irep->idx == -1) {
-	irep->jit_inlinep = 1;	/* CALL IREP always inline */
+      if (mirep->idx == 0xffff) {
+	mirep->jit_inlinep = 1;	/* CALL IREP always inline */
 	m = mrb_proc_ptr(recv);
 	m->body.irep->jit_inlinep = 1;
 	c = m->target_class;
@@ -503,7 +511,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
 
 	mrb->compile_info.call_compiled = 1;
-	printf("Call! %x\n", m->body.irep);
+	printf("Call! %d\n", m->body.irep->idx);
       }
     }
 
@@ -517,6 +525,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
     }
     else {
+      int ioff;
+      int toff;
+      void *(**entval)();
+
       CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
 
       mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
@@ -525,9 +537,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
       mov(eax, dword [esi + OffsetOf(mrb_state, ci)]);
       lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
-      mov(dword [eax], ((Xbyak::uint32)getCurr() + 6));
-      nop();
-      nop();
+      ioff = ISEQ_OFFSET_OF(pc);
+      toff = coi - (irep->jit_entry_tab + ioff)->body;
+      /* This is unused entry, but right.Because no other pathes */
+      /* TODO: CHECK toff and entry size */
+      entval = &((irep->jit_entry_tab + ioff + 1)->body[toff].entry);
+      mov(edx, (Xbyak::uint32)entval);
+      mov(edx, dword [edx]);
+
+      printf("%d ", toff);
+      mov(dword [eax], edx);
     }
 
     return code;

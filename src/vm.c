@@ -660,7 +660,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   prev_pc = mrb->compile_info.prev_pc;
   if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
-    if (irep->idx == -1) {
+    if (irep->idx == 0xffff) {
       caller_pc = mrb->ci[1].pc;
     }
     else {
@@ -720,8 +720,13 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       regs = *status->regs;
       //disasm_irep(mrb, irep, **ppc);
       n = ISEQ_OFFSET_OF(*ppc);
-      if (irep->ilen < NO_INLINE_METHOD_LEN) {
-	caller_pc = mrb->ci->pc;
+      if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+	if (irep->idx == 0xffff) {
+	  caller_pc = mrb->ci[1].pc;
+	}
+	else {
+	  caller_pc = mrb->ci->pc;
+	}
       }
       else {
 	caller_pc = NULL;
