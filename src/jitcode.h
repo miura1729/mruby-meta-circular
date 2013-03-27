@@ -518,17 +518,27 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     CALL_CFUNC_BEGIN;
     mov(eax, (Xbyak::uint32)c);
     push(eax);
-    mov(eax, (Xbyak::uint32)m);
-    push(eax);
 
     if (MRB_PROC_CFUNC_P(m)) {
+      mov(eax, (Xbyak::uint32)m);
+      push(eax);
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
     }
     else {
       int ioff;
       int toff;
       void *(**entval)();
+      mrb_irep *mirep = m->body.irep;
 
+      if (mirep->idx == 0xffff) {
+	mov(eax, dword [ecx +  + a * sizeof(mrb_value)]);
+	add(eax, OffsetOf(mrb_value, value.p));
+	push(eax);
+      }
+      else {
+	mov(eax, (Xbyak::uint32)m);
+	push(eax);
+      }
       CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
 
       mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
