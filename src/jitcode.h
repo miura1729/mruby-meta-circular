@@ -55,13 +55,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void* exit_ptr = getCurr();
 
+    inLocalLabel();
+    L(".exitlab");
     mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [edx], (Xbyak::uint32)pc);
     if (is_clr_rc) {
       xor(eax, eax);
     }
-    mov(edx, (Xbyak::uint32)exit_ptr);
+    //mov(edx, (Xbyak::uint32)exit_ptr);
+    mov(edx, ".exitlab");
     ret();
+    outLocalLabel();
   }
   
   void 
