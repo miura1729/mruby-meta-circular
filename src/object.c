@@ -114,7 +114,8 @@ true_and(mrb_state *mrb, mrb_value obj)
   int obj2;
 
   mrb_get_args(mrb, "b", &obj2);
-  return obj2 ? mrb_true_value() : mrb_false_value();
+
+  return mrb_bool_value(obj2);
 }
 
 /* 15.2.5.3.2  */
@@ -133,7 +134,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
   int obj2;
 
   mrb_get_args(mrb, "b", &obj2);
-  return obj2 ? mrb_false_value() : mrb_true_value();
+  return mrb_bool_value(!obj2);
 }
 
 /* 15.2.5.3.3  */
@@ -226,7 +227,7 @@ false_xor(mrb_state *mrb, mrb_value obj)
   int obj2;
 
   mrb_get_args(mrb, "b", &obj2);
-  return obj2 ? mrb_true_value() : mrb_false_value();
+  return mrb_bool_value(obj2);
 }
 
 /* 15.2.4.3.3  */
@@ -246,7 +247,7 @@ false_or(mrb_state *mrb, mrb_value obj)
   int obj2;
 
   mrb_get_args(mrb, "b", &obj2);
-  return obj2 ? mrb_true_value() : mrb_false_value();
+  return mrb_bool_value(obj2);
 }
 
 /* 15.2.6.3.3  */
@@ -341,7 +342,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, mrb_int type, const char *tname,
   v = convert_type(mrb, val, tname, method, 1/*Qtrue*/);
   if (mrb_type(v) != type) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%s cannot be converted to %s by #%s",
-	      mrb_obj_classname(mrb, val), tname, method);
+      mrb_obj_classname(mrb, val), tname, method);
   }
   return v;
 }
@@ -416,7 +417,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
           etype = mrb_obj_classname(mrb, x);
         }
         mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
-		  etype, type->name);
+          etype, type->name);
       }
       type++;
     }
@@ -438,8 +439,15 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 mrb_value
 mrb_any_to_s(mrb_state *mrb, mrb_value obj)
 {
+  mrb_value str = mrb_str_buf_new(mrb, 20);
   const char *cname = mrb_obj_classname(mrb, obj);
-  return mrb_sprintf(mrb, "#<%s:%p>", cname, mrb_voidp(obj));
+
+  mrb_str_buf_cat(mrb, str, "#<", 2);
+  mrb_str_cat2(mrb, str, cname);
+  mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_voidp(obj)));
+  mrb_str_buf_cat(mrb, str, ">", 1);
+
+  return str;
 }
 
 /*

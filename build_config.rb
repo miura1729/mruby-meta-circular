@@ -16,6 +16,12 @@ MRuby::Build.new do |conf|
   # conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
+  # Use standard Kernel#sprintf method
+  conf.gem "#{root}/mrbgems/mruby-sprintf"
+
+  # Use standard print/puts/p
+  conf.gem "#{root}/mrbgems/mruby-print"
+
   # Use standard Math module
   conf.gem "#{root}/mrbgems/mruby-math"
 
@@ -25,8 +31,8 @@ MRuby::Build.new do |conf|
   # Use standard Struct class
   conf.gem "#{root}/mrbgems/mruby-struct"
 
-  # Use standard Kernel#sprintf method
-  conf.gem "#{root}/mrbgems/mruby-sprintf"
+  # Use extensional Enumerable module
+  conf.gem "#{root}/mrbgems/mruby-enum-ext"
 
   # Use extensional String class
   conf.gem "#{root}/mrbgems/mruby-string-ext"
@@ -37,9 +43,19 @@ MRuby::Build.new do |conf|
   # Use extensional Array class
   conf.gem "#{root}/mrbgems/mruby-array-ext"
 
+  # Use extensional Hash class
+  conf.gem "#{root}/mrbgems/mruby-hash-ext"
+
+  # Use Random class
+  conf.gem "#{root}/mrbgems/mruby-random"
+  
+  # No use eval method
+  # conf.gem "#{root}/mrbgems/mruby-eval"
+
+
   # Generate binaries
   # conf.bins = %w(mrbc mruby mirb)
-  
+
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'

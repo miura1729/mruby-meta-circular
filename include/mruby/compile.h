@@ -65,16 +65,20 @@ struct mrb_parser_message {
 #define STR_FUNC_SYMBOL  0x10
 #define STR_FUNC_ARRAY   0x20
 #define STR_FUNC_HEREDOC 0x40
+#define STR_FUNC_XQUOTE  0x80
 
 enum mrb_string_type {
   str_not_parsing  = (0),
-  str_squote  = (STR_FUNC_PARSING),
-  str_dquote  = (STR_FUNC_PARSING|STR_FUNC_EXPAND),
-  str_regexp  = (STR_FUNC_PARSING|STR_FUNC_REGEXP|STR_FUNC_EXPAND),
-  str_sword   = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY),
-  str_dword   = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
-  str_ssym    = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
-  str_heredoc = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
+  str_squote   = (STR_FUNC_PARSING),
+  str_dquote   = (STR_FUNC_PARSING|STR_FUNC_EXPAND),
+  str_regexp   = (STR_FUNC_PARSING|STR_FUNC_REGEXP|STR_FUNC_EXPAND),
+  str_sword    = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY),
+  str_dword    = (STR_FUNC_PARSING|STR_FUNC_WORD|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
+  str_ssym     = (STR_FUNC_PARSING|STR_FUNC_SYMBOL),
+  str_ssymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY),
+  str_dsymbols = (STR_FUNC_PARSING|STR_FUNC_SYMBOL|STR_FUNC_ARRAY|STR_FUNC_EXPAND),
+  str_heredoc  = (STR_FUNC_PARSING|STR_FUNC_HEREDOC),
+  str_xquote   = (STR_FUNC_PARSING|STR_FUNC_XQUOTE|STR_FUNC_EXPAND),
 };
 
 /* heredoc structure */
@@ -87,13 +91,19 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
+#ifndef MRB_PARSER_BUF_SIZE
+# define MRB_PARSER_BUF_SIZE 1024
+#endif
+
 /* parser structure */
 struct mrb_parser_state {
   mrb_state *mrb;
   struct mrb_pool *pool;
   mrb_ast_node *cells;
   const char *s, *send;
+#ifdef ENABLE_STDIO
   FILE *f;
+#endif
   char *filename;
   int lineno;
   int column;
@@ -109,7 +119,7 @@ struct mrb_parser_state {
   mrb_ast_node *locals;
 
   mrb_ast_node *pb;
-  char buf[1024];
+  char buf[MRB_PARSER_BUF_SIZE];
   int bidx;
 
   mrb_ast_node *heredocs;	/* list of mrb_parser_heredoc_info* */
@@ -119,8 +129,8 @@ struct mrb_parser_state {
 
   void *ylval;
 
-  int nerr;
-  int nwarn;
+  size_t nerr;
+  size_t nwarn;
   mrb_ast_node *tree;
 
   int capture_errors;
@@ -135,16 +145,22 @@ void mrb_parser_free(struct mrb_parser_state*);
 void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
 
 /* utility functions */
+#ifdef ENABLE_STDIO
 struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
+#endif
 struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
 struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,int,mrbc_context*);
 int mrb_generate_code(mrb_state*, struct mrb_parser_state*);
 
 /* program load functions */
+#ifdef ENABLE_STDIO
 mrb_value mrb_load_file(mrb_state*,FILE*);
+#endif
 mrb_value mrb_load_string(mrb_state *mrb, const char *s);
 mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, int len);
+#ifdef ENABLE_STDIO
 mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
+#endif
 mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *cxt);
 mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, int len, mrbc_context *cxt);
 

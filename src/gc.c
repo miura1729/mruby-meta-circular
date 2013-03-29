@@ -543,7 +543,9 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 static void
 root_scan_phase(mrb_state *mrb)
 {
-  int i, j, e;
+  int j;
+  size_t i;
+  size_t e;
   mrb_callinfo *ci;
 
   if (!is_minor_gc(mrb)) {
@@ -558,6 +560,8 @@ root_scan_phase(mrb_state *mrb)
   }
   /* mark class hierarchy */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->object_class);
+  /* mark top_self */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
   /* mark stack */
@@ -983,8 +987,8 @@ gc_enable(mrb_state *mrb, mrb_value obj)
   int old = mrb->gc_disabled;
 
   mrb->gc_disabled = FALSE;
-  if (old) return mrb_true_value();
-  return mrb_false_value();
+
+  return mrb_bool_value(old);
 }
 
 /*
@@ -1005,8 +1009,8 @@ gc_disable(mrb_state *mrb, mrb_value obj)
   int old = mrb->gc_disabled;
 
   mrb->gc_disabled = TRUE;
-  if (old) return mrb_true_value();
-  return mrb_false_value();
+
+  return mrb_bool_value(old);
 }
 
 /*
@@ -1102,10 +1106,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_int enable)
 static mrb_value
 gc_generational_mode_get(mrb_state *mrb, mrb_value self)
 {
-  if (mrb->is_generational_gc_mode)
-    return mrb_true_value();
-  else
-    return mrb_false_value();
+  return mrb_bool_value(mrb->is_generational_gc_mode);
 }
 
 /*
@@ -1125,10 +1126,7 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
   if (mrb->is_generational_gc_mode != enable)
     change_gen_gc_mode(mrb, enable);
 
-  if (enable)
-    return mrb_true_value();
-  else
-    return mrb_false_value();
+  return mrb_bool_value(enable);
 }
 
 #ifdef GC_TEST

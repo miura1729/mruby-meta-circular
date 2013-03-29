@@ -380,15 +380,17 @@ static mrb_value
 num_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &y);
-  if (mrb_type(x) != mrb_type(y)) return mrb_false_value();
-  if (mrb_equal(mrb, x, y)) {
-      return mrb_true_value();
+  if (mrb_type(x) != mrb_type(y)) {
+    eql_p = 0;
   }
   else {
-      return mrb_false_value();
+    eql_p = mrb_equal(mrb, x, y);
   }
+
+  return mrb_bool_value(eql_p);
 }
 
 static mrb_value
@@ -430,7 +432,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return num_equal(mrb, x, y);
   }
   a = mrb_float(x);
-  return (a == b)?mrb_true_value():mrb_false_value();
+  return mrb_bool_value(a == b);
 }
 
 /* 15.2.8.3.18 */
@@ -445,7 +447,8 @@ flo_hash(mrb_state *mrb, mrb_value num)
 {
   mrb_float d;
   char *c;
-  int i, hash;
+  size_t i;
+  int hash;
 
   d = (mrb_float)mrb_fixnum(num);
   /* normalize -0.0 to 0.0 */
@@ -511,10 +514,11 @@ static mrb_value
 flo_finite_p(mrb_state *mrb, mrb_value num)
 {
   mrb_float value = mrb_float(num);
+  mrb_bool finite_p;
 
-  if (isinf(value) || isnan(value))
-    return mrb_false_value();
-  return mrb_true_value();
+  finite_p = !(isinf(value) || isnan(value));
+
+  return mrb_bool_value(finite_p);
 }
 
 /* 15.2.9.3.10 */
@@ -891,7 +895,7 @@ fix_divmod(mrb_state *mrb, mrb_value x)
 
     if (mrb_fixnum(y) == 0) {
       return mrb_assoc_new(mrb, mrb_float_value(str_to_mrb_float("inf")),
-			        mrb_float_value(str_to_mrb_float("nan")));
+        mrb_float_value(str_to_mrb_float("nan")));
     }
     fixdivmod(mrb, mrb_fixnum(x), mrb_fixnum(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));
@@ -923,19 +927,15 @@ static mrb_value
 fix_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
+  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &y);
 
-  if (mrb_obj_equal(mrb, x, y)) return mrb_true_value();
-  switch (mrb_type(y)) {
-  case MRB_TT_FLOAT:
-    if ((mrb_float)mrb_fixnum(x) == mrb_float(y))
-      return mrb_true_value();
-    /* fall through */
-  case MRB_TT_FIXNUM:
-  default:
-    return mrb_false_value();
-  }
+  equal_p = mrb_obj_equal(mrb, x, y) ||
+      (mrb_type(y) == MRB_TT_FLOAT &&
+       (mrb_float)mrb_fixnum(x) == mrb_float(y));
+
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.2.8.3.8  */
@@ -1033,14 +1033,14 @@ fix_xor(mrb_state *mrb, mrb_value x)
   return mrb_fixnum_value(val);
 }
 
-#define NUMERIC_SHIFT_WIDTH_MAX		(sizeof(mrb_int)*CHAR_BIT-1)
+#define NUMERIC_SHIFT_WIDTH_MAX (sizeof(mrb_int)*CHAR_BIT-1)
 
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, int width)
 {
   if (width > NUMERIC_SHIFT_WIDTH_MAX) {
       mrb_raisef(mrb, E_RANGE_ERROR, "width(%d) > (%d:sizeof(mrb_int)*CHAR_BIT-1)", width,
-		NUMERIC_SHIFT_WIDTH_MAX);
+        NUMERIC_SHIFT_WIDTH_MAX);
   }
   val = val << width;
   return mrb_fixnum_value(val);

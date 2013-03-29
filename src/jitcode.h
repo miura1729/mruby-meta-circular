@@ -177,7 +177,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
-    case MRB_TT_MAIN:
       /* DO NOTHING */
       break;
 

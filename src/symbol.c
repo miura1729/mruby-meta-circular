@@ -62,7 +62,7 @@ mrb_intern2(mrb_state *mrb, const char *name, size_t len)
 }
 
 mrb_sym
-mrb_intern(mrb_state *mrb, const char *name)
+mrb_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern2(mrb, name, strlen(name));
 }
@@ -91,7 +91,7 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, size_t *lenp)
     }
   }
   *lenp = 0;
-  return NULL;	/* missing */
+  return NULL;  /* missing */
 }
 
 void
@@ -158,10 +158,12 @@ static mrb_value
 sym_equal(mrb_state *mrb, mrb_value sym1)
 {
   mrb_value sym2;
+  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &sym2);
-  if (mrb_obj_equal(mrb, sym1, sym2)) return mrb_true_value();
-  return mrb_false_value();
+  equal_p = mrb_obj_equal(mrb, sym1, sym2);
+
+  return mrb_bool_value(equal_p);
 }
 
 /* 15.2.11.3.2  */

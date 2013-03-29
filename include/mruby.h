@@ -110,6 +110,7 @@ typedef struct mrb_state {
   size_t irep_len, irep_capa;
 
   mrb_sym init_sym;
+  struct RObject *top_self;
   struct RClass *object_class;
   struct RClass *class_class;
   struct RClass *module_class;
@@ -211,12 +212,19 @@ int mrb_get_args(mrb_state *mrb, const char *format, ...);
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
 mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
 mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
-mrb_sym mrb_intern(mrb_state*,const char*);
+mrb_sym mrb_intern_cstr(mrb_state*,const char*);
 mrb_sym mrb_intern2(mrb_state*,const char*,size_t);
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
 const char *mrb_sym2name_len(mrb_state*,mrb_sym,size_t*);
 mrb_value mrb_str_format(mrb_state *, int, const mrb_value *, mrb_value);
+
+/* For backward compatibility. */
+static inline
+mrb_sym mrb_intern(mrb_state *mrb,const char *cstr)
+{
+  return mrb_intern_cstr(mrb, cstr);
+}
 
 void *mrb_malloc(mrb_state*, size_t);
 void *mrb_calloc(mrb_state*, size_t, size_t);
@@ -231,7 +239,6 @@ mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_close(mrb_state*);
-int mrb_checkstack(mrb_state*,int);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
