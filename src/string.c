@@ -4,19 +4,22 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-
+#include <ctype.h>
+#ifndef SIZE_MAX
+ /* Some versions of VC++
+  * has SIZE_MAX in stdint.h
+  */
+# include <limits.h>
+#endif
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include "mruby/string.h"
-#include "mruby/class.h"
-#include <ctype.h>
-#include <limits.h>
-#include "mruby/range.h"
+#include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
+#include "mruby/range.h"
+#include "mruby/string.h"
 #include "re.h"
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -613,21 +616,10 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   return str;
 }
 
-mrb_value
-mrb_string_value(mrb_state *mrb, mrb_value *ptr)
-{
-  mrb_value s = *ptr;
-  if (!mrb_string_p(s)) {
-    s = mrb_str_to_str(mrb, s);
-    *ptr = s;
-  }
-  return s;
-}
-
 char *
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
-    mrb_value str = mrb_string_value(mrb, &ptr);
+    mrb_value str = mrb_str_to_str(mrb, ptr);
     return RSTRING_PTR(str);
 }
 /* 15.2.10.5.5  */
@@ -839,7 +831,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
     return mrb_str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
   }
   if (argc != 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 1)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1)", mrb_fixnum_value(argc));
   }
   return mrb_str_aref(mrb, str, a1);
 }
@@ -1313,7 +1305,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
     include_p = memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self));
   }
   else {
-    mrb_string_value(mrb, &str2);
+    str2 = mrb_str_to_str(mrb, str2);
     i = mrb_str_index(mrb, self, str2, 0);
 
     include_p = (i != -1);
@@ -1392,8 +1384,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
-           mrb_obj_classname(mrb, sub));
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %S given", sub);
       }
       sub = tmp;
     }
@@ -1760,8 +1751,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %s given",
-                 mrb_obj_classname(mrb, sub));
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %S given", sub);
       }
       sub = tmp;
     }
@@ -2153,7 +2143,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       break;
     default:
       if (base < 2 || 36 < base) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
       }
       break;
   } /* end of switch (base) { */
@@ -2178,7 +2168,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 
   n = strtoul((char*)str, &end, base);
   if (n > MRB_INT_MAX) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%s) too big for integer", str);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer", mrb_str_new_cstr(mrb, str));
   }
   val = n;
   if (badcheck) {
@@ -2189,7 +2179,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 
   return mrb_fixnum_value(sign ? val : -val);
 bad:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%s)", str);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)", mrb_str_new_cstr(mrb, str));
   /* not reached */
   return mrb_fixnum_value(0);
 }
@@ -2212,7 +2202,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, int badcheck)
   char *s;
   int len;
 
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
     s = mrb_string_value_cstr(mrb, &str);
   }
@@ -2264,7 +2254,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
     base = mrb_fixnum(argv[0]);
 
   if (base < 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %d", base);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
   }
   return mrb_str_to_inum(mrb, self, base, 0/*Qfalse*/);
 }
@@ -2293,7 +2283,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, int badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%s)", p);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%S)", mrb_str_new_cstr(mrb, p));
       /* not reached */
     }
     return d;
@@ -2344,7 +2334,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, int badcheck)
   char *s;
   int len;
 
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   if (s) {
@@ -2577,7 +2567,7 @@ mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
-  mrb_string_value(mrb, &str2);
+  str2 = mrb_str_to_str(mrb, str2);
   return mrb_str_buf_append(mrb, str, str2);
 }
 

@@ -4,6 +4,10 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <string.h>
+#include <setjmp.h>
+#include <stddef.h>
+#include <stdarg.h>
 #include "mruby.h"
 #include "opcode.h"
 #include "mruby/jit.h"
@@ -11,18 +15,18 @@
 #include "mruby/variable.h"
 #include "mruby/proc.h"
 #include "mruby/array.h"
-#include "mruby/string.h"
-#include "mruby/hash.h"
-#include "mruby/range.h"
 #include "mruby/class.h"
+#include "mruby/hash.h"
+#include "mruby/irep.h"
 #include "mruby/numeric.h"
+#include "mruby/proc.h"
+#include "mruby/range.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
 #include "error.h"
+#include "opcode.h"
 #include "value_array.h"
 
-#include <string.h>
-#include <setjmp.h>
-#include <stddef.h>
-#include <stdarg.h>
 
 #define SET_TRUE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_FALSE_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
@@ -135,8 +139,8 @@ stack_extend(mrb_state *mrb, int room, int keep)
     envadjust(mrb, oldbase, mrb->stbase);
     /* Raise an exception if the new stack size will be too large,
     to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raisef has stack space to work with. */
-    if(size > MRB_STACK_MAX) {
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=%d)", MRB_STACK_MAX);
+    if (size > MRB_STACK_MAX) {
+      mrb_raisef(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=%S)", mrb_fixnum_value(MRB_STACK_MAX));
     }
   }
 
@@ -341,7 +345,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
     int i;
 
     if (argc > MRB_FUNCALL_ARGC_MAX) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%d)", MRB_FUNCALL_ARGC_MAX);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=%S)", mrb_fixnum_value(MRB_FUNCALL_ARGC_MAX));
     }
 
     va_start(ap, argc);
@@ -389,7 +393,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
     }
     n = mrb->ci->nregs;
     if (argc < 0) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%d)", argc);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%S)", mrb_fixnum_value(argc));
     }
     c = mrb_class(mrb, self);
     p = mrb_method_search_vm(mrb, &c, mid);
@@ -533,20 +537,19 @@ mrbjit_localjump_error(mrb_state *mrb, localjump_error_kind kind)
 static void
 argnum_error(mrb_state *mrb, int num)
 {
-  char buf[256];
-  size_t len;
   mrb_value exc;
+  mrb_value str;
 
   if (mrb->ci->mid) {
-    len = snprintf(buf, sizeof(buf), "'%s': wrong number of arguments (%d for %d)",
-                  mrb_sym2name(mrb, mrb->ci->mid),
-                  mrb->ci->argc, num);
+    str = mrb_format(mrb, "'%S': wrong number of arguments (%S for %S)",
+                  mrb_sym2str(mrb, mrb->ci->mid),
+                  mrb_fixnum_value(mrb->ci->argc), mrb_fixnum_value(num));
   }
   else {
-    len = snprintf(buf, sizeof(buf), "wrong number of arguments (%d for %d)",
-                  mrb->ci->argc, num);
+    str = mrb_format(mrb, "wrong number of arguments (%S for %S)",
+                  mrb_fixnum_value(mrb->ci->argc), mrb_fixnum_value(num));
   }
-  exc = mrb_exc_new(mrb, E_ARGUMENT_ERROR, buf, len);
+  exc = mrb_exc_new3(mrb, E_ARGUMENT_ERROR, str);
   mrb->exc = mrb_obj_ptr(exc);
 }
 

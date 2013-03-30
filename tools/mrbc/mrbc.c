@@ -1,10 +1,10 @@
-#include "mruby.h"
-#include "mruby/proc.h"
-#include "mruby/dump.h"
-#include "mruby/compile.h"
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include "mruby.h"
+#include "mruby/compile.h"
+#include "mruby/dump.h"
+#include "mruby/proc.h"
 
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"
@@ -21,6 +21,7 @@ struct _args {
   char *ext;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
+  mrb_bool debug_info   : 1;
 };
 
 static void
@@ -31,6 +32,7 @@ usage(const char *name)
   "-c           check syntax only",
   "-o<outfile>  place the output into <outfile>",
   "-v           print version number, then trun on verbose mode",
+  "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -107,6 +109,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         mrb_show_version(mrb);
         args->verbose = 1;
         break;
+      case 'g':
+        args->debug_info = 1;
+        break;
       case '-':
         if (strcmp((*argv) + 2, "version") == 0) {
           mrb_show_version(mrb);
@@ -182,7 +187,7 @@ main(int argc, char **argv)
   mrb_value result;
 
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting mrbc");
+    fputs("Invalid mrb_state, exiting mrbc\n", stderr);
     return EXIT_FAILURE;
   }
 
@@ -204,15 +209,15 @@ main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   if (args.check_syntax) {
-    printf("Syntax OK\n");
+    puts("Syntax OK");
     cleanup(mrb, &args);
     return EXIT_SUCCESS;
   }
   if (args.initname) {
-    n = mrb_dump_irep_cfunc(mrb, n, args.wfp, args.initname);
+    n = mrb_dump_irep_cfunc(mrb, n, args.debug_info, args.wfp, args.initname);
   }
   else {
-    n = mrb_dump_irep_binary(mrb, n, args.wfp);
+    n = mrb_dump_irep_binary(mrb, n, args.debug_info, args.wfp);
   }
 
   cleanup(mrb, &args);

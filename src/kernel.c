@@ -5,10 +5,10 @@
 */
 
 #include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/proc.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
+#include "mruby/proc.h"
+#include "mruby/string.h"
 #include "mruby/variable.h"
 #include "error.h"
 
@@ -345,7 +345,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_value clone;
 
   if (mrb_special_const_p(self)) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %s", mrb_obj_classname(mrb, self));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %S", self);
   }
   p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
   p->c = mrb_singleton_class_clone(mrb, self);
@@ -381,7 +381,7 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
     mrb_value dup;
 
     if (mrb_special_const_p(obj)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %s", mrb_obj_classname(mrb, obj));
+        mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
     }
     p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
     dup = mrb_obj_value(p);
@@ -556,7 +556,7 @@ check_iv_name(mrb_state *mrb, mrb_sym id)
 
   s = mrb_sym2name_len(mrb, id, &len);
   if (len < 2 || !(s[0] == '@' && s[1] != '@')) {
-    mrb_name_error(mrb, id, "`%s' is not allowed as an instance variable name", s);
+    mrb_name_error(mrb, id, "`%S' is not allowed as an instance variable name", mrb_sym2str(mrb, id));
   }
 }
 
@@ -964,7 +964,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   check_iv_name(mrb, sym);
   val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
-    mrb_name_error(mrb, sym, "instance variable %s not defined", mrb_sym2name(mrb, sym));
+    mrb_name_error(mrb, sym, "instance variable %S not defined", mrb_sym2str(mrb, sym));
   }
   return val;
 }

@@ -4,18 +4,19 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
 #include <errno.h>
+#include <setjmp.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <setjmp.h>
 #include <string.h>
-#include "error.h"
-#include "mruby/variable.h"
-#include "mruby/string.h"
+#include "mruby.h"
+#include "mruby/array.h"
 #include "mruby/class.h"
-#include "mruby/proc.h"
 #include "mruby/irep.h"
+#include "mruby/proc.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
+#include "error.h"
 
 mrb_value
 mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
@@ -26,7 +27,7 @@ mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len)
 mrb_value
 mrb_exc_new3(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
-  mrb_string_value(mrb, &str);
+  str = mrb_str_to_str(mrb, str);
   return mrb_funcall(mrb, mrb_obj_value(c), "new", 1, str);
 }
 
@@ -228,37 +229,83 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
   mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 
+mrb_value
+mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
+{
+  const char *p = format;
+  const char *b = p;
+  ptrdiff_t size;
+  mrb_value ary = mrb_ary_new_capa(mrb, 4);
+
+  while (*p) {
+    const char c = *p++;
+
+    if (c == '%') {
+      if (*p == 'S') {
+        size = p - b - 1;
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+        mrb_ary_push(mrb, ary, va_arg(ap, mrb_value));
+        b = p + 1;
+      }
+    }
+    else if (c == '\\') {
+      if (*p) {
+        size = p - b - 1;
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+        mrb_ary_push(mrb, ary, mrb_str_new(mrb, p, 1));
+        b = ++p;
+      }
+      else {
+        break;
+      }
+    }
+  }
+  if (b == format) {
+    return mrb_str_new_cstr(mrb, format);
+  }
+  else {
+    size = p - b;
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
+    return mrb_ary_join(mrb, ary, mrb_str_new(mrb,NULL,0));
+  }
+}
+
+mrb_value
+mrb_format(mrb_state *mrb, const char *format, ...)
+{
+  va_list ap;
+  mrb_value str;
+
+  va_start(ap, format);
+  str = mrb_vformat(mrb, format, ap);
+  va_end(ap);
+
+  return str;
+}
+
 void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
-  char buf[256];
-  int n;
+  mrb_value mesg;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
+  mesg = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  mrb_exc_raise(mrb, mrb_exc_new(mrb, c, buf, n));
+  mrb_exc_raise(mrb, mrb_exc_new3(mrb, c, mesg));
 }
 
 void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
-  mrb_value exc, argv[2];
+  mrb_value exc;
+  mrb_value argv[2];
   va_list args;
-  char buf[256];
-  int n;
 
   va_start(args, fmt);
-  n = vsnprintf(buf, sizeof(buf), fmt, args);
+  argv[0] = mrb_vformat(mrb, fmt, args);
   va_end(args);
-  if (n < 0) {
-    n = 0;
-  }
-  argv[0] = mrb_str_new(mrb, buf, n);
+
   argv[1] = mrb_symbol_value(id); /* ignore now */
   exc = mrb_class_new_instance(mrb, 1, argv, E_NAME_ERROR);
   mrb_exc_raise(mrb, exc);
@@ -344,7 +391,7 @@ exception_call:
 
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 0..3)", argc);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 0..3)", mrb_fixnum_value(argc));
       break;
   }
   if (argc > 0) {

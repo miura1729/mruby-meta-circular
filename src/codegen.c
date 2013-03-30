@@ -4,16 +4,16 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/irep.h"
-#include "mruby/compile.h"
-#include "mruby/numeric.h"
-#include "opcode.h"
-#include "node.h"
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+#include "mruby.h"
+#include "mruby/compile.h"
+#include "mruby/irep.h"
+#include "mruby/numeric.h"
+#include "mruby/string.h"
+#include "node.h"
+#include "opcode.h"
 #include "re.h"
 
 typedef mrb_ast_node node;
@@ -519,7 +519,7 @@ genop_send_peep(codegen_scope *s, mrb_code i, int val)
   int off;
 
   genop_peep(s, i, val);
-  off = new_lit2(s, mrb_fixnum_value(1));
+  off = new_lit2(s, mrb_cache_value(0));
   new_lit2(s, mrb_fixnum_value(1));
   genop(s, MKOP_Bx(OP_NOP, off));
 }
@@ -2438,7 +2438,7 @@ scope_finish(codegen_scope *s)
     irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
     if (s->lines) {
-      irep->lines = (short *)codegen_realloc(s, s->lines, sizeof(short)*s->pc);
+      irep->lines = (uint16_t *)codegen_realloc(s, s->lines, sizeof(uint16_t)*s->pc);
     }
     else {
       irep->lines = 0;
