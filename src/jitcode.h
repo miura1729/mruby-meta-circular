@@ -531,7 +531,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mrb_irep *mirep = m->body.irep;
 
       if (mirep->idx == 0xffff) {
-	mov(eax, dword [ecx +  + a * sizeof(mrb_value)]);
+	mov(eax, dword [ecx + a * sizeof(mrb_value)]);
 	add(eax, OffsetOf(mrb_value, value.p));
 	push(eax);
       }
