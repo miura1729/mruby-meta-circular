@@ -550,7 +550,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(edx, (Xbyak::uint32)entval);
       mov(edx, dword [edx]);
 
-      printf("%d ", toff);
+      //printf("%d ", toff);
       mov(dword [eax], edx);
     }
 

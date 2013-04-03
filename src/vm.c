@@ -1177,7 +1177,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	m = pool[mthoff].value.p;
       }
 
-      if (GET_OPCODE(i) == OP_SENDB) {
+      if (GET_OPCODE(i) == OP_SENDB && !MRB_PROC_CFUNC_P(m)) {
 	m->body.irep->jit_inlinep = 1;
       }
 	
