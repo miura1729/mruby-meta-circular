@@ -44,7 +44,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 
   recv = regs[a];
 
-  //printf("C %d %x %x %x\n", m->body.func, regs, n);
+  // printf("C %d %x %x %x\n", m->body.func, regs, n);
   //puts(mrb_sym2name(mrb, mid));
 
   ci = mrbjit_cipush(mrb);
@@ -217,6 +217,10 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_code i = **(status->pc);
   void *rc = NULL;
 
+  //printf("return %x\n", *status->irep);
+  //printf("rc %x %x %s\n", *status->pc, mrb->ci, mrb_sym2name(mrb, mrb->ci->mid));
+  //  printf("%x\n", mrb->ci->jit_entry);
+
   /* A      return R(A) */
   if (mrb->exc) {
     mrb_callinfo *ci;
@@ -323,7 +327,5 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     (*status->regs)[acc] = v;
   }
 
-  //printf("return %x\n", *status->irep);
-  //printf("rc %x %x %s\n", *status->pc, mrb->ci, mrb_sym2name(mrb, mrb->ci->mid));
   return rc;
 }

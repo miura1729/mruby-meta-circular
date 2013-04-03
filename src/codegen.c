@@ -681,6 +681,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   if (blk) {
     loop_pop(s, NOVAL);
   }
+  s->irep->jit_inlinep = 1;
   scope_finish(s);
 
   return idx - base;
@@ -2446,9 +2447,9 @@ scope_finish(codegen_scope *s)
   }
   irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*s->pc);
   for (i = 0; i < s->pc; i++) {
-    irep->jit_entry_tab[i].size = 2;
+    irep->jit_entry_tab[i].size = 8;
     irep->jit_entry_tab[i].body = 
-      (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*2);
+      (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*8);
   }
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*s->pc);
   irep->jit_inlinep = 0;

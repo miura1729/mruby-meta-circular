@@ -637,13 +637,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->compile_info.prev_pc;
-  if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
-    if (irep->idx == 0xffff) {
-      caller_pc = mrb->ci[1].pc;
-    }
-    else {
-      caller_pc = mrb->ci->pc;
-    }
+  if (irep->idx == 0xffff) {
+    caller_pc = mrb->ci[1].pc;
+    //printf("%x foo\n", caller_pc);
+  }
+  else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+    caller_pc = mrb->ci->pc;
   }
   else {
     caller_pc = NULL;
@@ -698,13 +697,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       regs = *status->regs;
       //disasm_irep(mrb, irep, **ppc);
       n = ISEQ_OFFSET_OF(*ppc);
-      if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
-	if (irep->idx == 0xffff) {
-	  caller_pc = mrb->ci[1].pc;
-	}
-	else {
-	  caller_pc = mrb->ci->pc;
-	}
+      if (irep->idx == 0xffff) {
+	caller_pc = mrb->ci[1].pc;
+	//printf("%x foo\n", caller_pc);
+      }
+      else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+	caller_pc = mrb->ci->pc;
       }
       else {
 	caller_pc = NULL;
@@ -1179,6 +1177,10 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	m = pool[mthoff].value.p;
       }
 
+      if (GET_OPCODE(i) == OP_SENDB) {
+	m->body.irep->jit_inlinep = 1;
+      }
+	
       /* push callinfo */
       ci = cipush(mrb);
       ci->mid = mid;

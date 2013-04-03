@@ -92,15 +92,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_code_info *newci;
     mrb_irep *irep = *status->irep;
     int n = ISEQ_OFFSET_OF(newpc);
-    if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
-      if (irep->idx == 0xffff) {
+    if (irep->idx == 0xffff) {
 	newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
 					    curpc, mrb->ci[1].pc);
-      }
-      else {
-	newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
-					    curpc, mrb->ci->pc);
-      }
+    }
+    else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+      newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
+					  curpc, mrb->ci->pc);
     }
     else {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
@@ -471,6 +469,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     mrb_value recv;
     mrb_sym mid = syms[GETARG_B(i)];
+    mrb_irep *mirep = NULL;
 
     if (GETARG_C(i) == CALL_MAXARGS) {
       return NULL;
@@ -495,34 +494,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff + 4], eax);
     }
 
-    if (!MRB_PROC_CFUNC_P(m)) {
-      mrb_irep *mirep = m->body.irep;
-      /* Callee sended with block is inline always */
-      if (GET_OPCODE(i) == OP_SENDB) {
-	irep->jit_inlinep = 1;
-      }
-
-      /* Check call_proc */
-      if (mirep->idx == 0xffff) {
-	mirep->jit_inlinep = 1;	/* CALL IREP always inline */
-	m = mrb_proc_ptr(recv);
-	m->body.irep->jit_inlinep = 1;
-	c = m->target_class;
-
-	mov(eax, (Xbyak::uint32)m->env->stack);
-	movsd(xmm0, ptr [eax]);
-	movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
-
-	mrb->compile_info.call_compiled = 1;
-	printf("Call! %d\n", m->body.irep->idx);
-      }
-    }
-
     CALL_CFUNC_BEGIN;
-    mov(eax, (Xbyak::uint32)c);
-    push(eax);
 
     if (MRB_PROC_CFUNC_P(m)) {
+      mov(eax, (Xbyak::uint32)c);
+      push(eax);
       mov(eax, (Xbyak::uint32)m);
       push(eax);
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
@@ -531,14 +507,30 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       int ioff;
       int toff;
       void *(**entval)();
-      mrb_irep *mirep = m->body.irep;
 
+      mirep = m->body.irep;
       if (mirep->idx == 0xffff) {
-	mov(eax, dword [ecx + a * sizeof(mrb_value)]);
-	add(eax, OffsetOf(mrb_value, value.p));
+	m = mrb_proc_ptr(recv);
+	c = m->target_class;
+
+	mov(eax, (Xbyak::uint32)c);
 	push(eax);
+	mov(eax, dword [ecx 
+			+ a * sizeof(mrb_value) 
+			+ OffsetOf(mrb_value, value.p)]);
+	push(eax);
+
+	/* Replace self Proc object -> block self */
+        mov(eax, (Xbyak::uint32)m->env->stack);
+        movsd(xmm0, ptr [eax]);
+        movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+
+	mrb->compile_info.call_compiled = 1;
+	//	printf("Call! %d\n", m->body.irep->idx);
       }
       else {
+	mov(eax, (Xbyak::uint32)c);
+	push(eax);
 	mov(eax, (Xbyak::uint32)m);
 	push(eax);
       }
