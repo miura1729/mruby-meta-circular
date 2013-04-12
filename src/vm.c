@@ -617,6 +617,8 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
   goto retry;
 }
 
+void *(*prev_entry)() = NULL;
+
 extern void disasm_irep(mrb_state *, mrb_irep *, mrb_code);
 static inline void *
 mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
@@ -630,7 +632,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_code *prev_pc;
   mrb_code *caller_pc;
   void *(*entry)() = NULL;
-  void *(*prev_entry)() = NULL;
 
   if (mrb->compile_info.disable_jit) {
     return status->optable[GET_OPCODE(**ppc)];

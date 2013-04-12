@@ -219,7 +219,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
   //printf("return %x\n", *status->irep);
   //printf("rc %x %x %s\n", *status->pc, mrb->ci, mrb_sym2name(mrb, mrb->ci->mid));
-  //  printf("%x\n", mrb->ci->jit_entry);
+  //printf("%x\n", mrb->ci->jit_entry);
 
   /* A      return R(A) */
   if (mrb->exc) {

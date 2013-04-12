@@ -2424,6 +2424,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
     p->lines = (short*)mrb_malloc(mrb, sizeof(short)*p->icapa);
   }
   p->lineno = prev->lineno;
+  p->irep->jit_inlinep = 0;
   return p;
 }
 
@@ -2452,7 +2453,7 @@ scope_finish(codegen_scope *s)
       (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*8);
   }
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*s->pc);
-  irep->jit_inlinep = 0;
+  //irep->jit_inlinep = s->irep->jit_inlinep;
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {
