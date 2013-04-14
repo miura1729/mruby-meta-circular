@@ -522,11 +522,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 	/* Replace self Proc object -> block self */
 	/* m is stored in EAX */
-	/* m->env->stack[0] */
-	mov(eax, (Xbyak::uint32)m->env->stack);
+	//mov(eax, (Xbyak::uint32)m->env->stack);
 
-	//        mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
-	//        mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
+	mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
+	mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
         movsd(xmm0, ptr [eax]);
         movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
 

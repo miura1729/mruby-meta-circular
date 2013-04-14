@@ -45,7 +45,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   recv = regs[a];
 
   // printf("C %d %x %x %x\n", m->body.func, regs, n);
-  //puts(mrb_sym2name(mrb, mid));
+  // puts(mrb_sym2name(mrb, mid));
 
   ci = mrbjit_cipush(mrb);
   ci->stackidx = mrb->stack - mrb->stbase;
@@ -121,8 +121,8 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   *status->pc = irep->iseq;
   //mrb_p(mrb, recv);
 
-  //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep, *status->pc,regs[a].ttt, regs, __builtin_return_address(0));
-  //puts(mrb_sym2name(mrb, mid));
+  // printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep, *status->pc,regs[a].ttt, regs, __builtin_return_address(0));
+  // puts(mrb_sym2name(mrb, mid));
   return NULL;
 }
 
