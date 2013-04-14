@@ -32,7 +32,7 @@ static char *optable[] = {
 };
 
 void
-disasm_irep(mrb_state *mrb, mrb_irep *irep, mrb_code c)
+disasm_once(mrb_state *mrb, mrb_irep *irep, mrb_code c)
 {
   int i = 0;
   switch (GET_OPCODE(c)) {
@@ -341,6 +341,29 @@ disasm_irep(mrb_state *mrb, mrb_irep *irep, mrb_code c)
     printf("OP_unknown %d\t%d\t%d\t%d\n", GET_OPCODE(c),
 	   GETARG_A(c), GETARG_B(c), GETARG_C(c));
     break;
+  }
+}
+
+mrb_irep *
+search_irep(mrb_state *mrb, mrb_code *pc)
+{
+  int i = 0;
+  for (i = 0; i < mrb->irep_len; i++) {
+    mrb_irep *irep = mrb->irep[i];
+    if (irep->iseq <= pc && pc <= irep->iseq + irep->ilen) {
+      return irep;
+    }
+  }
+
+  return NULL;
+}
+
+void
+disasm_irep(mrb_state *mrb, mrb_irep *irep)
+{
+  int i = 0;
+  for (i = 0; i < irep->ilen; i++) {
+    disasm_once(mrb, irep, irep->iseq[i]);
   }
 }
 
