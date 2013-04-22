@@ -57,8 +57,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     inLocalLabel();
     L(".exitlab");
-    mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
-    mov(dword [edx], (Xbyak::uint32)pc);
+    if (pc) {
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+      mov(dword [edx], (Xbyak::uint32)pc);
+    }
     if (is_clr_rc) {
       xor(eax, eax);
     }
@@ -93,8 +95,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_irep *irep = *status->irep;
     int n = ISEQ_OFFSET_OF(newpc);
     if (irep->idx == 0xffff) {
+      mrb_value recv = mrb->stack[0];
+      struct RProc *m = mrb_proc_ptr(recv);
+      mrb_code *caller_pc = m->body.irep->iseq;
 	newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
-					    curpc, mrb->ci[1].pc);
+					    curpc, caller_pc);
     }
     else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 

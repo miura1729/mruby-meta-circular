@@ -617,7 +617,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
   goto retry;
 }
 
-extern void disasm_irep(mrb_state *, mrb_irep *, mrb_code);
+extern void disasm_once(mrb_state *, mrb_irep *, mrb_code);
 static inline void *
 mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 {
@@ -638,7 +638,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   prev_pc = mrb->compile_info.prev_pc;
   if (irep->idx == 0xffff) {
-    caller_pc = mrb->ci[1].pc;
+    mrb_value recv = mrb->stack[0];
+    struct RProc *m = mrb_proc_ptr(recv);
+    caller_pc = m->body.irep->iseq;
+    //caller_pc = mrb->ci[-3].pc;
     //printf("%x foo\n", caller_pc);
   }
   else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
@@ -695,10 +698,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
       irep = *status->irep;
       regs = *status->regs;
-      //disasm_irep(mrb, irep, **ppc);
+      //disasm_once(mrb, irep, **ppc);
+      //mrb_irep *search_irep(mrb_state *mrb, mrb_code *pc);
+      //if (search_irep(mrb, *ppc) != irep) {
+      //printf("%x %x %x \n", irep, *ppc, prev_entry);
+      //puts("foo");
+      //}
       n = ISEQ_OFFSET_OF(*ppc);
       if (irep->idx == 0xffff) {
-	caller_pc = mrb->ci[1].pc;
+	mrb_value recv = mrb->stack[0];
+	struct RProc *m = mrb_proc_ptr(recv);
+	caller_pc = m->body.irep->iseq;
+	// caller_pc = mrb->ci[-3].pc;
 	//printf("%x foo\n", caller_pc);
       }
       else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
@@ -2242,6 +2253,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       int a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
 
+      mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = 0;
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
