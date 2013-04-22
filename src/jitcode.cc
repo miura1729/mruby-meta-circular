@@ -99,14 +99,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     return code->emit_send(mrb, status, coi);
 
   case OP_CALL:
-    if (mrb->compile_info.call_compiled) {
-      mrb->compile_info.call_compiled = 0;
-      return code->emit_call(mrb, status);
-    }
-    else {
-      mrb->compile_info.nest_level = 0;
-      return NULL;
-    }
+    return code->emit_call(mrb, status);
     
   case OP_ENTER:
     mrb->compile_info.nest_level++;

@@ -128,7 +128,6 @@ typedef struct mrbjit_comp_info {
   mrbjit_code_info *prev_coi;
   mrbjit_code_area code_base;
   int disable_jit;
-  int call_compiled;
   int nest_level;
 } mrbjit_comp_info;
 

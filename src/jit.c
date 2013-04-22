@@ -329,3 +329,66 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
   return rc;
 }
+
+void
+mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
+{
+  mrb_callinfo *ci;
+  mrb_value recv = mrb->stack[0];
+  struct RProc *m = mrb_proc_ptr(recv);
+
+  /* replace callinfo */
+  ci = mrb->ci;
+  ci->target_class = m->target_class;
+  ci->proc = m;
+  if (m->env) {
+    if (m->env->mid) {
+      ci->mid = m->env->mid;
+    }
+    if (!m->env->stack) {
+      m->env->stack = mrb->stack;
+    }
+  }
+
+  /* prepare stack */
+  if (MRB_PROC_CFUNC_P(m)) {
+    int orgdisflg = mrb->compile_info.disable_jit;
+    mrb->compile_info.disable_jit = 1;
+    recv = m->body.func(mrb, recv);
+    mrb->compile_info.disable_jit = orgdisflg;
+    mrb_gc_arena_restore(mrb, *status->ai);
+    if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+    /* pop stackpos */
+    ci = mrb->ci;
+    *status->regs = mrb->stack = mrb->stbase + ci->stackidx;
+    (*status->regs)[ci->acc] = recv;
+    *status->pc = ci->pc;
+    mrbjit_cipop(mrb);
+    *status->irep = mrb->ci->proc->body.irep;
+    *status->pool = (*(status->irep))->pool;
+    *status->syms = (*(status->irep))->syms;
+  }
+  else {
+    /* setup environment for calling method */
+    *status->proc = m;
+    *status->irep = m->body.irep;
+    if (!(*status->irep)) {
+      mrb->stack[0] = mrb_nil_value();
+      return NULL;
+    }
+    *status->pool = (*(status->irep))->pool;
+    *status->syms = (*(status->irep))->syms;
+    ci->nregs = (*(status->irep))->nregs;
+    if (ci->argc < 0) {
+      mrbjit_stack_extend(mrb, ((*(status->irep))->nregs < 3) ? 3 : (*(status->irep))->nregs, 3);
+    }
+    else {
+      mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
+    }
+    *status->regs = mrb->stack;
+    (*(status->regs))[0] = m->env->stack[0];
+    *status->pc = m->body.irep->iseq;
+  }
+
+  return;
+}

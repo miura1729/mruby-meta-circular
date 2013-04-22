@@ -637,14 +637,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->compile_info.prev_pc;
-  if (irep->idx == 0xffff) {
-    mrb_value recv = mrb->stack[0];
-    struct RProc *m = mrb_proc_ptr(recv);
-    caller_pc = m->body.irep->iseq;
-    //caller_pc = mrb->ci[-3].pc;
-    //printf("%x foo\n", caller_pc);
-  }
-  else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+  if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
     caller_pc = mrb->ci->pc;
   }
   else {
@@ -705,14 +698,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //puts("foo");
       //}
       n = ISEQ_OFFSET_OF(*ppc);
-      if (irep->idx == 0xffff) {
-	mrb_value recv = mrb->stack[0];
-	struct RProc *m = mrb_proc_ptr(recv);
-	caller_pc = m->body.irep->iseq;
-	// caller_pc = mrb->ci[-3].pc;
-	//printf("%x foo\n", caller_pc);
-      }
-      else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+      if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
 	caller_pc = mrb->ci->pc;
       }
       else {
@@ -756,6 +742,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       if (entry) {
 	ci->entry = entry;
 	ci->used = 1;
+	if (n == 0) {
+	  /* This is for OP_CALL */
+	  irep->jit_top_entry = entry;
+	}
       }
       else {
 	/* record contination patch entry */

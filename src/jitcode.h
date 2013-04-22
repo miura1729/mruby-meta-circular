@@ -26,6 +26,7 @@ void mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *,
 		      struct RProc *, struct RClass *);
 void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
+void mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
 #define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
@@ -94,14 +95,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_code_info *newci;
     mrb_irep *irep = *status->irep;
     int n = ISEQ_OFFSET_OF(newpc);
-    if (irep->idx == 0xffff) {
-      mrb_value recv = mrb->stack[0];
-      struct RProc *m = mrb_proc_ptr(recv);
-      mrb_code *caller_pc = m->body.irep->iseq;
-	newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
-					    curpc, caller_pc);
-    }
-    else if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+    if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
 					  curpc, mrb->ci->pc);
     }
@@ -513,36 +507,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       int toff;
       void *(**entval)();
 
-      mirep = m->body.irep;
-      if (mirep->idx == 0xffff) {
-	m = mrb_proc_ptr(recv);
-	c = m->target_class;
-
-	mov(eax, (Xbyak::uint32)c);
-	push(eax);
-	mov(eax, dword [ecx 
-			+ a * sizeof(mrb_value) 
-			+ OffsetOf(mrb_value, value.p)]);
-	push(eax);
-
-	/* Replace self Proc object -> block self */
-	/* m is stored in EAX */
-	//mov(eax, (Xbyak::uint32)m->env->stack);
-
-	mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
-	mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
-        movsd(xmm0, ptr [eax]);
-        movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
-
-	mrb->compile_info.call_compiled = 1;
-	//	printf("Call! %d\n", m->body.irep->idx);
-      }
-      else {
-	mov(eax, (Xbyak::uint32)c);
-	push(eax);
-	mov(eax, (Xbyak::uint32)m);
-	push(eax);
-      }
+      mov(eax, (Xbyak::uint32)c);
+      push(eax);
+      mov(eax, (Xbyak::uint32)m);
+      push(eax);
       CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
 
       mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
@@ -572,19 +540,23 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     const void* exit_ptr;
     
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
-    mov(eax, dword [eax]);
-    mov(eax, dword [eax + OffsetOf(mrb_irep, idx)]);
-    xor(eax, 0xffff);
+    mov(eax, dword [esi + OffsetOf(mrb_state, stack)]);
+    mov(eax, dword [eax + OffsetOf(mrb_value, value.p)]);
+    mov(eax, dword [eax + OffsetOf(struct RProc, body.irep)]);
+    mov(eax, dword [eax + OffsetOf(mrb_irep, jit_top_entry)]);
+    test(eax, eax);
     jnz("@f");
-    exit_ptr = getCurr();
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
     xor(eax, eax);
-    //    mov(edx, (Xbyak::uint32)exit_ptr);
     xor(edx, edx);
     ret();
     L("@@");
+    push(eax);
+    CALL_CFUNC_BEGIN;
+    CALL_CFUNC_STATUS(mrbjit_exec_call, 0);
+    pop(eax);
+    jmp(eax);
 
     return code;
   }

@@ -147,6 +147,7 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   }
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
   irep->jit_inlinep = 0;
+  irep->jit_top_entry = NULL;
 
   ret = MRB_DUMP_OK;
 error_exit:
