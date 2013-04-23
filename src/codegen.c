@@ -681,7 +681,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   if (blk) {
     loop_pop(s, NOVAL);
   }
-  s->irep->jit_inlinep = 1;
+  //s->irep->jit_inlinep = 1;
   scope_finish(s);
 
   return idx - base;

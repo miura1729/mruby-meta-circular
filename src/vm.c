@@ -1179,7 +1179,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       }
 
       if (GET_OPCODE(i) == OP_SENDB && !MRB_PROC_CFUNC_P(m)) {
-	m->body.irep->jit_inlinep = 1;
+	//m->body.irep->jit_inlinep = 1;
       }
 	
       /* push callinfo */

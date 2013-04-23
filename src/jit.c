@@ -121,8 +121,8 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   *status->pc = irep->iseq;
   //mrb_p(mrb, recv);
 
-  // printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep, *status->pc,regs[a].ttt, regs, __builtin_return_address(0));
-  // puts(mrb_sym2name(mrb, mid));
+  //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep, *status->pc,regs[a].ttt, regs, __builtin_return_address(0));
+  //puts(mrb_sym2name(mrb, mid));
   return NULL;
 }
 
@@ -388,6 +388,8 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
     *status->regs = mrb->stack;
     (*(status->regs))[0] = m->env->stack[0];
     *status->pc = m->body.irep->iseq;
+    //printf("call %x %x\n", *status->irep, (*(status->irep))->jit_top_entry);
+    //printf("%x\n", mrb->ci->jit_entry);
   }
 
   return;

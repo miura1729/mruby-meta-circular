@@ -8,7 +8,7 @@
 #define MRUBY_JIT_H
 
 #define COMPILE_THRESHOLD 100
-#define NO_INLINE_METHOD_LEN 20
+#define NO_INLINE_METHOD_LEN 0
 
 typedef struct mrbjit_codetab {
   int size;
