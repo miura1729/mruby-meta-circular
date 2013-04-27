@@ -727,6 +727,7 @@ disasm_irep(mrb_state *mrb, mrb_irep *irep)
 {
   int i = 0;
   for (i = 0; i < irep->ilen; i++) {
+    printf("%4x ", i);
     disasm_once(mrb, irep, irep->iseq[i]);
   }
 }
