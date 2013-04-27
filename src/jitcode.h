@@ -54,8 +54,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void 
     gen_exit(mrb_code *pc, int is_clr_rc)
   {
-    const void* exit_ptr = getCurr();
-
     inLocalLabel();
     L(".exitlab");
     if (pc) {
@@ -468,7 +466,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     mrb_value recv;
     mrb_sym mid = syms[GETARG_B(i)];
-    mrb_irep *mirep = NULL;
 
     if (GETARG_C(i) == CALL_MAXARGS) {
       return NULL;
@@ -505,7 +502,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     else {
       int ioff;
       int toff;
-      void *(**entval)();
+      mrbjit_codetab *ctab;
 
       mov(eax, (Xbyak::uint32)c);
       push(eax);
@@ -521,11 +518,28 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
       ioff = ISEQ_OFFSET_OF(pc);
       toff = coi - (irep->jit_entry_tab + ioff)->body;
+
+      /* Check and grow code table */
+      ctab = (irep->jit_entry_tab + ioff + 1);
+      if (ctab->size <= toff) {
+	int oldsize;
+	int j;
+
+	oldsize = ctab->size;
+	ctab->size = oldsize + (oldsize >> 1) + 2;
+	ctab->body = (mrbjit_code_info *)mrb_realloc(mrb, ctab->body, 
+				sizeof(mrbjit_code_info) * ctab->size);
+	for (j = oldsize; j < ctab->size; j++) {
+	  ctab->body[j].used = 0;
+	}
+      }
+
       /* This is unused entry, but right.Because no other pathes */
-      /* TODO: CHECK toff and entry size */
-      entval = &((irep->jit_entry_tab + ioff + 1)->body[toff].entry);
-      mov(edx, (Xbyak::uint32)entval);
-      mov(edx, dword [edx]);
+      mov(edx, (Xbyak::uint32)ctab);
+      mov(edx, dword [edx + OffsetOf(mrbjit_codetab, body)]);
+      mov(edx, dword [edx 
+		      + toff * sizeof(mrbjit_code_info)
+		      + OffsetOf(mrbjit_code_info, entry)]);
 
       //printf("%d ", toff);
       mov(dword [eax], edx);
@@ -538,7 +552,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_call(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
-    const void* exit_ptr;
     
     mov(eax, dword [esi + OffsetOf(mrb_state, stack)]);
     mov(eax, dword [eax + OffsetOf(mrb_value, value.p)]);

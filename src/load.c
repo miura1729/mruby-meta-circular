@@ -142,8 +142,8 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   // JIT Block
   irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, 1, sizeof(mrbjit_codetab)*irep->ilen);
   for (i = 0; i < irep->ilen; i++) {
-    irep->jit_entry_tab[i].size = 8;
-    irep->jit_entry_tab[i].body = (mrbjit_code_info *)mrb_calloc(mrb, 8, sizeof(mrbjit_code_info));
+    irep->jit_entry_tab[i].size = 2;
+    irep->jit_entry_tab[i].body = (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
   }
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
   irep->jit_inlinep = 0;

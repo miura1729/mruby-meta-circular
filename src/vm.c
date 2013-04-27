@@ -598,7 +598,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
  retry:
   if (tab->body == NULL || oldsize >= 0) {
     oldsize = tab->size;
-    tab->size = tab->size + (tab->size >> 1) + 2;
+    tab->size = oldsize + (oldsize >> 1) + 2;
     tab->body = mrb_realloc(mrb, tab->body, sizeof(mrbjit_code_info) * tab->size);
     for (i = oldsize; i < tab->size; i++) {
       tab->body[i].used = 0;
