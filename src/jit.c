@@ -330,7 +330,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
   return rc;
 }
 
-void
+void *
 mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   mrb_callinfo *ci;

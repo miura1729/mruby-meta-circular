@@ -22,7 +22,6 @@ void mrb_init_numeric(mrb_state*);
 void mrb_init_range(mrb_state*);
 void mrb_init_gc(mrb_state*);
 void mrb_init_math(mrb_state*);
-void mrb_init_irep(mrb_state*);
 void mrb_init_mrblib(mrb_state*);
 void mrb_init_mrbgems(mrb_state*);
 void mrb_final_mrbgems(mrb_state*);
@@ -51,9 +50,6 @@ mrb_init_core(mrb_state *mrb)
   mrb_init_mrblib(mrb); DONE;
 #ifndef DISABLE_GEMS
   mrb_init_mrbgems(mrb); DONE;
-#endif
-#ifdef ENABLE_IREP
-  mrb_init_irep(mrb);
 #endif
 }
 

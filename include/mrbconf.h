@@ -105,9 +105,6 @@ typedef short mrb_sym;
 #ifndef DISABLE_STDIO
 #define ENABLE_STDIO
 #endif
-#ifndef DISABLE_IREP
-#define ENABLE_IREP
-#endif
 #ifndef ENABLE_DEBUG
 #define DISABLE_DEBUG
 #endif

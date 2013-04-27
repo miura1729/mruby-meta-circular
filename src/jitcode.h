@@ -19,14 +19,14 @@ extern "C" {
 #include "mruby/class.h"
 #include "mruby/jit.h"
 
-void mrbjit_exec_send_c(mrb_state *, mrbjit_vmstatus *, 
+void *mrbjit_exec_send_c(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
 
-void mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *, 
+void *mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
-void mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
-void mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
-void mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
+void *mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
+void *mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
+void *mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
 #define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
