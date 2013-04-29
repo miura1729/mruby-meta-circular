@@ -65,7 +65,8 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   case OP_LOADI:
     return code->emit_loadi(mrb, status, coi);
 
-    // OP_LOADSYM
+  case OP_LOADSYM:
+    return code->emit_loadsym(mrb, status, coi);
 
   case OP_LOADSELF:
     return code->emit_loadself(mrb, status, coi);
