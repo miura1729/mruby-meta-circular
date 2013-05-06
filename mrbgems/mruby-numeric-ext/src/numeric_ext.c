@@ -10,7 +10,7 @@ mrb_int_chr(mrb_state *mrb, mrb_value x)
 
   chr = mrb_fixnum(x);
   if (chr >= (1 << CHAR_BIT)) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%" PRIdMRB_INT " out of char range", chr);
+    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", x);
   }
   c = (char)chr;
 
@@ -22,7 +22,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *i = mrb_class_get(mrb, "Integer");
 
-  mrb_define_method(mrb, i, "chr",    mrb_int_chr,            ARGS_NONE());
+  mrb_define_method(mrb, i, "chr", mrb_int_chr, MRB_ARGS_NONE());
 }
 
 void

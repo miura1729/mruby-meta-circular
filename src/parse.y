@@ -38,6 +38,10 @@ static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
 
+#ifndef isascii
+#define isascii(c) (((c) & ~0x7f) == 0)
+#endif
+
 #define identchar(c) (isalnum(c) || (c) == '_' || !isascii(c))
 
 typedef unsigned int stack_type;
@@ -759,7 +763,7 @@ new_nth_ref(parser_state *p, int n)
 static node*
 new_heredoc(parser_state *p)
 {
-  parser_heredoc_info *inf = parser_palloc(p, sizeof(parser_heredoc_info));
+  parser_heredoc_info *inf = (parser_heredoc_info *)parser_palloc(p, sizeof(parser_heredoc_info));
   return cons((node*)NODE_HEREDOC, (node*)inf);
 }
 
@@ -3411,7 +3415,7 @@ scan_hex(const int *start, int len, int *retlen)
   char *tmp;
 
   /* assert(len <= 2) */
-  while (len-- && *s && (tmp = strchr(hexdigit, *s))) {
+  while (len-- && *s && (tmp = (char*)strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
     s++;
@@ -3478,7 +3482,7 @@ read_escape(parser_state *p)
       for (i=0; i<2; i++) {
 	buf[i] = nextc(p);
 	if (buf[i] == -1) goto eof;
-	if (!isxdigit(buf[i])) {
+	if (!ISXDIGIT(buf[i])) {
 	  pushback(p, buf[i]);
 	  break;
 	}
@@ -3769,7 +3773,7 @@ heredoc_identifier(parser_state *p)
   info->term_len = toklen(p);
   if (! quote)
     type |= STR_FUNC_EXPAND;
-  info->type = type;
+  info->type = (string_type)type;
   info->allow_indent = indent;
   info->line_head = TRUE;
   info->doc = NULL;
@@ -4726,6 +4730,10 @@ parser_yylex(parser_state *p)
     p->lstate = EXPR_END;
     token_column = newtok(p);
     c = nextc(p);
+    if (c == -1) {
+      yyerror(p, "incomplete global variable syntax");
+      return 0;
+    }
     switch (c) {
     case '_':     /* $_: last read line string */
       c = nextc(p);
@@ -4812,7 +4820,16 @@ parser_yylex(parser_state *p)
       tokadd(p, '@');
       c = nextc(p);
     }
-    if (c != -1 && isdigit(c)) {
+    if (c == -1) {
+      if (p->bidx == 1) {
+	yyerror(p, "incomplete instance variable syntax");
+      }
+      else {
+	yyerror(p, "incomplete class variable syntax");
+      }
+      return 0;
+    }
+    else if (isdigit(c)) {
       if (p->bidx == 1) {
 	yyerror_i(p, "`@%c' is not allowed as an instance variable name", c);
       }

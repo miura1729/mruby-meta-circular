@@ -163,13 +163,19 @@ num_abs(mrb_state *mrb, mrb_value num)
  */
 
 mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_float n, int max_digit)
+mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
 {
   mrb_value result;
+  mrb_float n;
 
   if (max_digit > 40) {
     mrb_raise(mrb, E_RANGE_ERROR, "Too large max_digit.");
   }
+  else if (!mrb_float_p(flo)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+  }
+
+  n = mrb_float(flo);
 
   if (isnan(n)) {
     result = mrb_str_new(mrb, "NaN", 3);
@@ -270,9 +276,9 @@ static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
 #ifdef MRB_USE_FLOAT
-  return mrb_flo_to_str(mrb, mrb_float(flt), 7);
+  return mrb_flo_to_str(mrb, flt, 7);
 #else
-  return mrb_flo_to_str(mrb, mrb_float(flt), 14);
+  return mrb_flo_to_str(mrb, flt, 14);
 #endif
 }
 
@@ -665,42 +671,6 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   return mrb_fixnum_value((mrb_int)f);
 }
 
-/* 15.2.8.3.17 */
-/*
- *  call-seq:
- *     num.floor  ->  integer
- *
- *  Returns the largest integer less than or equal to <i>num</i>.
- *  <code>Numeric</code> implements this by converting <i>anInteger</i>
- *  to a <code>Float</code> and invoking <code>Float#floor</code>.
- *
- *     1.floor      #=> 1
- *     (-1).floor   #=> -1
- */
-
-static mrb_value
-num_floor(mrb_state *mrb, mrb_value num)
-{
-  return flo_floor(mrb, mrb_Float(mrb, num));
-}
-
-/* 15.2.8.3.20 */
-/*
- *  call-seq:
- *     num.round([ndigits])  ->  integer or float
- *
- *  Rounds <i>num</i> to a given precision in decimal digits (default 0 digits).
- *  Precision may be negative.  Returns a floating point number when ndigits
- *  is more than zero.  <code>Numeric</code> implements this by converting itself
- *  to a <code>Float</code> and invoking <code>Float#round</code>.
- */
-
-static mrb_value
-num_round(mrb_state *mrb, mrb_value num)
-{
-  return flo_round(mrb, mrb_Float(mrb, num));
-}
-
 /*
  * Document-class: Integer
  *
@@ -710,17 +680,10 @@ num_round(mrb_state *mrb, mrb_value num)
  */
 
 
-/* 15.2.8.3.14 */
-/* 15.2.8.3.24 */
-/* 15.2.8.3.26 */
 /*
  *  call-seq:
  *     int.to_i      ->  integer
  *     int.to_int    ->  integer
- *     int.floor     ->  integer
- *     int.ceil      ->  integer
- *     int.round     ->  integer
- *     int.truncate  ->  integer
  *
  *  As <i>int</i> is already an <code>Integer</code>, all these
  *  methods simply return the receiver.
@@ -1175,25 +1138,27 @@ fix_to_f(mrb_state *mrb, mrb_value num)
  *     FloatDomainError: Infinity
  */
 /* ------------------------------------------------------------------------*/
-static mrb_int
-flt2big(mrb_state *mrb, mrb_float d)
+mrb_value
+mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 {
   mrb_int z;
 
-  if (isinf(d)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
+  if (mrb_float_p(x)) {
+     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+     z = 0; /* not reached. just supress warnings. */
   }
-  if (isnan(d)) {
-    mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
-  }
-  z = (mrb_int)d;
-  return z;
-}
+  else {
+    mrb_float d = mrb_float(x);
 
-mrb_value
-mrb_flt2big(mrb_state *mrb, mrb_float d)
-{
-  return mrb_fixnum_value(flt2big(mrb, d));
+    if (isinf(d)) {
+      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
+    }
+    if (isnan(d)) {
+      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
+    }
+    z = (mrb_int)d;
+  }
+  return mrb_fixnum_value(z);
 }
 
 mrb_value
@@ -1276,7 +1241,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
 
 
 mrb_value
-mrb_fix2str(mrb_state *mrb, mrb_value x, int base)
+mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[sizeof(mrb_int)*CHAR_BIT+1];
   char *b = buf + sizeof buf;
@@ -1324,7 +1289,7 @@ fix_to_s(mrb_state *mrb, mrb_value self)
   mrb_int base = 10;
 
   mrb_get_args(mrb, "|i", &base);
-  return mrb_fix2str(mrb, self, base);
+  return mrb_fixnum_to_str(mrb, self, base);
 }
 
 /* 15.2.9.3.6  */
@@ -1394,62 +1359,61 @@ mrb_init_numeric(mrb_state *mrb)
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);
   mrb_include_module(mrb, numeric, mrb_class_get(mrb, "Comparable"));
 
-  mrb_define_method(mrb, numeric, "+@",       num_uplus,      ARGS_REQ(1));  /* 15.2.7.4.1  */
-  mrb_define_method(mrb, numeric, "-@",       num_uminus,     ARGS_REQ(1));  /* 15.2.7.4.2  */
-  mrb_define_method(mrb, numeric, "**",       num_pow,        ARGS_REQ(1));
-  mrb_define_method(mrb, numeric, "/",        num_div,        ARGS_REQ(1));  /* 15.2.8.3.4  */
-  mrb_define_method(mrb, numeric, "quo",      num_div,        ARGS_REQ(1));  /* 15.2.7.4.5 (x) */
-  mrb_define_method(mrb, numeric, "abs",      num_abs,        ARGS_NONE());  /* 15.2.7.4.3  */
-  mrb_define_method(mrb, numeric, "<=>",      num_cmp,        ARGS_REQ(1));  /* 15.2.9.3.6  */
+  mrb_define_method(mrb, numeric, "+@",       num_uplus,      MRB_ARGS_REQ(1));  /* 15.2.7.4.1  */
+  mrb_define_method(mrb, numeric, "-@",       num_uminus,     MRB_ARGS_REQ(1));  /* 15.2.7.4.2  */
+  mrb_define_method(mrb, numeric, "**",       num_pow,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, numeric, "/",        num_div,        MRB_ARGS_REQ(1));  /* 15.2.8.3.4  */
+  mrb_define_method(mrb, numeric, "quo",      num_div,        MRB_ARGS_REQ(1));  /* 15.2.7.4.5 (x) */
+  mrb_define_method(mrb, numeric, "abs",      num_abs,        MRB_ARGS_NONE());  /* 15.2.7.4.3  */
+  mrb_define_method(mrb, numeric, "<=>",      num_cmp,        MRB_ARGS_REQ(1));  /* 15.2.9.3.6  */
 
   /* Integer Class */
   integer = mrb_define_class(mrb, "Integer",  numeric);
+  mrb_undef_class_method(mrb, integer, "new");
+  mrb_define_method(mrb, integer, "to_i", int_to_i, MRB_ARGS_NONE());              /* 15.2.8.3.24 */
+  mrb_define_method(mrb, integer, "to_int", int_to_i, MRB_ARGS_NONE());
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
 
   mrb_undef_class_method(mrb,  fixnum, "new");
-  mrb_define_method(mrb, fixnum,  "+",        fix_plus,          ARGS_REQ(1)); /* 15.2.8.3.1  */
-  mrb_define_method(mrb, fixnum,  "-",        fix_minus,         ARGS_REQ(1)); /* 15.2.8.3.2  */
-  mrb_define_method(mrb, fixnum,  "-@",       fix_uminus,        ARGS_REQ(1)); /* 15.2.7.4.2  */
-  mrb_define_method(mrb, fixnum,  "*",        fix_mul,           ARGS_REQ(1)); /* 15.2.8.3.3  */
-  mrb_define_method(mrb, fixnum,  "%",        fix_mod,           ARGS_REQ(1)); /* 15.2.8.3.5  */
-  mrb_define_method(mrb, fixnum,  "==",       fix_equal,         ARGS_REQ(1)); /* 15.2.8.3.7  */
-  mrb_define_method(mrb, fixnum,  "~",        fix_rev,           ARGS_NONE()); /* 15.2.8.3.8  */
-  mrb_define_method(mrb, fixnum,  "&",        fix_and,           ARGS_REQ(1)); /* 15.2.8.3.9  */
-  mrb_define_method(mrb, fixnum,  "|",        fix_or,            ARGS_REQ(1)); /* 15.2.8.3.10 */
-  mrb_define_method(mrb, fixnum,  "^",        fix_xor,           ARGS_REQ(1)); /* 15.2.8.3.11 */
-  mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,        ARGS_REQ(1)); /* 15.2.8.3.12 */
-  mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrb_define_method(mrb, fixnum,  "ceil",     int_to_i,          ARGS_NONE()); /* 15.2.8.3.14 */
-  mrb_define_method(mrb, fixnum,  "eql?",     num_eql,           ARGS_REQ(1)); /* 15.2.8.3.16 */
-  mrb_define_method(mrb, fixnum,  "floor",    num_floor,         ARGS_NONE()); /* 15.2.8.3.17 */
-  mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          ARGS_NONE()); /* 15.2.8.3.18 */
-  mrb_define_method(mrb, fixnum,  "next",     int_succ,          ARGS_NONE()); /* 15.2.8.3.19 */
-  mrb_define_method(mrb, fixnum,  "round",    num_round,         ARGS_ANY());  /* 15.2.8.3.20 */
-  mrb_define_method(mrb, fixnum,  "succ",     fix_succ,          ARGS_NONE()); /* 15.2.8.3.21 */
-  mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          ARGS_NONE()); /* 15.2.8.3.23 */
-  mrb_define_method(mrb, fixnum,  "to_i",     int_to_i,          ARGS_NONE()); /* 15.2.8.3.24 */
-  mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          ARGS_NONE()); /* 15.2.8.3.25 */
-  mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          ARGS_NONE());
-  mrb_define_method(mrb, fixnum,  "truncate", int_to_i,          ARGS_NONE()); /* 15.2.8.3.26 */
-  mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
+  mrb_define_method(mrb, fixnum,  "+",        fix_plus,          MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
+  mrb_define_method(mrb, fixnum,  "-",        fix_minus,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2  */
+  mrb_define_method(mrb, fixnum,  "-@",       fix_uminus,        MRB_ARGS_REQ(1)); /* 15.2.7.4.2  */
+  mrb_define_method(mrb, fixnum,  "*",        fix_mul,           MRB_ARGS_REQ(1)); /* 15.2.8.3.3  */
+  mrb_define_method(mrb, fixnum,  "%",        fix_mod,           MRB_ARGS_REQ(1)); /* 15.2.8.3.5  */
+  mrb_define_method(mrb, fixnum,  "==",       fix_equal,         MRB_ARGS_REQ(1)); /* 15.2.8.3.7  */
+  mrb_define_method(mrb, fixnum,  "~",        fix_rev,           MRB_ARGS_NONE()); /* 15.2.8.3.8  */
+  mrb_define_method(mrb, fixnum,  "&",        fix_and,           MRB_ARGS_REQ(1)); /* 15.2.8.3.9  */
+  mrb_define_method(mrb, fixnum,  "|",        fix_or,            MRB_ARGS_REQ(1)); /* 15.2.8.3.10 */
+  mrb_define_method(mrb, fixnum,  "^",        fix_xor,           MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
+  mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
+  mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
+  mrb_define_method(mrb, fixnum,  "eql?",     num_eql,           MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
+  mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          MRB_ARGS_NONE()); /* 15.2.8.3.18 */
+  mrb_define_method(mrb, fixnum,  "next",     int_succ,          MRB_ARGS_NONE()); /* 15.2.8.3.19 */
+  mrb_define_method(mrb, fixnum,  "succ",     fix_succ,          MRB_ARGS_NONE()); /* 15.2.8.3.21 */
+  mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          MRB_ARGS_NONE()); /* 15.2.8.3.23 */
+  mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          MRB_ARGS_NONE()); /* 15.2.8.3.25 */
+  mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          MRB_ARGS_NONE());
+  mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
 
   /* Float Class */
   fl = mrb->float_class = mrb_define_class(mrb, "Float", numeric);
   mrb_undef_class_method(mrb,  fl, "new");
-  mrb_define_method(mrb, fl,      "+",         flo_plus,         ARGS_REQ(1)); /* 15.2.9.3.1  */
-  mrb_define_method(mrb, fl,      "-",         flo_minus,        ARGS_REQ(1)); /* 15.2.9.3.2  */
-  mrb_define_method(mrb, fl,      "*",         flo_mul,          ARGS_REQ(1)); /* 15.2.9.3.3  */
-  mrb_define_method(mrb, fl,      "%",         flo_mod,          ARGS_REQ(1)); /* 15.2.9.3.5  */
-  mrb_define_method(mrb, fl,      "==",        flo_eq,           ARGS_REQ(1)); /* 15.2.9.3.7  */
-  mrb_define_method(mrb, fl,      "ceil",      flo_ceil,         ARGS_NONE()); /* 15.2.9.3.8  */
-  mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     ARGS_NONE()); /* 15.2.9.3.9  */
-  mrb_define_method(mrb, fl,      "floor",     flo_floor,        ARGS_NONE()); /* 15.2.9.3.10 */
-  mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p,   ARGS_NONE()); /* 15.2.9.3.11 */
-  mrb_define_method(mrb, fl,      "round",     flo_round,        ARGS_ANY());  /* 15.2.9.3.12 */
-  mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         ARGS_NONE()); /* 15.2.9.3.13 */
-  mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     ARGS_NONE()); /* 15.2.9.3.14 */
-  mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     ARGS_NONE()); /* 15.2.9.3.15 */
+  mrb_define_method(mrb, fl,      "+",         flo_plus,         MRB_ARGS_REQ(1)); /* 15.2.9.3.1  */
+  mrb_define_method(mrb, fl,      "-",         flo_minus,        MRB_ARGS_REQ(1)); /* 15.2.9.3.2  */
+  mrb_define_method(mrb, fl,      "*",         flo_mul,          MRB_ARGS_REQ(1)); /* 15.2.9.3.3  */
+  mrb_define_method(mrb, fl,      "%",         flo_mod,          MRB_ARGS_REQ(1)); /* 15.2.9.3.5  */
+  mrb_define_method(mrb, fl,      "==",        flo_eq,           MRB_ARGS_REQ(1)); /* 15.2.9.3.7  */
+  mrb_define_method(mrb, fl,      "ceil",      flo_ceil,         MRB_ARGS_NONE()); /* 15.2.9.3.8  */
+  mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,     MRB_ARGS_NONE()); /* 15.2.9.3.9  */
+  mrb_define_method(mrb, fl,      "floor",     flo_floor,        MRB_ARGS_NONE()); /* 15.2.9.3.10 */
+  mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.11 */
+  mrb_define_method(mrb, fl,      "round",     flo_round,        MRB_ARGS_NONE()); /* 15.2.9.3.12 */
+  mrb_define_method(mrb, fl,      "to_f",      flo_to_f,         MRB_ARGS_NONE()); /* 15.2.9.3.13 */
+  mrb_define_method(mrb, fl,      "to_i",      flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.14 */
+  mrb_define_method(mrb, fl,      "to_int",    flo_truncate,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, fl,      "truncate",  flo_truncate,     MRB_ARGS_NONE()); /* 15.2.9.3.15 */
 
-  mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         ARGS_NONE()); /* 15.2.9.3.16(x) */
-  mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         ARGS_NONE());
+  mrb_define_method(mrb, fl,      "to_s",      flo_to_s,         MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
+  mrb_define_method(mrb, fl,      "inspect",   flo_to_s,         MRB_ARGS_NONE());
 }

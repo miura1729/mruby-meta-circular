@@ -315,29 +315,33 @@ assert('Exception 18') do
   end == 3
 end
 
+assert('Exception 19') do
+  class Class4Exception19
+    def a
+      r = @e = false
+      begin
+        b
+      rescue TypeError
+        r = self.z
+      end
+      [ r, @e ]
+    end
+  
+    def b
+      begin
+        1 * "b"
+      ensure
+        @e = self.z
+      end
+    end
+  
+    def z
+      true
+    end
+  end
+  Class4Exception19.new.a == [true,  true]
+end
+
 assert('Exception#inspect without message') do
   Exception.new.inspect
 end
-
-# very deeply recursive function that stil returns albeit very deeply so
-$test_infinite_recursion    = 0
-TEST_INFINITE_RECURSION_MAX = 1000000
-def test_infinite_recursion
-  $test_infinite_recursion += 1
-  if $test_infinite_recursion > TEST_INFINITE_RECURSION_MAX
-    return $test_infinite_recursion
-  end
-  test_infinite_recursion
-end
-
-assert('Infinite recursion should result in an exception being raised') do
-    a = begin
-          test_infinite_recursion
-        rescue
-          :ok
-        end
-    # OK if an exception was caught, otherwise a number will be stored in a
-    a == :ok
-end
-
-

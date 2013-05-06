@@ -74,8 +74,8 @@ module MRuby
         @git = Command::Git.new(self)
         @mrbc = Command::Mrbc.new(self)
 
-        @bins = %w(mruby mrbc mirb)
-        @gems, @libmruby = [], []
+        @bins = %w(mrbc)
+        @gems, @libmruby = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
 
         MRuby.targets[@name] = self
@@ -194,10 +194,21 @@ module MRuby
   end # Build
 
   class CrossBuild < Build
+    attr_block %w(test_runner)
+
+    def initialize(name, &block)
+	@test_runner = Command::CrossTestRunner.new(self)
+	super
+    end
+
     def run_test
       mrbtest = exefile("#{build_dir}/test/mrbtest")
-      puts "You should run #{mrbtest} on target device."
-      puts 
+      if (@test_runner.command == nil)
+        puts "You should run #{mrbtest} on target device."
+        puts
+      else
+        @test_runner.run(mrbtest)
+      end
     end
   end # CrossBuild
 end # MRuby

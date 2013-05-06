@@ -11,6 +11,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "error.h"
+#include <ctype.h>
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
@@ -697,10 +698,15 @@ mrb_value
 mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
 {
   mrb_value ary;
+  struct RClass *c;
 
   ary = mrb_ary_new(mrb);
-  if (obj_iv_p(mod) && mrb_obj_ptr(mod)->iv) {
-    iv_foreach(mrb, mrb_obj_ptr(mod)->iv, cv_i, &ary);
+  c = mrb_class_ptr(mod);
+  while (c) {
+    if (c->iv) {
+      iv_foreach(mrb, c->iv, cv_i, &ary);
+    }
+    c = c->super;
   }
   return ary;
 }
@@ -720,7 +726,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
     }
     c = c->super;
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized class variable %S in %S",
+  mrb_name_error(mrb, sym, "uninitialized class variable %S in %S",
              mrb_sym2str(mrb, sym), cls);
   /* not reached */
   return mrb_nil_value();
@@ -876,7 +882,7 @@ L_RETRY:
     }
     c = c->super;
   }
-  mrb_raisef(mrb, E_NAME_ERROR, "uninitialized constant %S",
+  mrb_name_error(mrb, sym, "uninitialized constant %S",
              mrb_sym2str(mrb, sym));
   /* not reached */
   return mrb_nil_value();
@@ -947,6 +953,45 @@ void
 mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
 {
   mrb_define_const(mrb, mrb->object_class, name, val);
+}
+
+static int
+const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  mrb_value ary;
+  const char* s;
+  size_t len;
+
+  ary = *(mrb_value*)p;
+  s = mrb_sym2name_len(mrb, sym, &len);
+  if (len > 1 && ISUPPER(s[0])) {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+  }
+  return 0;
+}
+
+/* 15.2.2.4.24 */
+/*
+ *  call-seq:
+ *     mod.constants    -> array
+ *
+ *  Returns an array of all names of contants defined in the receiver.
+ */
+mrb_value
+mrb_mod_constants(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value ary;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  ary = mrb_ary_new(mrb);
+  while (c) {
+    if (c->iv) {
+      iv_foreach(mrb, c->iv, const_i, &ary);
+    }
+    c = c->super;
+    if (c == mrb->object_class) break;
+  }
+  return ary;
 }
 
 mrb_value
@@ -1049,15 +1094,6 @@ mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   return mrb_iv_get(mrb, obj, id);
-}
-
-struct RClass *
-mrb_class_obj_get(mrb_state *mrb, const char *name)
-{
-  mrb_value mod = mrb_obj_value(mrb->object_class);
-  mrb_sym sym = mrb_intern(mrb, name);
-
-  return mrb_class_ptr(mrb_const_get(mrb, mod, sym));
 }
 
 struct csym_arg {

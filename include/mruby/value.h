@@ -7,6 +7,8 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
+typedef uint8_t mrb_bool;
+
 #ifndef MRB_NAN_BOXING
 
 enum mrb_vtype {
@@ -43,7 +45,7 @@ typedef struct mrb_value {
     mrb_int i;
     mrb_sym sym;
   } value;
-  enum mrb_vtype tt:8;
+  enum mrb_vtype tt;
 } mrb_value;
 
 #define mrb_type(o)   (o).tt

@@ -8,6 +8,7 @@
 
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"
+
 void mrb_show_version(mrb_state *);
 void mrb_show_copyright(mrb_state *);
 void parser_dump(mrb_state*, struct mrb_ast_node*, int);
@@ -31,7 +32,7 @@ usage(const char *name)
   "switches:",
   "-c           check syntax only",
   "-o<outfile>  place the output into <outfile>",
-  "-v           print version number, then trun on verbose mode",
+  "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
   "--verbose    run at verbose mode",
@@ -42,17 +43,17 @@ usage(const char *name)
   const char *const *p = usage_msg;
 
   printf("Usage: %s [switches] programfile\n", name);
-  while(*p)
-  printf("  %s\n", *p++);
+  while (*p)
+    printf("  %s\n", *p++);
 }
 
 static char *
-get_outfilename(char *infile, char *ext)
+get_outfilename(mrb_state *mrb, char *infile, char *ext)
 {
   char *outfile;
   char *p;
 
-  outfile = (char*)malloc(strlen(infile) + strlen(ext) + 1);
+  outfile = (char*)mrb_malloc(mrb, strlen(infile) + strlen(ext) + 1);
   strcpy(outfile, infile);
   if (*ext) {
     if ((p = strrchr(outfile, '.')) == NULL)
@@ -69,7 +70,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   char *infile = NULL;
   char *outfile = NULL;
   char **origargv = argv;
-  int result = 0;
+  int result = EXIT_SUCCESS;
   static const struct _args args_zero = { 0 };
 
   *args = args_zero;
@@ -88,17 +89,17 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         if (outfile) {
           printf("%s: An output file is already specified. (%s)\n",
                  *origargv, outfile);
-          result = -5;
+          result = EXIT_FAILURE;
           goto exit;
         }
-        outfile = get_outfilename((*argv) + 2, "");
+        outfile = get_outfilename(mrb, (*argv) + 2, "");
         break;
       case 'B':
         args->ext = C_EXT;
         args->initname = (*argv) + 2;
         if (*args->initname == '\0') {
           printf("%s: Function name is not specified.\n", *origargv);
-          result = -2;
+          result = EXIT_FAILURE;
           goto exit;
         }
         break;
@@ -106,7 +107,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         args->check_syntax = 1;
         break;
       case 'v':
-        mrb_show_version(mrb);
+        if (!args->verbose) mrb_show_version(mrb);
         args->verbose = 1;
         break;
       case 'g':
@@ -115,7 +116,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       case '-':
         if (strcmp((*argv) + 2, "version") == 0) {
           mrb_show_version(mrb);
-          exit(0);
+          exit(EXIT_SUCCESS);
         }
         else if (strcmp((*argv) + 2, "verbose") == 0) {
           args->verbose = 1;
@@ -123,9 +124,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         }
         else if (strcmp((*argv) + 2, "copyright") == 0) {
           mrb_show_copyright(mrb);
-          exit(0);
+          exit(EXIT_SUCCESS);
         }
-        result = -3;
+        result = EXIT_FAILURE;
         goto exit;
       default:
         break;
@@ -141,7 +142,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   }
 
   if (infile == NULL) {
-    result = -4;
+    result = EXIT_FAILURE;
     goto exit;
   }
   if (!args->check_syntax) {
@@ -150,7 +151,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
         outfile = infile;
       }
       else {
-        outfile = get_outfilename(infile, args->ext);
+        outfile = get_outfilename(mrb, infile, args->ext);
       }
     }
     if (strcmp("-", outfile) == 0) {
@@ -158,12 +159,13 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
     else if ((args->wfp = fopen(outfile, "wb")) == NULL) {
       printf("%s: Cannot open output file. (%s)\n", *origargv, outfile);
-      result = -1;
+      result = EXIT_FAILURE;
       goto exit;
     }
   }
- exit:
-  if (outfile && infile != outfile) free(outfile);
+
+exit:
+  if (outfile && infile != outfile) mrb_free(mrb, outfile);
   return result;
 }
 
@@ -192,7 +194,7 @@ main(int argc, char **argv)
   }
 
   n = parse_args(mrb, argc, argv, &args);
-  if (n < 0 || args.rfp == NULL) {
+  if (n == EXIT_FAILURE || args.rfp == NULL) {
     cleanup(mrb, &args);
     usage(argv[0]);
     return n;
@@ -215,6 +217,10 @@ main(int argc, char **argv)
   }
   if (args.initname) {
     n = mrb_dump_irep_cfunc(mrb, n, args.debug_info, args.wfp, args.initname);
+    if (n == MRB_DUMP_INVALID_ARGUMENT) {
+      printf("%s: Invalid C language symbol name\n", args.initname);
+      return EXIT_FAILURE;
+    }
   }
   else {
     n = mrb_dump_irep_binary(mrb, n, args.debug_info, args.wfp);

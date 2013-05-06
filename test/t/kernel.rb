@@ -23,6 +23,8 @@ assert('Kernel.block_given?', '15.3.1.2.2') do
     ((bg_try do "block" end) == "block")
 end
 
+# Kernel.eval is provided by the mruby-gem mrbgem. '15.3.1.2.3'
+
 assert('Kernel.global_variables', '15.3.1.2.4') do
   Kernel.global_variables.class == Array
 end
@@ -153,6 +155,16 @@ assert('Kernel#clone', '15.3.1.3.8') do
   a.set(2)
   c = a.clone
 
+  immutables = [ 1, :foo, true, false, nil ]
+  error_count = 0
+  immutables.each do |i|
+    begin
+      i.clone
+    rescue TypeError
+      error_count += 1
+    end
+  end
+
   a.get == 2 and b.get == 1 and c.get == 2 &&
     a.respond_to?(:test) == true and
     b.respond_to?(:test) == false and
@@ -183,11 +195,24 @@ assert('Kernel#dup', '15.3.1.3.9') do
   a.set(2)
   c = a.dup
 
-  a.get == 2 and b.get == 1 and c.get == 2 and
+  immutables = [ 1, :foo, true, false, nil ]
+  error_count = 0
+  immutables.each do |i|
+    begin
+      i.dup
+    rescue TypeError
+      error_count += 1
+    end
+  end
+
+  error_count == immutables.size and
+    a.get == 2 and b.get == 1 and c.get == 2 and
     a.respond_to?(:test) == true and
     b.respond_to?(:test) == false and
     c.respond_to?(:test) == false
 end
+
+# Kernel#eval is provided by mruby-eval mrbgem '15.3.1.3.12'
 
 assert('Kernel#extend', '15.3.1.3.13') do
   class Test4ExtendClass
@@ -287,6 +312,10 @@ assert('Kernel#object_id', '15.3.1.3.33') do
   object_id.class == Fixnum
 end
 
+# Kernel#p is defined in mruby-print mrbgem. '15.3.1.3.34'
+
+# Kernel#print is defined in mruby-print mrbgem. '15.3.1.3.35'
+
 assert('Kernel#private_methods', '15.3.1.3.36') do
   private_methods.class == Array
 end
@@ -298,6 +327,8 @@ end
 assert('Kernel#public_methods', '15.3.1.3.38') do
   public_methods.class == Array
 end
+
+# Kernel#puts is defined in mruby-print mrbgem. '15.3.1.3.39'
 
 assert('Kernel#raise', '15.3.1.3.40') do
   e_list = []
@@ -320,13 +351,29 @@ assert('Kernel#raise', '15.3.1.3.40') do
     e_list[1].class == RuntimeError
 end
 
+# Kernel#require is defined in mruby-require. '15.3.1.3.42'
+
 assert('Kernel#respond_to?', '15.3.1.3.43') do
+  e_list = []
+
   class Test4RespondTo
+    def valid_method; end
+
     def test_method; end
     undef test_method
   end
 
-  respond_to?(:nil?) and Test4RespondTo.new.respond_to?(:test_method) == false
+  begin
+    Test4RespondTo.new.respond_to?(1)
+  rescue => e
+    e_list << e.class
+  end
+
+  e_list[0] == TypeError and
+  respond_to?(:nil?) and 
+  Test4RespondTo.new.respond_to?(:valid_method) == true and
+  Test4RespondTo.new.respond_to?('valid_method') == true and
+  Test4RespondTo.new.respond_to?(:test_method) == false 
 end
 
 assert('Kernel#send', '15.3.1.3.44') do
@@ -348,4 +395,27 @@ end
 
 assert('Kernel#to_s', '15.3.1.3.46') do
   to_s.class == String
+end
+
+assert('Kernel#!=') do
+  str1 = "hello"
+  str2 = str1
+  str3 = "world"
+
+  (str1[1] != 'e') == false and
+  (str1 != str3) == true and
+  (str2 != str1) == false
+end
+
+assert('Kernel#respond_to_missing?') do
+
+  class Test4RespondToMissing
+    def respond_to_missing?(method_name, include_private = false)
+      method_name == :a_method
+    end
+  end
+
+  Test4RespondToMissing.new.respond_to?(:a_method) == true and
+  Test4RespondToMissing.new.respond_to?(:no_method) == false
+
 end

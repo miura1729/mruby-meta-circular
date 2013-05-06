@@ -14,6 +14,9 @@ end
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
 assert('Module#ancestors', '15.2.2.4.9') do
+  class Test4ModuleAncestors
+  end
+  sc = Test4ModuleAncestors.singleton_class
   r = String.ancestors
   r.class == Array and r.include?(String) and r.include?(Object)
 end
@@ -88,7 +91,7 @@ assert('Module#class_variables', '15.2.2.4.19') do
   end
 
   Test4ClassVariables1.class_variables == [:@@var1] &&
-  Test4ClassVariables2.class_variables == [:@@var2]
+  Test4ClassVariables2.class_variables == [:@@var2, :@@var1]
 end
 
 assert('Module#const_defined?', '15.2.2.4.20') do
@@ -109,8 +112,6 @@ assert('Module#const_get', '15.2.2.4.21') do
 end
 
 assert('Module.const_missing', '15.2.2.4.22') do
-  e1 = nil
-
   module Test4ConstMissing
     def self.const_missing(sym)
       42 # the answer to everything
@@ -127,6 +128,21 @@ assert('Module#const_get', '15.2.2.4.23') do
 
   Test4ConstSet.const_set(:Const4Test4ConstSet, 23)
   Test4ConstSet.const_get(:Const4Test4ConstSet) == 23
+end
+
+assert('Module.constants', '15.2.2.4.24') do
+  $n = []
+  module TestA
+    Const = 1
+  end
+  class TestB
+    include TestA
+    Const2 = 1
+    $n = constants.sort
+  end
+
+  TestA.constants == [ :Const ] and
+  $n == [ :Const, :Const2 ]
 end
 
 assert('Module#include', '15.2.2.4.27') do
@@ -280,6 +296,29 @@ assert('Module#remove_method', '15.2.2.4.41') do
 
   Test4RemoveMethod::Child.instance_methods.include? :hello and
   not Test4RemoveMethod::Child.instance_methods(false).include? :hello
+end
+
+assert('Module.undef_method', '15.2.2.4.42') do
+  module Test4UndefMethod
+    class Parent
+      def hello
+      end
+     end
+
+     class Child < Parent
+      def hello
+      end
+     end
+
+     class GrandChild < Child
+     end
+  end
+
+  Test4UndefMethod::Child.class_eval{ undef_method :hello }
+
+  Test4UndefMethod::Parent.new.respond_to?(:hello) and
+  not Test4UndefMethod::Child.new.respond_to?(:hello) and
+  not Test4UndefMethod::GrandChild.new.respond_to?(:hello)
 end
 
 
