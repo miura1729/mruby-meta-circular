@@ -105,6 +105,36 @@ mrb_irep_iseq(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_pool(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value ary = mrb_ary_new_capa(mrb, irep->ilen);
+
+  
+  for (i = 0; i < irep->plen; i++) {
+    mrb_ary_push(mrb, ary, irep->pool[i]);
+  }
+
+  return ary;
+}
+
+static mrb_value
+mrb_irep_syms(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value ary = mrb_ary_new_capa(mrb, irep->ilen);
+
+  
+  for (i = 0; i < irep->slen; i++) {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(irep->syms[i]));
+  }
+
+  return ary;
+}
+
+static mrb_value
 mrb_irep_nregs(mrb_state *mrb, mrb_value self)
 {
   mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
@@ -133,6 +163,8 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
 
   mrb_define_method(mrb, a, "iseq", mrb_irep_iseq, ARGS_NONE());
+  mrb_define_method(mrb, a, "pool", mrb_irep_pool, ARGS_NONE());
+  mrb_define_method(mrb, a, "syms", mrb_irep_syms, ARGS_NONE());
   mrb_define_method(mrb, a, "nregs", mrb_irep_nregs, ARGS_NONE());
   mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, ARGS_NONE());
 }
