@@ -11,14 +11,20 @@ end
 
 def foo
   i = 4
-  i + 3
+  j = 0
+  while i != 0
+    j = j + i
+    i = i - 1
+  end
+  j + 3
 end
 
 a = Irep::get_irep(self, :foo)
 a.iseq.each do |n|
   p Irep::OPTABLE[n & 0x7f]
 end
-p a.eval
+vm = RiteVM.new
+p vm.eval(a)
 
 
 

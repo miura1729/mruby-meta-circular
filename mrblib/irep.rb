@@ -24,40 +24,108 @@ module RiteOpcodeUtil
   end
 end
 
-module RiteVM
+class RiteVM
   include RiteOpcodeUtil
 
-  def rite_init
-    @regs = []
+  def initialize
+    @stack = []
+    @callinfo = []
     @pc = 0
+    @sp = 0
+    @bp = 0
+    @cp = 0
   end
 
-  def eval
-    rite_init
+  def eval(irep)
     while true
-      cop = iseq[@pc]
+      cop = irep.iseq[@pc]
       case Irep::OPTABLE_SYM[get_opcode(cop)]
       when :NOP
 
       when :MOVE
-        @regs[getarg_a(cop)] = @regs[getarg_b(cop)]
+        @stack[@sp + getarg_a(cop)] = @stack[@sp + getarg_b(cop)]
 
       when :LOADL
-        @regs[getarg_a(cop)] = pool[getarg_bx(i)]
+        @stack[@sp + getarg_a(cop)] = irep.pool[getarg_bx(cop)]
 
       when :LOADI
-        @regs[getarg_a(cop)] = getarg_sbx(cop)
+        @stack[@sp + getarg_a(cop)] = getarg_sbx(cop)
+
+      when :LOADSYM
+        @stack[@sp + getarg_a(cop)] = irep.syms[getarg_bx(cop)]
+
+      when :LOADSELF
+        @stack[@sp + getarg_a(cop)] = @stack[@sp]
+
+      when :LOADT
+        @stack[@sp + getarg_a(cop)] = true
+
+      when :ADD
+        @stack[@sp + getarg_a(cop)] += @stack[@sp + getarg_a(cop) + 1]
 
       when :ADDI
-        @regs[getarg_a(cop)] += getarg_c(cop)
+        @stack[@sp + getarg_a(cop)] += getarg_c(cop)
+
+      when :SUB
+        @stack[@sp + getarg_a(cop)] -= @stack[@sp + getarg_a(cop) + 1]
+
+      when :SUBI
+        @stack[@sp + getarg_a(cop)] -= getarg_c(cop)
 
       when :JMP
         @pc = @pc + getarg_sbx(cop)
         next
 
-      when :RETURN
-        return @regs[getarg_a(cop)]
+      when :JMPIF
+        if @stack[@sp + getarg_a(cop)] then
+          @pc = @pc + getarg_sbx(cop)
+          next
+        end
 
+      when :JMPIFNOT
+        if !@stack[@sp + getarg_a(cop)] then
+          @pc = @pc + getarg_sbx(cop)
+          next
+        end
+
+      when :SEND
+        a = getarg_a(cop)
+        mid = irep.syms[getarg_b(cop)]
+        n = getarg_c(cop)
+        newirep = Irep::get_irep(@stack[@sp + a], mid)
+        if newirep then
+          @callinfo[@cp] = @sp
+          @cp += 1
+          @callinfo[@cp] = @pc
+          @cp += 1
+          @callinfo[@cp] = irep
+          @cp += 1
+          @sp += a
+          @pc = 0
+          irep = newirep
+
+          next
+        else
+          args = []
+          n.times do |i|
+            args.push @stack[@sp + a + i + 1]
+          end
+          
+          @stack[@sp + a] = @stack[@sp + a].send(mid, *args)
+        end
+
+      when :RETURN
+        if @cp == 0 then
+          return @stack[@sp + getarg_a(cop)]
+        else
+          @stack[@sp] = @stack[@sp + getarg_a(cop)]
+          @cp -= 1
+          irep = @callinfo[@cp]
+          @cp -= 1
+          @pc = @callinfo[@cp]
+          @cp -= 1
+          @sp = @callinfo[@cp]
+        end
       else
         printf("Unkown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
       end
@@ -72,6 +140,4 @@ class Irep
   OPTABLE.each do |ent|
     OPTABLE_SYM.push ent.to_sym
   end
-
-  include RiteVM
 end

@@ -81,7 +81,7 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
   c = mrb_class(mrb, recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m) {
+  if (m && !MRB_PROC_CFUNC_P(m)) {
     return mrb_irep_wrap(mrb, mrb_class_ptr(self), m->body.irep);
   }
   else {
