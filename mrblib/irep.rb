@@ -72,6 +72,16 @@ class RiteVM
       when :SUBI
         @stack[@sp + getarg_a(cop)] -= getarg_c(cop)
 
+      when :MUL
+        @stack[@sp + getarg_a(cop)] *= @stack[@sp + getarg_a(cop) + 1]
+
+      when :DIV
+        @stack[@sp + getarg_a(cop)] /= @stack[@sp + getarg_a(cop) + 1]
+
+      when :EQ
+        val = (@stack[@sp + getarg_a(cop)] == @stack[@sp + getarg_a(cop) + 1])
+        @stack[@sp + getarg_a(cop)] = val
+
       when :JMP
         @pc = @pc + getarg_sbx(cop)
         next
@@ -82,11 +92,13 @@ class RiteVM
           next
         end
 
-      when :JMPIFNOT
+      when :JMPNOT
         if !@stack[@sp + getarg_a(cop)] then
           @pc = @pc + getarg_sbx(cop)
           next
         end
+
+      when :ENTER
 
       when :SEND
         a = getarg_a(cop)

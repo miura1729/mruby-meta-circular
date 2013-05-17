@@ -10,7 +10,7 @@ a.iseq.each do |n|
 end
 
 def foo
-  i = 4
+  i = 400
   j = 0
   while i != 0
     j = j + i
@@ -19,12 +19,26 @@ def foo
   j + 3
 end
 
-a = Irep::get_irep(self, :foo)
+def factt
+  fact(5)
+end
+
+def fact(n)
+  if n == 0 then
+    1
+  else
+    fact(n - 1) * n
+  end
+end
+
+#a = Irep::get_irep(self, :foo)
+a = Irep::get_irep(self, :factt)
 a.iseq.each do |n|
   p Irep::OPTABLE[n & 0x7f]
 end
 vm = RiteVM.new
 p vm.eval(a)
-
+#p foo
+p factt
 
 
