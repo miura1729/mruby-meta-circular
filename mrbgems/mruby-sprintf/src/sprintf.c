@@ -1018,7 +1018,7 @@ retry:
             need = width;
 
           CHECK(need + 1);
-          n = snprintf(&buf[blen], need + 1, "%*s", need, "");
+          snprintf(&buf[blen], need + 1, "%*s", need, "");
           if (flags & FMINUS) {
             if (!isnan(fval) && fval < 0.0)
               buf[blen++] = '-';
@@ -1070,7 +1070,7 @@ retry:
   if (posarg >= 0 && nextarg < argc) {
     const char *mesg = "too many arguments for format string";
     if (mrb_test(ruby_debug)) mrb_raise(mrb, E_ARGUMENT_ERROR, mesg);
-    if (mrb_test(ruby_verbose)) mrb_warn("%s", mesg);
+    if (mrb_test(ruby_verbose)) mrb_warn(mrb, "%S", mrb_str_new_cstr(mrb, mesg));
   }
 #endif
   mrb_str_resize(mrb, result, blen);

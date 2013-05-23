@@ -189,12 +189,12 @@ exc_equal(mrb_state *mrb, mrb_value exc)
 static void
 exc_debug_info(mrb_state *mrb, struct RObject *exc)
 {
-  mrb_callinfo *ci = mrb->ci;
+  mrb_callinfo *ci = mrb->c->ci;
   mrb_code *pc = ci->pc;
 
-  mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->cibase));
+  mrb_obj_iv_set(mrb, exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
   ci--;
-  while (ci >= mrb->cibase) {
+  while (ci >= mrb->c->cibase) {
     if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
       mrb_irep *irep = ci->proc->body.irep;
 
@@ -312,28 +312,32 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 }
 
 void
-mrb_warn(const char *fmt, ...)
+mrb_warn(mrb_state *mrb, const char *fmt, ...)
 {
 #ifdef ENABLE_STDIO
-  va_list args;
+  va_list ap;
+  mrb_value str;
 
-  va_start(args, fmt);
-  printf("warning: ");
-  vprintf(fmt, args);
-  va_end(args);
+  va_start(ap, fmt);
+  str = mrb_vformat(mrb, fmt, ap);
+  fputs("warning: ", stderr);
+  fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
+  va_end(ap);
 #endif
 }
 
 void
-mrb_bug(const char *fmt, ...)
+mrb_bug(mrb_state *mrb, const char *fmt, ...)
 {
 #ifdef ENABLE_STDIO
-  va_list args;
+  va_list ap;
+  mrb_value str;
 
-  va_start(args, fmt);
-  printf("bug: ");
-  vprintf(fmt, args);
-  va_end(args);
+  va_start(ap, fmt);
+  str = mrb_vformat(mrb, fmt, ap);
+  fputs("bug: ", stderr);
+  fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
+  va_end(ap);
 #endif
   exit(EXIT_FAILURE);
 }

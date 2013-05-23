@@ -95,7 +95,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int n = ISEQ_OFFSET_OF(newpc);
     if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
-					  curpc, mrb->ci->pc);
+					  curpc, mrb->c->ci->pc);
     }
     else {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
@@ -317,7 +317,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_irep *irep = *status->irep;
     mrb_sym id = irep->syms[idpos];
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    mrb_value self = mrb->stack[0];
+    mrb_value self = mrb->c->stack[0];
     const int ivoff = mrbjit_iv_off(mrb, self, id);
 
     if (ivoff < 0) {
@@ -344,7 +344,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const int idpos = GETARG_Bx(**ppc);
     mrb_irep *irep = *status->irep;
     mrb_sym id = irep->syms[idpos];
-    mrb_value self = mrb->stack[0];
+    mrb_value self = mrb->c->stack[0];
     const int ivoff = mrbjit_iv_off(mrb, self, id);
 
     if (ivoff < 0) {
@@ -531,7 +531,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(ecx, dword [eax]);
 
       //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
-      mov(eax, dword [esi + OffsetOf(mrb_state, ci)]);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
       lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
       ioff = ISEQ_OFFSET_OF(pc);
       toff = coi - (irep->jit_entry_tab + ioff)->body;
@@ -570,7 +571,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     
-    mov(eax, dword [esi + OffsetOf(mrb_state, stack)]);
+    mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+    mov(eax, dword [eax + OffsetOf(mrb_context, stack)]);
     mov(eax, dword [eax + OffsetOf(mrb_value, value.p)]);
     mov(eax, dword [eax + OffsetOf(struct RProc, body.irep)]);
     mov(eax, dword [eax + OffsetOf(mrb_irep, jit_top_entry)]);
@@ -619,7 +621,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
 
     /* Set return address from callinfo */
-    mov(eax, dword [esi + OffsetOf(mrb_state, ci)]);
+    mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+    mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
     mov(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
     test(eax, eax);
     jnz("@f");

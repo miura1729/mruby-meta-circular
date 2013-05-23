@@ -255,13 +255,12 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   if (mrb_const_defined_at(mrb, outer, id)) {
     c = class_from_sym(mrb, outer, id);
     if (mrb_class_real(c->super) != super) {
-        mrb_name_error(mrb, id, "%S is already defined", mrb_sym2str(mrb, id));
+      mrb_name_error(mrb, id, "%S is already defined", name);
     }
     return c;
   }
   if (!super) {
-    mrb_warn("no super class for `%S::%S', Object assumed",
-             mrb_obj_value(outer), mrb_sym2str(mrb, id));
+    mrb_warn(mrb, "no super class for `%S::%S', Object assumed", outer, name);
   }
   c = mrb_class_new(mrb, super);
   setup_class(mrb, mrb_obj_value(outer), c, id);
@@ -401,7 +400,7 @@ to_hash(mrb_state *mrb, mrb_value val)
 
   returns number of arguments parsed.
 
-  fortmat specifiers:
+  format specifiers:
 
    o: Object [mrb_value]
    S: String [mrb_value]
@@ -423,14 +422,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
   char c;
   int i = 0;
-  mrb_value *sp = mrb->stack + 1;
+  mrb_value *sp = mrb->c->stack + 1;
   va_list ap;
-  int argc = mrb->ci->argc;
+  int argc = mrb->c->ci->argc;
   int opt = 0;
 
   va_start(ap, format);
   if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->stack[1]);
+    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
 
     argc = a->len;
     sp = a->ptr;
@@ -652,11 +651,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p, *bp;
 
         p = va_arg(ap, mrb_value*);
-        if (mrb->ci->argc < 0) {
-          bp = mrb->stack + 2;
+        if (mrb->c->ci->argc < 0) {
+          bp = mrb->c->stack + 2;
         }
         else {
-          bp = mrb->stack + mrb->ci->argc + 1;
+          bp = mrb->c->stack + mrb->c->ci->argc + 1;
         }
         *p = *bp;
       }
@@ -676,7 +675,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           *pl = argc-i;
           if (*pl > 0) {
             *var = sp;
-            i = argc;
           }
           i = argc;
           sp += *pl;

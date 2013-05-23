@@ -73,10 +73,11 @@ typedef struct {
   struct REnv *env;
 } mrb_callinfo;
 
-enum gc_state {
-  GC_STATE_NONE = 0,
-  GC_STATE_MARK,
-  GC_STATE_SWEEP
+enum mrb_fiber_state {
+  MRB_FIBER_CREATED = 0,
+  MRB_FIBER_RUNNING,
+  MRB_FIBER_RESUMED,
+  MRB_FIBER_TERMINATED,
 };
 
 typedef void * mrbjit_code_area;
@@ -131,10 +132,8 @@ typedef struct mrbjit_comp_info {
   int nest_level;
 } mrbjit_comp_info;
 
-typedef struct mrb_state {
-  void *jmp;
-
-  mrb_allocf allocf;
+struct mrb_context {
+  struct mrb_context *prev;
 
   mrb_value *stack;
   mrb_value *stbase, *stend;
@@ -147,9 +146,26 @@ typedef struct mrb_state {
   struct RProc **ensure;
   int esize;
 
+  uint8_t status;
+  struct RFiber *fib;
+};
+
+enum gc_state {
+  GC_STATE_NONE = 0,
+  GC_STATE_MARK,
+  GC_STATE_SWEEP
+};
+
+typedef struct mrb_state {
+  void *jmp;
+
+  mrb_allocf allocf;
+
+  struct mrb_context *c;
+  struct mrb_context *root_c;
+
   struct RObject *exc;
   struct iv_tbl *globals;
-
   struct mrb_irep **irep;
   size_t irep_len, irep_capa;
 
@@ -364,8 +380,9 @@ void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
 void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
-void mrb_warn(const char *fmt, ...);
-void mrb_bug(const char *fmt, ...);
+void mrb_warn(mrb_state *mrb, const char *fmt, ...);
+void mrb_bug(mrb_state *mrb, const char *fmt, ...);
+void mrb_print_backtrace(mrb_state *mrb);
 
 /* macros to get typical exception objects
    note:
@@ -389,7 +406,7 @@ void mrb_bug(const char *fmt, ...);
 
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
 
-mrb_value mrb_yield(mrb_state *mrb, mrb_value v, mrb_value blk);
+mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
 mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
 mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);

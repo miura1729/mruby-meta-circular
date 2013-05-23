@@ -132,7 +132,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_struct_getmember(mrb, obj, mrb->ci->mid);
+  return mrb_struct_getmember(mrb, obj, mrb->c->ci->mid);
 }
 
 static mrb_value mrb_struct_ref0(mrb_state* mrb, mrb_value obj) {return RSTRUCT_PTR(obj)[0];}
@@ -191,7 +191,7 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
   mrb_value members, slot, *ptr, *ptr_members;
 
   /* get base id */
-  name = mrb_sym2name_len(mrb, mrb->ci->mid, &len);
+  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &len);
   mid = mrb_intern2(mrb, name, len-1); /* omit last "=" */
 
   members = mrb_struct_members(mrb, obj);
@@ -252,7 +252,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
-      mrb_warn("redefining constant Struct::%s", mrb_string_value_ptr(mrb, name));
+      mrb_warn(mrb, "redefining constant Struct::%S", name);
       //?rb_mod_remove_const(klass, mrb_sym2name(mrb, id));
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
@@ -716,7 +716,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
     equal_p = 0;
   }
   else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug("inconsistent struct"); /* should never happen */
+    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
     equal_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
   else {
@@ -760,7 +760,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
     eql_p = 0;
   }
   else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug("inconsistent struct"); /* should never happen */
+    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
     eql_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
   else {
