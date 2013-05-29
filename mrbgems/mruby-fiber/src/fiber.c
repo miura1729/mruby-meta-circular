@@ -169,8 +169,10 @@ fiber_resume(mrb_state *mrb, mrb_value self)
     while (b<e) {
       *b++ = *a++;
     }
-    c->ci->argc = len;
+    c->cibase->argc = len;
     c->prev = mrb->c;
+    if (c->prev->fib) 
+      mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
     c->status = MRB_FIBER_RUNNING;
     mrb->c = c;
 
@@ -179,6 +181,8 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   }
   MARK_CONTEXT_MODIFY(c);
   c->prev = mrb->c;
+  if (c->prev->fib) 
+    mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
   c->status = MRB_FIBER_RUNNING;
   mrb->c = c;
   return fiber_result(mrb, a, len);

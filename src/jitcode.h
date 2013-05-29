@@ -464,7 +464,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 \
     test(eax, eax);					             \
     jz("@f");                                                        \
-    gen_exit(*status->pc, 0);					     \
+    gen_exit(NULL, 0);					             \
     L("@@");                                                         \
   }while (0)
 
@@ -647,7 +647,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     test(eax, eax);
     jz("@f");
     pop(edx);			/* pop return address from callinfo */
-    gen_exit(*status->pc, 0);
+    gen_exit(NULL, 0);
     L("@@");
 
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);

@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include "opcode.h"
+#include "error.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
@@ -32,6 +33,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_code *pc = *status->pc;
   mrb_value *regs = *status->regs;
   mrb_sym *syms = *status->syms;
+  mrb_irep *irep;
   int ai = *status->ai;
   mrb_code i = *pc;
 
@@ -52,6 +54,9 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   ci->argc = n;
   ci->target_class = c;
 
+  ci->pc = pc + 1;
+  ci->acc = a;
+
   /* prepare stack */
   mrb->c->stack += a;
 
@@ -68,6 +73,19 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
     return status->gototable[0];	/* goto L_RAISE; */
   }
   /* pop stackpos */
+  ci = mrb->c->ci;
+  if (!ci->target_class) { /* return from context modifying method (resume/yield) */
+    if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
+      irep = *(status->irep) = ci[-1].proc->body.irep;
+      *(status->pool) = irep->pool;
+      *(status->syms) = irep->syms;
+    }
+    *(status->regs) = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+    mrbjit_cipop(mrb);
+    *(status->pc) = ci->pc;
+
+    return status->optable[GET_OPCODE(**(status->pc))];
+  }
   mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
   mrbjit_cipop(mrb);
 
@@ -102,7 +120,12 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   ci->proc = m;
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->argc = n;
-  ci->target_class = c;
+  if (c->tt == MRB_TT_ICLASS) {
+    ci->target_class = c->c;
+  }
+  else {
+    ci->target_class = c;
+  }
   ci->pc = pc + 1;
   ioff = ISEQ_OFFSET_OF(pc + 1);
   ci->acc = a;
@@ -290,8 +313,18 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     case OP_R_NORMAL:
       if (ci == mrb->c->cibase) {
-	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-	goto L_RAISE;
+	if (!mrb->c->prev) { /* toplevel return */
+	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+	  goto L_RAISE;
+	}
+	if (mrb->c->prev->ci == mrb->c->prev->cibase) {
+	  mrb_value exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
+	  mrb->exc = mrb_obj_ptr(exc);
+	  goto L_RAISE;
+	}
+	/* automatic yield at the end */
+	mrb->c->status = MRB_FIBER_TERMINATED;
+	mrb->c = mrb->c->prev;
       }
       ci = mrb->c->ci;
       break;
@@ -325,6 +358,8 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     *status->syms = (*status->irep)->syms;
 
     (*status->regs)[acc] = v;
+
+    return status->optable[GET_OPCODE(*ci->pc)];
   }
 
   return rc;

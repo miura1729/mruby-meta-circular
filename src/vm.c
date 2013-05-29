@@ -9,7 +9,6 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include "mruby.h"
-#include "opcode.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
@@ -162,9 +161,10 @@ stack_extend(mrb_state *mrb, int room, int keep)
 #ifndef MRB_NAN_BOXING
     stack_clear(&(mrb->c->stack[keep]), room - keep);
 #else
+    struct mrb_context *c = mrb->c;
     int i;
     for (i=keep; i<room; i++) {
-      SET_NIL_VALUE(mrb->c->stack[i]);
+      SET_NIL_VALUE(c->stack[i]);
     }
 #endif
   }
@@ -1517,9 +1517,13 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           value_move(&regs[1], argv, argc-m2); /* m1 + o */
         }
         if (m2) {
-          value_move(&regs[len-m2+1], &argv[argc-m2], m2); /* m2 */
+          int mlen = m2;
+          if (argc-m2 <= m1) {
+            mlen = argc - m1;
+          }
+          value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
         }
-        if (r) {                  /* r */
+        if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
         if (o == 0) pc++;
@@ -1529,13 +1533,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       else {
         if (argv0 != argv) {
           regs[len+1] = *blk; /* move block */
-          value_move(&regs[1], argv, m1+o); /* m1 + o */
+          value_move(&regs[1], argv, m1+o);
         }
-        if (r) {                  /* r */
+        if (r) {
           regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
         }
         if (m2) {
-          value_move(&regs[m1+o+r+1], &argv[argc-m2], m2);
+          if (argc-m2 > m1) {
+            value_move(&regs[m1+o+r+1], &argv[argc-m2], m2);
+          }
         }
         if (argv0 == argv) {
           regs[len+1] = *blk; /* move block */
