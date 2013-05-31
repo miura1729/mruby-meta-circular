@@ -359,7 +359,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
     (*status->regs)[acc] = v;
 
-    return status->optable[GET_OPCODE(*ci->pc)];
+    // return status->optable[GET_OPCODE(*ci->pc)];
   }
 
   return rc;
