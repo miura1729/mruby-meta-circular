@@ -67,6 +67,9 @@ typedef struct scope {
   int ai;
 
   int idx;
+
+  /* For OP_LAMBDA optimize */
+  int simple_lambda;
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -906,6 +909,7 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
       while (up) {
         idx = lv_idx(up, sym(node));
         if (idx > 0) {
+	  s->simple_lambda = 0;
           genop_peep(s, MKOP_ABC(OP_SETUPVAR, sp, idx, lv), val);
           break;
         }
@@ -1264,7 +1268,14 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int idx = lambda_body(s, tree, 1);
 
-      genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_LAMBDA));
+      s->simple_lambda = 0;
+      if (s->mrb->irep[idx]->simple_lambda) {
+	/* no parent var access and child lambda */
+	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
+      }
+      else {
+	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_LAMBDA));
+      }
       push();
     }
     break;
@@ -1839,6 +1850,7 @@ codegen(codegen_scope *s, node *tree, int val)
         while (up) {
           idx = lv_idx(up, sym(tree));
           if (idx > 0) {
+	    s->simple_lambda = 0;
             genop(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv));
             break;
           }
@@ -2432,6 +2444,8 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   }
   p->lineno = prev->lineno;
   p->irep->jit_inlinep = 0;
+
+  p->simple_lambda = 1;
   return p;
 }
 
@@ -2476,6 +2490,8 @@ scope_finish(codegen_scope *s)
 
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
+
+  irep->simple_lambda = s->simple_lambda;
 
   mrb_gc_arena_restore(mrb, s->ai);
   mrb_pool_close(s->mpool);

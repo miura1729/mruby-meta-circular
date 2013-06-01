@@ -32,6 +32,9 @@ typedef struct mrb_irep {
 
   mrb_int is_method_cache_used;
 
+  /* Lambda optimize */
+  int simple_lambda;
+
   /* JIT stuff */
   int *prof_info;
   int jit_inlinep;
