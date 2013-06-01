@@ -34,6 +34,7 @@ typedef struct mrb_irep {
 
   /* Lambda optimize */
   int simple_lambda;
+  struct RProc *proc_obj;
 
   /* JIT stuff */
   int *prof_info;

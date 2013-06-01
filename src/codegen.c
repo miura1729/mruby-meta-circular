@@ -2492,6 +2492,7 @@ scope_finish(codegen_scope *s)
   irep->nregs = s->nregs;
 
   irep->simple_lambda = s->simple_lambda;
+  irep->proc_obj = NULL;
 
   mrb_gc_arena_restore(mrb, s->ai);
   mrb_pool_close(s->mpool);

@@ -188,6 +188,9 @@ read_rite_irep_record(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
   irep->jit_inlinep = 0;
   irep->jit_top_entry = NULL;
 
+  irep->simple_lambda = 1;
+  irep->proc_obj = NULL;
+
   ret = MRB_DUMP_OK;
 error_exit:
   return ret;

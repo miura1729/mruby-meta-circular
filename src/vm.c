@@ -2197,7 +2197,15 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);
       }
       else {
-        p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);      }
+	mrb_irep *mirep = mrb->irep[irep->idx+GETARG_b(i)];
+	if (mirep->proc_obj) {
+	  p = mirep->proc_obj;
+	}
+	else {
+	  p = mrb_proc_new(mrb, mirep);
+	  mirep->proc_obj = p;
+	}
+      }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[GETARG_A(i)] = mrb_obj_value(p);
       mrb_gc_arena_restore(mrb, ai);

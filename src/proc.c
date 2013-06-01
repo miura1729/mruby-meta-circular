@@ -198,6 +198,8 @@ mrb_init_proc(mrb_state *mrb)
     (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*16);
   call_irep->prof_info = (int *)mrb_alloca(mrb, sizeof(int));
   call_irep->jit_top_entry = NULL;
+  call_irep->simple_lambda = 1;
+  call_irep->proc_obj = NULL;
 
   mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);
   MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
