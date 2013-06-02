@@ -1069,7 +1069,7 @@ do {                                                                 \
     const int kind = GETARG_c(**ppc);
     const int lno = GETARG_b(**ppc);
     const int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    mrb_irep *mirb = mrb->irep[lno];
+    mrb_irep *mirb = mrb->irep[(*(status->irep))->idx + lno];
 
     if (!(kind & OP_L_CAPTURE) && mirb->proc_obj) {
       mov(eax, (Xbyak::uint32)mirb->proc_obj);
