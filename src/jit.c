@@ -421,7 +421,12 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
       mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
     }
     *status->regs = mrb->c->stack;
-    (*(status->regs))[0] = m->env->stack[0];
+    if (m->env) {
+      (*(status->regs))[0] = m->env->stack[0];
+    }
+    else {
+      (*(status->regs))[0] = mrb_obj_value(m->target_class);
+    }
     *status->pc = m->body.irep->iseq;
     //printf("call %x %x\n", *status->irep, (*(status->irep))->jit_top_entry);
     //printf("%x\n", mrb->c->ci->jit_entry);
