@@ -1269,7 +1269,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lambda_body(s, tree, 1);
 
       s->simple_lambda = 0;
-      if (s->mrb->irep[idx]->simple_lambda) {
+      if (s->mrb->irep[s->idx + idx]->simple_lambda) {
 	/* no parent var access and child lambda */
 	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
       }
@@ -1284,7 +1284,15 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int idx = lambda_body(s, tree, 1);
 
-      genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_BLOCK));
+      s->simple_lambda = 0;
+      if (s->mrb->irep[s->idx + idx]->simple_lambda) {
+	/* no parent var access and child lambda */
+	/* NO strict and NO capture */
+	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, 0));
+      }
+      else {
+	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_BLOCK));
+      }
       push();
     }
     break;

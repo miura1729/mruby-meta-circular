@@ -1338,7 +1338,12 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           stack_extend(mrb, irep->nregs,  ci->argc+2);
         }
         regs = mrb->c->stack;
-        regs[0] = m->env->stack[0];
+	if (m->env) {
+	  regs[0] = m->env->stack[0];
+	} else {
+	  /* Use caller self as reciver  */
+	  regs[0] = mrb_obj_value(m->target_class);
+	}
         pc = m->body.irep->iseq;
         JUMP;
       }
@@ -2197,7 +2202,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_b(i)]);
       }
       else {
-	mrb_irep *mirep = mrb->irep[irep->idx+GETARG_b(i)];
+	mrb_irep *mirep = mrb->irep[irep->idx + GETARG_b(i)];
 	if (mirep->proc_obj) {
 	  p = mirep->proc_obj;
 	}

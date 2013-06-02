@@ -1060,6 +1060,29 @@ do {                                                                 \
 
     return code;
   }
+
+  const void *
+    emit_lambda(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    const int kind = GETARG_c(**ppc);
+    const int lno = GETARG_b(**ppc);
+    const int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    mrb_irep *mirb = mrb->irep[lno];
+
+    if (!(kind & OP_L_CAPTURE) && mirb->proc_obj) {
+      mov(eax, (Xbyak::uint32)mirb->proc_obj);
+      mov(dword [ecx + dstoff], eax);
+      mov(eax, 0xfff00000 | MRB_TT_PROC);
+      mov(dword [ecx + dstoff + 4], eax);
+    }
+    else {
+      gen_exit(*ppc, 1);						\
+    }
+
+    return code;
+  }
 };
 
 #endif  /* MRUBY_JITCODE_H */
