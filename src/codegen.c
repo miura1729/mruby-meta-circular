@@ -601,7 +601,15 @@ for_body(codegen_scope *s, node *tree)
   loop_pop(s, NOVAL);
   scope_finish(s);
   s = prev;
-  genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx - base, OP_L_BLOCK));
+  s->simple_lambda = 0;
+  if (s->mrb->irep[idx]->simple_lambda) {
+    /* no parent var access and child lambda */
+    /* NO strict and NO capture */
+    genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx - base, 0));
+  }
+  else {
+    genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx - base, OP_L_BLOCK));
+  }
   pop();
   idx = new_msym(s, mrb_intern2(s->mrb, "each", 4));
   genop_send(s, MKOP_ABC(OP_SENDB, cursp(), idx, 0));
