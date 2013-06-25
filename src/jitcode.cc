@@ -163,8 +163,8 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   case OP_JMPNOT:
     return code->emit_jmpnot(mrb, status, coi, regs);
 
-  case OP_LAMBDA:
-    return code->emit_lambda(mrb, status, coi, regs);
+    //  case OP_LAMBDA:
+    //return code->emit_lambda(mrb, status, coi, regs);
 
   default:
     mrb->compile_info.nest_level = 0;

@@ -1071,7 +1071,7 @@ do {                                                                 \
     const int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrb_irep *mirb = mrb->irep[(*(status->irep))->idx + lno];
 
-    if (!(kind & OP_L_CAPTURE) && mirb->proc_obj) {
+    if (mirb->proc_obj) {
       mov(eax, (Xbyak::uint32)mirb->proc_obj);
       mov(dword [ecx + dstoff], eax);
       mov(eax, 0xfff00000 | MRB_TT_PROC);
