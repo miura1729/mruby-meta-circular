@@ -71,6 +71,7 @@ typedef struct {
   int ridx;
   int eidx;
   struct REnv *env;
+  struct LocalProc *proc_pool;
 } mrb_callinfo;
 
 enum mrb_fiber_state {
@@ -137,6 +138,10 @@ struct mrb_context {
 
   mrb_value *stack;
   mrb_value *stbase, *stend;
+
+  struct LocalProc *proc_pool;
+  struct LocalProc *proc_pool_base;
+  size_t proc_pool_capa;
 
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;

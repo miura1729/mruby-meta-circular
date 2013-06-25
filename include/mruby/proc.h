@@ -30,6 +30,11 @@ struct RProc {
   struct REnv *env;
 };
 
+struct LocalProc {
+  struct RProc proc;
+  struct REnv env;
+};
+
 /* aspec access */
 #define MRB_ASPEC_REQ(a)          (((a) >> 18) & 0x1f)
 #define MRB_ASPEC_OPT(a)          (((a) >> 13) & 0x1f)

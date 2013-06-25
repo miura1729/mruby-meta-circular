@@ -70,6 +70,7 @@ typedef struct scope {
 
   /* For OP_LAMBDA optimize */
   int simple_lambda;
+  int shared_lambda;
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -425,6 +426,8 @@ push_(codegen_scope *s)
 #define pop() pop_(s)
 #define pop_n(n) (s->sp-=(n))
 #define cursp() (s->sp)
+
+#define block_reg(ainfo) (((ainfo)>>6)+(((ainfo)>>5)&1)+((ainfo)&0x1f)+1)
 
 static inline int
 new_lit(codegen_scope *s, mrb_value val)
@@ -810,9 +813,14 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   mrb_sym sym = name ? name : sym(tree->cdr->car);
   int idx;
   int n = 0, noop = 0, sendv = 0, blk = 0;
+  int old_shared = s->shared_lambda;
+  int callsym = mrb_intern2(s->mrb, "call", 4);
 
   codegen(s, tree->car, VAL); /* receiver */
   idx = new_msym(s, sym);
+  if (sym == callsym && ((intptr_t)tree->car->car) == NODE_LVAR) {
+    s->shared_lambda = old_shared;
+  }
   tree = tree->cdr->cdr->car;
   if (tree) {
     n = gen_values(s, tree->car, VAL);
@@ -1277,6 +1285,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lambda_body(s, tree, 1);
 
       s->simple_lambda = 0;
+      s->mrb->irep[s->idx + idx]->shared_lambda = 0;
       if (s->mrb->irep[s->idx + idx]->simple_lambda) {
 	/* no parent var access and child lambda */
 	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
@@ -1309,9 +1318,13 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int pos1, pos2;
       node *e = tree->cdr->cdr->car;
+      int old_shared = s->shared_lambda;
 
       codegen(s, tree->car, VAL);
       pop();
+      if (((intptr_t)tree->car->car) == NODE_LVAR) {
+	s->shared_lambda = old_shared;
+      }
       pos1 = new_label(s);
       genop(s, MKOP_AsBx(OP_JMPNOT, cursp(), 0));
 
@@ -1855,6 +1868,9 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_LVAR:
     if (val) {
       int idx = lv_idx(s, sym(tree));
+      if (idx == block_reg(s->ainfo)) {
+	s->shared_lambda = 0;
+      }
 
       if (idx > 0) {
         genop(s, MKOP_AB(OP_MOVE, cursp(), idx));
@@ -1867,6 +1883,9 @@ codegen(codegen_scope *s, node *tree, int val)
           idx = lv_idx(up, sym(tree));
           if (idx > 0) {
 	    s->simple_lambda = 0;
+	    if (idx == block_reg(up->ainfo)) {
+	      s->shared_lambda = 0;
+	    }
             genop(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv));
             break;
           }
@@ -2378,6 +2397,8 @@ codegen(codegen_scope *s, node *tree, int val)
       int sym = new_msym(s, sym(tree->car));
       int idx = lambda_body(s, tree->cdr, 0);
 
+      s->mrb->irep[s->idx + idx]->shared_lambda = 0;
+
       genop(s, MKOP_A(OP_TCLASS, cursp()));
       push();
       genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
@@ -2395,6 +2416,8 @@ codegen(codegen_scope *s, node *tree, int val)
       node *recv = tree->car;
       int sym = new_msym(s, sym(tree->cdr->car));
       int idx = lambda_body(s, tree->cdr->cdr, 0);
+
+      s->mrb->irep[s->idx + idx]->shared_lambda = 0;
 
       codegen(s, recv, VAL);
       pop();
@@ -2462,6 +2485,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->irep->jit_inlinep = 0;
 
   p->simple_lambda = 1;
+  p->shared_lambda = 1;
   return p;
 }
 
@@ -2508,6 +2532,7 @@ scope_finish(codegen_scope *s)
   irep->nregs = s->nregs;
 
   irep->simple_lambda = s->simple_lambda;
+  irep->shared_lambda = s->shared_lambda;
   irep->proc_obj = NULL;
 
   mrb_gc_arena_restore(mrb, s->ai);
