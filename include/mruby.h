@@ -227,6 +227,7 @@ typedef struct mrb_state {
   mrb_int is_method_cache_used;
   void *ud; /* auxiliary data */
   mrbjit_comp_info compile_info; /* JIT stuff */
+  struct mrbjit_vmstatus *vmstatus;
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
@@ -253,6 +254,7 @@ mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method
 int mrb_obj_respond_to(struct RClass* c, mrb_sym mid);
 struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
+void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func);
 
 /* required arguments */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)

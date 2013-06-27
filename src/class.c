@@ -316,6 +316,24 @@ mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t
   mrb_define_method_id(mrb, c, mrb_intern(mrb, name), func, aspec);
 }
 
+void
+mrbjit_define_primitive_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func)
+{
+  struct RProc *p;
+  int ai = mrb_gc_arena_save(mrb);
+
+  p = mrb_proc_new_cfunc(mrb, func);
+  p->target_class = c;
+  mrb_obj_iv_set(mrb, (struct RObject*)c, mid, mrb_obj_value(p));
+  mrb_gc_arena_restore(mrb, ai);
+}
+
+void
+mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func)
+{
+  mrbjit_define_primitive_id(mrb, c, mrb_intern(mrb, name), func);
+}  
+
 static void
 clear_method_cache(mrb_state *mrb)
 {

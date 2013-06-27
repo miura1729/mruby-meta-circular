@@ -479,6 +479,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int a = GETARG_A(i);
     int n = GETARG_C(i);
     struct RProc *m;
+    mrb_value prim;
     struct RClass *c;
     const void *code = getCurr();
     mrb_value recv;
@@ -507,9 +508,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff + 4], eax);
     }
 
-    CALL_CFUNC_BEGIN;
-
     if (MRB_PROC_CFUNC_P(m)) {
+      prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
+      mrb->vmstatus = status;
+      if (mrb_type(prim) == MRB_TT_PROC) {
+	mrb_value res = mrb_proc_ptr(prim)->body.func(mrb, prim);
+	if (!mrb_nil_p(res)) {
+	  return code;
+	}
+      }
+
+      CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
       push(eax);
       mov(eax, (Xbyak::uint32)m);
@@ -521,6 +530,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       int toff;
       mrbjit_codetab *ctab;
 
+      CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
       push(eax);
       mov(eax, (Xbyak::uint32)m);
@@ -1083,6 +1093,9 @@ do {                                                                 \
 
     return code;
   }
+
+  /* primitive methodes */
+  mrb_value mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc);
 };
 
 #endif  /* MRUBY_JITCODE_H */
