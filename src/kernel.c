@@ -12,6 +12,8 @@
 #include "mruby/variable.h"
 #include "error.h"
 
+#include "mruby/primitive.h"
+
 typedef enum {
     NOEX_PUBLIC    = 0x00,
     NOEX_NOSUPER   = 0x01,
@@ -1064,6 +1066,8 @@ mrb_init_kernel(mrb_state *mrb)
 
   mrb_define_method(mrb, krn, "==",                         mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.1  */
   mrb_define_method(mrb, krn, "!=",                         mrb_obj_not_equal_m,             MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, krn, "!=", mrbjit_prim_obj_not_equal_m);
+
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */

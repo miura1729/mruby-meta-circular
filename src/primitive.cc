@@ -12,8 +12,9 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc) {
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);
-  mov(eax, dword [ecx + off0 + 4]); /* Get type tag */
-  gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
+  // not need guard for self because guard geneate already
+  //mov(eax, dword [ecx + off0 + 4]);
+  //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
   mov(eax, dword [ecx + off1 + 4]); /* Get type tag */
   gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno + 1]), pc);
   
@@ -68,11 +69,51 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc) {
   return mrb_true_value();
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc) {
+  mrbjit_vmstatus *status = mrb->vmstatus;
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
+
+  add(dword [ecx + off0], 1);
+
+  return mrb_true_value();
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc) {
+  mrbjit_vmstatus *status = mrb->vmstatus;
+  mrb_code **ppc = status->pc;
+  mrb_value *regs = *status->regs;
+
+  COMP_GEN(setnz, setnz);
+
+  return mrb_true_value();
+}
+
 extern "C" mrb_value
 mrbjit_prim_num_cmp(mrb_state *mrb, mrb_value proc)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
   return code->mrbjit_prim_num_cmp_impl(mrb, proc);
+}
+
+extern "C" mrb_value
+mrbjit_prim_fix_succ(mrb_state *mrb, mrb_value proc)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_fix_succ_impl(mrb, proc);
+}
+
+extern "C" mrb_value
+mrbjit_prim_obj_not_equal_m(mrb_state *mrb, mrb_value proc)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_obj_not_equal_m_impl(mrb, proc);
 }
 
