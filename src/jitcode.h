@@ -518,6 +518,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	}
       }
 
+      //puts(mrb_sym2name(mrb, mid)); // for tuning
       CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
       push(eax);
@@ -1098,6 +1099,7 @@ do {                                                                 \
   mrb_value mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc);
   mrb_value mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc);
   mrb_value mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc);
+  mrb_value mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc);
 };
 
 #endif  /* MRUBY_JITCODE_H */
