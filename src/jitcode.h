@@ -581,7 +581,26 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_call(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
+    mrb_callinfo *ci = mrb->c->ci;
+    mrb_value recv = mrb->c->stack[0];
+    struct RProc *m = mrb_proc_ptr(recv);
     
+    if (ci->argc < 0) {
+      return NULL;
+    }
+
+    if (MRB_PROC_CFUNC_P(m)) {
+      return NULL;
+    }
+
+    if (m->body.irep == NULL) {
+      return NULL;
+    }
+
+    if (ci->argc < 0) {
+      return NULL;
+    }
+
     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
     mov(eax, dword [eax + OffsetOf(mrb_context, stack)]);
     mov(eax, dword [eax + OffsetOf(mrb_value, value.p)]);

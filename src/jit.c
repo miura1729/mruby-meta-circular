@@ -389,53 +389,22 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
 
-  /* prepare stack */
-  if (MRB_PROC_CFUNC_P(m)) {
-    int orgdisflg = mrb->compile_info.disable_jit;
-    mrb->compile_info.disable_jit = 1;
-    recv = m->body.func(mrb, recv);
-    mrb->compile_info.disable_jit = orgdisflg;
-    mrb_gc_arena_restore(mrb, *status->ai);
-    if (mrb->exc) return status->gototable[0]; /* L_RAISE */
-    /* pop stackpos */
-    ci = mrb->c->ci;
-    *status->regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
-    (*status->regs)[ci->acc] = recv;
-    *status->pc = ci->pc;
-    mrb->c->proc_pool = ci->proc_pool;
-    mrbjit_cipop(mrb);
-    *status->irep = mrb->c->ci->proc->body.irep;
-    *status->pool = (*(status->irep))->pool;
-    *status->syms = (*(status->irep))->syms;
-  }
+  /* setup environment for calling method */
+  *status->proc = m;
+  *status->irep = m->body.irep;
+  *status->pool = (*(status->irep))->pool;
+  *status->syms = (*(status->irep))->syms;
+  ci->nregs = (*(status->irep))->nregs;
+  mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
+  *status->regs = mrb->c->stack;
+  if (m->env) {
+    (*(status->regs))[0] = m->env->stack[0];
+  } 
   else {
-    /* setup environment for calling method */
-    *status->proc = m;
-    *status->irep = m->body.irep;
-    if (!(*status->irep)) {
-      mrb->c->stack[0] = mrb_nil_value();
-      return NULL;
-    }
-    *status->pool = (*(status->irep))->pool;
-    *status->syms = (*(status->irep))->syms;
-    ci->nregs = (*(status->irep))->nregs;
-    if (ci->argc < 0) {
-      mrbjit_stack_extend(mrb, ((*(status->irep))->nregs < 3) ? 3 : (*(status->irep))->nregs, 3);
-    }
-    else {
-      mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
-    }
-    *status->regs = mrb->c->stack;
-    if (m->env) {
-      (*(status->regs))[0] = m->env->stack[0];
-    }
-    else {
-      (*(status->regs))[0] = mrb_obj_value(m->target_class);
-    }
-    *status->pc = m->body.irep->iseq;
-    //printf("call %x %x\n", *status->irep, (*(status->irep))->jit_top_entry);
-    //printf("%x\n", mrb->c->ci->jit_entry);
+    (*(status->regs))[0] = mrb_obj_value(m->target_class);
   }
+  *status->pc = m->body.irep->iseq;
+
   mrb->c->proc_pool = mrb->c->ci->proc_pool;
 
   return NULL;
