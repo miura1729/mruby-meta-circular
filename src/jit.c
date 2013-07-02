@@ -106,7 +106,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
 
   int a = GETARG_A(i);
   int n = GETARG_C(i);
-  int ioff;
   mrb_callinfo *ci;
   mrb_value recv;
   mrb_sym mid = syms[GETARG_B(i)];
@@ -129,7 +128,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
     ci->target_class = c;
   }
   ci->pc = pc + 1;
-  ioff = ISEQ_OFFSET_OF(pc + 1);
   ci->acc = a;
 
   /* prepare stack */
@@ -141,7 +139,9 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   *status->pool = irep->pool;
   *status->syms = irep->syms;
   ci->nregs = irep->nregs;
-  mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
+  if (mrb->c->stack + irep->nregs >= mrb->c->stend) {
+    mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
+  }
   *status->regs = mrb->c->stack;
   *status->pc = irep->iseq;
   //mrb_p(mrb, recv);
@@ -395,7 +395,9 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   *status->pool = (*(status->irep))->pool;
   *status->syms = (*(status->irep))->syms;
   ci->nregs = (*(status->irep))->nregs;
-  mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
+  if (mrb->c->stack + (*(status->irep))->nregs >= mrb->c->stend) {
+    mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
+  }
   *status->regs = mrb->c->stack;
   if (m->env) {
     (*(status->regs))[0] = m->env->stack[0];
