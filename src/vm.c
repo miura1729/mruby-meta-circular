@@ -173,7 +173,45 @@ stack_extend(mrb_state *mrb, int room, int keep)
 void
 mrbjit_stack_extend(mrb_state *mrb, int room, int keep)
 {
-  stack_extend(mrb, room, keep);
+  int size, off;
+  
+  mrb_value *oldbase = mrb->c->stbase;
+  
+  size = mrb->c->stend - mrb->c->stbase;
+  off = mrb->c->stack - mrb->c->stbase;
+
+  /* do not leave uninitialized malloc region */
+  if (keep > size) keep = size;
+
+  /* Use linear stack growth.
+     It is slightly slower than doubling thestack space,
+     but it saves memory on small devices. */
+  if (room <= size)
+    size += MRB_STACK_GROWTH;
+  else
+    size += room;
+
+  mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
+  mrb->c->stack = mrb->c->stbase + off;
+  mrb->c->stend = mrb->c->stbase + size;
+  envadjust(mrb, oldbase, mrb->c->stbase);
+  /* Raise an exception if the new stack size will be too large,
+     to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
+  if (size > MRB_STACK_MAX) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
+  }
+
+  if (room > keep) {
+#ifndef MRB_NAN_BOXING
+    stack_clear(&(mrb->c->stack[keep]), room - keep);
+#else
+    struct mrb_context *c = mrb->c;
+    int i;
+    for (i=keep; i<room; i++) {
+      SET_NIL_VALUE(c->stack[i]);
+    }
+#endif
+  }
 }
 
 static inline struct REnv*
