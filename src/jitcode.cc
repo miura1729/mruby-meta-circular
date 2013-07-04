@@ -6,7 +6,7 @@ void
 mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->gen_exit(*ppc, 1);
+  code->gen_exit(*ppc, 1, 0);
 }
 
 void

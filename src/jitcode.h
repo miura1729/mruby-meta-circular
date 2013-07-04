@@ -52,7 +52,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_exit(mrb_code *pc, int is_clr_rc)
+    gen_exit(mrb_code *pc, int is_clr_rc, int is_clr_exitpos)
   {
     inLocalLabel();
     L(".exitlab");
@@ -63,8 +63,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (is_clr_rc) {
       xor(eax, eax);
     }
-    //mov(edx, (Xbyak::uint32)exit_ptr);
-    mov(edx, ".exitlab");
+    if (is_clr_exitpos) {
+      xor(edx, edx);
+    }
+    else {
+      //mov(edx, (Xbyak::uint32)exit_ptr);
+      mov(edx, ".exitlab");
+    }
     ret();
     outLocalLabel();
   }
@@ -107,7 +112,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       }
       else {
 	newci->entry = (void *(*)())getCurr();
-	gen_exit(newpc, 1);
+	gen_exit(newpc, 1, 0);
       }
       mrb->compile_info.code_base = NULL;
     }
@@ -127,7 +132,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc, 1);
+    gen_exit(pc, 1, 0);
 
     L("@@");
   }
@@ -145,7 +150,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc, 1);
+    gen_exit(pc, 1, 0);
 
     L("@@");
   }
@@ -170,7 +175,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc, 1);
+    gen_exit(pc, 1, 0);
 
     L("@@");
     /* Import from class.h */
@@ -189,7 +194,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       cmp(eax, (int)mrb_object(v)->c);
       jz("@f");
       /* Guard fail exit code */
-      gen_exit(pc, 1);
+      gen_exit(pc, 1, 0);
 
       L("@@");
       break;
@@ -464,7 +469,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 \
     test(eax, eax);					             \
     jz("@f");                                                        \
-    gen_exit(NULL, 0);					             \
+    gen_exit(NULL, 0, 0);				             \
     L("@@");                                                         \
   }while (0)
 
@@ -608,11 +613,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [eax + OffsetOf(mrb_irep, jit_top_entry)]);
     test(eax, eax);
     jnz("@f");
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
-    mov(dword [eax], (Xbyak::uint32)(*status->pc));
-    xor(eax, eax);
-    xor(edx, edx);
-    ret();
+    gen_exit(*status->pc, 1, 1);
     L("@@");
     push(eax);
     CALL_CFUNC_BEGIN;
@@ -656,7 +657,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
     test(eax, eax);
     jnz("@f");
-    gen_exit(*status->pc, 1);
+    gen_exit(*status->pc, 1, 0);
     L("@@");
     push(eax);
     
@@ -677,7 +678,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     test(eax, eax);
     jz("@f");
     pop(edx);			/* pop return address from callinfo */
-    gen_exit(NULL, 0);
+    gen_exit(NULL, 0, 0);
     L("@@");
 
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
@@ -752,7 +753,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       movsd(ptr [ecx + reg0off], xmm0);                                 \
     }                                                                   \
     else {                                                              \
-      gen_exit(*ppc, 1);						\
+      gen_exit(*ppc, 1, 0);						\
     }                                                                   \
 } while(0)
 
@@ -853,7 +854,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       movsd(ptr [ecx + off], xmm0);                                     \
     }                                                                   \
     else {                                                              \
-      gen_exit(*ppc, 1);						\
+      gen_exit(*ppc, 1, 0);						\
     }                                                                   \
 } while(0)
     
@@ -1108,7 +1109,7 @@ do {                                                                 \
       mov(dword [ecx + dstoff + 4], eax);
     }
     else {
-      gen_exit(*ppc, 1);						\
+      gen_exit(*ppc, 1, 0);
     }
 
     return code;
