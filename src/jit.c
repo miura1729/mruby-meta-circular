@@ -32,8 +32,8 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
   mrb_code *pc = *status->pc;
   mrb_value *regs = *status->regs;
-  mrb_sym *syms = *status->syms;
-  mrb_irep *irep;
+  mrb_irep *irep = *status->irep;
+  mrb_sym *syms = irep->syms;
   int ai = *status->ai;
   mrb_code i = *pc;
 
@@ -77,9 +77,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
-      irep = *(status->irep) = ci[-1].proc->body.irep;
-      *(status->pool) = irep->pool;
-      *(status->syms) = irep->syms;
+      *(status->irep) = ci[-1].proc->body.irep;
     }
     *(status->regs) = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
     mrbjit_cipop(mrb);
@@ -101,7 +99,7 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_code *pc = *status->pc;
   mrb_irep *irep = *status->irep;
   mrb_value *regs = *status->regs;
-  mrb_sym *syms = *status->syms;
+  mrb_sym *syms = irep->syms;
   mrb_code i = *pc;
 
   int a = GETARG_A(i);
@@ -136,8 +134,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   /* setup environment for calling method */
   *status->proc = mrb->c->ci->proc = m;
   irep = *status->irep = m->body.irep;
-  *status->pool = irep->pool;
-  *status->syms = irep->syms;
   ci->nregs = irep->nregs;
   if (mrb->c->stack + irep->nregs >= mrb->c->stend) {
     mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
@@ -284,8 +280,6 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
     *status->irep = ci->proc->body.irep;
-    *status->pool = (*status->irep)->pool;
-    *status->syms = (*status->irep)->syms;
     *status->regs = mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
     *status->pc = mrb->c->rescue[--ci->ridx];
   }
@@ -358,8 +352,6 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
     *status->proc = mrb->c->ci->proc;
     *status->irep = (*status->proc)->body.irep;
-    *status->pool = (*status->irep)->pool;
-    *status->syms = (*status->irep)->syms;
 
     (*status->regs)[acc] = v;
 
@@ -392,8 +384,6 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   /* setup environment for calling method */
   *status->proc = m;
   *status->irep = m->body.irep;
-  *status->pool = (*(status->irep))->pool;
-  *status->syms = (*(status->irep))->syms;
   ci->nregs = (*(status->irep))->nregs;
   if (mrb->c->stack + (*(status->irep))->nregs >= mrb->c->stend) {
     mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
