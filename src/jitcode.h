@@ -26,6 +26,7 @@ void *mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *,
 		      struct RProc *, struct RClass *);
 void *mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
+void *mrbjit_exec_return_fast(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
 } /* extern "C" */
 
@@ -650,6 +651,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
+    struct mrb_context *c = mrb->c;
+    mrb_code *pc = *status->pc;
+    mrb_code i = *pc;
 
     /* Set return address from callinfo */
     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
@@ -670,7 +674,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
 
     push(esi);
-    call((void *)mrbjit_exec_return);
+    if (c->ci != c->cibase &&
+	GETARG_B(i) == OP_R_NORMAL &&
+	(c->ci->env == 0 || c->ci->proc->body.irep->shared_lambda)) {
+      call((void *)mrbjit_exec_return_fast);
+    }
+    else {
+      call((void *)mrbjit_exec_return);
+    }
     add(esp, 2 * 4);
     pop(ebx);
     pop(ecx);

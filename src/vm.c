@@ -314,7 +314,7 @@ alloc_proc_pool(mrb_state *mrb, size_t size)
   lp->proc.c = NULL;
 }
   
-struct RProc *
+static struct RProc *
 get_local_proc(mrb_state *mrb, mrb_irep *mirep)
 {
   struct mrb_context *c = mrb->c;

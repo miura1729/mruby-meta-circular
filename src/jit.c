@@ -136,7 +136,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   }
   *status->regs = mrb->c->stack;
   *status->pc = irep->iseq;
-  //mrb_p(mrb, recv);
 
   //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep, *status->pc,regs[a].ttt, regs, __builtin_return_address(0));
   //puts(mrb_sym2name(mrb, mid));
@@ -352,6 +351,81 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     (*status->regs)[acc] = v;
 
     // return status->optable[GET_OPCODE(*ci->pc)];
+  }
+
+  return rc;
+}
+
+void *
+mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
+{
+  mrb_code i = **(status->pc);
+  void *rc = NULL;
+
+  /* A      return R(A) */
+  if (mrb->exc) {
+    mrb_callinfo *ci;
+    int eidx;
+
+    ci = mrb->c->ci;
+    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc"), mrb_voidp_value(*status->pc));
+    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
+    eidx = ci->eidx;
+    if (ci == mrb->c->cibase) {
+      if (ci->ridx == 0) {
+	return status->gototable[4]; /* L_STOP */
+      }
+      else {
+	return status->gototable[2]; /* L_RESCUE */
+      }
+    }
+    while (ci[0].ridx == ci[-1].ridx) {
+      mrbjit_cipop(mrb);
+      ci = mrb->c->ci;
+      mrb->c->proc_pool = ci->proc_pool;
+      if (ci[1].acc < 0 && *status->prev_jmp) {
+	mrb->jmp = *status->prev_jmp;
+	longjmp(*(jmp_buf*)mrb->jmp, 1);
+      }
+      while (eidx > mrb->c->ci->eidx) {
+        mrbjit_ecall(mrb, --eidx);
+      }
+      if (ci == mrb->c->cibase) {
+	if (ci->ridx == 0) {
+	  *status->regs = mrb->c->stack = mrb->c->stbase;
+	  return status->gototable[4]; /* L_STOP */
+	}
+	break;
+      }
+    }
+    *status->irep = ci->proc->body.irep;
+    *status->regs = mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
+    *status->pc = mrb->c->rescue[--ci->ridx];
+  }
+  else {
+    struct mrb_context *c = mrb->c;
+    mrb_callinfo *ci = c->ci;
+
+    int acc, eidx = mrb->c->ci->eidx;
+    mrb_value v = (*status->regs)[GETARG_A(i)];
+
+    c->ci--;
+    c->proc_pool = ci->proc_pool;
+    acc = ci->acc;
+    *status->pc = ci->pc;
+    *status->regs = c->stack = c->stbase + ci->stackidx;
+    while (eidx > c->ci->eidx) {
+      mrbjit_ecall(mrb, --eidx);
+    }
+    if (acc < 0) {
+      mrb->jmp = *status->prev_jmp;
+      return rc;		/* return v */
+    }
+    DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
+    *status->proc = c->ci->proc;
+    *status->irep = (*status->proc)->body.irep;
+
+    (*status->regs)[acc] = v;
   }
 
   return rc;
