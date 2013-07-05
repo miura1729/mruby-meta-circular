@@ -98,17 +98,13 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
   mrb_code *pc = *status->pc;
   mrb_irep *irep = *status->irep;
-  mrb_value *regs = *status->regs;
   mrb_sym *syms = irep->syms;
   mrb_code i = *pc;
 
   int a = GETARG_A(i);
   int n = GETARG_C(i);
   mrb_callinfo *ci;
-  mrb_value recv;
   mrb_sym mid = syms[GETARG_B(i)];
-
-  recv = regs[a];
 
   //printf("%d %x %x %x %x %x\n", MRB_PROC_CFUNC_P(m), irep, pc,regs[a].ttt, regs, n);
 
