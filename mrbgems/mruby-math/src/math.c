@@ -12,8 +12,8 @@
 #define domain_error(msg) \
     mrb_raise(mrb, E_RANGE_ERROR, "Numerical argument is out of domain - " #msg)
 
-/* math functions not provided under Microsoft Visual C++ */
-#ifdef _MSC_VER
+/* math functions not provided by Microsoft Visual C++ 2012 or older */
+#if defined _MSC_VER && _MSC_VER < 1800
 
 #define MATH_TOLERANCE 1E-12
 
@@ -87,6 +87,12 @@ erfc(double x)
   return one_sqrtpi*exp(-x*x)*q2;
 }
 
+double
+log2(double x)
+{
+    return log10(x)/log10(2.0);
+}
+
 #endif
 
 /*
@@ -108,7 +114,7 @@ math_sin(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = sin(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -126,7 +132,7 @@ math_cos(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = cos(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -143,7 +149,7 @@ math_tan(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = tan(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -164,7 +170,7 @@ math_asin(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = asin(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -181,7 +187,7 @@ math_acos(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = acos(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -198,7 +204,7 @@ math_atan(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = atan(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -228,7 +234,7 @@ math_atan2(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "ff", &x, &y);
   x = atan2(x, y);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 
@@ -251,7 +257,7 @@ math_sinh(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = sinh(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -268,7 +274,7 @@ math_cosh(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = cosh(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -286,7 +292,7 @@ math_tanh(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = tanh(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 
@@ -309,7 +315,7 @@ math_asinh(mrb_state *mrb, mrb_value obj)
 
   x = asinh(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -326,7 +332,7 @@ math_acosh(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = acosh(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -343,7 +349,7 @@ math_atanh(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = atanh(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -356,18 +362,6 @@ math_atanh(mrb_state *mrb, mrb_value obj)
 # endif
 # define log(x) ((x) < 0.0 ? nan("") : log(x))
 # define log10(x) ((x) < 0.0 ? nan("") : log10(x))
-#endif
-
-#ifndef log2
-#ifndef HAVE_LOG2
-double
-log2(double x)
-{
-    return log10(x)/log10(2.0);
-}
-#else
-extern double log2(double);
-#endif
 #endif
 
 /*
@@ -389,7 +383,7 @@ math_exp(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = exp(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -418,7 +412,7 @@ math_log(mrb_state *mrb, mrb_value obj)
   if (argc == 2) {
     x /= log(base);
   }
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -441,7 +435,7 @@ math_log2(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = log2(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -463,7 +457,7 @@ math_log10(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = log10(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -481,7 +475,7 @@ math_sqrt(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = sqrt(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 
@@ -524,7 +518,7 @@ math_cbrt(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = cbrt(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 
@@ -548,7 +542,7 @@ math_frexp(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = frexp(x, &exp);
 
-  return mrb_assoc_new(mrb, mrb_float_value(x), mrb_fixnum_value(exp));
+  return mrb_assoc_new(mrb, mrb_float_value(mrb, x), mrb_fixnum_value(exp));
 }
 
 /*
@@ -569,7 +563,7 @@ math_ldexp(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "fi", &x, &i);
   x = ldexp(x, i);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -589,7 +583,7 @@ math_hypot(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "ff", &x, &y);
   x = hypot(x, y);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /*
@@ -606,7 +600,7 @@ math_erf(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = erf(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 
@@ -624,7 +618,7 @@ math_erfc(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "f", &x);
   x = erfc(x);
 
-  return mrb_float_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 /* ------------------------------------------------------------------------*/
@@ -635,21 +629,21 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
   mrb_math = mrb_define_module(mrb, "Math");
 
 #ifdef M_PI
-  mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(M_PI));
+  mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(mrb, M_PI));
 #else
-  mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(atan(1.0)*4.0));
+  mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(mrb, atan(1.0)*4.0));
 #endif
 
 #ifdef M_E
-  mrb_define_const(mrb, mrb_math, "E", mrb_float_value(M_E));
+  mrb_define_const(mrb, mrb_math, "E", mrb_float_value(mrb, M_E));
 #else
-  mrb_define_const(mrb, mrb_math, "E", mrb_float_value(exp(1.0)));
+  mrb_define_const(mrb, mrb_math, "E", mrb_float_value(mrb, exp(1.0)));
 #endif
 
 #ifdef MRB_USE_FLOAT
-  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(1e-5));
+  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(mrb, 1e-5));
 #else
-  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(1e-12));
+  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(mrb, 1e-12));
 #endif
 
   mrb_define_module_function(mrb, mrb_math, "sin", math_sin, MRB_ARGS_REQ(1));

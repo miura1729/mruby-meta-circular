@@ -8,6 +8,15 @@ assert('Fiber#resume') {
   f.resume(2)
 }
 
+assert('Fiber#alive?') {
+  f = Fiber.new{ Fiber.yield }
+  f.resume
+  r1 = f.alive?
+  f.resume
+  r2 = f.alive?
+  r1 == true and r2 == false
+}
+
 assert('Fiber.yield') {
   f = Fiber.new{|x| Fiber.yield(x == 3)}
   f.resume(3)
@@ -30,4 +39,26 @@ assert('Fiber iteration') {
 
 assert('Fiber with splat in the block argument list') {
   Fiber.new{|*x|x}.resume(1) == [1]
+}
+
+assert('Fiber raises on resume when dead') {
+  r1 = true
+  begin
+    f = Fiber.new{}
+    f.resume
+    r1 = f.alive?
+    f.resume
+    false
+  rescue => e1
+    true
+  end
+}
+
+assert('Yield raises when called on root fiber') {
+  begin
+    Fiber.yield
+    false
+  rescue => e1
+    true
+  end
 }

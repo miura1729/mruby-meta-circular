@@ -59,7 +59,7 @@ typedef struct scope {
   int icapa;
 
   mrb_irep *irep;
-  int pcapa;
+  size_t pcapa;
   int scapa;
 
   int nlocals;
@@ -432,8 +432,7 @@ push_(codegen_scope *s)
 static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
-  int i;
-
+  size_t i;
   
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
@@ -479,7 +478,7 @@ new_lit2(codegen_scope *s, mrb_value val)
 static inline int
 new_msym(codegen_scope *s, mrb_sym sym)
 {
-  int i, len;
+  size_t i, len;
 
   len = s->irep->slen;
   if (len > 256) len = 256;
@@ -498,7 +497,7 @@ new_msym(codegen_scope *s, mrb_sym sym)
 static inline int
 new_sym(codegen_scope *s, mrb_sym sym)
 {
-  int i;
+  size_t i;
 
   for (i=0; i<s->irep->slen; i++) {
     if (s->irep->syms[i] == sym) return i;
@@ -1985,7 +1984,7 @@ codegen(codegen_scope *s, node *tree, int val)
       i = readint_mrb_int(s, p, base, FALSE, &overflow);
       if (overflow) {
         double f = readint_float(s, p, base);
-        int off = new_lit(s, mrb_float_value(f));
+        int off = new_lit(s, mrb_float_value(s->mrb, f));
 
         genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       }
@@ -2007,7 +2006,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       char *p = (char*)tree;
       mrb_float f = str_to_mrb_float(p);
-      int off = new_lit(s, mrb_float_value(f));
+      int off = new_lit(s, mrb_float_value(s->mrb, f));
 
       genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
       push();
@@ -2023,7 +2022,7 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           char *p = (char*)tree;
           mrb_float f = str_to_mrb_float(p);
-          int off = new_lit(s, mrb_float_value(-f));
+          int off = new_lit(s, mrb_float_value(s->mrb, -f));
 
           genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
           push();
@@ -2041,7 +2040,7 @@ codegen(codegen_scope *s, node *tree, int val)
           i = readint_mrb_int(s, p, base, TRUE, &overflow);
           if (overflow) {
             double f = readint_float(s, p, base);
-            int off = new_lit(s, mrb_float_value(-f));
+            int off = new_lit(s, mrb_float_value(s->mrb, -f));
 
             genop(s, MKOP_ABx(OP_LOADL, cursp(), off));
           }
@@ -2612,7 +2611,8 @@ codedump(mrb_state *mrb, int n)
 {
 #ifdef ENABLE_STDIO
   mrb_irep *irep = mrb->irep[n];
-  int i, ai;
+  uint32_t i;
+  int ai;
   mrb_code c;
 
   if (!irep) return;
