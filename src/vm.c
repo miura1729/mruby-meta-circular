@@ -321,6 +321,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
 {
   struct mrb_context *c = mrb->c;
   struct RProc *p;
+  int i;
 
   if (c->proc_pool == NULL) {
     if (c->proc_pool_base) {
@@ -332,8 +333,12 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
     }
   }
 
-  if (c->proc_pool[-1].proc.body.irep == mirep) {
-    return &(c->proc_pool[-1].proc);
+  /* Search already allocated proc object */
+  /* This function for unescaped lambda so don't warry */
+  for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
+    if (c->proc_pool[i].proc.body.irep == mirep) {
+      return &(c->proc_pool[i].proc);
+    }
   }
 
   if (c->proc_pool->proc.tt == MRB_TT_FREE) {
