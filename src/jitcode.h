@@ -1108,22 +1108,30 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    const int kind = GETARG_c(**ppc);
+    int i;
     const int lno = GETARG_b(**ppc);
     const int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    mrb_irep *mirb = mrb->irep[(*(status->irep))->idx + lno];
+    mrb_irep *mirep = mrb->irep[(*(status->irep))->idx + lno];
+    struct mrb_context *c = mrb->c;
 
-    if (mirb->proc_obj) {
-      mov(eax, (Xbyak::uint32)mirb->proc_obj);
-      mov(dword [ecx + dstoff], eax);
-      mov(eax, 0xfff00000 | MRB_TT_PROC);
-      mov(dword [ecx + dstoff + 4], eax);
-    }
-    else {
-      gen_exit(*ppc, 1, 0);
+    if (mirep->shared_lambda && c->proc_pool) {
+      for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
+	if (c->proc_pool[i].proc.body.irep == mirep) {
+	  mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+	  mov(eax, dword [eax + OffsetOf(mrb_context, proc_pool)]);
+	  mov(eax, dword [eax + i * sizeof(struct LocalProc)]);
+	  cmp(edx, dword [eax + OffsetOf(struct LocalProc, proc.body.irep)]);
+	  jz("@f");
+	  gen_exit(*ppc, 1, 0);
+	  L("@@");
+	  mov(dword [ecx + dstoff + 4], eax);
+
+	  return code;
+	}
+      }
     }
 
-    return code;
+    return NULL;
   }
 
   /* primitive methodes */
