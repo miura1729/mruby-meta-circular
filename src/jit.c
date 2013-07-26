@@ -467,8 +467,6 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   }
   *status->pc = m->body.irep->iseq;
 
-  mrb->c->proc_pool = mrb->c->ci->proc_pool;
-
   return NULL;
 }
 

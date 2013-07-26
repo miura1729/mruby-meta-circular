@@ -1120,6 +1120,7 @@ do {                                                                 \
 	  mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
 	  mov(eax, dword [eax + OffsetOf(mrb_context, proc_pool)]);
 	  mov(eax, dword [eax + i * sizeof(struct LocalProc)]);
+	  mov(edx, (Xbyak::uint32)mirep);
 	  cmp(edx, dword [eax + OffsetOf(struct LocalProc, proc.body.irep)]);
 	  jz("@f");
 	  gen_exit(*ppc, 1, 0);
