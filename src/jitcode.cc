@@ -108,7 +108,8 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   case OP_RETURN:
     mrb->compile_info.nest_level--;
-    if (mrb->compile_info.nest_level < 0) {
+    if (mrb->c->ci->proc->env ||
+	mrb->compile_info.nest_level < 0) {
       return code->emit_return(mrb, status);
     }
     else {
