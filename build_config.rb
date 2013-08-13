@@ -18,7 +18,6 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   conf.gembox 'default'
-  conf.gem '../mruby-meta-circular'
 
   # C compiler settings
   # conf.cc do |cc|
