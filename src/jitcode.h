@@ -429,7 +429,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const mrb_value v = mrb_vm_const_get(mrb, irep->syms[sympos]);
 
     mov(dword [ecx + dstoff], v.value.i);
-    mov(dword [ecx + dstoff + 4], v.ttt);
+    mov(dword [ecx + dstoff + 4], v.value.ttt);
     
     return code;
   }

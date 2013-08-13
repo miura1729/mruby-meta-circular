@@ -25,8 +25,8 @@ struct RString {
   char *ptr;
 };
 
-#define mrb_str_ptr(s)    ((struct RString*)((s).value.p))
-#define RSTRING(s)        ((struct RString*)((s).value.p))
+#define mrb_str_ptr(s)    ((struct RString*)(mrb_ptr(s)))
+#define RSTRING(s)        ((struct RString*)(mrb_ptr(s)))
 #define RSTRING_PTR(s)    (RSTRING(s)->ptr)
 #define RSTRING_LEN(s)    (RSTRING(s)->len)
 #define RSTRING_CAPA(s)   (RSTRING(s)->aux.capa)
@@ -57,7 +57,7 @@ mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 mrb_int mrb_str_hash(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_buf_append(mrb_state *mrb, mrb_value str, mrb_value str2);
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
-int mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
+mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len);
 mrb_value mrb_str_append(mrb_state *mrb, mrb_value str, mrb_value str2);

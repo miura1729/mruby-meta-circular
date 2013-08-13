@@ -176,7 +176,6 @@ typedef struct mrb_state {
   struct mrb_irep **irep;                 /* program data array */
   size_t irep_len, irep_capa;
 
-  mrb_sym init_sym;
   struct RObject *top_self;
   struct RClass *object_class;            /* Object class */
   struct RClass *class_class;
@@ -203,8 +202,8 @@ typedef struct mrb_state {
 
   enum gc_state gc_state; /* state of gc */
   int current_white_part; /* make white object by white_part */
-  struct RBasic *gray_list; /* list of gray objects */
-  struct RBasic *variable_gray_list; /* list of objects to be traversed atomically */
+  struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
+  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
   size_t gc_live_after_mark;
   size_t gc_threshold;
   int gc_interval_ratio;
@@ -245,16 +244,17 @@ void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_fun
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
+mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
-int mrb_class_defined(mrb_state *mrb, const char *name);
+mrb_bool mrb_class_defined(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_get(mrb_state *mrb, const char *name);
 struct RClass * mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
 
 mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
-int mrb_obj_respond_to(struct RClass* c, mrb_sym mid);
+mrb_bool mrb_obj_respond_to(struct RClass* c, mrb_sym mid);
 struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func);
@@ -337,15 +337,16 @@ void mrb_p(mrb_state*, mrb_value);
 mrb_int mrb_obj_id(mrb_value obj);
 mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
-int mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
-int mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
-int mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
+mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
+mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
 mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
-int mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
 void mrb_garbage_collect(mrb_state*);
+void mrb_full_gc(mrb_state*);
 void mrb_incremental_gc(mrb_state *);
 int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
@@ -365,7 +366,7 @@ const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
 struct RClass* mrb_obj_class(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_class_path(mrb_state *mrb, struct RClass *c);
 mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method);
-int mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
+mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
 mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
@@ -421,8 +422,6 @@ void mrb_print_error(mrb_state *mrb);
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
-mrb_value mrb_class_new_instance(mrb_state *mrb, int, mrb_value*, struct RClass *);
-mrb_value mrb_class_new_instance_m(mrb_state *mrb, mrb_value klass);
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
@@ -442,8 +441,8 @@ void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 mrb_value mrb_block_proc(void);
 mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
-int mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
-int mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
+mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
+mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;
@@ -451,8 +450,15 @@ struct mrb_pool* mrb_pool_open(mrb_state*);
 void mrb_pool_close(struct mrb_pool*);
 void* mrb_pool_alloc(struct mrb_pool*, size_t);
 void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
-int mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
+mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 void* mrb_alloca(mrb_state *mrb, size_t);
+
+#ifdef MRB_DEBUG
+#include <assert.h>
+#define mrb_assert(p) assert(p)
+#else
+#define mrb_assert(p) ((void)0)
+#endif
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

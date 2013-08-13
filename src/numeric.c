@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <assert.h>
 #include <float.h>
 #if defined(__FreeBSD__) && __FreeBSD__ < 4
 # include <floatingpoint.h>
@@ -203,7 +202,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       *(c++) = '-';
     }
 
-    exp = log10(n);
+    exp = (int)log10(n);
 
     if ((exp < 0 ? -exp : exp) > max_digit) {
       /* exponent representation */
@@ -226,7 +225,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
     /* puts digits */
     while (max_digit >= 0) {
       mrb_float weight = pow(10.0, m);
-      digit = floor(n / weight + FLT_EPSILON);
+      digit = (int)floor(n / weight + FLT_EPSILON);
       *(c++) = '0' + digit;
       n -= (digit * weight);
       max_digit--;
@@ -242,7 +241,8 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo, int max_digit)
       *(c++) = 'e';
       if (exp > 0) {
         *(c++) = '+';
-      } else {
+      }
+      else {
         *(c++) = '-';
         exp = -exp;
       }
@@ -783,7 +783,7 @@ fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
   mrb_int div, mod;
 
-  /* TODO: add assert(y != 0) to make sure */
+  /* TODO: add mrb_assert(y != 0) to make sure */
 
   if (y < 0) {
     if (x < 0)
@@ -1255,12 +1255,14 @@ mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base)
 
   if (val == 0) {
     *--b = '0';
-  } else if (val < 0) {
+  }
+  else if (val < 0) {
     do {
       *--b = mrb_digitmap[-(val % base)];
     } while (val /= base);
     *--b = '-';
-  } else {
+  }
+  else {
     do {
       *--b = mrb_digitmap[(int)(val % base)];
     } while (val /= base);

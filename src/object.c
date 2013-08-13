@@ -11,7 +11,7 @@
 #include "mruby/string.h"
 #include "error.h"
 
-int
+mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   if (mrb_type(v1) != mrb_type(v2)) return FALSE;
@@ -29,18 +29,18 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return (mrb_float(v1) == mrb_float(v2));
 
   default:
-    return (v1.value.p == v2.value.p);
+    return (mrb_ptr(v1) == mrb_ptr(v2));
   }
 }
 
-int
+mrb_bool
 mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   /* temporary definition */
   return mrb_obj_eq(mrb, v1, v2);
 }
 
-int
+mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   mrb_value result;
@@ -172,9 +172,6 @@ true_to_s(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_or(mrb_state *mrb, mrb_value obj)
 {
-  mrb_bool obj2;
-
-  mrb_get_args(mrb, "b", &obj2);
   return mrb_true_value();
 }
 
@@ -203,9 +200,6 @@ true_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_and(mrb_state *mrb, mrb_value obj)
 {
-  mrb_bool obj2;
-
-  mrb_get_args(mrb, "b", &obj2);
   return mrb_false_value();
 }
 
@@ -303,7 +297,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
 {
   mrb_sym m = 0;
 
-  m = mrb_intern(mrb, method);
+  m = mrb_intern_cstr(mrb, method);
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
       mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", val, mrb_str_new_cstr(mrb, tname));
@@ -474,7 +468,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
  *     b.kind_of? M       #=> true
  */
 
-int
+mrb_bool
 mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 {
   struct RClass *cl = mrb_class(mrb, obj);
@@ -591,7 +585,7 @@ mrb_inspect(mrb_state *mrb, mrb_value obj)
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0, 0));
 }
 
-int
+mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;

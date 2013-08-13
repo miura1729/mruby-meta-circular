@@ -259,8 +259,13 @@ module MRuby
       infiles.each do |f|
         _pp "MRBC", f.relative_path, nil, :indent => 2
       end
-      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}} #{infiles.join(' ')}", 'r+') do |io|
+      IO.popen("#{filename @command} #{@compile_options % {:funcname => funcname}} #{filename(infiles).join(' ')}", 'r+') do |io|
         out.puts io.read
+      end
+      # if mrbc execution fail, drop the file
+      unless $?.exitstatus
+        File.delete(out.path)
+        exit -1
       end
     end
   end
