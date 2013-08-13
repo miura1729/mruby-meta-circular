@@ -171,3 +171,55 @@ mrbjit_prim_ary_aget(mrb_state *mrb, mrb_value proc)
   return code->mrbjit_prim_ary_aget_impl(mrb, proc);
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
+{
+  mrbjit_vmstatus *status = mrb->vmstatus;
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  int nargs = GETARG_C(i);
+  const Xbyak::uint32 offary = regno * sizeof(mrb_value);
+  const Xbyak::uint32 offidx = offary + sizeof(mrb_value);
+  const Xbyak::uint32 offval = offidx + sizeof(mrb_value);
+
+  if (nargs != 2) {
+    return mrb_nil_value();    	// Support only 2 args(index, value)
+  }
+
+  inLocalLabel();
+  mov(edx, ptr [ecx + offary]);
+  mov(eax, ptr [ecx + offidx]);
+  movsd(xmm0, ptr [ecx + offval]);
+  test(eax, eax);
+  jge(".normal");
+  add(eax, dword [edx + OffsetOf(struct RArray, len)]);
+  jl(".retnil");
+  L(".normal");
+  cmp(eax, dword [edx + OffsetOf(struct RArray, len)]);
+  jg(".retnil");
+  mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
+  movsd(ptr [edx + eax * sizeof(mrb_value)], xmm0);
+  movsd(ptr [ecx + offary], xmm0);
+  jmp(".exit");
+
+  L(".retnil");
+  xor(eax, eax);
+  mov(dword [ecx + offary], eax);
+  mov(eax, 0xfff00000 | MRB_TT_FALSE);
+  mov(dword [ecx + offary + 4], eax);
+
+  L(".exit");
+  outLocalLabel();
+  
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_ary_aset(mrb_state *mrb, mrb_value proc)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_ary_aset_impl(mrb, proc);
+}
+
