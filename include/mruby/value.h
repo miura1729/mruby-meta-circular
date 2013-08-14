@@ -136,6 +136,7 @@ typedef struct mrb_value {
 	MRB_ENDIAN_LOHI(
  	  uint32_t ttt;
           ,union {
+	    void *p0;
 	    mrb_int i;
 	    mrb_sym sym;
 	  };
@@ -144,6 +145,28 @@ typedef struct mrb_value {
     } value;
   };
 } mrb_value;
+
+#if !defined(__x86_64__)
+
+#define mrb_tt(o)     ((o).value.ttt & 0xff)
+#define mrb_mktt(tt)  (0xfff00000|(tt))
+#define mrb_type(o)   ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
+#define mrb_ptr(o)      ((void*)((o).value.p0))
+#define MRB_SET_VALUE(o, tt, attr, v) do {\
+  (o).value.ttt = mrb_mktt(tt);\
+  switch (tt) {\
+  case MRB_TT_FALSE:\
+  case MRB_TT_TRUE:\
+  case MRB_TT_UNDEF:\
+  case MRB_TT_FIXNUM:\
+  case MRB_TT_SYMBOL: (o).attr = (v); break;\
+  default: (o).value.p0 = (void *)((intptr_t)(v));	\
+  }\
+} while (0)
+
+#define mrb_float(o)  (o).f
+
+#else
 
 /* value representation by nan-boxing:
  *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
@@ -157,8 +180,6 @@ typedef struct mrb_value {
 #define mrb_mktt(tt)    (0xfff00000|((tt)<<14))
 #define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
 #define mrb_ptr(o)      ((void*)((((intptr_t)0x3fffffffffff)&((intptr_t)((o).value.p)))<<2))
-#define mrb_float(o)    (o).f
-
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
   (o).value.ttt = mrb_mktt(tt);\
   switch (tt) {\
@@ -170,6 +191,11 @@ typedef struct mrb_value {
   default: (o).value.i = 0; (o).value.p = (void*)((intptr_t)(o).value.p | (((intptr_t)(v))>>2)); break;\
   }\
 } while (0)
+
+#define mrb_float(o)    (o).f
+
+#endif
+
 
 static inline mrb_value
 mrb_float_value(struct mrb_state *mrb, mrb_float f)

@@ -171,6 +171,39 @@ mrbjit_prim_ary_aget(mrb_state *mrb, mrb_value proc)
   return code->mrbjit_prim_ary_aget_impl(mrb, proc);
 }
 
+void
+mrbjit_ary_modify(mrb_state *mrb, mrbjit_vmstatus *status, struct RArray *a)
+{
+  if (a->flags & MRB_ARY_SHARED) {
+    mrb_shared_array *shared = a->aux.shared;
+
+    if (shared->refcnt == 1 && a->ptr == shared->ptr) {
+      a->ptr = shared->ptr;
+      a->aux.capa = a->len;
+      mrb_free(mrb, shared);
+    }
+    else {
+      mrb_value *ptr, *p;
+      mrb_int len;
+
+      p = a->ptr;
+      len = a->len * sizeof(mrb_value);
+      ptr = (mrb_value *)mrb_malloc(mrb, len);
+      if (p) {
+	size_t i;
+
+	for (i = 0; i < a->len; i++) {
+	  ptr[i] = p[i];
+	}
+      }
+      a->ptr = ptr;
+      a->aux.capa = a->len;
+      mrb_ary_decref(mrb, shared);
+    }
+    a->flags &= ~MRB_ARY_SHARED;
+  }
+}
+
 mrb_value
 MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
 {
@@ -189,6 +222,9 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
 
   inLocalLabel();
   mov(edx, ptr [ecx + offary]);
+  push(edx);
+  CALL_CFUNC_BEGIN;
+  CALL_CFUNC_STATUS(mrbjit_ary_modify, 1);
   mov(eax, ptr [ecx + offidx]);
   movsd(xmm0, ptr [ecx + offval]);
   test(eax, eax);

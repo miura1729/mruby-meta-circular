@@ -487,6 +487,9 @@ mrbjit_iv_off(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 
   if (obj_iv_p(obj)) {
     t =  mrb_obj_ptr(obj)->iv;
+    if (t == NULL) {
+      return -1;
+    }
   }
   else {
     return -1;

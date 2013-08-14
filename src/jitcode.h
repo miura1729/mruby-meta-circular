@@ -609,7 +609,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
     mov(eax, dword [eax + OffsetOf(mrb_context, stack)]);
-    mov(eax, dword [eax + OffsetOf(mrb_value, value.p)]);
+    mov(eax, dword [eax + OffsetOf(mrb_value, value.p0)]);
     mov(eax, dword [eax + OffsetOf(struct RProc, body.irep)]);
     mov(eax, dword [eax + OffsetOf(mrb_irep, jit_top_entry)]);
     test(eax, eax);
@@ -639,7 +639,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int r  = (ax>>12)&0x1;
     int m2 = (ax>>7)&0x1f;
 
-    if (o != 0 || r != 0 || m2 != 0) {
+    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0) {
       CALL_CFUNC_BEGIN;
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
     }
