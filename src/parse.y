@@ -857,6 +857,7 @@ ret_args(parser_state *p, node *n)
 {
   if (n->cdr) {
     yyerror(p, "block argument should not be given");
+    return NULL;
   }
   if (!n->car->cdr) return n->car->car;
   return new_array(p, n->car);
@@ -5167,7 +5168,6 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 
     memcpy(p, s, len + 1);
     c->filename = p;
-    c->lineno = 1;
   }
   return c->filename;
 }

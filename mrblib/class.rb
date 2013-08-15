@@ -1,16 +1,3 @@
-class Class
-  def new(*args,&b)
-    obj = self.alloc
-    obj.initialize(*args,&b)
-    obj
-  end
-  def self.new(*args)
-    obj = super
-    obj.inerited
-    obj
-  end
-end
-
 class Module
   # 15.2.2.4.13
   def attr_reader(*names)

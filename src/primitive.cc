@@ -222,9 +222,15 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
 
   inLocalLabel();
   mov(edx, ptr [ecx + offary]);
+  push(ecx);
+  push(esi);
+  push(ebx);
   push(edx);
-  CALL_CFUNC_BEGIN;
-  CALL_CFUNC_STATUS(mrbjit_ary_modify, 1);
+  call((void *)mrbjit_ary_modify);
+  pop(edx);
+  pop(ebx);
+  pop(esi);
+  pop(ecx);
   mov(eax, ptr [ecx + offidx]);
   movsd(xmm0, ptr [ecx + offval]);
   test(eax, eax);
@@ -235,6 +241,15 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
   cmp(eax, dword [edx + OffsetOf(struct RArray, len)]);
   jg(".retnil");
   mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
+  push(eax);
+  push(ecx);
+  push(esi);
+  push(edx);
+  call((void *)mrb_write_barrier);
+  pop(edx);
+  pop(esi);
+  pop(ecx);
+  pop(eax);
   movsd(ptr [edx + eax * sizeof(mrb_value)], xmm0);
   movsd(ptr [ecx + offary], xmm0);
   jmp(".exit");
