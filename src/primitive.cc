@@ -126,7 +126,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc)
 {
   mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code *pc = *status->pc;
-  int i = *pc;
+  mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
   const Xbyak::uint32 offary = regno * sizeof(mrb_value);
@@ -171,39 +171,6 @@ mrbjit_prim_ary_aget(mrb_state *mrb, mrb_value proc)
   return code->mrbjit_prim_ary_aget_impl(mrb, proc);
 }
 
-void
-mrbjit_ary_modify(mrb_state *mrb, mrbjit_vmstatus *status, struct RArray *a)
-{
-  if (a->flags & MRB_ARY_SHARED) {
-    mrb_shared_array *shared = a->aux.shared;
-
-    if (shared->refcnt == 1 && a->ptr == shared->ptr) {
-      a->ptr = shared->ptr;
-      a->aux.capa = a->len;
-      mrb_free(mrb, shared);
-    }
-    else {
-      mrb_value *ptr, *p;
-      mrb_int len;
-
-      p = a->ptr;
-      len = a->len * sizeof(mrb_value);
-      ptr = (mrb_value *)mrb_malloc(mrb, len);
-      if (p) {
-	size_t i;
-
-	for (i = 0; i < a->len; i++) {
-	  ptr[i] = p[i];
-	}
-      }
-      a->ptr = ptr;
-      a->aux.capa = a->len;
-      mrb_ary_decref(mrb, shared);
-    }
-    a->flags &= ~MRB_ARY_SHARED;
-  }
-}
-
 mrb_value
 MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
 {
@@ -221,18 +188,16 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
   }
 
   inLocalLabel();
-  mov(edx, ptr [ecx + offary]);
+
   push(ecx);
-  push(esi);
-  push(ebx);
-  push(edx);
-  call((void *)mrbjit_ary_modify);
-  pop(edx);
-  pop(ebx);
-  pop(esi);
-  pop(ecx);
+
+  mov(eax, ptr [ecx + offval + 4]);
+  push(eax);
+  mov(eax, ptr [ecx + offval]);
+  push(eax);
+
+  mov(edx, ptr [ecx + offary]);
   mov(eax, ptr [ecx + offidx]);
-  movsd(xmm0, ptr [ecx + offval]);
   test(eax, eax);
   jge(".normal");
   add(eax, dword [edx + OffsetOf(struct RArray, len)]);
@@ -240,17 +205,19 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
   L(".normal");
   cmp(eax, dword [edx + OffsetOf(struct RArray, len)]);
   jg(".retnil");
-  mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
   push(eax);
-  push(ecx);
+
+  mov(eax, ptr [ecx + offary + 4]);
+  push(eax);
+  mov(eax, ptr [ecx + offary]);
+  push(eax);
+
   push(esi);
-  push(edx);
-  call((void *)mrb_write_barrier);
-  pop(edx);
-  pop(esi);
+
+  call((void *)mrb_ary_set);
+  add(esp, 2 * sizeof(void *) + 2 * sizeof(mrb_value));
   pop(ecx);
-  pop(eax);
-  movsd(ptr [edx + eax * sizeof(mrb_value)], xmm0);
+  movsd(xmm0, ptr [ecx + offval]);
   movsd(ptr [ecx + offary], xmm0);
   jmp(".exit");
 
