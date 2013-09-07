@@ -55,7 +55,7 @@ mrb_name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
   mrb_obj_iv_set(mrb, (struct RObject*)c,
                  mrb_intern2(mrb, "__classid__", 11), mrb_symbol_value(name));
 }
-                                
+
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
 static void
@@ -311,6 +311,7 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   int ai = mrb_gc_arena_save(mrb);
 
   p = mrb_proc_new_cfunc(mrb, func);
+  p->target_class = c;
   mrb_define_method_raw(mrb, c, mid, p);
   mrb_gc_arena_restore(mrb, ai);
 }
@@ -538,13 +539,18 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value ss;
         struct RString *s;
         char **ps;
+        mrb_int len;
 
         ps = va_arg(ap, char**);
         if (i < argc) {
           ss = to_str(mrb, *sp++);
           s = mrb_str_ptr(ss);
-          if ((mrb_int)strlen(s->ptr) < s->len) {
+          len = (mrb_int)strlen(s->ptr);
+          if (len < s->len) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+          }
+          else if (len > s->len) {
+            mrb_str_modify(mrb, s);
           }
           *ps = s->ptr;
           i++;
@@ -1109,7 +1115,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
 {
   mrb_value super;
   struct RClass *new_class;
- 
+
   if (mrb_get_args(mrb, "|o", &super) == 0) {
     super = mrb_obj_value(mrb->object_class);
   }
@@ -1935,7 +1941,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "method_missing",          mrb_bob_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
 
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_ANY());
-  mrb_define_method(mrb, cls, "alloc",                   mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));

@@ -10,6 +10,7 @@
 #include "mruby/class.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
+#include "mruby/debug.h"
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
@@ -122,6 +123,7 @@ mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
   mrb_free(mrb, irep->prof_info);
   mrb_free(mrb, irep->jit_entry_tab->body);
   mrb_free(mrb, irep->jit_entry_tab);
+  mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
 }
 

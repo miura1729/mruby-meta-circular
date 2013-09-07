@@ -246,7 +246,6 @@ void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv);
 #define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
-mrb_value mrb_class_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv);
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
 struct RClass * mrb_module_new(mrb_state *mrb);
@@ -376,7 +375,6 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 #ifndef ISPRINT
 //#define ISASCII(c) isascii((int)(unsigned char)(c))
 #define ISASCII(c) 1
-#undef ISPRINT
 #define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
 #define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
 #define ISUPPER(c) (ISASCII(c) && isupper((int)(unsigned char)(c)))
@@ -398,6 +396,7 @@ void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
 void mrb_warn(mrb_state *mrb, const char *fmt, ...);
 void mrb_bug(mrb_state *mrb, const char *fmt, ...);
 void mrb_print_backtrace(mrb_state *mrb);
+void mrb_print_verbose_backtrace(mrb_state *mrb);
 void mrb_print_error(mrb_state *mrb);
 
 /* macros to get typical exception objects
