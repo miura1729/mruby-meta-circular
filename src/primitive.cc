@@ -102,6 +102,30 @@ mrbjit_prim_fix_succ(mrb_state *mrb, mrb_value proc)
 }
 
 mrb_value
+MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc)
+{
+  mrbjit_vmstatus *status = mrb->vmstatus;
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
+
+  mov(eax, dword [ecx + off0]);
+  cvtsi2sd(xmm0, eax);
+  movsd(ptr [ecx + off0], xmm0);
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_fix_to_f_impl(mrb, proc);
+}
+
+mrb_value
 MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc) 
 {
   mrbjit_vmstatus *status = mrb->vmstatus;

@@ -1398,6 +1398,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrbjit_define_primitive(mrb, fixnum, "succ", mrbjit_prim_fix_succ);
 
   mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,          MRB_ARGS_NONE()); /* 15.2.8.3.23 */
+  mrbjit_define_primitive(mrb, fixnum, "to_f", mrbjit_prim_fix_to_f);
+
   mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,          MRB_ARGS_NONE()); /* 15.2.8.3.25 */
   mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,          MRB_ARGS_NONE());
   mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */

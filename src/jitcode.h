@@ -1141,6 +1141,7 @@ do {                                                                 \
   mrb_value mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc);
   mrb_value mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc);
   mrb_value mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc);
+  mrb_value mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc);
 };
 
 #endif  /* MRUBY_JITCODE_H */
