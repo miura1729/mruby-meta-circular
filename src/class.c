@@ -15,6 +15,8 @@
 #include "mruby/variable.h"
 #include "error.h"
 
+#include "mruby/primitive.h"
+
 KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
 
 void
@@ -323,19 +325,19 @@ mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t
 }
 
 void
-mrbjit_define_primitive_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func)
+mrbjit_define_primitive_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrbjit_prim_func_t func)
 {
   struct RProc *p;
   int ai = mrb_gc_arena_save(mrb);
 
-  p = mrb_proc_new_cfunc(mrb, func);
+  p = mrb_proc_new_cfunc(mrb, (mrb_func_t)func);
   p->target_class = c;
   mrb_obj_iv_set(mrb, (struct RObject*)c, mid, mrb_obj_value(p));
   mrb_gc_arena_restore(mrb, ai);
 }
 
 void
-mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func)
+mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbjit_prim_func_t func)
 {
   mrbjit_define_primitive_id(mrb, c, mrb_intern(mrb, name), func);
 }  
@@ -1943,6 +1945,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_ANY());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
+  mrbjit_define_primitive(mrb, cls, "new", mrbjit_prim_instance_new);
+
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
 
   MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);

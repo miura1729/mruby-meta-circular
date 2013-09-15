@@ -228,10 +228,10 @@ typedef struct mrb_state {
   mrb_int is_method_cache_used;
   void *ud; /* auxiliary data */
   mrbjit_comp_info compile_info; /* JIT stuff */
-  struct mrbjit_vmstatus *vmstatus;
 } mrb_state;
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
+typedef mrb_value (*mrbjit_prim_func_t)(mrb_state *mrb, mrb_value, void *, void *);
 struct RClass *mrb_define_class(mrb_state *, const char*, struct RClass*);
 struct RClass *mrb_define_module(mrb_state *, const char*);
 mrb_value mrb_singleton_class(mrb_state*, mrb_value);
@@ -258,7 +258,7 @@ mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method
 mrb_bool mrb_obj_respond_to(struct RClass* c, mrb_sym mid);
 struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
-void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func);
+void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbjit_prim_func_t func);
 
 /* required arguments */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)

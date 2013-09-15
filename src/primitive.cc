@@ -1,13 +1,30 @@
 #include "jitcode.h"
 extern "C" {
+#include "mruby.h"
 #include "mruby/primitive.h"
 #include "mruby/array.h"
+
+mrb_value
+mrbjit_instance_alloc(mrb_state *mrb, mrb_value cv)
+{
+  struct RClass *c = mrb_class_ptr(cv);
+  struct RObject *o;
+  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
+
+  if (c->tt == MRB_TT_SCLASS)
+    mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
+
+  if (ttype == 0) ttype = MRB_TT_OBJECT;
+  o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
+  return mrb_obj_value(o);
+}
+
 }
 
 mrb_value
-MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc) 
+MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
+				     mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code *pc = *status->pc;
   mrb_value *regs = *status->regs;
   int i = *pc;
@@ -72,17 +89,18 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc)
 }
 
 extern "C" mrb_value
-mrbjit_prim_num_cmp(mrb_state *mrb, mrb_value proc)
+mrbjit_prim_num_cmp(mrb_state *mrb, mrb_value proc,
+		    void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_num_cmp_impl(mrb, proc);
+  return code->mrbjit_prim_num_cmp_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
-MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc)
+MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code *pc = *status->pc;
   int i = *pc;
   int regno = GETARG_A(i);
@@ -94,17 +112,17 @@ MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc)
 }
 
 extern "C" mrb_value
-mrbjit_prim_fix_succ(mrb_state *mrb, mrb_value proc)
+mrbjit_prim_fix_succ(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_fix_succ_impl(mrb, proc);
+  return code->mrbjit_prim_fix_succ_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
-MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc)
+MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code *pc = *status->pc;
   int i = *pc;
   int regno = GETARG_A(i);
@@ -118,17 +136,17 @@ MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc)
 }
 
 extern "C" mrb_value
-mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc)
+mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_fix_to_f_impl(mrb, proc);
+  return code->mrbjit_prim_fix_to_f_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
-MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc) 
+MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
+					     mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code **ppc = status->pc;
   mrb_value *regs = *status->regs;
 
@@ -138,17 +156,17 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc)
 }
 
 extern "C" mrb_value
-mrbjit_prim_obj_not_equal_m(mrb_state *mrb, mrb_value proc)
+mrbjit_prim_obj_not_equal_m(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_obj_not_equal_m_impl(mrb, proc);
+  return code->mrbjit_prim_obj_not_equal_m_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
-MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc)
+MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code *pc = *status->pc;
   mrb_code i = *pc;
   int regno = GETARG_A(i);
@@ -188,17 +206,17 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc)
 }
 
 extern "C" mrb_value
-mrbjit_prim_ary_aget(mrb_state *mrb, mrb_value proc)
+mrbjit_prim_ary_aget(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_ary_aget_impl(mrb, proc);
+  return code->mrbjit_prim_ary_aget_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
-MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
+MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrbjit_vmstatus *status = mrb->vmstatus;
   mrb_code *pc = *status->pc;
   int i = *pc;
   int regno = GETARG_A(i);
@@ -258,10 +276,82 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc)
 }
 
 extern "C" mrb_value
-mrbjit_prim_ary_aset(mrb_state *mrb, mrb_value proc)
+mrbjit_prim_ary_aset(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_ary_aset_impl(mrb, proc);
+  return code->mrbjit_prim_ary_aset_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
+					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_code *pc = *status->pc;
+  mrb_irep *irep = *status->irep;
+  int i = *pc;
+  int a = GETARG_A(i);
+  int nargs = GETARG_C(i);
+
+  struct RProc *m;
+  mrb_value klass = regs[a];
+  struct RClass *c = mrb_class_ptr(klass);
+
+  m = mrb_method_search_vm(mrb, &c, mrb_intern(mrb, "initialize"));
+
+  // TODO add guard of class
+  
+  // obj = mrbjit_instance_alloc(mrb, klass);
+  push(ecx);
+  push(ebx);
+  mov(eax, *((Xbyak::uint32 *)(&klass) + 1));
+  push(eax);
+  mov(eax, *((Xbyak::uint32 *)(&klass)));
+  push(eax);
+  push(esi);
+  call((void *)mrbjit_instance_alloc);
+  add(esp, 3 * sizeof(void *));
+  pop(ebx);
+  pop(ecx);
+
+  // regs[a] = obj;
+  mov(ptr [ecx + a * sizeof(mrb_value)], eax);
+  mov(ptr [ecx + a * sizeof(mrb_value) + 4], edx);
+
+  if (MRB_PROC_CFUNC_P(m)) {
+    CALL_CFUNC_BEGIN;
+    mov(eax, (Xbyak::uint32)c);
+    push(eax);
+    mov(eax, (Xbyak::uint32)m);
+    push(eax);
+    CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
+  }
+  else {
+    /* call info setup */
+    CALL_CFUNC_BEGIN;
+    mov(eax, (Xbyak::uint32)c);
+    push(eax);
+    mov(eax, (Xbyak::uint32)m);
+    push(eax);
+    CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
+
+    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(ecx, dword [eax]);
+
+    gen_set_jit_entry(mrb, pc, coi, irep);
+
+    gen_exit(m->body.irep->iseq, 1, 0);
+  }
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_instance_new(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_instance_new_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 

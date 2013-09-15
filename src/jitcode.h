@@ -208,6 +208,46 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     
   }
 
+  void 
+    gen_set_jit_entry(mrb_state *mrb, mrb_code *pc, mrbjit_code_info *coi, mrb_irep *irep)
+  {
+    int ioff;
+    int toff;
+    mrbjit_codetab *ctab;
+
+    //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
+    mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+    mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
+    lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
+    ioff = ISEQ_OFFSET_OF(pc);
+    toff = coi - (irep->jit_entry_tab + ioff)->body;
+
+    /* Check and grow code table */
+    ctab = (irep->jit_entry_tab + ioff + 1);
+    if (ctab->size <= toff) {
+      int oldsize;
+      int j;
+
+      oldsize = ctab->size;
+      ctab->size = oldsize + (oldsize >> 1) + 2;
+      ctab->body = (mrbjit_code_info *)mrb_realloc(mrb, ctab->body, 
+						   sizeof(mrbjit_code_info) * ctab->size);
+      for (j = oldsize; j < ctab->size; j++) {
+	ctab->body[j].used = 0;
+      }
+    }
+
+    /* This is unused entry, but right.Because no other pathes */
+    mov(edx, (Xbyak::uint32)ctab);
+    mov(edx, dword [edx + OffsetOf(mrbjit_codetab, body)]);
+    mov(edx, dword [edx 
+		    + toff * sizeof(mrbjit_code_info)
+		    + OffsetOf(mrbjit_code_info, entry)]);
+
+    //printf("%d ", toff);
+    mov(dword [eax], edx);
+  }
+
   const void *
     emit_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
@@ -516,9 +556,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     if (MRB_PROC_CFUNC_P(m)) {
       prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
-      mrb->vmstatus = status;
       if (mrb_type(prim) == MRB_TT_PROC) {
-	mrb_value res = mrb_proc_ptr(prim)->body.func(mrb, prim);
+	mrb_value res = ((mrbjit_prim_func_t)mrb_proc_ptr(prim)->body.func)(mrb, prim, status, coi);
 	if (!mrb_nil_p(res)) {
 	  return code;
 	}
@@ -533,10 +572,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
     }
     else {
-      int ioff;
-      int toff;
-      mrbjit_codetab *ctab;
-
       CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
       push(eax);
@@ -547,37 +582,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
       mov(ecx, dword [eax]);
 
-      //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
-      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-      mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
-      lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
-      ioff = ISEQ_OFFSET_OF(pc);
-      toff = coi - (irep->jit_entry_tab + ioff)->body;
-
-      /* Check and grow code table */
-      ctab = (irep->jit_entry_tab + ioff + 1);
-      if (ctab->size <= toff) {
-	int oldsize;
-	int j;
-
-	oldsize = ctab->size;
-	ctab->size = oldsize + (oldsize >> 1) + 2;
-	ctab->body = (mrbjit_code_info *)mrb_realloc(mrb, ctab->body, 
-				sizeof(mrbjit_code_info) * ctab->size);
-	for (j = oldsize; j < ctab->size; j++) {
-	  ctab->body[j].used = 0;
-	}
-      }
-
-      /* This is unused entry, but right.Because no other pathes */
-      mov(edx, (Xbyak::uint32)ctab);
-      mov(edx, dword [edx + OffsetOf(mrbjit_codetab, body)]);
-      mov(edx, dword [edx 
-		      + toff * sizeof(mrbjit_code_info)
-		      + OffsetOf(mrbjit_code_info, entry)]);
-
-      //printf("%d ", toff);
-      mov(dword [eax], edx);
+      gen_set_jit_entry(mrb, pc, coi, irep);
     }
 
     return code;
@@ -1136,12 +1141,27 @@ do {                                                                 \
   }
 
   /* primitive methodes */
-  mrb_value mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc);
-  mrb_value mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc);
-  mrb_value mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc);
-  mrb_value mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc);
-  mrb_value mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc);
-  mrb_value mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc);
+  mrb_value 
+    mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
+			     mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
+				     mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
+				  mrbjit_vmstatus *status, mrbjit_code_info *coi);
 };
 
 #endif  /* MRUBY_JITCODE_H */
