@@ -3,6 +3,8 @@ extern "C" {
 #include "mruby.h"
 #include "mruby/primitive.h"
 #include "mruby/array.h"
+#include "mruby/irep.h"
+#include "opcode.h"
 
 mrb_value
 mrbjit_instance_alloc(mrb_state *mrb, mrb_value cv)
@@ -328,6 +330,16 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
   }
   else {
+    /* patch initialize method */
+    mrb_irep *pirep = m->body.irep;
+    mrb_code *piseq = pirep->iseq;
+    for (int i = 0; i < pirep->ilen; i++) {
+      if (GET_OPCODE(piseq[i]) == OP_RETURN) {
+	/* clear A argument (return self always) */
+	piseq[i] &= ((1 << 23) - 1);
+      }
+    }
+    
     /* call info setup */
     CALL_CFUNC_BEGIN;
     mov(eax, (Xbyak::uint32)c);
