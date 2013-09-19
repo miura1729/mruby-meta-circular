@@ -290,8 +290,8 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_value *regs = *status->regs;
-  mrb_code *pc = *status->pc;
   mrb_irep *irep = *status->irep;
+  mrb_code *pc = *status->pc;
   int i = *pc;
   int a = GETARG_A(i);
   int nargs = GETARG_C(i);
