@@ -1122,15 +1122,24 @@ do {                                                                 \
     if (mirep->shared_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
-	  mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+	  /*	  mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
 	  mov(eax, dword [eax + OffsetOf(mrb_context, proc_pool)]);
 	  mov(eax, dword [eax + i * sizeof(struct LocalProc)]);
 	  mov(edx, (Xbyak::uint32)mirep);
 	  cmp(edx, dword [eax + OffsetOf(struct LocalProc, proc.body.irep)]);
 	  jz("@f");
 	  gen_exit(*ppc, 1, 0);
-	  L("@@");
-	  mov(dword [ecx + dstoff + 4], eax);
+	  L("@@");*/
+	  mov(dword [ecx + dstoff], (Xbyak::uint32)&c->proc_pool[i].proc);
+	  mov(dword [ecx + dstoff + 4], 0xfff00000 + MRB_TT_PROC);
+
+	  /*	  mov(eax, dword [ecx + dstoff + 4]);
+	  push(eax);
+	  mov(eax, dword [ecx + dstoff]);
+	  push(eax);
+	  push(esi);
+	  call((void *)mrb_p);
+	  add(esp, 12);*/
 
 	  return code;
 	}

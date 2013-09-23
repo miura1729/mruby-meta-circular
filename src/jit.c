@@ -50,7 +50,6 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   // puts(mrb_sym2name(mrb, mid));
 
   ci = mrbjit_cipush(mrb);
-  ci->proc_pool = mrb->c->proc_pool;
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->argc = n;
   ci->target_class = c;
@@ -108,7 +107,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
 
   /* push callinfo */
   ci = mrbjit_cipush(mrb);
-  ci->proc_pool = mrb->c->proc_pool;
   ci->mid = mid;
   ci->proc = m;
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
@@ -254,7 +252,6 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     while (ci[0].ridx == ci[-1].ridx) {
       mrbjit_cipop(mrb);
       ci = mrb->c->ci;
-      mrb->c->proc_pool = ci->proc_pool;
       if (ci[1].acc < 0 && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
@@ -329,7 +326,6 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       break;
     }
     mrbjit_cipop(mrb);
-    mrb->c->proc_pool = ci->proc_pool;
     acc = ci->acc;
     *status->pc = ci->pc;
     *status->regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
@@ -378,7 +374,6 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     while (ci[0].ridx == ci[-1].ridx) {
       mrbjit_cipop(mrb);
       ci = mrb->c->ci;
-      mrb->c->proc_pool = ci->proc_pool;
       if (ci[1].acc < 0 && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
@@ -406,7 +401,6 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     mrb_value v = (*status->regs)[GETARG_A(i)];
 
     c->ci--;
-    c->proc_pool = ci->proc_pool;
     acc = ci->acc;
     *status->pc = ci->pc;
     *status->regs = c->stack = c->stbase + ci->stackidx;

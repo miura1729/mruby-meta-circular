@@ -328,7 +328,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
       c->proc_pool = c->proc_pool_base;
     }
     else {
-      c->proc_pool_capa = 4;
+      c->proc_pool_capa = 3;
       alloc_proc_pool(mrb, c->proc_pool_capa);
     }
   }
@@ -433,7 +433,6 @@ ecall(mrb_state *mrb, int i)
   p = mrb->c->ensure[i];
   if (!p) return;
   ci = cipush(mrb);
-  ci->proc_pool = mrb->c->proc_pool;
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->mid = ci[-1].mid;
   ci->acc = CI_ACC_SKIP;
@@ -542,7 +541,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       n++; argc++;
     }
     ci = cipush(mrb);
-    ci->proc_pool = mrb->c->proc_pool;
     ci->mid = mid;
     ci->proc = p;
     ci->stackidx = mrb->c->stack - mrb->c->stbase;
@@ -573,7 +571,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       ci->acc = CI_ACC_DIRECT;
       val = p->body.func(mrb, self);
       mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
-      mrb->c->proc_pool = mrb->c->ci->proc_pool;
       cipop(mrb);
       mrb_gc_arena_restore(mrb, ai);
     }
@@ -606,7 +603,6 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
   }
   p = mrb_proc_ptr(b);
   ci = cipush(mrb);
-  ci->proc_pool = mrb->c->proc_pool;
   ci->mid = mid;
   ci->proc = p;
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
@@ -634,7 +630,6 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
     val = p->body.func(mrb, self);
     mrb->compile_info.disable_jit = orgdisflg;
     mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
-    mrb->c->proc_pool = mrb->c->ci->proc_pool;
     cipop(mrb);
   }
   else {
@@ -1333,7 +1328,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	
       /* push callinfo */
       ci = cipush(mrb);
-      ci->proc_pool = mrb->c->proc_pool;
       ci->mid = mid;
       ci->proc = m;
       ci->stackidx = mrb->c->stack - mrb->c->stbase;
@@ -1381,7 +1375,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         }
         regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
         pc = ci->pc;
-	mrb->c->proc_pool = ci->proc_pool;
         cipop(mrb);
         JUMP;
       }
@@ -1441,7 +1434,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
         regs[ci->acc] = recv;
         pc = ci->pc;
-	mrb->c->proc_pool = ci->proc_pool;
         cipop(mrb);
         irep = mrb->c->ci->proc->body.irep;
         pool = irep->pool;
@@ -1504,7 +1496,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       /* push callinfo */
       ci = cipush(mrb);
-      ci->proc_pool = mrb->c->proc_pool;
       ci->mid = mid;
       ci->proc = m;
       ci->stackidx = mrb->c->stack - mrb->c->stbase;
@@ -1530,7 +1521,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         regs = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
-	mrb->c->proc_pool = mrb->c->ci->proc_pool;
         cipop(mrb);
         NEXT;
       }
@@ -1722,7 +1712,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->c->ci;
-	  mrb->c->proc_pool = ci->proc_pool;
           mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
           if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
@@ -1801,7 +1790,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
           ecall(mrb, --eidx);
         }
         cipop(mrb);
-	mrb->c->proc_pool = ci->proc_pool;
         acc = ci->acc;
         pc = ci->pc;
         regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
@@ -2486,7 +2474,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 
       /* prepare stack */
       ci = cipush(mrb);
-      ci->proc_pool = mrb->c->proc_pool;
       ci->pc = pc + 1;
       ci->acc = a;
       ci->mid = 0;
@@ -2510,7 +2497,6 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
         regs = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
-	mrb->c->proc_pool = mrb->c->ci->proc_pool;
         cipop(mrb);
         NEXT;
       }
