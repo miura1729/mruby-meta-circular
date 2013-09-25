@@ -16,6 +16,7 @@ extern "C" {
 #include "mruby/value.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
+#include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/jit.h"
@@ -1168,6 +1169,41 @@ do {                                                                 \
     }
 
     return NULL;
+  }
+
+  const void *
+    emit_range(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    int srcoff0 = GETARG_B(**ppc) * sizeof(mrb_value);
+    int srcoff1 = srcoff0 + sizeof(mrb_value);
+    int exelp = GETARG_C(**ppc);
+
+    push(ecx);
+    push(ebx);
+
+    mov(eax, exelp);
+    push(eax);
+    mov(eax, ptr [ecx + srcoff1 + 4]);
+    push(eax);
+    mov(eax, ptr [ecx + srcoff1]);
+    push(eax);
+    mov(eax, ptr [ecx + srcoff0 + 4]);
+    push(eax);
+    mov(eax, ptr [ecx + srcoff0]);
+    push(eax);
+    push(esi);
+    call((void *) mrb_range_new);
+    add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2 + sizeof(int));
+    
+    pop(ebx);
+    pop(ecx);
+
+    mov(ptr [ecx + dstoff], eax);
+    mov(ptr [ecx + dstoff + 4], edx);
+    return code;
   }
 
   /* primitive methodes */

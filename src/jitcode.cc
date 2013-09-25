@@ -170,6 +170,9 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   case OP_LAMBDA:
     return code->emit_lambda(mrb, status, coi, regs);
 
+  case OP_RANGE:
+    return code->emit_range(mrb, status, coi, regs);
+
   default:
     mrb->compile_info.nest_level = 0;
     return NULL;
