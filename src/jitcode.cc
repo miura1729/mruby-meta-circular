@@ -149,6 +149,9 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   case OP_GE:
     return code->emit_ge(mrb, status, coi, regs);
 
+  case OP_ARRAY:
+    return code->emit_array(mrb, status, coi, regs);
+    
   case OP_GETUPVAR:
     return code->emit_getupvar(mrb, status, coi);
 

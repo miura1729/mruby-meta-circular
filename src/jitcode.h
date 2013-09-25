@@ -16,6 +16,7 @@ extern "C" {
 #include "mruby/value.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
+#include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/jit.h"
 
@@ -1008,6 +1009,34 @@ do {                                                                 \
   }
 
   const void *
+    emit_array(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
+    int siz = GETARG_C(**ppc);
+
+    push(ecx);
+    push(ebx);
+
+    lea(eax, ptr [ecx + srcoff]);
+    push(eax);
+    mov(eax, siz);
+    push(eax);
+    push(esi);
+    call((void *) mrb_ary_new_from_values);
+    add(esp, sizeof(mrb_state *) + sizeof(int) + sizeof(mrb_value *));
+    
+    pop(ebx);
+    pop(ecx);
+
+    mov(ptr [ecx + dstoff], eax);
+    mov(ptr [ecx + dstoff + 4], edx);
+    return code;
+  }
+
+  const void *
     emit_getupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
@@ -1122,14 +1151,6 @@ do {                                                                 \
     if (mirep->shared_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
-	  /*	  mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-	  mov(eax, dword [eax + OffsetOf(mrb_context, proc_pool)]);
-	  mov(eax, dword [eax + i * sizeof(struct LocalProc)]);
-	  mov(edx, (Xbyak::uint32)mirep);
-	  cmp(edx, dword [eax + OffsetOf(struct LocalProc, proc.body.irep)]);
-	  jz("@f");
-	  gen_exit(*ppc, 1, 0);
-	  L("@@");*/
 	  mov(dword [ecx + dstoff], (Xbyak::uint32)&c->proc_pool[i].proc);
 	  mov(dword [ecx + dstoff + 4], 0xfff00000 + MRB_TT_PROC);
 
