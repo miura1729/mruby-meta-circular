@@ -609,7 +609,7 @@ for_body(codegen_scope *s, node *tree)
   scope_finish(s);
   s = prev;
   s->simple_lambda = 0;
-  if (s->mrb->irep[idx]->simple_lambda) {
+  if (s->mrb->irep[idx]->simple_lambda && 0) {
     /* no parent var access and child lambda */
     /* NO strict and NO capture */
     genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx - base, 0));
@@ -1302,7 +1302,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       s->simple_lambda = 0;
       s->mrb->irep[s->idx + idx]->shared_lambda = 0;
-      if (s->mrb->irep[s->idx + idx]->simple_lambda) {
+      if (s->mrb->irep[s->idx + idx]->simple_lambda && 0) {
 	/* no parent var access and child lambda */
 	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, OP_L_METHOD));
       }
@@ -1318,7 +1318,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lambda_body(s, tree, 1);
 
       s->simple_lambda = 0;
-      if (s->mrb->irep[s->idx + idx]->simple_lambda) {
+      if (s->mrb->irep[s->idx + idx]->simple_lambda && 0) {
 	/* no parent var access and child lambda */
 	/* NO strict and NO capture */
 	genop(s, MKOP_Abc(OP_LAMBDA, cursp(), idx, 0));
@@ -1768,6 +1768,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_A(OP_LOADNIL, cursp()));
     }
     if (s->loop) {
+      s->simple_lambda = 0;
       genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_RETURN));
     }
     else {
@@ -2622,6 +2623,7 @@ loop_break(codegen_scope *s, node *tree)
       loop->pc3 = tmp;
     }
     else {
+      s->simple_lambda = 0;
       genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_BREAK));
     }
   }
