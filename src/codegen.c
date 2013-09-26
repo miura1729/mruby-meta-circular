@@ -280,18 +280,6 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       case OP_MOVE:
         s->iseq[s->pc-1] = MKOP_AB(OP_RETURN, GETARG_B(i0), OP_R_NORMAL);
         return;
-      case OP_LOADI:
-        s->iseq[s->pc-1] = MKOP_AsBx(OP_LOADI, 0, GETARG_sBx(i0));
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
-        return;
-      case OP_ARRAY:
-      case OP_HASH:
-      case OP_RANGE:
-      case OP_AREF:
-      case OP_GETUPVAR:
-        s->iseq[s->pc-1] = MKOP_ABC(c0, 0, GETARG_B(i0), GETARG_C(i0));
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
-        return;
       case OP_SETIV:
       case OP_SETCV:
       case OP_SETCONST:
@@ -302,29 +290,6 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
         genop_peep(s, i0, NOVAL);
         i0 = s->iseq[s->pc-1];
         genop(s, MKOP_AB(OP_RETURN, GETARG_A(i0), OP_R_NORMAL));
-        return;
-      case OP_LOADSYM:
-      case OP_GETGLOBAL:
-      case OP_GETIV:
-      case OP_GETCV:
-      case OP_GETCONST:
-      case OP_GETSPECIAL:
-      case OP_LOADL:
-      case OP_STRING:
-        s->iseq[s->pc-1] = MKOP_ABx(c0, 0, GETARG_Bx(i0));
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
-        return;
-      case OP_SCLASS:
-        s->iseq[s->pc-1] = MKOP_AB(c0, GETARG_A(i), GETARG_B(i0));
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
-        return;
-      case OP_LOADNIL:
-      case OP_LOADSELF:
-      case OP_LOADT:
-      case OP_LOADF:
-      case OP_OCLASS:
-        s->iseq[s->pc-1] = MKOP_A(c0, 0);
-        genop(s, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
         return;
 #if 0
       case OP_SEND:
@@ -1170,12 +1135,12 @@ codegen(codegen_scope *s, node *tree, int val)
 
   if (!tree) return;
 
-  if (s->irep && s->pc > 0 && s->filename_index != tree->filename) {
-    s->irep->filename = s->filename = mrb_parser_get_filename(s->parser, s->filename_index);
+  if (s->irep && s->pc > 0 && s->filename_index != tree->filename_index) {
+    s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     mrb_debug_info_append_file(s->mrb, s->irep, s->debug_start_pos, s->pc);
     s->debug_start_pos = s->pc;
-    s->filename_index = tree->filename;
-    s->filename = mrb_parser_get_filename(s->parser, tree->filename);
+    s->filename_index = tree->filename_index;
+    s->filename = mrb_parser_get_filename(s->parser, tree->filename_index);
   }
 
   nt = (intptr_t)tree->car;
@@ -2551,6 +2516,7 @@ scope_finish(codegen_scope *s)
   irep->pool = (mrb_value *)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   if (s->filename) {
+    s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
     mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
 
     fname_len = strlen(s->filename);
