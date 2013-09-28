@@ -173,18 +173,6 @@ def assert_raise(*exp)
   ret
 end
 
-def assert_equal(exp, act, msg = nil)
-  msg = "Expected to be equal" unless msg
-  diff = assertion_diff(exp, act)
-  assert_true(exp == act, msg, diff)
-end
-
-def assert_nil(obj, msg = nil)
-  msg = "Expected #{obj.inspect} to be nil" unless msg
-  diff = assertion_diff(nil, obj)
-  assert_true(obj.nil?, msg, diff)
-end
-
 ##
 # Fails unless +obj+ is a kind of +cls+.
 def assert_kind_of(cls, obj, msg = nil)
