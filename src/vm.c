@@ -356,6 +356,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   p->env->cioff = mrb->c->ci - mrb->c->cibase;
   p->env->c = (struct RClass*)mrb->c->ci->proc->env;
   c->proc_pool->proc.body.irep = mirep;
+  mirep->flags |= MRB_ISEQ_NO_FREE; /* Guard from gc  */
   paint_partial_white(mrb, p);
   paint_partial_white(mrb, p->env);
   
