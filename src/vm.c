@@ -774,6 +774,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_code *caller_pc;
   void *(*entry)() = NULL;
   void *(*prev_entry)() = NULL;
+  void *rc;
 
   if (mrb->compile_info.disable_jit) {
     return status->optable[GET_OPCODE(**ppc)];
@@ -805,7 +806,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (cbase == NULL && ci->used > 0) {
-      void *rc;
       prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
@@ -849,10 +849,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       else {
 	caller_pc = NULL;
 	mrb->compile_info.nest_level = 0;
-      }
-      if (rc) {
-	mrb->compile_info.prev_pc = *ppc;
-	return rc;
       }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
     }
@@ -914,6 +910,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb->compile_info.prev_pc = *ppc;
   mrb->compile_info.prev_coi = ci;
 
+  if (rc) {
+    return rc;
+  }
   return status->optable[GET_OPCODE(**ppc)];
 }
 
