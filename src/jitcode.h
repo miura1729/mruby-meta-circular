@@ -693,14 +693,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ebx);
     pop(ecx);
 
+    mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
+    mov(ecx, dword [edx]);
+
     test(eax, eax);
     jz("@f");
     pop(edx);			/* pop return address from callinfo */
     gen_exit(NULL, 0, 0);
     L("@@");
-
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
-    mov(ecx, dword [eax]);
 
     ret();
 
