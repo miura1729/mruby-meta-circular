@@ -396,7 +396,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const int ivoff = mrbjit_iv_off(mrb, self, id);
 
     if (ivoff < 0) {
-      return NULL;
+      /* Normal instance variable set (not defined yet) */
+      push(ecx);
+      push(ebx);
+      mov(eax, ptr [ecx + srcoff + 4]);
+      push(eax);
+      mov(eax, ptr [ecx + srcoff]);
+      push(eax);
+      push((Xbyak::uint32)irep->syms[idpos]);
+      push(esi);
+      call((void *)mrb_vm_iv_set);
+      add(esp, sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
+      pop(ebx);
+      pop(ecx);
+
+      return code;
     }
     mov(eax, ecx);
     gen_class_guard(mrb, self, *ppc);
