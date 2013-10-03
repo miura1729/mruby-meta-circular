@@ -707,6 +707,7 @@ extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **);
 extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
 extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *);
+extern void mrbjit_gen_exit_patch(mrbjit_code_area, void *, mrb_code *);
 
 static inline mrbjit_code_info *
 mrbjit_search_codeinfo_prev_inline(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
@@ -1314,8 +1315,8 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 	else {
 	  mrb->is_method_cache_used = 1;
 	  irep->is_method_cache_used = 1;
-	  pool[rcvoff].value.p = c;
-	  pool[mthoff].value.p = m;
+	  MRB_SET_VALUE(pool[rcvoff], MRB_TT_CACHE_VALUE, value.p, c);
+	  MRB_SET_VALUE(pool[rcvoff], MRB_TT_FIXNUM, value.p, m);
 	}
       }
       else {
@@ -2516,6 +2517,30 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
       /* A B            R(A).newmethod(Sym(B),R(A+1)) */
       int a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
+      khash_t(mt) *h = c->mt;
+      khiter_t k;
+      struct RProc *p;
+
+      if (h) {
+	k = kh_get(mt, h, syms[GETARG_B(i)]);
+	if (k != kh_end(h)) {
+	  p = kh_value(h, k);
+	  if (p && !MRB_PROC_CFUNC_P(p)) {
+	    mrb_irep *irep = p->body.irep;
+	    mrbjit_codetab *tab = irep->jit_entry_tab;
+	    mrbjit_code_info *entry;
+	    int i;
+
+	    for (i = 0; i < tab->size; i++) {
+	      entry = tab->body + i;
+	      if (entry->used > 0) {
+		mrbjit_code_area cbase = mrb->compile_info.code_base;
+		mrbjit_gen_exit_patch(cbase, entry->entry, pc);
+	      }
+	    }
+	  }
+	}
+      }
 
       mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = 0;
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);

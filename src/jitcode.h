@@ -96,6 +96,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
+    gen_exit_patch(void *dst, mrb_code *pc)
+  {
+    size_t cursize = getSize();
+    const unsigned char *code = getCode();
+    size_t dstsize = (unsigned char *)dst - code;
+
+    setSize(dstsize);
+    gen_exit(pc, 1, 0);
+    setSize(cursize);
+  }
+
+  void 
     gen_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrb_code *curpc, mrb_code *newpc)
   {
     mrbjit_code_info *newci;

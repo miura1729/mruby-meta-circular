@@ -55,14 +55,14 @@ assert('Comparable#>=', '15.3.3.2.5') do
 end
 
 assert('Comparable#between?', '15.3.3.2.6') do
-  class Foo2
+  class Foo
     include Comparable
     def <=>(x)
       x
     end
   end
 
-  c = Foo2.new
+  c = Foo.new
 
   assert_false(c.between?(-1,  1))
   assert_false(c.between?(-1, -1))

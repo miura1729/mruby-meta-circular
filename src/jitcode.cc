@@ -38,6 +38,19 @@ mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
   code->gen_jmp_patch(dst, target);
 }
 
+void
+mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc)
+{
+  MRBJitCode *code;
+  if (coderaw == NULL) {
+    code = the_code;
+  } 
+  else {
+    code  = (MRBJitCode *) coderaw;
+  }
+  code->gen_exit_patch(dst, pc);
+}
+
 static const void *
 mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 		     MRBJitCode *code, mrbjit_code_info *coi)
