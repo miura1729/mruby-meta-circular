@@ -65,6 +65,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     entry = code->gen_entry(mrb, status);
   }
 
+  if (mrb->code_fetch_hook) {
+    code->gen_call_fetch_hook(mrb, status);
+  }
+
   switch(GET_OPCODE(**ppc)) {
   case OP_NOP:
     return code->emit_nop(mrb, status, coi);
