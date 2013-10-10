@@ -2,6 +2,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
+#include "mruby/primitive.h"
 
 #define FIBER_STACK_INIT_SIZE 64
 #define FIBER_CI_INIT_SIZE 8
@@ -242,6 +243,8 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
+  mrbjit_define_primitive(mrb, c, "resume", mrbjit_prim_fiber_resume);
+
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());

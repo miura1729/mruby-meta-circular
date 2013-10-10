@@ -367,3 +367,20 @@ mrbjit_prim_instance_new(mrb_state *mrb, mrb_value proc, void *status, void *coi
   return code->mrbjit_prim_instance_new_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+
+  gen_exit(pc, 1, 1);
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_fiber_resume(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_fiber_resume_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
