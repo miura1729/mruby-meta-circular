@@ -47,6 +47,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
   }
 
+  const void
+    set_entry(const void * entry)
+  {
+    const unsigned char *code = getCode();
+    size_t entsize = (unsigned char *)entry - code;
+    setSize(entsize);
+  }
+
   const void *
     gen_entry(mrb_state *mrb, mrbjit_vmstatus *status) 
   {

@@ -294,7 +294,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   int i = *pc;
   int a = GETARG_A(i);
-  int nargs = GETARG_C(i);
+  //int nargs = GETARG_C(i);
 
   struct RProc *m;
   mrb_value klass = regs[a];
@@ -333,7 +333,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     /* patch initialize method */
     mrb_irep *pirep = m->body.irep;
     mrb_code *piseq = pirep->iseq;
-    for (int i = 0; i < pirep->ilen; i++) {
+    for (unsigned int i = 0; i < pirep->ilen; i++) {
       if (GET_OPCODE(piseq[i]) == OP_RETURN) {
 	/* clear A argument (return self always) */
 	piseq[i] &= ((1 << 23) - 1);
