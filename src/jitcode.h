@@ -625,22 +625,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_class_guard(mrb, recv, pc);
 
     if ((ivid = is_reader(mrb, m))) {
+      const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
+
       /* Inline IV reader */
-      push(ecx);
-      push(ebx);
-      mov(eax, (Xbyak::uint32)ivid);
-      push(eax);
       mov(eax, ptr [ecx + a * sizeof(mrb_value)]);
-      push(eax);
-      push(esi);
-      call((void *)mrb_obj_iv_get);
-      add(esp, 3 * sizeof(void *));
-      pop(ebx);
-      pop(ecx);
+      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+      mov(eax, dword [eax]);
+      movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
 
       // regs[a] = obj;
-      mov(ptr [ecx + a * sizeof(mrb_value)], eax);
-      mov(ptr [ecx + a * sizeof(mrb_value) + 4], edx);
+      movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
 
       return code;
     }
