@@ -63,7 +63,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     code = the_code;
     mrb->compile_info.code_base = code;
   }
-  const void *entry = code->gen_entry(mrb, status);;
+  const void *entry = code->gen_entry(mrb, status);
 
   if (mrb->code_fetch_hook) {
     code->gen_call_fetch_hook(mrb, status);

@@ -14,6 +14,12 @@
 extern "C" {
 #endif
 
+enum method_kind {
+  NORMAL = 0,
+  IV_READER,
+  IV_WRITER,
+};
+
 /* Program data array struct */
 typedef struct mrb_irep {
   uint32_t idx;
@@ -44,6 +50,7 @@ typedef struct mrb_irep {
   int jit_inlinep;
   mrbjit_codetab *jit_entry_tab;
   void *(*jit_top_entry)();
+  enum method_kind method_kind;
 } mrb_irep;
 
 typedef struct mrbjit_vmstatus {

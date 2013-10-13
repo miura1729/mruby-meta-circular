@@ -569,6 +569,29 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     L("@@");                                                         \
   }while (0)
 
+  mrb_sym
+    is_reader(mrb_state *mrb, struct RProc *m)
+  {
+    mrb_irep *irep;
+    mrb_code opiv;
+
+    if (!MRB_PROC_CFUNC_P(m)) {
+      irep = m->body.irep;
+
+      if (irep->ilen != 3) {
+	return 0;
+      }
+
+      opiv = irep->iseq[1];
+      if (GET_OPCODE(opiv) == OP_GETIV) {
+	irep->method_kind = IV_READER;
+	return irep->syms[GETARG_Bx(opiv)];
+      }
+    }
+
+    return 0;
+  }
+
   const void *
     emit_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
@@ -585,6 +608,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     mrb_value recv;
     mrb_sym mid = syms[GETARG_B(i)];
+    mrb_sym ivid = syms[GETARG_B(i)];
 
     if (GETARG_C(i) == CALL_MAXARGS) {
       return NULL;
@@ -599,6 +623,27 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     lea(eax, ptr [ecx + a * sizeof(mrb_value)]);
     gen_class_guard(mrb, recv, pc);
+
+    if ((ivid = is_reader(mrb, m))) {
+      /* Inline IV reader */
+      push(ecx);
+      push(ebx);
+      mov(eax, (Xbyak::uint32)ivid);
+      push(eax);
+      mov(eax, ptr [ecx + a * sizeof(mrb_value)]);
+      push(eax);
+      push(esi);
+      call((void *)mrb_obj_iv_get);
+      add(esp, 3 * sizeof(void *));
+      pop(ebx);
+      pop(ecx);
+
+      // regs[a] = obj;
+      mov(ptr [ecx + a * sizeof(mrb_value)], eax);
+      mov(ptr [ecx + a * sizeof(mrb_value) + 4], edx);
+
+      return code;
+    }
 
     if (GET_OPCODE(i) != OP_SENDB) {
       //SET_NIL_VALUE(regs[a+n+1]);
