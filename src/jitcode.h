@@ -276,11 +276,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push(ecx);
     push(ebx);
     push(ecx);
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
-    mov(eax, ptr [eax]);
+    //    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+    mov(eax, (Xbyak::uint32)(*(status->pc)));
     push(eax);
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
-    mov(eax, ptr [eax]);
+    mov(eax, (Xbyak::uint32)(*(status->irep)));
     push(eax);
     push(esi);
     call((void *)mrb->code_fetch_hook);
