@@ -142,8 +142,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_type_guard(mrb_state *mrb, enum mrb_vtype tt, mrb_code *pc)
+    gen_type_guard(mrb_state *mrb, int regpos, mrb_value *regs, mrb_code *pc)
   {
+    enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regpos]);
+
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -828,13 +830,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int reg1pos = reg0pos + 1;                                          \
     const Xbyak::uint32 reg0off = reg0pos * sizeof(mrb_value);          \
     const Xbyak::uint32 reg1off = reg1pos * sizeof(mrb_value);          \
-    enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
+    enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
 \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, r0type, *ppc);					\
+    gen_type_guard(mrb, reg0pos, regs, *ppc);				\
     mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, r1type, *ppc);					\
+    gen_type_guard(mrb, reg1pos, regs, *ppc);				\
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
       mov(eax, dword [ecx + reg0off]);                                  \
@@ -906,9 +908,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);
 
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */
-    gen_type_guard(mrb, r0type, *ppc);
+    gen_type_guard(mrb, reg0pos, regs, *ppc);
     mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */
-    gen_type_guard(mrb, r1type, *ppc);
+    gen_type_guard(mrb, reg1pos, regs, *ppc);
 
     if (r0type == MRB_TT_FIXNUM) {
       cvtsi2sd(xmm0, dword [ecx + reg0off]);
@@ -946,8 +948,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 off = GETARG_A(**ppc) * sizeof(mrb_value);      \
     int regno = GETARG_A(**ppc);                                        \
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
+\
     mov(eax, dword [ecx + off + 4]); /* Get type tag */                 \
-    gen_type_guard(mrb, atype, *ppc);					\
+    gen_type_guard(mrb, regno, regs, *ppc);				\
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
       mov(eax, dword [ecx + off]);                                      \
@@ -1024,9 +1027,9 @@ do {                                                                 \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
     mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), *ppc);	\
+    gen_type_guard(mrb, regno, regs, *ppc);			     \
     mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno + 1]), *ppc); \
+    gen_type_guard(mrb, regno + 1, regs, *ppc);			     \
                                                                      \
     if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \
              mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \

@@ -37,7 +37,8 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   //mov(eax, dword [ecx + off0 + 4]);
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
   mov(eax, dword [ecx + off1 + 4]); /* Get type tag */
-  gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno + 1]), pc);
+
+  gen_type_guard(mrb, regno + 1, regs, pc);
   
   if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
       mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {
