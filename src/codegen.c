@@ -699,7 +699,9 @@ scope_body(codegen_scope *s, node *tree)
       genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
     }
     else {
-      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp, OP_R_NORMAL), NOVAL);
+      pop();
+      genop_peep(scope, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
+      push();
     }
   }
   scope_finish(scope);
@@ -737,16 +739,23 @@ static int
 gen_values(codegen_scope *s, node *t, int val)
 {
   int n = 0;
+  int is_splat;
 
   while (t) {
-    if (n >= 127 || (intptr_t)t->car->car == NODE_SPLAT) { // splat mode
+    is_splat = (intptr_t)t->car->car == NODE_SPLAT; // splat mode
+    if (n >= 127 || is_splat) {
       if (val) {
         pop_n(n);
         genop(s, MKOP_ABC(OP_ARRAY, cursp(), cursp(), n));
         push();
         codegen(s, t->car, VAL);
         pop(); pop();
-        genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+        if (is_splat) {
+            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+        }
+        else {
+            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+        }
         t = t->cdr;
         while (t) {
           push();

@@ -66,8 +66,9 @@ typedef struct {
   int stackidx;
   int nregs;
   int argc;
-  mrb_code *pc;
+  mrb_code *pc;                 /* return address */
   void *jit_entry;
+  mrb_code *err;                /* error position */
   int acc;
   struct RClass *target_class;
   int ridx;
@@ -395,7 +396,6 @@ void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
 void mrb_warn(mrb_state *mrb, const char *fmt, ...);
 void mrb_bug(mrb_state *mrb, const char *fmt, ...);
 void mrb_print_backtrace(mrb_state *mrb);
-void mrb_print_verbose_backtrace(mrb_state *mrb);
 void mrb_print_error(mrb_state *mrb);
 
 /* macros to get typical exception objects

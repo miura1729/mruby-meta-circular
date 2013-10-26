@@ -222,6 +222,11 @@ assert('Class new') do
   assert_equal(Class, Class.new.class)
 end
 
+assert('class to return the last value') do
+  m = class C; :m end
+  assert_equal(m, :m)
+end
+
 assert('Class#inherited') do
   class Foo
     @@subclass_name = nil

@@ -830,7 +830,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int reg1pos = reg0pos + 1;                                          \
     const Xbyak::uint32 reg0off = reg0pos * sizeof(mrb_value);          \
     const Xbyak::uint32 reg1off = reg1pos * sizeof(mrb_value);          \
-    enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
+    enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
 \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
