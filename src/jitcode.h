@@ -37,7 +37,8 @@ void *mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
 
 /* Regs Map                               *
  * ecx   -- pointer to regs               *
- * ebx   -- pointer to status                 */
+ * ebx   -- pointer to status             *
+ * esi   -- pointer to mrb                */
 class MRBJitCode: public Xbyak::CodeGenerator {
 
  public:
