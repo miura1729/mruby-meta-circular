@@ -431,6 +431,7 @@ to_hash(mrb_state *mrb, mrb_value val)
     string  mruby type     C type                 note
     ----------------------------------------------------------------------------------------------
     o:      Object         [mrb_value]
+    C:      class/module   [mrb_value]
     S:      String         [mrb_value]
     A:      Array          [mrb_value]
     H:      Hash           [mrb_value]
@@ -481,6 +482,29 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (i < argc) {
           *p = *sp++;
+          i++;
+        }
+      }
+      break;
+    case 'C':
+      {
+        mrb_value *p;
+
+        p = va_arg(ap, mrb_value*);
+        if (i < argc) {
+          mrb_value ss;
+
+          ss = *sp++;
+          switch (mrb_type(ss)) {
+          case MRB_TT_CLASS:
+          case MRB_TT_MODULE:
+          case MRB_TT_SCLASS:
+            break;
+          default:
+            mrb_raisef(mrb, E_TYPE_ERROR, "%S is not class/module", ss);
+            break;
+          }
+          *p = ss;
           i++;
         }
       }
@@ -627,16 +651,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
                 *p = (mrb_int)f;
               }
               break;
-            case MRB_TT_FALSE:
-              *p = 0;
-              break;
             default:
-              {
-                mrb_value tmp;
-
-                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FIXNUM, "Integer", "to_int");
-                *p = mrb_fixnum(tmp);
-              }
+              *p = mrb_fixnum(mrb_Integer(mrb, *sp));
               break;
           }
           sp++;
@@ -791,7 +807,7 @@ mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
   mrb_value klass;
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "o", &klass);
+  mrb_get_args(mrb, "C", &klass);
   mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
   return mod;
 }
@@ -839,7 +855,7 @@ mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
   mrb_value mod2;
   struct RClass *c = mrb_class_ptr(mod);
 
-  mrb_get_args(mrb, "o", &mod2);
+  mrb_get_args(mrb, "C", &mod2);
   mrb_check_type(mrb, mod2, MRB_TT_MODULE);
 
   while (c) {
@@ -1115,15 +1131,18 @@ mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv)
 static mrb_value
 mrb_class_new_class(mrb_state *mrb, mrb_value cv)
 {
-  mrb_value super;
-  struct RClass *new_class;
+  mrb_value super, blk;
+  mrb_value new_class;
 
-  if (mrb_get_args(mrb, "|o", &super) == 0) {
+  if (mrb_get_args(mrb, "|C&", &super, &blk) == 0) {
     super = mrb_obj_value(mrb->object_class);
   }
-  new_class = mrb_class_new(mrb, mrb_class_ptr(super));
-  mrb_funcall(mrb, super, "inherited", 1, mrb_obj_value(new_class));
-  return mrb_obj_value(new_class);
+  new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
+  if (!mrb_nil_p(blk)) {
+    mrb_funcall_with_block(mrb, new_class, mrb_intern_cstr(mrb, "class_eval"), 0, NULL, blk);
+  }
+  mrb_funcall(mrb, super, "inherited", 1, new_class);
+  return new_class;
 }
 
 mrb_value
