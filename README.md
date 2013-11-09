@@ -11,7 +11,7 @@ mruby-meta-circular provides set of methods to access irep and subset of RITE VM
 
 ### 3. make
 
-### 4. Execute your mruby program
+### 4. Execute sample program
   mruby test/test.rb
 
 ### 5. Enjoy
