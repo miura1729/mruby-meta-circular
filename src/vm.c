@@ -777,7 +777,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   void *rc;
 
   if (mrb->compile_info.disable_jit ||
-      irep->method_kind != NORMAL) {
+      irep->method_kind != NORMAL || 
+      irep->jit_entry_tab == NULL) {
     return status->optable[GET_OPCODE(**ppc)];
   }
 

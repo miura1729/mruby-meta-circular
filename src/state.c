@@ -121,8 +121,10 @@ mrb_irep_free(mrb_state *mrb, struct mrb_irep *irep)
   mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
   mrb_free(mrb, irep->prof_info);
-  mrb_free(mrb, irep->jit_entry_tab->body);
-  mrb_free(mrb, irep->jit_entry_tab);
+  if (irep->jit_entry_tab) {
+    mrb_free(mrb, irep->jit_entry_tab->body);
+    mrb_free(mrb, irep->jit_entry_tab);
+  }
   mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
 }
