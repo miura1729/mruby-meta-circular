@@ -92,7 +92,39 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
 {
-  return mrb_irep_wrap(mrb, mrb_class_ptr(self), mrb_add_irep(mrb));
+  int i;
+  mrb_value iseq;
+  mrb_value pool;
+  mrb_value syms;
+  mrb_value nregs;
+  mrb_value nlocals;
+  mrb_irep *irep;
+
+  mrb_get_args(mrb, "ooooo", &iseq, &pool, &syms, &nregs, &nlocals);
+  irep = mrb_add_irep(mrb);
+
+  irep->flags = 0;
+  irep->ilen = mrb_ary_ptr(iseq)->len;
+  irep->iseq = (mrb_code*)mrb_malloc(mrb, irep->ilen * sizeof(mrb_value));
+  for (i = 0; i < irep->ilen; i++) {
+    irep->iseq[i] = mrb_fixnum(mrb_ary_entry(iseq, i));
+  }
+
+  irep->plen = mrb_ary_ptr(pool)->len;
+  irep->pool = (mrb_value *)mrb_malloc(mrb, irep->plen * sizeof(mrb_value));
+  for (i = 0; i < irep->plen; i++) {
+    irep->pool[i] = mrb_ary_entry(pool, i);
+  }
+
+  irep->slen = mrb_ary_ptr(syms)->len;
+  irep->syms = (mrb_sym *)mrb_malloc(mrb, irep->slen * sizeof(mrb_value));
+  for (i = 0; i < irep->slen; i++) {
+    irep->syms[i] = mrb_symbol(mrb_ary_entry(syms, i));
+  }
+
+  irep->nregs = mrb_fixnum(nregs);
+  irep->nlocals = mrb_fixnum(nlocals);
+  return mrb_irep_wrap(mrb, mrb_class_ptr(self), irep);
 }
 
 static mrb_value
@@ -266,7 +298,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
   mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no, ARGS_REQ(1));
   mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
-  mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, ARGS_NONE());
+  mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, ARGS_REQ(5));
 
   mrb_define_method(mrb, a, "iseq", mrb_irep_iseq, ARGS_NONE());
   mrb_define_method(mrb, a, "iseq=", mrb_irep_set_iseq, ARGS_REQ(1));
