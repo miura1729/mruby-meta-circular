@@ -6,7 +6,7 @@ p a.pool
 p a.syms
 p Irep::OPTABLE_SYM
 a.iseq.each do |n|
-#  p Irep::OPTABLE[n & 0x7f]
+  p Irep::OPTABLE[n & 0x7f]
 end
 
 def foo
@@ -31,14 +31,30 @@ def fact(n)
   end
 end
 
+def fib(n)
+  if n == 1 then
+    1
+  elsif n == 0 then
+    1
+  else
+    fib(n - 1) + fib(n - 2)
+  end
+end
+
+def fibt
+  fib(20)
+end
+
 #a = Irep::get_irep(self, :foo)
-a = Irep::get_irep(self, :factt)
+#a = Irep::get_irep(self, :factt)
+a = Irep::get_irep(self, :fibt)
 a.iseq.each do |n|
   p Irep::OPTABLE[n & 0x7f]
 end
 vm = RiteVM.new
 p vm.eval(a)
 #p foo
-p factt
+#p factt
+p fibt
 
 

@@ -90,6 +90,12 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
+{
+  return mrb_irep_wrap(mrb, mrb_class_ptr(self), mrb_add_irep(mrb));
+}
+
+static mrb_value
 mrb_irep_iseq(mrb_state *mrb, mrb_value self)
 {
   int i;
@@ -102,6 +108,29 @@ mrb_irep_iseq(mrb_state *mrb, mrb_value self)
   }
 
   return ary;
+}
+
+static mrb_value
+mrb_irep_set_iseq(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value src;
+
+  mrb_get_args(mrb, "o", &src);
+
+  if (irep->iseq && !(irep->flags & MRB_ISEQ_NO_FREE)) {
+    mrb_free(mrb, irep->iseq);
+  }
+
+  irep->flags = 0;
+  irep->ilen = mrb_ary_ptr(src)->len;
+  irep->iseq = (mrb_code*)mrb_malloc(mrb, irep->ilen * sizeof(mrb_value));
+  for (i = 0; i < irep->ilen; i++) {
+    irep->iseq[i] = mrb_fixnum(mrb_ary_entry(src, i));
+  }
+
+  return src;
 }
 
 static mrb_value
@@ -120,6 +149,28 @@ mrb_irep_pool(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_set_pool(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value src;
+
+  mrb_get_args(mrb, "o", &src);
+
+  if (irep->pool) {
+    mrb_free(mrb, irep->pool);
+  }
+
+  irep->plen = mrb_ary_ptr(src)->len;
+  irep->pool = (mrb_value *)mrb_malloc(mrb, irep->plen * sizeof(mrb_value));
+  for (i = 0; i < irep->plen; i++) {
+    irep->pool[i] = mrb_ary_entry(src, i);
+  }
+
+  return src;
+}
+
+static mrb_value
 mrb_irep_syms(mrb_state *mrb, mrb_value self)
 {
   int i;
@@ -135,6 +186,28 @@ mrb_irep_syms(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_set_syms(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value src;
+
+  mrb_get_args(mrb, "o", &src);
+
+  if (irep->syms) {
+    mrb_free(mrb, irep->syms);
+  }
+    
+  irep->slen = mrb_ary_ptr(src)->len;
+  irep->syms = (mrb_sym *)mrb_malloc(mrb, irep->slen * sizeof(mrb_value));
+  for (i = 0; i < irep->slen; i++) {
+    irep->syms[i] = mrb_symbol(mrb_ary_entry(src, i));
+  }
+
+  return src;
+}
+
+static mrb_value
 mrb_irep_nregs(mrb_state *mrb, mrb_value self)
 {
   mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
@@ -143,11 +216,43 @@ mrb_irep_nregs(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_set_nregs(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value src;
+
+  mrb_get_args(mrb, "o", &src);
+  irep->nregs = mrb_fixnum(src);
+
+  return src;
+}
+
+static mrb_value
 mrb_irep_nlocals(mrb_state *mrb, mrb_value self)
 {
   mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
 
   return mrb_fixnum_value((mrb_int) irep->nlocals);
+}
+
+static mrb_value
+mrb_irep_set_nlocals(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value src;
+
+  mrb_get_args(mrb, "o", &src);
+  irep->nlocals = mrb_fixnum(src);
+
+  return src;
+}
+
+static mrb_value
+mrb_irep_to_proc(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+
+  return mrb_obj_value(mrb_proc_new(mrb, irep));
 }
 
 void
@@ -161,12 +266,19 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
   mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no, ARGS_REQ(1));
   mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
+  mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, ARGS_NONE());
 
   mrb_define_method(mrb, a, "iseq", mrb_irep_iseq, ARGS_NONE());
+  mrb_define_method(mrb, a, "iseq=", mrb_irep_set_iseq, ARGS_REQ(1));
   mrb_define_method(mrb, a, "pool", mrb_irep_pool, ARGS_NONE());
+  mrb_define_method(mrb, a, "pool=", mrb_irep_set_pool, ARGS_NONE());
   mrb_define_method(mrb, a, "syms", mrb_irep_syms, ARGS_NONE());
+  mrb_define_method(mrb, a, "syms=", mrb_irep_set_syms, ARGS_NONE());
   mrb_define_method(mrb, a, "nregs", mrb_irep_nregs, ARGS_NONE());
+  mrb_define_method(mrb, a, "nregs=", mrb_irep_set_nregs, ARGS_REQ(1));
   mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, ARGS_NONE());
+  mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, ARGS_REQ(1));
+  mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, ARGS_NONE());
 }
 
 void

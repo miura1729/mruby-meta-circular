@@ -122,7 +122,7 @@ class RiteVM
           n.times do |i|
             args.push @stack[@sp + a + i + 1]
           end
-          
+
           @stack[@sp + a] = @stack[@sp + a].send(mid, *args)
         end
 
