@@ -22,6 +22,46 @@ module RiteOpcodeUtil
   def getarg_sbx(op)
     ((op >> 7) & 0xffff) - (0xffff >> 1)
   end
+
+  def mk_opcode(op)
+    op & 0x7f
+  end
+
+  def mkarg_a(op)
+    (op & 0x1ff) << 23
+  end
+
+  def mkarg_b(op)
+    (op & 0x1ff) << 14
+  end
+
+  def mkarg_c(op)
+    (op & 0x7f) << 7
+  end
+
+  def mkarg_bx(op)
+    (op & 0xffff) << 7
+  end
+
+  def mkarg_sbx(op)
+    (mkarg_bx(op)) - (0xffff >> 1)
+  end
+
+  def mkop_A(op, a)
+    (mk_opcode(op) | mkarg_a(a))
+  end
+
+  def mkop_AB(op, a, b)
+    (mkop_A(op, a) | mkarg_b(b))
+  end
+
+  def mkop_ABC(op, a, b, c)
+    (mkop_AB(op, a, b) | mkarg_c(c))
+  end
+
+  def mkop_ABx(op, a, b)
+    (mkop_A(op, a) | mkarg_bx(b))
+  end
 end
 
 class RiteVM
@@ -149,7 +189,13 @@ end
 
 class Irep
   OPTABLE_SYM = []
+  OPTABLE_CODE = {}
   OPTABLE.each do |ent|
     OPTABLE_SYM.push ent.to_sym
+  end
+  op = 0
+  OPTABLE_SYM.each do |sym|
+    OPTABLE_CODE[sym] = op
+    op = op + 1
   end
 end
