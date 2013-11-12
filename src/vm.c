@@ -777,9 +777,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   void *rc;
 
   if (mrb->compile_info.disable_jit ||
-      irep->method_kind != NORMAL || 
-      irep->jit_entry_tab == NULL) {
+      irep->method_kind != NORMAL) {
     return status->optable[GET_OPCODE(**ppc)];
+  }
+  if (irep->jit_entry_tab == NULL) {
+    int i;
+    
+    irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*irep->ilen);
+    for (i = 0; i < irep->ilen; i++) {
+      irep->jit_entry_tab[i].size = 2;
+      irep->jit_entry_tab[i].body = 
+	(mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+    }
+    irep->prof_info = (int *)mrb_calloc(mrb, irep->ilen, sizeof(int));
+    irep->jit_top_entry = NULL;
   }
 
   prev_pc = mrb->compile_info.prev_pc;

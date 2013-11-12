@@ -2521,9 +2521,9 @@ scope_finish(codegen_scope *s)
   for (i = 0; i < s->pc; i++) {
     irep->jit_entry_tab[i].size = 2;
     irep->jit_entry_tab[i].body = 
-      (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*2);
+      (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
   }
-  irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*s->pc);
+  irep->prof_info = (int *)mrb_calloc(mrb, s->pc, sizeof(int));
   irep->method_kind = NORMAL;
   irep->jit_top_entry = NULL;
   //irep->jit_inlinep = s->irep->jit_inlinep;
