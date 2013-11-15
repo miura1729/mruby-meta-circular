@@ -1241,7 +1241,8 @@ do {                                                                 \
     int i;
     const int lno = GETARG_b(**ppc);
     const int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    mrb_irep *mirep = mrb->irep[(*(status->irep))->idx + lno];
+    mrb_irep *irep = *status->irep;
+    mrb_irep *mirep =irep->reps[lno];
     struct mrb_context *c = mrb->c;
 
     if (mirep->shared_lambda && c->proc_pool) {

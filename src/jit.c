@@ -776,6 +776,7 @@ disasm_once(mrb_state *mrb, mrb_irep *irep, mrb_code c)
 mrb_irep *
 search_irep(mrb_state *mrb, mrb_code *pc)
 {
+#if 0
   int i = 0;
   for (i = 0; i < mrb->irep_len; i++) {
     mrb_irep *irep = mrb->irep[i];
@@ -783,6 +784,7 @@ search_irep(mrb_state *mrb, mrb_code *pc)
       return irep;
     }
   }
+#endif
 
   return NULL;
 }

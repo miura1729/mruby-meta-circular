@@ -971,7 +971,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
   mrb_irep *irep = proc->body.irep;
   mrb_code *pc = irep->iseq;
-  mrb_value *pool = irep->pool;
+  struct irep_pool *pool = irep->pool;
   mrb_sym *syms = irep->syms;
   mrb_value *regs = NULL;
   mrb_code i;
@@ -1045,7 +1045,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_LOADL) {
       /* A Bx   R(A) := Pool(Bx) */
-      regs[GETARG_A(i)] = pool[GETARG_Bx(i)];
+      if (pool[GETARG_Bx(i)].type == MRB_TT_FLOAT)
+        SET_FLT_VALUE(mrb, regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.f);
+      else
+        SET_INT_VALUE(regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.i);
       NEXT;
     }
 
@@ -1259,7 +1262,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* Bx     ensure_push(SEQ[Bx]) */
       struct RProc *p;
 
-      p = mrb_closure_new(mrb, mrb->irep[irep->idx+GETARG_Bx(i)]);
+      p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
       /* push ensure_stack */
       if (mrb->c->esize <= mrb->c->ci->eidx) {
         if (mrb->c->esize == 0) mrb->c->esize = 16;
@@ -1308,7 +1311,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       mrb_sym mid = syms[GETARG_B(i)];
       int rcvoff = GETARG_Bx(*(pc + 1));
       int mthoff = rcvoff + 1;
-      struct RClass *orecv = pool[rcvoff].value.p;
+      struct RClass *orecv = pool[rcvoff].value.i;
 
       recv = regs[a];
       if (GET_OPCODE(i) != OP_SENDB) {
@@ -1339,12 +1342,12 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 	else {
 	  mrb->is_method_cache_used = 1;
 	  irep->is_method_cache_used = 1;
-	  MRB_SET_VALUE(pool[rcvoff], MRB_TT_CACHE_VALUE, value.p, c);
-	  MRB_SET_VALUE(pool[rcvoff], MRB_TT_FIXNUM, value.p, m);
+	  pool[rcvoff].value.i = (mrb_int)c;
+	  pool[mthoff].value.i = (mrb_int)m;
 	}
       }
       else {
-	m = pool[mthoff].value.p;
+	m = (struct RProc *)pool[mthoff].value.i;
       }
 
       if (GET_OPCODE(i) == OP_SENDB && !MRB_PROC_CFUNC_P(m)) {
@@ -2400,7 +2403,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_STRING) {
       /* A Bx           R(A) := str_new(Lit(Bx)) */
-      regs[GETARG_A(i)] = mrb_str_literal(mrb, pool[GETARG_Bx(i)]);
+      regs[GETARG_A(i)] = mrb_str_new(mrb, pool[GETARG_Bx(i)].value.s->buf, pool[GETARG_Bx(i)].value.s->len);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2431,7 +2434,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* A b c  R(A) := lambda(SEQ[b],c) (b:c = 14:2) */
       struct RProc *p;
       int c = GETARG_c(i);
-      mrb_irep *mirep = mrb->irep[irep->idx + GETARG_b(i)];
+      mrb_irep *mirep = irep->reps[GETARG_b(i)];
 
       if (mirep->shared_lambda) {
 	p = get_local_proc(mrb, mirep);
@@ -2510,7 +2513,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* prepare stack */
       mrb->c->stack += a;
 
-      p = mrb_proc_new(mrb, mrb->irep[irep->idx+GETARG_Bx(i)]);
+      p = mrb_proc_new(mrb, irep->reps[GETARG_Bx(i)]);
       p->target_class = ci->target_class;
       ci->proc = p;
 
@@ -2629,7 +2632,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_ERR) {
       /* Bx     raise RuntimeError with message Lit(Bx) */
-      mrb_value msg = pool[GETARG_Bx(i)];
+      mrb_value msg = mrb_str_new(mrb, pool[GETARG_Bx(i)].value.s->buf, pool[GETARG_Bx(i)].value.s->len);
       mrb_value exc;
 
       if (GETARG_A(i) == 0) {

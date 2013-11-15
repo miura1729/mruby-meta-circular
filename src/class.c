@@ -345,6 +345,7 @@ mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbj
 static void
 clear_method_cache(mrb_state *mrb)
 {
+#if 0
   int i;
   int j;
   int ilen;
@@ -366,6 +367,7 @@ clear_method_cache(mrb_state *mrb)
       irep->is_method_cache_used = 0;
     }
   }
+#endif
 }
 
 void

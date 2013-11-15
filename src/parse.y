@@ -3316,14 +3316,14 @@ nextc(parser_state *p)
   else {
 #ifdef ENABLE_STDIO
     if (p->f) {
-      if (feof(p->f)) goto end_retry;
+      if (feof(p->f)) goto eof;
       c = fgetc(p->f);
-      if (c == EOF) goto end_retry;
+      if (c == EOF) goto eof;
     }
     else
 #endif
     if (!p->s || p->s >= p->send) {
-       goto end_retry;
+       goto eof;
     }
     else {
       c = (unsigned char)*p->s++;
@@ -3332,7 +3332,7 @@ nextc(parser_state *p)
   p->column++;
   return c;
 
- end_retry:
+ eof:
   if (!p->cxt) return -1;
   else {
     mrbc_context *cxt = p->cxt;
@@ -3867,6 +3867,9 @@ heredoc_identifier(parser_state *p)
       return 0;
     }
   } else {
+    if (c == -1) {
+      return 0;                 /* missing here document identifier */
+    }
     if (! identchar(c)) {
       pushback(p, c);
       if (indent) pushback(p, '-');
@@ -3930,7 +3933,10 @@ parser_yylex(parser_state *p)
   case '\0':    /* NUL */
   case '\004':  /* ^D */
   case '\032':  /* ^Z */
+    return 0;
   case -1:      /* end of script. */
+    if (p->heredocs_from_nextline)
+      goto maybe_heredoc;
     return 0;
 
   /* white spaces */
@@ -3943,6 +3949,7 @@ parser_yylex(parser_state *p)
     skip(p, '\n');
   /* fall through */
   case '\n':
+  maybe_heredoc:
     heredoc_treat_nextline(p);
     switch (p->lstate) {
     case EXPR_BEG:
@@ -5374,11 +5381,11 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (proc == NULL) {
     static const char msg[] = "codegen error";
     mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SCRIPT_ERROR, msg, sizeof(msg) - 1));
-    return mrb_nil_value();
+    return mrb_undef_value();
   }
   if (c) {
     if (c->dump_result) codedump_all(mrb, proc);
-    if (c->no_exec) return mrb_fixnum_value(0);
+    if (c->no_exec) return mrb_obj_value(proc);
     if (c->target_class) {
       target = c->target_class;
     }
