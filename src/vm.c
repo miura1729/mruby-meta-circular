@@ -76,16 +76,18 @@ The value below allows about 60000 recursive calls in the simplest case. */
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
+#ifndef MRB_NAN_BOXING
   const mrb_value mrb_value_zero = { { 0 } };
 
   while (count-- > 0) {
-#ifndef MRB_NAN_BOXING
     *from++ = mrb_value_zero;
+  }
 #else
+  while (count-- > 0) {
     SET_NIL_VALUE(*from);
     from++;
-#endif
   }
+#endif
 }
 
 static inline void
@@ -1045,7 +1047,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_LOADL) {
       /* A Bx   R(A) := Pool(Bx) */
-      if (pool[GETARG_Bx(i)].type == MRB_TT_FLOAT)
+      if (pool[GETARG_Bx(i)].type == IREP_TT_FLOAT)
         SET_FLT_VALUE(mrb, regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.f);
       else
         SET_INT_VALUE(regs[GETARG_A(i)], pool[GETARG_Bx(i)].value.i);

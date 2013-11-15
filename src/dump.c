@@ -81,19 +81,17 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
 
     switch (irep->pool[pool_no].type) {
     case MRB_TT_CACHE_VALUE:
-      str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
-
-    case MRB_TT_FIXNUM:
+    case IREP_TT_FIXNUM:
       str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
       size += RSTRING_LEN(str);
       break;
 
-    case MRB_TT_FLOAT:
+    case IREP_TT_FLOAT:
       len = mrb_float_to_str(buf, irep->pool[pool_no].value.f);
       size += len;
       break;
 
-    case MRB_TT_STRING:
+    case IREP_TT_STRING:
       size += irep->pool[pool_no].value.s->len;
       break;
 
@@ -125,20 +123,18 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 
     switch (irep->pool[pool_no].type) {
     case MRB_TT_CACHE_VALUE:
-      str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
-
-    case MRB_TT_FIXNUM:
+    case IREP_TT_FIXNUM:
       str = mrb_fixnum_to_str(mrb, mrb_fixnum_value(irep->pool[pool_no].value.i), 10);
       char_ptr = RSTRING_PTR(str);
       len = RSTRING_LEN(str);
       break;
 
-    case MRB_TT_FLOAT:
+    case IREP_TT_FLOAT:
       len = mrb_float_to_str(char_buf, irep->pool[pool_no].value.f);
       char_ptr = &char_buf[0];
       break;
 
-    case MRB_TT_STRING:
+    case IREP_TT_STRING:
       char_ptr = irep->pool[pool_no].value.s->buf;
       len = irep->pool[pool_no].value.s->len;
       break;
@@ -573,7 +569,7 @@ write_filename_table(mrb_state *mrb, mrb_irep *irep, uint8_t **cp, mrb_sym **fp,
 
     // register filename
     *lp += 1;
-    *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym*) * (*lp));
+    *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
     filenames[*lp - 1] = file->filename_sym;
 
     // filename
@@ -616,16 +612,22 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   for (i=0; i<irep->rlen; i++) {
     section_size += write_filename_table(mrb, irep->reps[i], &cur, &filenames, &filenames_len);
   }
-  mrb_free(mrb, filenames);
   uint16_to_bin(filenames_len, filenames_len_out);
 
   // debug records
   dlen = write_debug_record(mrb, irep, cur, filenames, filenames_len);
   cur += dlen;
   section_size += dlen;
+  for (i=0; i<irep->rlen; i++) {
+    dlen = write_debug_record(mrb, irep->reps[i], cur, filenames, filenames_len);
+    cur += dlen;
+    section_size += dlen;
+  }
 
   memcpy(header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
+
+  mrb_free(mrb, filenames);
 
   return MRB_DUMP_OK;
 }

@@ -14,10 +14,18 @@
 extern "C" {
 #endif
 
+#include "mruby/compile.h"
+
 enum method_kind {
   NORMAL = 0,
   IV_READER,
   IV_WRITER,
+};
+
+enum irep_pool_type {
+  IREP_TT_STRING,
+  IREP_TT_FIXNUM,
+  IREP_TT_FLOAT,
 };
 
 /* Program data array struct */
@@ -36,7 +44,7 @@ typedef struct mrb_irep {
       } *s;
       mrb_int i;
     } value;
-    enum mrb_vtype type;
+    enum irep_pool_type type;
   } *pool;
   mrb_sym *syms;
   struct mrb_irep **reps;
@@ -80,6 +88,7 @@ typedef struct mrbjit_vmstatus {
 
 mrb_irep *mrb_add_irep(mrb_state *mrb);
 mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
+mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
