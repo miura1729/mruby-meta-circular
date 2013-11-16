@@ -1342,10 +1342,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 	  }
 	}
 	else {
-	  mrb->is_method_cache_used = 1;
-	  irep->is_method_cache_used = 1;
-	  pool[rcvoff].value.i = (mrb_int)c;
-	  pool[mthoff].value.i = (mrb_int)m;
+	  //	  mrb->is_method_cache_used = 1;
+	  //irep->is_method_cache_used = 1;
+	  //pool[rcvoff].value.i = (mrb_int)c;
+	  //pool[mthoff].value.i = (mrb_int)m;
 	}
       }
       else {
