@@ -111,7 +111,6 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
 
       case MRB_TT_STRING:
 	irep->pool[i] = s;
-	mrb_str_ptr(s)->flags |= MRB_STR_NOFREE;
         break;
 
       default:

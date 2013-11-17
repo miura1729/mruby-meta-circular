@@ -441,7 +441,6 @@ new_lit(codegen_scope *s, mrb_value val)
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     *pv = mrb_str_dup(s->mrb, val);
-    mrb_str_ptr(*pv)->flags |= MRB_STR_NOFREE;
     break;
 
   case MRB_TT_FLOAT:
