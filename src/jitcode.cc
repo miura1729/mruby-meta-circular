@@ -251,7 +251,7 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
     rc = mrbjit_emit_code_aux(mrb, status, code, coi);
   }
   catch(Xbyak::Error err) {
-    printf("Xbyak error %d \n", err);
+    printf("Xbyak error %d \n", int(err));
     exit(1);
   }
   if (rc == NULL && code == NULL) {
