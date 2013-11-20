@@ -3,6 +3,7 @@
 #include "mruby/data.h"
 #include "mruby/array.h"
 #include "mruby/proc.h"
+#include "mruby/string.h"
 #include "opcode.h"
 #include "mruby/irep.h"
 #include <stdio.h>
@@ -57,16 +58,8 @@ static struct mrb_data_type mrb_irep_type = { "Irep", mrb_irepobj_free };
 static mrb_value
 mrb_irep_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_irep *irep)
 {
+  mrb_irep_incref(mrb, irep);
   return mrb_obj_value(Data_Wrap_Struct(mrb, tc, &mrb_irep_type, irep));
-}
-
-static mrb_value
-mrb_irep_get_irep_by_no(mrb_state *mrb, mrb_value self)
-{
-  mrb_value no;
-  mrb_get_args(mrb, "i", &no);
-
-  return mrb_irep_wrap(mrb, mrb_class_ptr(self), mrb->irep[mrb_fixnum(no)]);
 }
 
 static mrb_value
@@ -113,7 +106,14 @@ mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
   irep->plen = mrb_ary_ptr(pool)->len;
   irep->pool = (mrb_value *)mrb_malloc(mrb, irep->plen * sizeof(mrb_value));
   for (i = 0; i < irep->plen; i++) {
-    irep->pool[i] = mrb_ary_entry(pool, i);
+    mrb_value val = mrb_ary_entry(pool, i);
+
+    if (mrb_type(val) == MRB_TT_STRING) {
+      irep->pool[i] = mrb_str_pool(mrb, val);
+    }
+    else {
+      irep->pool[i] = val;
+    }
   }
 
   irep->slen = mrb_ary_ptr(syms)->len;
@@ -174,7 +174,12 @@ mrb_irep_pool(mrb_state *mrb, mrb_value self)
 
   
   for (i = 0; i < irep->plen; i++) {
-    mrb_ary_push(mrb, ary, irep->pool[i]);
+    if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
+      mrb_ary_push(mrb, ary, mrb_str_dup(mrb, irep->pool[i]));
+    }
+    else {
+      mrb_ary_push(mrb, ary, irep->pool[i]);
+    }
   }
 
   return ary;
@@ -196,7 +201,14 @@ mrb_irep_set_pool(mrb_state *mrb, mrb_value self)
   irep->plen = mrb_ary_ptr(src)->len;
   irep->pool = (mrb_value *)mrb_malloc(mrb, irep->plen * sizeof(mrb_value));
   for (i = 0; i < irep->plen; i++) {
-    irep->pool[i] = mrb_ary_entry(src, i);
+    mrb_value val = mrb_ary_entry(src, i);
+
+    if (mrb_type(val) == MRB_TT_STRING) {
+      irep->pool[i] = mrb_str_pool(mrb, val);
+    }
+    else {
+      irep->pool[i] = val;
+    }
   }
 
   return src;
@@ -283,8 +295,22 @@ static mrb_value
 mrb_irep_to_proc(mrb_state *mrb, mrb_value self)
 {
   mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  struct RProc *p = mrb_proc_new(mrb, irep);
+  struct REnv *e;
 
-  return mrb_obj_value(mrb_proc_new(mrb, irep));
+  if (!mrb->c->ci->env) {
+    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
+    e->flags= (unsigned int)mrb->c->ci->proc->body.irep->nlocals;
+    e->mid = mrb->c->ci->mid;
+    e->cioff = mrb->c->ci - mrb->c->cibase;
+    e->stack = mrb->c->stack;
+  }
+  else {
+    e = mrb->c->ci->env;
+  }
+  p->env = e;
+
+  return mrb_obj_value(p);
 }
 
 void
@@ -296,7 +322,6 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);
 
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
-  mrb_define_class_method(mrb, a, "get_irep_by_no", mrb_irep_get_irep_by_no, ARGS_REQ(1));
   mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
   mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, ARGS_REQ(5));
 
