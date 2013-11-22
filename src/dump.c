@@ -119,22 +119,23 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int ai = mrb_gc_arena_save(mrb);
 
-    cur += uint8_to_bin(mrb_type(irep->pool[pool_no]), cur); /* data type */
-
     switch (mrb_type(irep->pool[pool_no])) {
     case MRB_TT_CACHE_VALUE:
     case MRB_TT_FIXNUM:
+      cur += uint8_to_bin(IREP_TT_FIXNUM, cur); /* data type */
       str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       char_ptr = RSTRING_PTR(str);
       len = RSTRING_LEN(str);
       break;
 
     case MRB_TT_FLOAT:
+      cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
       len = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
       char_ptr = &char_buf[0];
       break;
 
     case MRB_TT_STRING:
+      cur += uint8_to_bin(IREP_TT_STRING, cur); /* data type */
       char_ptr = RSTRING_PTR(irep->pool[pool_no]);
       len = RSTRING_LEN(irep->pool[pool_no]);
       break;
@@ -386,7 +387,7 @@ write_lineno_record(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
   bin += rlen;
   size += rlen;
   for (i=0; i<irep->rlen; i++) {
-    rlen = write_lineno_record_1(mrb, irep, bin);
+    rlen = write_lineno_record(mrb, irep, bin);
     bin += rlen;
     size += rlen;
   }
@@ -407,7 +408,6 @@ write_section_lineno(mrb_state *mrb, mrb_irep *irep, uint8_t *bin)
   section_size += sizeof(struct rite_section_lineno_header);
 
   rlen = write_lineno_record(mrb, irep, cur);
-  cur += rlen;
   section_size += rlen;
 
   write_section_lineno_header(mrb, section_size, bin);
@@ -485,7 +485,7 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, size_t *lp
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
       // register filename
       *lp += 1;
-      *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym*) * (*lp));
+      *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
       filenames[*lp - 1] = file->filename_sym;
 
       // filename
@@ -500,7 +500,7 @@ get_filename_table_size(mrb_state *mrb, mrb_irep *irep, mrb_sym **fp, size_t *lp
 }
 
 static int
-write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, size_t filenames_len)
+write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, size_t filenames_len)
 {
   uint8_t *cur;
   uint32_t f_idx;
@@ -554,6 +554,22 @@ write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* 
 }
 
 static int
+write_debug_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, size_t filenames_len)
+{
+  uint32_t size, len;
+  size_t irep_no;
+  
+  size = len = write_debug_record_1(mrb, irep, bin, filenames, filenames_len);
+  bin += len;
+  for (irep_no = 0; irep_no < irep->rlen; irep_no++) {
+    len = write_debug_record(mrb, irep->reps[irep_no], bin, filenames, filenames_len);
+    bin += len;
+    size += len;
+  }
+  return size;
+}
+
+static int
 write_filename_table(mrb_state *mrb, mrb_irep *irep, uint8_t **cp, mrb_sym **fp, size_t *lp)
 {
   uint8_t *cur = *cp;
@@ -604,7 +620,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
   section_size += sizeof(struct rite_section_debug_header);
 
   // filename table
-  filenames = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym *) * 1);
+  filenames = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * 1);
   filenames_len_out = cur;
   cur += sizeof(uint16_t);
   section_size += sizeof(uint16_t);
@@ -616,13 +632,7 @@ write_section_debug(mrb_state *mrb, mrb_irep *irep, uint8_t *cur)
 
   // debug records
   dlen = write_debug_record(mrb, irep, cur, filenames, filenames_len);
-  cur += dlen;
   section_size += dlen;
-  for (i=0; i<irep->rlen; i++) {
-    dlen = write_debug_record(mrb, irep->reps[i], cur, filenames, filenames_len);
-    cur += dlen;
-    section_size += dlen;
-  }
 
   memcpy(header->section_identify, RITE_SECTION_DEBUG_IDENTIFIER, sizeof(header->section_identify));
   uint32_to_bin(section_size, header->section_size);
@@ -688,7 +698,7 @@ dump_irep(mrb_state *mrb, mrb_irep *irep, int debug_info, uint8_t **bin, size_t 
 
       section_lineno_size += sizeof(struct rite_section_debug_header);
       // filename table
-      filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym *) + 1);
+      filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) + 1);
 
       // filename table size
       section_lineno_size += sizeof(uint16_t);

@@ -668,7 +668,7 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
   msg = mrb_str_buf_new(mrb, sizeof(lead) + 7);
   mrb_str_buf_cat(mrb, msg, lead, sizeof(lead) - 1);
   mrb_str_buf_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
-  exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
+  exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
   mrb->exc = mrb_obj_ptr(exc);
 }
 
@@ -693,7 +693,7 @@ argnum_error(mrb_state *mrb, int num)
     str = mrb_format(mrb, "wrong number of arguments (%S for %S)",
                   mrb_fixnum_value(mrb->c->ci->argc), mrb_fixnum_value(num));
   }
-  exc = mrb_exc_new3(mrb, E_ARGUMENT_ERROR, str);
+  exc = mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str);
   mrb->exc = mrb_obj_ptr(exc);
 }
 
@@ -931,7 +931,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   return status->optable[GET_OPCODE(**ppc)];
 }
 
-#define ERR_PC_HOOK(mrb, pc) mrb->c->ci->err = pc;
+#define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
+#define ERR_PC_CLR(mrb)     mrb->c->ci->err = 0;
 #ifdef ENABLE_DEBUG
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
@@ -1119,8 +1120,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_GETCV) {
       /* A B    R(A) := ivget(Sym(B)) */
-      ERR_PC_HOOK(mrb, pc);
+      ERR_PC_SET(mrb, pc);
       regs[GETARG_A(i)] = mrb_vm_cv_get(mrb, syms[GETARG_Bx(i)]);
+      ERR_PC_CLR(mrb);
       NEXT;
     }
 
@@ -1134,8 +1136,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       /* A B    R(A) := constget(Sym(B)) */
       mrb_value val;
 
-      ERR_PC_HOOK(mrb, pc);
+      ERR_PC_SET(mrb, pc);
       val = mrb_vm_const_get(mrb, syms[GETARG_Bx(i)]);
+      ERR_PC_CLR(mrb);
       regs = mrb->c->stack;
       regs[GETARG_A(i)] = val;
       NEXT;
@@ -1152,8 +1155,9 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       mrb_value val;
       int a = GETARG_A(i);
 
-      ERR_PC_HOOK(mrb, pc);
+      ERR_PC_SET(mrb, pc);
       val = mrb_const_get(mrb, regs[a], syms[GETARG_Bx(i)]);
+      ERR_PC_CLR(mrb);
       regs = mrb->c->stack;
       regs[a] = val;
       NEXT;
@@ -1744,7 +1748,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
             mrb->jmp = prev_jmp;
             mrb_longjmp(mrb);
           }
-          while (eidx > ci->eidx) {
+          while (eidx > ci[-1].eidx) {
             ecall(mrb, --eidx);
           }
           if (ci == mrb->c->cibase) {
@@ -1792,7 +1796,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
+              mrb_value exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }
@@ -2622,6 +2626,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           ecall(mrb, n);
         }
       }
+      mrb->c->ci->err = 0;
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
         return mrb_obj_value(mrb->exc);
@@ -2635,10 +2640,10 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       mrb_value exc;
 
       if (GETARG_A(i) == 0) {
-        exc = mrb_exc_new3(mrb, E_RUNTIME_ERROR, msg);
+        exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, msg);
       }
       else {
-        exc = mrb_exc_new3(mrb, E_LOCALJUMP_ERROR, msg);
+        exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
       }
       mrb->exc = mrb_obj_ptr(exc);
       goto L_RAISE;

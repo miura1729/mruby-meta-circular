@@ -102,16 +102,16 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, uint32_t *len)
       src += pool_data_len;
       switch (tt) { //pool data
       case MRB_TT_CACHE_VALUE:
-      case MRB_TT_FIXNUM:
-	irep->pool[i] = mrb_str_to_inum(mrb, s, 10, FALSE);
+      case IREP_TT_FIXNUM:
+        irep->pool[i] = mrb_str_to_inum(mrb, s, 10, FALSE);
         break;
 
-      case MRB_TT_FLOAT:
+      case IREP_TT_FLOAT:
         irep->pool[i] = mrb_float_value(mrb, mrb_str_to_dbl(mrb, s, FALSE));
         break;
 
-      case MRB_TT_STRING:
-	irep->pool[i] = s;
+      case IREP_TT_STRING:
+        irep->pool[i] = mrb_str_pool(mrb, s);
         break;
 
       default:
@@ -504,8 +504,8 @@ mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 static int
 read_lineno_record_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 {
-  const size_t record_header_size = 4;
-  uint8_t header[record_header_size];
+  uint8_t header[4];
+  const size_t record_header_size = sizeof(header);
   int result;
   size_t i, buf_size;
   uint32_t len;
@@ -554,8 +554,8 @@ read_section_lineno_file(mrb_state *mrb, FILE *fp, mrb_irep *irep)
 static mrb_irep*
 read_irep_record_file(mrb_state *mrb, FILE *fp)
 {
-  const size_t record_header_size = 1 + 4;
-  uint8_t header[record_header_size];
+  uint8_t header[1 + 4];
+  const size_t record_header_size = sizeof(header);
   size_t buf_size, i;
   uint32_t len;
   mrb_irep *irep = NULL;

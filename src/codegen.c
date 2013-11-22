@@ -118,19 +118,19 @@ codegen_palloc(codegen_scope *s, size_t len)
   return p;
 }
 
-void*
+static void*
 codegen_malloc(codegen_scope *s, size_t len)
 {
-  void *p = mrb_malloc(s->mrb, len);
+  void *p = mrb_malloc_simple(s->mrb, len);
 
   if (!p) codegen_error(s, "mrb_malloc");
   return p;
 }
 
-void*
+static void*
 codegen_realloc(codegen_scope *s, void *p, size_t len)
 {
-  p = mrb_realloc(s->mrb, p, len);
+  p = mrb_realloc_simple(s->mrb, p, len);
 
   if (!p && len > 0) codegen_error(s, "mrb_realloc");
   return p;
@@ -447,7 +447,7 @@ new_lit(codegen_scope *s, mrb_value val)
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
-    *pv = mrb_str_dup(s->mrb, val);
+    *pv = mrb_str_pool(s->mrb, val);
     break;
 
   case MRB_TT_FLOAT:
@@ -2550,7 +2550,7 @@ scope_finish(codegen_scope *s)
   irep->jit_top_entry = NULL;
   //irep->jit_inlinep = s->irep->jit_inlinep;
   irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
-  irep->syms = (mrb_sym *)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
+  irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename) {
     s->irep->filename = mrb_parser_get_filename(s->parser, s->filename_index);
