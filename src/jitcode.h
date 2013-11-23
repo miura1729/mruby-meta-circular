@@ -412,8 +412,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (ivoff < 0) {
       return NULL;
     }
-    mov(eax, ecx);
-    gen_class_guard(mrb, self, *ppc);
 
     mov(eax, dword [ecx]);
     mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
@@ -453,13 +451,20 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       return code;
     }
-    mov(eax, ecx);
-    gen_class_guard(mrb, self, *ppc);
 
+    movsd(xmm0, ptr [ecx + srcoff]);
     mov(eax, dword [ecx]);
+    push(ecx);
+    push(ebx);
+    push(eax);
+    push(esi);
+    call((void *)mrb_write_barrier);
+    add(esp, 4);
+    pop(eax);
+    pop(ebx);
+    pop(ecx);
     mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
     mov(eax, dword [eax]);
-    movsd(xmm0, ptr [ecx + srcoff]);
     movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
 
     return code;
