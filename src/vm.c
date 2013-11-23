@@ -1312,9 +1312,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       mrb_callinfo *ci;
       mrb_value recv, result;
       mrb_sym mid = syms[GETARG_B(i)];
-      int rcvoff = GETARG_Bx(*(pc + 1));
-      int mthoff = rcvoff + 1;
-      struct RClass *orecv = pool[rcvoff].value.i;
 
       recv = regs[a];
       if (GET_OPCODE(i) != OP_SENDB) {
@@ -1327,7 +1324,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       }
       c = mrb_class(mrb, recv);
 
-      if (c != orecv) {
+      if (1) {
 	m = mrb_method_search_vm(mrb, &c, mid);
 	if (!m) {
 	  mrb_value sym = mrb_symbol_value(mid);
@@ -1348,9 +1345,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 	  //pool[rcvoff].value.i = (mrb_int)c;
 	  //pool[mthoff].value.i = (mrb_int)m;
 	}
-      }
-      else {
-	m = (struct RProc *)pool[mthoff].value.i;
       }
 
       if (GET_OPCODE(i) == OP_SENDB && !MRB_PROC_CFUNC_P(m)) {
