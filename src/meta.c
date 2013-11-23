@@ -128,6 +128,14 @@ mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_id(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+
+  return mrb_fixnum_value((mrb_int)irep);
+}
+
+static mrb_value
 mrb_irep_iseq(mrb_state *mrb, mrb_value self)
 {
   int i;
@@ -325,6 +333,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
   mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, ARGS_REQ(5));
 
+  mrb_define_method(mrb, a, "id", mrb_irep_id, ARGS_NONE());
   mrb_define_method(mrb, a, "iseq", mrb_irep_iseq, ARGS_NONE());
   mrb_define_method(mrb, a, "iseq=", mrb_irep_set_iseq, ARGS_REQ(1));
   mrb_define_method(mrb, a, "pool", mrb_irep_pool, ARGS_NONE());
