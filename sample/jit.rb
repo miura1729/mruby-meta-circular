@@ -39,6 +39,7 @@ module CodeGen
       mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp1, dst),
       mkop_ABx(Irep::OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
       mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
+      mkop_AB(Irep::OPTABLE_CODE[:MOVE], tmp2, val),
       mkop_ABC(Irep::OPTABLE_CODE[:SEND], tmp0, ASET_SYM, 2),
     ]
   end
@@ -98,14 +99,14 @@ class FibVM
     while true
       @prof_info[irepid][@pc] ||= 0
       @prof_info[irepid][@pc] += 1
-      cop = irep.iseq[@pc]
 
       if @proc_tab[irepid][@pc] then
-        # printf ">>%s \n", @stack
+        #printf ">>%s %d \n", @stack, @pc
         @proc_tab[irepid][@pc].call(self)
-        # printf "<<%s \n", @stack
+        #printf "<<%s %d \n", @stack, @pc
       end
 
+      cop = irep.iseq[@pc]
       times = @prof_info[irepid][@pc]
       if times  > 10 then
         if @entry == nil then
@@ -117,35 +118,37 @@ class FibVM
         when :NOP
 
         when :MOVE
+          tmp = @max_using_reg
           @max_using_reg += 1
-          @code += gen_get_reg(@max_using_reg, getarg_b(cop))
-          @code += gen_set_reg(getarg_a(cop), @max_using_reg)
+          @code += gen_get_reg(tmp, getarg_b(cop))
+          @code += gen_set_reg(getarg_a(cop), tmp)
           @max_using_reg -= 1
 
         when :LOADL
           sidx = add_pool(irep.pool[getarg_bx(cop)])
+          tmp = @max_using_reg
           @max_using_reg += 1
-          @code.push mkop_ABx(Irep::OPTABLE_CODE[:LOADL], @max_using_reg, sidx)
-          @code += gen_set_reg(getarg_a(cop), @max_using_reg)
+          @code.push mkop_ABx(Irep::OPTABLE_CODE[:LOADL], tmp, sidx)
+          @code += gen_set_reg(getarg_a(cop), tmp)
           @max_using_reg -= 1
 
         when :LOADI
+          tmp = @max_using_reg
           @max_using_reg += 1
-          @code.push mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], @max_using_reg, getarg_sbx(cop))
-          @code += gen_set_reg(getarg_a(cop), @max_using_reg)
+          @code.push mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp, getarg_sbx(cop))
+          @code += gen_set_reg(getarg_a(cop), tmp)
           @max_using_reg -= 1
-
-        when :JMP
-          # Do nothing!
 
         when :ENTER
           # Do nothing
 
         else
           # Return to VM
-          @code += gen_exit(getarg_a(cop))
+          if @code.size > 1 then
+            @code += gen_exit(getarg_a(cop))
 
-          @proc_tab[irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
+            @proc_tab[irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
+          end
 
           # Reset working
           @entry = nil
@@ -195,6 +198,7 @@ class FibVM
       when :SEND
         a = getarg_a(cop)
         mid = irep.syms[getarg_b(cop)]
+#        p "SEND #{@stack[@sp + a + 1]}"
         n = getarg_c(cop)
         newirep = Irep::get_irep(@stack[@sp + a], mid)
         if newirep then
@@ -260,3 +264,4 @@ end
 a = Irep::get_irep(self, :fibt)
 vm = FibVM.new
 p vm.eval(a)
+p fibt
