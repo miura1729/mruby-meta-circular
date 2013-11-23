@@ -7,14 +7,15 @@ module CodeGen
   #      :
   #   @max_using_reg
 
-  SYMS = [:@stack, :@sp, :@pc, :+, :[], :[]=, :p]
+  SYMS = [:@stack, :@sp, :@pc, :+, :-, :[], :[]=, :p]
   STACK_SYM = 0
   SP_SYM = 1
   PC_SYM = 2
   ADD_SYM = 3
-  AREF_SYM = 4
-  ASET_SYM = 5
-  P_SYM = 6
+  SUB_SYM = 4
+  AREF_SYM = 5
+  ASET_SYM = 6
+  P_SYM = 7
 
   def gen_get_reg(dst, src)
     tmp0 = @max_using_reg
@@ -137,6 +138,32 @@ class FibVM
           @max_using_reg += 1
           @code.push mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp, getarg_sbx(cop))
           @code += gen_set_reg(getarg_a(cop), tmp)
+          @max_using_reg -= 1
+
+        when :LOADSELF
+          tmp = @max_using_reg
+          @max_using_reg += 1
+          @code += gen_get_reg(tmp, 0)
+          @code += gen_set_reg(getarg_a(cop), tmp)
+          @max_using_reg -= 1
+
+
+        when :ADD0
+          tmp0 = @max_using_reg
+          tmp1 = tmp0 + 1
+          @max_using_reg += 2
+          @code += gen_get_reg(tmp0, getarg_a(cop))
+          @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
+          @code.push mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp0, ADD_SYM, 1)
+          @code += gen_set_reg(getarg_a(cop), tmp0)
+          @max_using_reg -= 2
+
+        when :SUBI
+          tmp0 = @max_using_reg
+          @max_using_reg += 1
+          @code += gen_get_reg(tmp0, getarg_a(cop))
+          @code.push mkop_ABC(Irep::OPTABLE_CODE[:SUBI], tmp0, SUB_SYM, getarg_c(cop))
+          @code += gen_set_reg(getarg_a(cop), tmp0)
           @max_using_reg -= 1
 
         when :ENTER
