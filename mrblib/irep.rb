@@ -44,7 +44,7 @@ module RiteOpcodeUtil
   end
 
   def mkarg_sbx(op)
-    (mkarg_bx(op)) - (0xffff >> 1)
+    mkarg_bx(op + (0xffff >> 1))
   end
 
   def mkop_A(op, a)
@@ -61,6 +61,10 @@ module RiteOpcodeUtil
 
   def mkop_ABx(op, a, b)
     (mkop_A(op, a) | mkarg_bx(b))
+  end
+
+  def mkop_AsBx(op, a, b)
+    (mkop_A(op, a) | mkarg_sbx(b))
   end
 end
 
