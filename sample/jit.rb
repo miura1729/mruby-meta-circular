@@ -7,7 +7,7 @@ module CodeGen
   #      :
   #   @max_using_reg
 
-  SYMS = [:@stack, :@sp, :@pc, :+, :-, :[], :[]=, :p]
+  SYMS = [:@stack, :@sp, :@pc, :+, :-, :[], :[]=, :p, :==]
   STACK_SYM = 0
   SP_SYM = 1
   PC_SYM = 2
@@ -16,6 +16,7 @@ module CodeGen
   AREF_SYM = 5
   ASET_SYM = 6
   P_SYM = 7
+  EQ_SYM = 8
 
   def gen_get_reg(dst, src)
     tmp0 = @max_using_reg
@@ -184,6 +185,16 @@ class FibVM
             @code.push mkop_ABC(Irep::OPTABLE_CODE[:SUBI], tmp0, SUB_SYM, getarg_c(cop))
             @code += gen_set_reg(getarg_a(cop), tmp0)
             @max_using_reg -= 1
+
+          when :EQ
+            tmp0 = @max_using_reg
+            tmp1 = tmp0 + 1
+            @max_using_reg += 2
+            @code += gen_get_reg(tmp0, getarg_a(cop))
+            @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
+            @code.push mkop_ABC(Irep::OPTABLE_CODE[:EQ], tmp0, EQ_SYM, 1)
+            @code += gen_set_reg(getarg_a(cop), tmp0)
+            @max_using_reg -= 2
 
           when :ENTER
             # Do nothing
