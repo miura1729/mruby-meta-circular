@@ -182,7 +182,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
-  mov(eax, ptr [ecx + offary]);
+  lea(eax, ptr [ecx + offary]);
   gen_class_guard(mrb, (*status->regs)[regno], pc);
 
   mov(edx, ptr [ecx + offary]);
