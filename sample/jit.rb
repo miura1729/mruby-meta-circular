@@ -17,18 +17,20 @@ module CodeGen
   ASET_SYM = 6
   P_SYM = 7
   EQ_SYM = 8
+  OPTABLE_CODE = Irep::OPTABLE_CODE
+  OPTABLE_SYM = Irep::OPTABLE_SYM
 
   def gen_get_reg(dst, src)
     tmp0 = @max_using_reg
     tmp1 = tmp0 + 1
     tmp2 = tmp1 + 1
     [
-      mkop_ABx(Irep::OPTABLE_CODE[:GETIV], tmp0, STACK_SYM),
-      mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp1, src),
-      mkop_ABx(Irep::OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
-      mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
-      mkop_ABC(Irep::OPTABLE_CODE[:SEND], tmp0, AREF_SYM, 1),
-      mkop_AB(Irep::OPTABLE_CODE[:MOVE], dst, tmp0),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp0, STACK_SYM),
+      mkop_AsBx(OPTABLE_CODE[:LOADI], tmp1, src),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
+      mkop_ABC(OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
+      mkop_ABC(OPTABLE_CODE[:SEND], tmp0, AREF_SYM, 1),
+      mkop_AB(OPTABLE_CODE[:MOVE], dst, tmp0),
     ]
   end
 
@@ -37,12 +39,12 @@ module CodeGen
     tmp1 = tmp0 + 1
     tmp2 = tmp1 + 1
     [
-      mkop_ABx(Irep::OPTABLE_CODE[:GETIV], tmp0, STACK_SYM),
-      mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp1, dst),
-      mkop_ABx(Irep::OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
-      mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
-      mkop_AB(Irep::OPTABLE_CODE[:MOVE], tmp2, val),
-      mkop_ABC(Irep::OPTABLE_CODE[:SEND], tmp0, ASET_SYM, 2),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp0, STACK_SYM),
+      mkop_AsBx(OPTABLE_CODE[:LOADI], tmp1, dst),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
+      mkop_ABC(OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
+      mkop_AB(OPTABLE_CODE[:MOVE], tmp2, val),
+      mkop_ABC(OPTABLE_CODE[:SEND], tmp0, ASET_SYM, 2),
     ]
   end
 
@@ -51,11 +53,11 @@ module CodeGen
     tmp0 = @max_using_reg
     @max_using_reg += 1
     code += [
-      mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp0, @pc),
-      mkop_ABx(Irep::OPTABLE_CODE[:SETIV], tmp0, PC_SYM),
+      mkop_AsBx(OPTABLE_CODE[:LOADI], tmp0, @pc),
+      mkop_ABx(OPTABLE_CODE[:SETIV], tmp0, PC_SYM),
     ]
     code += gen_get_reg(tmp0, rreg)
-    code.push mkop_A(Irep::OPTABLE_CODE[:RETURN], tmp0)
+    code.push mkop_A(OPTABLE_CODE[:RETURN], tmp0)
     @max_using_reg -= 1
 
     code
@@ -110,7 +112,8 @@ class FibVM
     @prof_info[@irepid] ||= []
     @proc_tab [@irepid] ||= []
     while true
-      if @proc_tab[@irepid][@pc] then
+      a = @proc_tab[@irepid][@pc]
+      if a then
         if @entry then
           if @code.size > 1 then
             @code += gen_exit(0)
@@ -133,10 +136,10 @@ class FibVM
         if times  > 20 then
           if @entry == nil then
             @entry = @pc
-            @code.push mkop_AB(Irep::OPTABLE_CODE[:MOVE], 0, 1)
+            @code.push mkop_AB(OPTABLE_CODE[:MOVE], 0, 1)
           end
 
-          case Irep::OPTABLE_SYM[get_opcode(cop)]
+          case OPTABLE_SYM[get_opcode(cop)]
           when :NOP
 
           when :MOVE
@@ -150,14 +153,14 @@ class FibVM
             sidx = add_pool(@irep.pool[getarg_bx(cop)])
             tmp = @max_using_reg
             @max_using_reg += 1
-            @code.push mkop_ABx(Irep::OPTABLE_CODE[:LOADL], tmp, sidx)
+            @code.push mkop_ABx(OPTABLE_CODE[:LOADL], tmp, sidx)
             @code += gen_set_reg(getarg_a(cop), tmp)
             @max_using_reg -= 1
 
           when :LOADI
             tmp = @max_using_reg
             @max_using_reg += 1
-            @code.push mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp, getarg_sbx(cop))
+            @code.push mkop_AsBx(OPTABLE_CODE[:LOADI], tmp, getarg_sbx(cop))
             @code += gen_set_reg(getarg_a(cop), tmp)
             @max_using_reg -= 1
 
@@ -174,7 +177,7 @@ class FibVM
             @max_using_reg += 2
             @code += gen_get_reg(tmp0, getarg_a(cop))
             @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
-            @code.push mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp0, ADD_SYM, 1)
+            @code.push mkop_ABC(OPTABLE_CODE[:ADD], tmp0, ADD_SYM, 1)
             @code += gen_set_reg(getarg_a(cop), tmp0)
             @max_using_reg -= 2
 
@@ -182,7 +185,7 @@ class FibVM
             tmp0 = @max_using_reg
             @max_using_reg += 1
             @code += gen_get_reg(tmp0, getarg_a(cop))
-            @code.push mkop_ABC(Irep::OPTABLE_CODE[:SUBI], tmp0, SUB_SYM, getarg_c(cop))
+            @code.push mkop_ABC(OPTABLE_CODE[:SUBI], tmp0, SUB_SYM, getarg_c(cop))
             @code += gen_set_reg(getarg_a(cop), tmp0)
             @max_using_reg -= 1
 
@@ -192,7 +195,7 @@ class FibVM
             @max_using_reg += 2
             @code += gen_get_reg(tmp0, getarg_a(cop))
             @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
-            @code.push mkop_ABC(Irep::OPTABLE_CODE[:EQ], tmp0, EQ_SYM, 1)
+            @code.push mkop_ABC(OPTABLE_CODE[:EQ], tmp0, EQ_SYM, 1)
             @code += gen_set_reg(getarg_a(cop), tmp0)
             @max_using_reg -= 2
 
@@ -209,10 +212,10 @@ class FibVM
             @code += gen_get_reg(tmp0, getarg_a(cop))
             off = exit_code.size
             if @stack[@sp + getarg_a(cop)] then
-              @code.push mkop_AsBx(Irep::OPTABLE_CODE[:JMPNOT], tmp0, off)
+              @code.push mkop_AsBx(OPTABLE_CODE[:JMPNOT], tmp0, off)
               @code += exit_code
             else
-              @code.push mkop_AsBx(Irep::OPTABLE_CODE[:JMPIF], tmp0, off)
+              @code.push mkop_AsBx(OPTABLE_CODE[:JMPIF], tmp0, off)
               @code += exit_code
             end
             @max_using_reg -= 1
@@ -228,7 +231,7 @@ class FibVM
         end
       end
 
-      case Irep::OPTABLE_SYM[get_opcode(cop)]
+      case OPTABLE_SYM[get_opcode(cop)]
       when :NOP
 
       when :MOVE
@@ -309,7 +312,7 @@ class FibVM
           @sp = @callinfo[@cp]
         end
       else
-        printf("Unkown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
+        printf("Unkown code %s \n", OPTABLE_SYM[get_opcode(cop)])
       end
 
       @pc = @pc + 1
