@@ -193,8 +193,10 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   jl(".retnil");
   L(".normal");
   cmp(eax, dword [edx + OffsetOf(struct RArray, len)]);
-  jg(".retnil");
+  jge(".retnil");
   mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
+  test(edx, edx);
+  jz(".retnil");
   movsd(xmm0, ptr [edx + eax * sizeof(mrb_value)]);
   movsd(ptr [ecx + offary], xmm0);
   jmp(".exit");
