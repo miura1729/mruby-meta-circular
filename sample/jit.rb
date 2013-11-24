@@ -73,6 +73,8 @@ class FibVM
     @sp = 0
     @bp = 0
     @cp = 0
+    @irep = nil
+    @irepid =nil
 
     # For JIT
     @prof_info = {}
@@ -93,95 +95,125 @@ class FibVM
     end
   end
 
-  def eval(irep)
-    irepid = irep.id
-    @prof_info[irepid] ||= []
-    @proc_tab [irepid] ||= []
-    while true
-      @prof_info[irepid][@pc] ||= 0
-      @prof_info[irepid][@pc] += 1
+  def stop_compile
+    # Reset working
+    @entry = nil
+    @max_using_reg = 2
+    @code = []
+    @pool = []
+  end
 
-      if @proc_tab[irepid][@pc] then
-        #printf ">>%s %d \n", @stack, @pc
-        @proc_tab[irepid][@pc].call(self)
-        #printf "<<%s %d \n", @stack, @pc
+  def eval(irep)
+    @irep = irep
+    @irepid = @irep.id
+    @prof_info[@irepid] ||= []
+    @proc_tab [@irepid] ||= []
+    while true
+      if @proc_tab[@irepid][@pc] then
+        if @entry then
+          if @code.size > 1 then
+            @code += gen_exit(0)
+            @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
+          end
+          stop_compile
+        end
+        # printf ">> %d \n", @pc
+        @proc_tab[@irepid][@pc].call(self)
+        # printf "<< %d \n", @pc
       end
 
-      cop = irep.iseq[@pc]
-      times = @prof_info[irepid][@pc]
-      if times  > 10 then
-        if @entry == nil then
-          @entry = @pc
-          @code.push mkop_ABx(Irep::OPTABLE_CODE[:MOVE], 0, 1)
-        end
+      cop = @irep.iseq[@pc]
 
-        case Irep::OPTABLE_SYM[get_opcode(cop)]
-        when :NOP
+      if !@proc_tab[@irepid][@pc] then
+        @prof_info[@irepid][@pc] ||= 0
+        @prof_info[@irepid][@pc] += 1
 
-        when :MOVE
-          tmp = @max_using_reg
-          @max_using_reg += 1
-          @code += gen_get_reg(tmp, getarg_b(cop))
-          @code += gen_set_reg(getarg_a(cop), tmp)
-          @max_using_reg -= 1
-
-        when :LOADL
-          sidx = add_pool(irep.pool[getarg_bx(cop)])
-          tmp = @max_using_reg
-          @max_using_reg += 1
-          @code.push mkop_ABx(Irep::OPTABLE_CODE[:LOADL], tmp, sidx)
-          @code += gen_set_reg(getarg_a(cop), tmp)
-          @max_using_reg -= 1
-
-        when :LOADI
-          tmp = @max_using_reg
-          @max_using_reg += 1
-          @code.push mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp, getarg_sbx(cop))
-          @code += gen_set_reg(getarg_a(cop), tmp)
-          @max_using_reg -= 1
-
-        when :LOADSELF
-          tmp = @max_using_reg
-          @max_using_reg += 1
-          @code += gen_get_reg(tmp, 0)
-          @code += gen_set_reg(getarg_a(cop), tmp)
-          @max_using_reg -= 1
-
-
-        when :ADD0
-          tmp0 = @max_using_reg
-          tmp1 = tmp0 + 1
-          @max_using_reg += 2
-          @code += gen_get_reg(tmp0, getarg_a(cop))
-          @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
-          @code.push mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp0, ADD_SYM, 1)
-          @code += gen_set_reg(getarg_a(cop), tmp0)
-          @max_using_reg -= 2
-
-        when :SUBI
-          tmp0 = @max_using_reg
-          @max_using_reg += 1
-          @code += gen_get_reg(tmp0, getarg_a(cop))
-          @code.push mkop_ABC(Irep::OPTABLE_CODE[:SUBI], tmp0, SUB_SYM, getarg_c(cop))
-          @code += gen_set_reg(getarg_a(cop), tmp0)
-          @max_using_reg -= 1
-
-        when :ENTER
-          # Do nothing
-
-        else
-          # Return to VM
-          if @code.size > 1 then
-            @code += gen_exit(getarg_a(cop))
-
-            @proc_tab[irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
+        times = @prof_info[@irepid][@pc]
+        if times  > 20 then
+          if @entry == nil then
+            @entry = @pc
+            @code.push mkop_AB(Irep::OPTABLE_CODE[:MOVE], 0, 1)
           end
 
-          # Reset working
-          @entry = nil
-          @max_using_reg = 2
-          @code = []
-          @pool = []
+          case Irep::OPTABLE_SYM[get_opcode(cop)]
+          when :NOP
+
+          when :MOVE
+            tmp = @max_using_reg
+            @max_using_reg += 1
+            @code += gen_get_reg(tmp, getarg_b(cop))
+            @code += gen_set_reg(getarg_a(cop), tmp)
+            @max_using_reg -= 1
+
+          when :LOADL
+            sidx = add_pool(@irep.pool[getarg_bx(cop)])
+            tmp = @max_using_reg
+            @max_using_reg += 1
+            @code.push mkop_ABx(Irep::OPTABLE_CODE[:LOADL], tmp, sidx)
+            @code += gen_set_reg(getarg_a(cop), tmp)
+            @max_using_reg -= 1
+
+          when :LOADI
+            tmp = @max_using_reg
+            @max_using_reg += 1
+            @code.push mkop_AsBx(Irep::OPTABLE_CODE[:LOADI], tmp, getarg_sbx(cop))
+            @code += gen_set_reg(getarg_a(cop), tmp)
+            @max_using_reg -= 1
+
+          when :LOADSELF
+            tmp = @max_using_reg
+            @max_using_reg += 1
+            @code += gen_get_reg(tmp, 0)
+            @code += gen_set_reg(getarg_a(cop), tmp)
+            @max_using_reg -= 1
+
+          when :ADD
+            tmp0 = @max_using_reg
+            tmp1 = tmp0 + 1
+            @max_using_reg += 2
+            @code += gen_get_reg(tmp0, getarg_a(cop))
+            @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
+            @code.push mkop_ABC(Irep::OPTABLE_CODE[:ADD], tmp0, ADD_SYM, 1)
+            @code += gen_set_reg(getarg_a(cop), tmp0)
+            @max_using_reg -= 2
+
+          when :SUBI
+            tmp0 = @max_using_reg
+            @max_using_reg += 1
+            @code += gen_get_reg(tmp0, getarg_a(cop))
+            @code.push mkop_ABC(Irep::OPTABLE_CODE[:SUBI], tmp0, SUB_SYM, getarg_c(cop))
+            @code += gen_set_reg(getarg_a(cop), tmp0)
+            @max_using_reg -= 1
+
+          when :ENTER
+            # Do nothing
+
+          when :JMP
+            # Do nothing
+
+          when :JMPNOT
+            exit_code = gen_exit(0)
+            tmp0 = @max_using_reg
+            @max_using_reg += 1
+            @code += gen_get_reg(tmp0, getarg_a(cop))
+            off = exit_code.size
+            if @stack[@sp + getarg_a(cop)] then
+              @code.push mkop_AsBx(Irep::OPTABLE_CODE[:JMPNOT], tmp0, off)
+              @code += exit_code
+            else
+              @code.push mkop_AsBx(Irep::OPTABLE_CODE[:JMPIF], tmp0, off)
+              @code += exit_code
+            end
+            @max_using_reg -= 1
+
+          else
+            # Return to VM
+            if @code.size > 1 then
+              @code += gen_exit(0)
+              @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
+            end
+            stop_compile
+          end
         end
       end
 
@@ -192,7 +224,7 @@ class FibVM
         @stack[@sp + getarg_a(cop)] = @stack[@sp + getarg_b(cop)]
 
       when :LOADL
-        @stack[@sp + getarg_a(cop)] = irep.pool[getarg_bx(cop)]
+        @stack[@sp + getarg_a(cop)] = @irep.pool[getarg_bx(cop)]
 
       when :LOADI
         @stack[@sp + getarg_a(cop)] = getarg_sbx(cop)
@@ -224,7 +256,7 @@ class FibVM
 
       when :SEND
         a = getarg_a(cop)
-        mid = irep.syms[getarg_b(cop)]
+        mid = @irep.syms[getarg_b(cop)]
 #        p "SEND #{@stack[@sp + a + 1]}"
         n = getarg_c(cop)
         newirep = Irep::get_irep(@stack[@sp + a], mid)
@@ -233,14 +265,14 @@ class FibVM
           @cp += 1
           @callinfo[@cp] = @pc
           @cp += 1
-          @callinfo[@cp] = irep
+          @callinfo[@cp] = @irep
           @cp += 1
           @sp += a
           @pc = 0
-          irep = newirep
-          irepid = irep.id
-          @prof_info[irepid] ||= []
-          @proc_tab[irepid] ||= []
+          @irep = newirep
+          @irepid = @irep.id
+          @prof_info[@irepid] ||= []
+          @proc_tab[@irepid] ||= []
 
           next
         else
@@ -258,8 +290,8 @@ class FibVM
         else
           @stack[@sp] = @stack[@sp + getarg_a(cop)]
           @cp -= 1
-          irep = @callinfo[@cp]
-          irepid = irep.id
+          @irep = @callinfo[@cp]
+          @irepid = @irep.id
           @cp -= 1
           @pc = @callinfo[@cp]
           @cp -= 1
