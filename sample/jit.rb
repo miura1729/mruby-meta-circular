@@ -99,6 +99,13 @@ class FibVM
   end
 
   def stop_compile
+    if @code.size > 1 then
+      if @entry == @pc then
+        @code.push()
+      @code += gen_exit(0)
+      @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
+    end
+
     # Reset working
     @entry = nil
     @max_using_reg = 2
@@ -115,10 +122,6 @@ class FibVM
       a = @proc_tab[@irepid][@pc]
       if a then
         if @entry then
-          if @code.size > 1 then
-            @code += gen_exit(0)
-            @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
-          end
           stop_compile
         end
         # printf ">> %d \n", @pc
@@ -222,10 +225,6 @@ class FibVM
 
           else
             # Return to VM
-            if @code.size > 1 then
-              @code += gen_exit(0)
-              @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
-            end
             stop_compile
           end
         end
