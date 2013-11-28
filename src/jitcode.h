@@ -143,10 +143,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_type_guard(mrb_state *mrb, int regpos, mrb_value *regs, mrb_code *pc)
+    gen_type_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc)
   {
-    enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regpos]);
+    enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regpos]);
 
+    
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -187,9 +188,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
      destroy EAX
   */
   void 
-    gen_class_guard(mrb_state *mrb, mrb_value v, mrb_code *pc)
+    gen_class_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc)
   {
     enum mrb_vtype tt;
+    mrb_value v = (*status->regs)[regpos];
     tt = (enum mrb_vtype)mrb_type(v);
     if (tt == MRB_TT_FLOAT) {
       cmp(dword [eax + 4], 0xfff00000);
@@ -629,7 +631,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     lea(eax, ptr [ecx + a * sizeof(mrb_value)]);
-    gen_class_guard(mrb, recv, pc);
+    gen_class_guard(mrb, a, status, pc);
 
     if ((ivid = is_reader(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
@@ -840,9 +842,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
 \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, reg0pos, regs, *ppc);				\
+    gen_type_guard(mrb, reg0pos, status, *ppc);				\
     mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, reg1pos, regs, *ppc);				\
+    gen_type_guard(mrb, reg1pos, status, *ppc);				\
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
       mov(eax, dword [ecx + reg0off]);                                  \
@@ -914,9 +916,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);
 
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */
-    gen_type_guard(mrb, reg0pos, regs, *ppc);
+    gen_type_guard(mrb, reg0pos, status, *ppc);
     mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */
-    gen_type_guard(mrb, reg1pos, regs, *ppc);
+    gen_type_guard(mrb, reg1pos, status, *ppc);
 
     if (r0type == MRB_TT_FIXNUM) {
       cvtsi2sd(xmm0, dword [ecx + reg0off]);
@@ -956,7 +958,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
 \
     mov(eax, dword [ecx + off + 4]); /* Get type tag */                 \
-    gen_type_guard(mrb, regno, regs, *ppc);				\
+    gen_type_guard(mrb, regno, status, *ppc);				\
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
       mov(eax, dword [ecx + off]);                                      \
@@ -1033,9 +1035,9 @@ do {                                                                 \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
     mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, regno, regs, *ppc);			     \
+    gen_type_guard(mrb, regno, status, *ppc);			     \
     mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
-    gen_type_guard(mrb, regno + 1, regs, *ppc);			     \
+    gen_type_guard(mrb, regno + 1, status, *ppc);			     \
                                                                      \
     if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \
              mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \
