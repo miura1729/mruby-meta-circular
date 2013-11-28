@@ -86,36 +86,10 @@ enum mrb_fiber_state {
 
 typedef void * mrbjit_code_area;
 
-typedef struct mrbjit_varinfo {
-  /* SRC */
-  int reg_no;
-  int up;
-
-  /* DIST */
-  enum {
-    REG,
-    MEMORY,
-    STACK_FRMAME
-  } where;
-  union {
-    void *ptr;
-    int no;
-    int offset;
-  } addr;
-} mrbjit_varinfo;
-
-typedef struct mrbjit_branchinfo {
-  /* You can judge */
-  /* prev_base == current not branch */
-  /* prev_base != current branched   */
-  mrbjit_code_area *current_base;	/* code area of cureent */
-  mrbjit_code_area *branch_base;	/* code area of branched */
-} mrbjit_branchinfo;
-
-
-typedef union mrbjit_inst_spec_info {
-  mrbjit_branchinfo brainfo;	/* For Conditional Branch */
-} mrbjit_inst_spec_info;
+typedef struct mrbjit_reginfo {
+  enum mrb_vtype type;
+  mrb_value klass;
+} mrbjit_reginfo;
 
 typedef struct mrbjit_code_info {
   mrbjit_code_area code_base;
@@ -123,8 +97,7 @@ typedef struct mrbjit_code_info {
   struct mrbjit_code_info *prev_coi;
   mrb_code *caller_pc;
   void *(*entry)();
-  mrbjit_varinfo dstinfo;	/* For Local assignment */
-  mrbjit_inst_spec_info inst_spec;
+  mrbjit_reginfo *reginfo;	/* For Local assignment */
   int used;
 } mrbjit_code_info;
 
