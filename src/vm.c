@@ -787,9 +787,16 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     
     irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*irep->ilen);
     for (i = 0; i < irep->ilen; i++) {
+      mrbjit_code_info *cinfo; 
+      int j;
       irep->jit_entry_tab[i].size = 2;
-      irep->jit_entry_tab[i].body = 
-	(mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+      cinfo = (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+      cinfo->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
+      for (j = 0; j < irep->nregs; j++) {
+	cinfo->reginfo[j].type = MRB_TT_FREE;
+	cinfo->reginfo[j].klass = mrb_nil_value();
+      }
+      irep->jit_entry_tab[i].body = cinfo;
     }
     irep->prof_info = (int *)mrb_calloc(mrb, irep->ilen, sizeof(int));
     irep->jit_top_entry = NULL;
