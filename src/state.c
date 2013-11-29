@@ -154,6 +154,16 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep->lines);
   mrb_free(mrb, irep->prof_info);
   if (irep->jit_entry_tab) {
+    int i;
+    int j;
+
+    for (i = 0; i < irep->ilen; i++) {
+      for (j = 0; j < irep->jit_entry_tab[i].size; j++) {
+	if (irep->jit_entry_tab[i].body[j].reginfo) {
+	  mrb_free(mrb, irep->jit_entry_tab[i].body[j].reginfo);
+	}
+      }
+    }
     mrb_free(mrb, irep->jit_entry_tab->body);
     mrb_free(mrb, irep->jit_entry_tab);
   }

@@ -2539,7 +2539,7 @@ scope_finish(codegen_scope *s)
       irep->lines = 0;
     }
   }
-  irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*s->pc);
+  irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, s->pc, sizeof(mrbjit_codetab));
   for (i = 0; i < s->pc; i++) {
     irep->jit_entry_tab[i].size = 2;
     irep->jit_entry_tab[i].body = 

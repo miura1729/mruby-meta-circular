@@ -733,7 +733,7 @@ mrbjit_search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *ca
 }
 
 static inline mrbjit_code_info *
-add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
+add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
 {
   int i;
   int oldsize;
@@ -747,6 +747,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab)
     tab->body = mrb_realloc(mrb, tab->body, sizeof(mrbjit_code_info) * tab->size);
     for (i = oldsize; i < tab->size; i++) {
       tab->body[i].used = 0;
+      tab->body[i].reginfo = NULL;
     }
   }
 
@@ -787,16 +788,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     
     irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*irep->ilen);
     for (i = 0; i < irep->ilen; i++) {
-      mrbjit_code_info *cinfo; 
-      int j;
       irep->jit_entry_tab[i].size = 2;
-      cinfo = (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
-      cinfo->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
-      for (j = 0; j < irep->nregs; j++) {
-	cinfo->reginfo[j].type = MRB_TT_FREE;
-	cinfo->reginfo[j].klass = mrb_nil_value();
-      }
-      irep->jit_entry_tab[i].body = cinfo;
+      irep->jit_entry_tab[i].body = 
+	(mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
     }
     irep->prof_info = (int *)mrb_calloc(mrb, irep->ilen, sizeof(int));
     irep->jit_top_entry = NULL;
@@ -880,7 +874,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
     if (ci == NULL) {
       //printf("p %x %x\n", *ppc, prev_pc);
-      ci = add_codeinfo(mrb, irep->jit_entry_tab + n);
+      ci = add_codeinfo(mrb, irep->jit_entry_tab + n, irep);
       ci->prev_pc = prev_pc;
       if (prev_pc) {
 	ci->prev_coi = mrb->compile_info.prev_coi;
@@ -892,6 +886,15 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       ci->code_base = mrb->compile_info.code_base;
       ci->entry = NULL;
       ci->used = -1;
+    }
+
+    if (ci->reginfo == NULL) {
+      int i;
+      ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
+      for (i = 0; i < irep->nregs; i++) {
+	  ci->reginfo[i].type = MRB_TT_FREE;
+	  ci->reginfo[i].klass = NULL;
+	}
     }
 
     if (ci->used < 0) {

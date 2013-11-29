@@ -187,6 +187,7 @@ mrb_init_proc(mrb_state *mrb)
   struct RProc *m;
   mrb_irep *call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   static const mrb_irep mrb_irep_zero = { 0 };
+  mrbjit_code_info *cinfo; 
 
   if (call_irep == NULL)
     return;
@@ -194,11 +195,12 @@ mrb_init_proc(mrb_state *mrb)
   *call_irep = mrb_irep_zero;
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
-  call_irep->ilen = 1;
   call_irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, 1, sizeof(mrbjit_codetab));
   call_irep->jit_entry_tab[0].size = 16;
-  call_irep->jit_entry_tab[0].body = 
-    (mrbjit_code_info *)mrb_calloc(mrb, 1, sizeof(mrbjit_code_info)*16);
+  cinfo = (mrbjit_code_info *)mrb_calloc(mrb, 16, sizeof(mrbjit_code_info));
+  call_irep->jit_entry_tab[0].body = cinfo;
+
+  call_irep->jit_entry_tab[0].body = cinfo;
   call_irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int));
   call_irep->method_kind = NORMAL;
   call_irep->jit_top_entry = NULL;

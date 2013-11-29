@@ -38,7 +38,7 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
   mov(eax, dword [ecx + off1 + 4]); /* Get type tag */
 
-  gen_type_guard(mrb, regno + 1, status, pc);
+  gen_type_guard(mrb, regno + 1, status, pc, coi);
   
   if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
       mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {
@@ -183,7 +183,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
   inLocalLabel();
   lea(eax, ptr [ecx + offary]);
-  gen_class_guard(mrb, regno, status, pc);
+  gen_class_guard(mrb, regno, status, pc, coi);
 
   mov(edx, ptr [ecx + offary]);
   mov(eax, ptr [ecx + offidx]);
