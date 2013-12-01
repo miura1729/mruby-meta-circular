@@ -901,6 +901,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 reg1off = reg1pos * sizeof(mrb_value);          \
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
+    mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];                     \
 \
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
     gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
@@ -931,6 +932,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 \
       AINSTF(xmm0, xmm1);				                \
       movsd(ptr [ecx + reg0off], xmm0);                                 \
+      dinfo->type = MRB_TT_FLOAT;                                       \
+      dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
     else {                                                              \
       gen_exit(*ppc, 1, 0);						\
@@ -1180,6 +1183,9 @@ do {                                                                 \
     int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
     int siz = GETARG_C(**ppc);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_ARRAY;
+    dinfo->klass = mrb->array_class;
 
     push(ecx);
     push(ebx);
@@ -1209,6 +1215,9 @@ do {                                                                 \
     const Xbyak::uint32 idxpos = GETARG_B(**ppc);
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 3 * sizeof(void *);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
 
     push(ecx);
     push(ebx);
@@ -1312,6 +1321,9 @@ do {                                                                 \
     mrb_irep *irep = *status->irep;
     mrb_irep *mirep =irep->reps[lno];
     struct mrb_context *c = mrb->c;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_PROC;
+    dinfo->klass = mrb->proc_class;
 
     if (mirep->shared_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
@@ -1344,6 +1356,10 @@ do {                                                                 \
     int srcoff0 = GETARG_B(**ppc) * sizeof(mrb_value);
     int srcoff1 = srcoff0 + sizeof(mrb_value);
     int exelp = GETARG_C(**ppc);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_RANGE;
+    dinfo->klass = mrb_class(mrb, 
+			     mrb_vm_const_get(mrb, mrb_intern(mrb, "Range")));
 
     push(ecx);
     push(ebx);
