@@ -153,6 +153,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     rinfo->type = tt;
+    rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       cmp(eax, 0xfff00000);
@@ -978,6 +979,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 reg1off = reg1pos * sizeof(mrb_value);
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);
+    mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];
 
     mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */
     gen_type_guard(mrb, reg0pos, status, *ppc, coi);
@@ -1001,6 +1003,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     divsd(xmm0, xmm1);
     movsd(ptr [ecx + reg0off], xmm0);
 
+    /* Div returns Float always */
+    /* see http://qiita.com/monamour555/items/bcef9b41a5cc4670675a */
+    dinfo->type = MRB_TT_FLOAT;
+    dinfo->klass = mrb->float_class;
+
     return code;
   }
 
@@ -1017,8 +1024,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 #define ARTH_I_GEN(AINSTI, AINSTF)                                      \
   do {                                                                  \
     const Xbyak::uint32 y = GETARG_C(**ppc);                            \
-    const Xbyak::uint32 off = GETARG_A(**ppc) * sizeof(mrb_value);      \
     int regno = GETARG_A(**ppc);                                        \
+    const Xbyak::uint32 off = regno * sizeof(mrb_value);                \
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
 \
     mov(eax, dword [ecx + off + 4]); /* Get type tag */                 \
