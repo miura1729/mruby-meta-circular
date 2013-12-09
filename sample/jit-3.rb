@@ -1,3 +1,5 @@
+# -*- coding: cp932 -*-
+# コード生成用のライブラリ
 module CodeGen
   include RiteOpcodeUtil
   # Reg Mapping
@@ -20,6 +22,7 @@ module CodeGen
   OPTABLE_CODE = Irep::OPTABLE_CODE
   OPTABLE_SYM = Irep::OPTABLE_SYM
 
+  #　mruby VMのレジスタの内容をRite VMのレジスタに格納する
   def gen_get_reg(dst, src)
     tmp0 = @max_using_reg
     tmp1 = tmp0 + 1
@@ -34,6 +37,7 @@ module CodeGen
     ]
   end
 
+  #　Rite VMのレジスタの内容をmruby VMのレジスタに格納する
   def gen_set_reg(dst, val)
     tmp0 = @max_using_reg
     tmp1 = tmp0 + 1
@@ -48,15 +52,19 @@ module CodeGen
     ]
   end
 
+  #　mruby VMに戻る
   def gen_exit(rreg)
     code = []
     tmp0 = @max_using_reg
     @max_using_reg += 1
+    # @pcを設定するコード
     code += [
       mkop_AsBx(OPTABLE_CODE[:LOADI], tmp0, @pc),
       mkop_ABx(OPTABLE_CODE[:SETIV], tmp0, PC_SYM),
     ]
+    #　戻り値の設定(戻り値はmruby VMのレジスタに入っていることに注意)
     code += gen_get_reg(tmp0, rreg)
+    # 戻る
     code.push mkop_A(OPTABLE_CODE[:RETURN], tmp0)
     @max_using_reg -= 1
 
@@ -88,6 +96,7 @@ class FibVM
     @pool = []
   end
 
+  # 定数テーブルに定数を追加する。すでにある場合は再利用する
   def add_pool(val)
     if idx = @pool.index(val) then
       return idx
@@ -98,13 +107,14 @@ class FibVM
     end
   end
 
+  # コンパイルを中断する
   def stop_compile
     if @code.size > 1 then
       if @entry == @pc then
         @code.push()
-        @code += gen_exit(0)
-        @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
       end
+      @code += gen_exit(0)
+      @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
     end
 
     # Reset working
@@ -120,16 +130,19 @@ class FibVM
     @prof_info[@irepid] ||= []
     @proc_tab [@irepid] ||= []
     while true
+      # もし現在のPCの命令にコンパイルされたコードが存在したら
       a = @proc_tab[@irepid][@pc]
       if a then
         if @entry then
+          # もし、コンパイル中ならコンパイルを中止する
           stop_compile
         end
-        # printf ">> %d \n", @pc
+        # コード実行
         @proc_tab[@irepid][@pc].call(self)
-        # printf "<< %d \n", @pc
       end
 
+      # コードを取り込む。コンパイルされたコードを実行すると@pcが変化する
+      # 可能性のあることに注意
       cop = @irep.iseq[@pc]
 
       if !@proc_tab[@irepid][@pc] then
@@ -225,11 +238,11 @@ class FibVM
             @max_using_reg -= 1
 
           else
-            # Return to VM
+            # サポートされていない命令
             stop_compile
           end
         else
-          # Return to VM
+          # 実行頻度が少ない命令
           stop_compile
         end
       end
