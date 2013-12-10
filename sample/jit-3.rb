@@ -22,7 +22,7 @@ module CodeGen
   OPTABLE_CODE = Irep::OPTABLE_CODE
   OPTABLE_SYM = Irep::OPTABLE_SYM
 
-  #　mruby VMのレジスタの内容をRite VMのレジスタに格納する
+  #　FibVMのレジスタの内容をRite VMのレジスタに格納する
   def gen_get_reg(dst, src)
     tmp0 = @max_using_reg
     tmp1 = tmp0 + 1
@@ -37,7 +37,7 @@ module CodeGen
     ]
   end
 
-  #　Rite VMのレジスタの内容をmruby VMのレジスタに格納する
+  #　RITE VMのレジスタの内容をFibVMのレジスタに格納する
   def gen_set_reg(dst, val)
     tmp0 = @max_using_reg
     tmp1 = tmp0 + 1
@@ -52,7 +52,7 @@ module CodeGen
     ]
   end
 
-  #　mruby VMに戻る
+  #　RITE VMに戻る
   def gen_exit(rreg)
     code = []
     tmp0 = @max_using_reg
@@ -62,7 +62,7 @@ module CodeGen
       mkop_AsBx(OPTABLE_CODE[:LOADI], tmp0, @pc),
       mkop_ABx(OPTABLE_CODE[:SETIV], tmp0, PC_SYM),
     ]
-    #　戻り値の設定(戻り値はmruby VMのレジスタに入っていることに注意)
+    #　戻り値の設定(戻り値はFibVMのレジスタに入っていることに注意)
     code += gen_get_reg(tmp0, rreg)
     # 戻る
     code.push mkop_A(OPTABLE_CODE[:RETURN], tmp0)
@@ -110,9 +110,6 @@ class FibVM
   # コンパイルを中断する
   def stop_compile
     if @code.size > 1 then
-      if @entry == @pc then
-        @code.push()
-      end
       @code += gen_exit(0)
       @proc_tab[@irepid][@entry] = Irep.new_irep(@code, @pool, CodeGen::SYMS, 10, 2).to_proc
     end
