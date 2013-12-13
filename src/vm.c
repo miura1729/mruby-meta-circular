@@ -336,7 +336,8 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   /* This function for unescaped lambda so don't warry */
   for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
     if (c->proc_pool[i].proc.body.irep == mirep) {
-      return &(c->proc_pool[i].proc);
+      p = &(c->proc_pool[i].proc);
+      return p;
     }
   }
 
@@ -2445,6 +2446,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
       if (mirep->shared_lambda) {
 	p = get_local_proc(mrb, mirep);
+	p->env->stack = mrb->c->stack;
+	p->env->c = mrb->c->ci->proc->env;
       }
       else {
 	if (c & OP_L_CAPTURE) {

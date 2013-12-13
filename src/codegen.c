@@ -913,7 +913,7 @@ gen_assignment(codegen_scope *s, node *node, int sp, int val)
         idx = lv_idx(up, sym(node));
         if (idx > 0) {
 	  s->simple_lambda = 0;
-	  //s->shared_lambda = 0;
+	  s->shared_lambda = 0;
           genop_peep(s, MKOP_ABC(OP_SETUPVAR, sp, idx, lv), val);
           break;
         }
@@ -1883,7 +1883,7 @@ codegen(codegen_scope *s, node *tree, int val)
           idx = lv_idx(up, sym(tree));
           if (idx > 0) {
 	    s->simple_lambda = 0;
-	    //s->shared_lambda = 0;
+	    s->shared_lambda = 0;
             genop(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv));
             break;
           }
