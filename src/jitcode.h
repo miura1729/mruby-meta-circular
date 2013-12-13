@@ -1366,7 +1366,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_RANGE;
     dinfo->klass = mrb_class(mrb, 
-			     mrb_vm_const_get(mrb, mrb_intern(mrb, "Range")));
+			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "Range")));
 
     push(ecx);
     push(ebx);

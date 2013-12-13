@@ -238,8 +238,8 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
   L_RAISE:
     ci = mrb->c->ci;
-    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(mrb, *status->pc));
-    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
+    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc", 6), mrb_voidp_value(mrb, *status->pc));
+    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
     eidx = ci->eidx;
     if (ci == mrb->c->cibase) {
       if (ci->ridx == 0) {
@@ -360,8 +360,8 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     int eidx;
 
     ci = mrb->c->ci;
-    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern2(mrb, "lastpc", 6), mrb_voidp_value(mrb, *status->pc));
-    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern2(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
+    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc", 6), mrb_voidp_value(mrb, *status->pc));
+    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
     eidx = ci->eidx;
     if (ci == mrb->c->cibase) {
       if (ci->ridx == 0) {

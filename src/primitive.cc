@@ -306,7 +306,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
 
-  m = mrb_method_search_vm(mrb, &c, mrb_intern(mrb, "initialize"));
+  m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
 
   // TODO add guard of class
   
