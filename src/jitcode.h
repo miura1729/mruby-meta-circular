@@ -638,7 +638,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }while (0)
 
   mrb_sym
-    is_reader(mrb_state *mrb, struct RProc *m)
+    method_check(mrb_state *mrb, struct RProc *m, int opcode)
   {
     mrb_irep *irep;
     mrb_code opiv;
@@ -651,13 +651,38 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       }
 
       opiv = irep->iseq[1];
-      if (GET_OPCODE(opiv) == OP_GETIV) {
-	irep->method_kind = IV_READER;
+      if (GET_OPCODE(opiv) == opcode) {
 	return irep->syms[GETARG_Bx(opiv)];
       }
     }
 
     return 0;
+  }
+
+  mrb_sym
+    is_reader(mrb_state *mrb, struct RProc *m)
+  {
+    mrb_sym ivid;
+
+    ivid = method_check(mrb, m, OP_GETIV);
+    if (ivid) {
+      m->body.irep->method_kind = IV_READER;
+    }
+
+    return ivid;
+  }
+
+  mrb_sym
+    is_writer(mrb_state *mrb, struct RProc *m)
+  {
+    mrb_sym ivid;
+
+    ivid = method_check(mrb, m, OP_SETIV);
+    if (ivid) {
+      m->body.irep->method_kind = IV_READER;
+    }
+
+    return ivid;
   }
 
   const void *
@@ -706,6 +731,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       // regs[a] = obj;
       movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+
+      return code;
+    }
+
+    if ((ivid = is_writer(mrb, m))) {
+      const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
+
+      /* Inline IV writer */
+      mov(eax, ptr [ecx + a * sizeof(mrb_value)]);
+      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+      mov(eax, dword [eax]);
+
+      // @iv = regs[a];
+      movsd(xmm0, ptr [ecx + (a + 1) * sizeof(mrb_value)]);
+      movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
 
       return code;
     }
