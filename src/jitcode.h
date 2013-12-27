@@ -759,15 +759,15 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff + 4], eax);
     }
 
-    if (MRB_PROC_CFUNC_P(m)) {
-      prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
-      if (mrb_type(prim) == MRB_TT_PROC) {
-	mrb_value res = ((mrbjit_prim_func_t)mrb_proc_ptr(prim)->body.func)(mrb, prim, status, coi);
-	if (!mrb_nil_p(res)) {
-	  return code;
-	}
+    prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
+    if (mrb_type(prim) == MRB_TT_PROC) {
+      mrb_value res = ((mrbjit_prim_func_t)mrb_proc_ptr(prim)->body.func)(mrb, prim, status, coi);
+      if (!mrb_nil_p(res)) {
+	return code;
       }
+    }
 
+    if (MRB_PROC_CFUNC_P(m)) {
       //puts(mrb_sym2name(mrb, mid)); // for tuning
       CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
