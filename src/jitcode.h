@@ -701,7 +701,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     mrb_value recv;
     mrb_sym mid = syms[GETARG_B(i)];
-    mrb_sym ivid = syms[GETARG_B(i)];
+    mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
@@ -762,7 +762,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
     if (mrb_type(prim) == MRB_TT_PROC) {
       mrb_value res = ((mrbjit_prim_func_t)mrb_proc_ptr(prim)->body.func)(mrb, prim, status, coi);
-      if (!mrb_nil_p(res)) {
+      switch (mrb_type(res)) {
+      case MRB_TT_PROC:
+	m = mrb_proc_ptr(res);
+	break;
+	
+      case MRB_TT_TRUE:
 	return code;
       }
     }
@@ -1458,6 +1463,10 @@ do {                                                                 \
   mrb_value
     mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
 			     mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
+  mrb_value
+    mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
 };
 
 #endif  /* MRUBY_JITCODE_H */

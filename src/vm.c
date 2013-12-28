@@ -366,6 +366,12 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   return p;
 }
 
+struct RProc *
+mrbjit_get_local_proc(mrb_state *mrb, mrb_irep *mirep)
+{
+  return get_local_proc(mrb, mirep);
+}
+  
 #define CI_ACC_SKIP    -1
 #define CI_ACC_DIRECT  -2
 

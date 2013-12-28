@@ -390,3 +390,44 @@ mrbjit_prim_fiber_resume(mrb_state *mrb, mrb_value proc, void *status, void *coi
 
   return code->mrbjit_prim_fiber_resume_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
+
+mrb_value
+MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_value *regs = *status->regs;
+  mrb_sym *syms = *status->syms;
+  int i = *pc;
+  int a = GETARG_A(i);
+  int n = GETARG_C(i);
+  struct RProc *m;
+  struct RClass *c;
+  mrb_value recv;
+  mrb_sym mid = syms[GETARG_B(i)];
+  int blk = (a + n + 1);
+  mrb_irep *cirep;
+  mrb_irep *nirep;
+  mrb_irep *birep;
+  if (mrb_type(regs[blk]) != MRB_TT_PROC) {
+    return mrb_nil_value();    	// without block
+  }
+  birep = mrb_proc_ptr(regs[blk])->body.irep;
+
+  recv = regs[a];
+  c = mrb_class(mrb, recv);
+  m = mrb_method_search_vm(mrb, &c, mid);
+
+  cirep = m->body.irep;
+  nirep = mrb_add_irep(mrb);
+
+  return mrb_obj_value(mrbjit_get_local_proc(mrb, nirep));
+}
+
+extern "C" mrb_value
+mrbjit_prim_enum_all(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_enum_all_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
