@@ -316,7 +316,7 @@ alloc_proc_pool(mrb_state *mrb, size_t size)
   lp->proc.tt = MRB_TT_FREE;
   lp->proc.c = NULL;
 }
-  
+
 static struct RProc *
 get_local_proc(mrb_state *mrb, mrb_irep *mirep)
 {
@@ -780,7 +780,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_code *caller_pc;
   void *(*entry)() = NULL;
   void *(*prev_entry)() = NULL;
-  void *rc;
+  void *rc = NULL;
 
   if (mrb->compile_info.disable_jit ||
       irep->method_kind != NORMAL) {
@@ -1434,7 +1434,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
     CASE(OP_CALL) {
       /* A      R(A) := self.call(frame.argc, frame.argv) */
-      mrb_callinfo *ci;
+      mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv = mrb->c->stack[0];
       struct RProc *m = mrb_proc_ptr(recv);
 
@@ -1724,7 +1724,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     CASE(OP_RETURN) {
       /* A      return R(A) */
       if (mrb->exc) {
-        mrb_callinfo *ci;
+        mrb_callinfo *ci = mrb->c->ci;
         int eidx;
 
       L_RAISE:
@@ -2441,7 +2441,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       if (mirep->shared_lambda) {
 	p = get_local_proc(mrb, mirep);
 	p->env->stack = mrb->c->stack;
-	p->env->c = mrb->c->ci->proc->env;
+	p->env->c = (struct RClass*)mrb->c->ci->proc->env;
       }
       else {
 	if (c & OP_L_CAPTURE) {
