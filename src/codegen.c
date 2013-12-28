@@ -2524,10 +2524,25 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   return p;
 }
 
+void
+mrbjit_make_jit_entry_tab(mrb_state *mrb, mrb_irep *irep, int ilen)
+{
+  int i;
+
+  irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, ilen, sizeof(mrbjit_codetab));
+  for (i = 0; i < ilen; i++) {
+    irep->jit_entry_tab[i].size = 2;
+    irep->jit_entry_tab[i].body = 
+      (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+  }
+
+  irep->prof_info = (int *)mrb_calloc(mrb, ilen, sizeof(int));
+  irep->jit_top_entry = NULL;
+}
+
 static void
 scope_finish(codegen_scope *s)
 {
-  int i;
   mrb_state *mrb = s->mrb;
   mrb_irep *irep = s->irep;
   size_t fname_len;
@@ -2544,15 +2559,8 @@ scope_finish(codegen_scope *s)
       irep->lines = 0;
     }
   }
-  irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, s->pc, sizeof(mrbjit_codetab));
-  for (i = 0; i < s->pc; i++) {
-    irep->jit_entry_tab[i].size = 2;
-    irep->jit_entry_tab[i].body = 
-      (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
-  }
-  irep->prof_info = (int *)mrb_calloc(mrb, s->pc, sizeof(int));
+  mrbjit_make_jit_entry_tab(mrb, irep, s->pc);
   irep->method_kind = NORMAL;
-  irep->jit_top_entry = NULL;
   //irep->jit_inlinep = s->irep->jit_inlinep;
   irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);

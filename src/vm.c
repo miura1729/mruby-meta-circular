@@ -793,16 +793,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     return status->optable[GET_OPCODE(**ppc)];
   }
   if (irep->jit_entry_tab == NULL) {
-    int i;
-    
-    irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, sizeof(mrbjit_codetab)*irep->ilen);
-    for (i = 0; i < irep->ilen; i++) {
-      irep->jit_entry_tab[i].size = 2;
-      irep->jit_entry_tab[i].body = 
-	(mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
-    }
-    irep->prof_info = (int *)mrb_calloc(mrb, irep->ilen, sizeof(int));
-    irep->jit_top_entry = NULL;
+    mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
   }
 
   prev_pc = mrb->compile_info.prev_pc;
@@ -875,6 +866,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	caller_pc = NULL;
 	mrb->compile_info.nest_level = 0;
       }
+      if (irep->jit_entry_tab == NULL) {
+	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
+      }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
     }
   }
@@ -901,9 +895,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       int i;
       ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
       for (i = 0; i < irep->nregs; i++) {
-	  ci->reginfo[i].type = MRB_TT_FREE;
-	  ci->reginfo[i].klass = NULL;
-	}
+	ci->reginfo[i].type = MRB_TT_FREE;
+	ci->reginfo[i].klass = NULL;
+      }
     }
 
     if (ci->used < 0) {

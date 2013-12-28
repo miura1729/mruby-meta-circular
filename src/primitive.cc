@@ -391,6 +391,8 @@ mrbjit_prim_fiber_resume(mrb_state *mrb, mrb_value proc, void *status, void *coi
   return code->mrbjit_prim_fiber_resume_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+extern "C" void disasm_irep(mrb_state *mrb, mrb_irep *irep);
+
 mrb_value
 MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
@@ -409,6 +411,7 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   mrb_irep *cirep;
   mrb_irep *nirep;
   mrb_irep *birep;
+
   if (mrb_type(regs[blk]) != MRB_TT_PROC) {
     return mrb_nil_value();    	// without block
   }
@@ -420,6 +423,18 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
 
   cirep = m->body.irep;
   nirep = mrb_add_irep(mrb);
+  disasm_irep(mrb, birep);
+  disasm_irep(mrb, cirep);
+  nirep->flags = cirep->flags;
+  nirep->iseq = cirep->iseq;
+  nirep->ilen = cirep->ilen;
+  nirep->pool = cirep->pool;
+  nirep->plen = cirep->plen;
+  nirep->reps = cirep->reps;
+  nirep->rlen = cirep->rlen;
+  nirep->syms = cirep->syms;
+  nirep->slen = cirep->slen;
+  nirep->nregs = cirep->nregs;
 
   return mrb_obj_value(mrbjit_get_local_proc(mrb, nirep));
 }

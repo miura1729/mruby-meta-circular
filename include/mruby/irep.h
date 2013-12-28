@@ -82,6 +82,7 @@ mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
+void mrbjit_make_jit_entry_tab(mrb_state *, mrb_irep *, int);
 
 #if defined(__cplusplus)
 }  /* extern "C" { */
