@@ -880,16 +880,17 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("p %x %x\n", *ppc, prev_pc);
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n, irep);
       ci->prev_pc = prev_pc;
-      if (prev_pc) {
-	ci->prev_coi = mrb->compile_info.prev_coi;
-      }
-      else {
-	ci->prev_coi = NULL;
-      }
       ci->caller_pc = caller_pc;
       ci->code_base = mrb->compile_info.code_base;
       ci->entry = NULL;
       ci->used = -1;
+    }
+
+    if (prev_pc) {
+      ci->prev_coi = mrb->compile_info.prev_coi;
+    }
+    else {
+      ci->prev_coi = NULL;
     }
 
     if (ci->reginfo == NULL) {
