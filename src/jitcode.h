@@ -346,6 +346,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 srcoff = GETARG_Bx(**ppc) * sizeof(mrb_value);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    mrb_value val = irep->pool[GETARG_Bx(**ppc)];
+    dinfo->type = (mrb_vtype)mrb_type(val);
+    dinfo->klass = mrb_class(mrb, val);
+    dinfo->constp = 1;
+
     mov(eax, (Xbyak::uint32)irep->pool + srcoff);
     movsd(xmm0, ptr [eax]);
     movsd(ptr [ecx + dstoff], xmm0);
@@ -363,6 +369,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_FIXNUM;
     dinfo->klass = mrb->fixnum_class;
+    dinfo->constp = 1;
 
     mov(eax, src);
     mov(dword [ecx + dstoff], eax);
@@ -384,6 +391,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_SYMBOL;
     dinfo->klass = mrb->symbol_class;
+    dinfo->constp = 1;
 
     mov(eax, src);
     mov(dword [ecx + dstoff], eax);
@@ -403,6 +411,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_value self = *status->regs[0];
     dinfo->type = (mrb_vtype)mrb_type(self);
     dinfo->klass = mrb_class(mrb, self);
+    dinfo->constp = 1;
 
     movsd(xmm0, ptr [ecx]);
     movsd(ptr [ecx + dstoff], xmm0);
@@ -418,6 +427,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;
 
     mov(eax, 1);
     mov(dword [ecx + dstoff], eax);
@@ -436,6 +446,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_FALSE;
     dinfo->klass = mrb->false_class;
+    dinfo->constp = 1;
 
     mov(eax, 1);
     mov(dword [ecx + dstoff], eax);
@@ -459,6 +470,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
+    dinfo->constp = 0;
 
     if (ivoff < 0) {
       return NULL;
@@ -533,6 +545,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
+    dinfo->constp = 0;
 
     push(ecx);
     push(ebx);
@@ -586,6 +599,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = (mrb_vtype)mrb_type(v);
     dinfo->klass = mrb_class(mrb, v);
+    dinfo->constp = 1;
 
     mov(dword [ecx + dstoff], v.value.i);
     mov(dword [ecx + dstoff + 4], v.value.ttt);
@@ -602,6 +616,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_FALSE;
     dinfo->klass = mrb->nil_class;
+    dinfo->constp = 1;
 
     xor(eax, eax);
     mov(dword [ecx + dstoff], eax);
@@ -705,6 +720,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
+    dinfo->constp = 0;
 
     if (GETARG_C(i) == CALL_MAXARGS) {
       return NULL;
@@ -1238,6 +1254,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
+    dinfo->constp = 0;
 
     push(ecx);
     push(ebx);
@@ -1270,6 +1287,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
+    dinfo->constp = 0;
 
     push(ecx);
     push(ebx);
@@ -1376,6 +1394,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_PROC;
     dinfo->klass = mrb->proc_class;
+    dinfo->constp = 1;
 
     if (mirep->shared_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {

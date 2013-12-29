@@ -411,9 +411,13 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   mrb_irep *cirep;
   mrb_irep *nirep;
   mrb_irep *birep;
+  mrbjit_reginfo *binfo = &coi->reginfo[blk];
 
   if (mrb_type(regs[blk]) != MRB_TT_PROC) {
     return mrb_nil_value();    	// without block
+  }
+  if (binfo->constp == 0) {
+    return mrb_nil_value();    	// block is not literal
   }
   birep = mrb_proc_ptr(regs[blk])->body.irep;
 

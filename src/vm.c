@@ -787,6 +787,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   void *(*entry)() = NULL;
   void *(*prev_entry)() = NULL;
   void *rc = NULL;
+  int i;
 
   if (mrb->compile_info.disable_jit ||
       irep->method_kind != NORMAL) {
@@ -892,11 +893,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->reginfo == NULL) {
-      int i;
       ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
+    }
+    if (ci->prev_coi && ci->prev_coi->reginfo) {
+      mrbjit_reginfo *prev_rinfo;
+      prev_rinfo = ci->prev_coi->reginfo;
+      for (i = 0; i < irep->nregs; i++) {
+	ci->reginfo[i] = prev_rinfo[i];
+      }
+    }
+    else {
       for (i = 0; i < irep->nregs; i++) {
 	ci->reginfo[i].type = MRB_TT_FREE;
 	ci->reginfo[i].klass = NULL;
+	ci->reginfo[i].constp = 0;
       }
     }
 

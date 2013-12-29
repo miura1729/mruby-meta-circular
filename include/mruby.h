@@ -89,6 +89,7 @@ typedef void * mrbjit_code_area;
 typedef struct mrbjit_reginfo {
   enum mrb_vtype type;
   struct RClass *klass;
+  int constp;
 } mrbjit_reginfo;
 
 typedef struct mrbjit_code_info {
