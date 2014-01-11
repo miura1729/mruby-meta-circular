@@ -102,11 +102,27 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
 
   int a = GETARG_A(i);
   int n = GETARG_C(i);
-  mrb_callinfo *ci;
+  struct mrb_context *cxt = mrb->c;
+  mrb_callinfo *ci = cxt->ci;
   mrb_sym mid = syms[GETARG_B(i)];
 
   /* push callinfo */
-  ci = mrbjit_cipush(mrb);
+  int eidx = ci->eidx;
+  int ridx = ci->ridx;
+
+  if (ci + 1 == cxt->ciend) {
+    size_t size = ci - cxt->cibase;
+
+    cxt->cibase = (mrb_callinfo *)mrb_realloc(mrb, cxt->cibase, sizeof(mrb_callinfo)*size*2);
+    cxt->ci = cxt->cibase + size;
+    cxt->ciend = cxt->cibase + size * 2;
+  }
+  ci = ++cxt->ci;
+  ci->eidx = eidx;
+  ci->ridx = ridx;
+  ci->env = 0;
+  ci->jit_entry = NULL;
+
   ci->mid = mid;
   ci->proc = m;
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
