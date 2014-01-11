@@ -12,6 +12,6 @@ mrb_init_enumerable(mrb_state *mrb)
 {
   struct RClass *mod;
   mod = mrb_define_module(mrb, "Enumerable");
-  mrbjit_define_primitive(mrb, mod, "all?", mrbjit_prim_enum_all);
+  //mrbjit_define_primitive(mrb, mod, "all?", mrbjit_prim_enum_all);
 }
 
