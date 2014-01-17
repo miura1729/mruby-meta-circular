@@ -1397,6 +1397,7 @@ do {                                                                 \
     int i;
     const int lno = GETARG_b(**ppc);
     const int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int flags = GETARG_C(**ppc);
     mrb_irep *irep = *status->irep;
     mrb_irep *mirep =irep->reps[lno];
     struct mrb_context *c = mrb->c;
@@ -1408,23 +1409,56 @@ do {                                                                 \
     if (mirep->shared_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
-	  mov(dword [ecx + dstoff], (Xbyak::uint32)&c->proc_pool[i].proc);
+	  struct RProc *nproc = &c->proc_pool[i].proc;
+	  mov(dword [ecx + dstoff], (Xbyak::uint32)nproc);
 	  mov(dword [ecx + dstoff + 4], 0xfff00000 + MRB_TT_PROC);
+	  /* mov(edx, (Xbyak::uint32)nproc->env);
+	     mov(dword [edx + OffsetOf(struct REnv, stack)], ecx);
+	     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+	     mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
+	     mov(eax, dword [eax + OffsetOf(mrb_callinfo, proc)]);
+	     mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
+	     mov(dword [edx + OffsetOf(struct REnv, c)], eax); */
 
 	  /*	  mov(eax, dword [ecx + dstoff + 4]);
-	  push(eax);
-	  mov(eax, dword [ecx + dstoff]);
-	  push(eax);
-	  push(esi);
-	  call((void *)mrb_p);
-	  add(esp, 12);*/
+		  push(eax);
+		  mov(eax, dword [ecx + dstoff]);
+		  push(eax);
+		  push(esi);
+		  call((void *)mrb_p);
+		  add(esp, 12);*/
 
 	  return code;
 	}
       }
     }
 
-    return NULL;
+    mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
+    push(eax);
+    push(ecx);
+    push(ebx);
+    mov(eax, (Xbyak::uint32)mirep);
+    push(eax);
+    push(esi);
+    if (flags & OP_L_CAPTURE) {
+      call((void *) mrb_closure_new);
+    }
+    else {
+      call((void *) mrb_proc_new);
+    }
+    add(esp, 2 * sizeof(void *));
+    pop(ebx);
+    pop(ecx);
+    mov(dword [ecx + dstoff], eax);
+    mov(dword [ecx + dstoff + 4], 0xfff00000 + MRB_TT_PROC);
+    if (flags & OP_L_STRICT) {
+      mov(edx, (Xbyak::uint32)MRB_PROC_STRICT);
+      shl(edx, 11);
+      or(ptr [eax], edx);
+    }
+    pop(eax);
+    mov(ptr [esi + OffsetOf(mrb_state, arena_idx)], eax);
+    return code;
   }
 
   const void *
