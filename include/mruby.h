@@ -75,6 +75,8 @@ typedef struct {
   int ridx;
   int eidx;
   struct REnv *env;
+
+  void *dummy[2];
 } mrb_callinfo;
 
 enum mrb_fiber_state {
