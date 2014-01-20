@@ -91,6 +91,16 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 }
 
 void *
+mrbjit_exec_extend_callinfo(mrb_state *mrb, struct mrb_context *cxt, int size)
+{
+    cxt->cibase = (mrb_callinfo *)mrb_realloc(mrb, cxt->cibase, sizeof(mrb_callinfo)*size*2);
+    cxt->ci = cxt->cibase + size;
+    cxt->ciend = cxt->cibase + size * 2;
+
+    return NULL;
+}
+
+void *
 mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
 		 struct RProc *m, struct RClass *c)
 {

@@ -23,6 +23,7 @@ extern "C" {
 
 void *mrbjit_exec_send_c(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
+void *mrbjit_exec_extend_callinfo(mrb_state *, mrb_context *, int);
 
 void *mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
@@ -798,17 +799,103 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
     }
     else {
-      CALL_CFUNC_BEGIN;
-      mov(eax, (Xbyak::uint32)c);
-      push(eax);
-      mov(eax, (Xbyak::uint32)m);
-      push(eax);
-      CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
+      /* Reg map */
+      /*    old ci  edx */
+      /*    tmp  eax */
+      push(edi);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      mov(edx, dword [eax + OffsetOf(mrb_context, ci)]);
 
-      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
-      mov(ecx, dword [eax]);
+      mov(eax, dword [eax + OffsetOf(mrb_context, ciend)]);
+      cmp(edx, eax);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      jb("@f");
+
+      /* extend cfunction */
+      push(ebx);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      mov(eax, dword [eax + OffsetOf(mrb_context, cibase)]);
+      sub(eax, edx);
+      neg(eax);
+      push(eax);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      push(eax);
+      push(esi);
+      call((void *) mrbjit_exec_extend_callinfo);
+      add(eax, 3 * sizeof(void *));
+      pop(ebx);
+
+      L("@@");
+
+      /*    ci  edi */
+      /*    tmp  edx */
+      /*    tmp  eax */
+      add(dword [eax + OffsetOf(mrb_context, ci)], (Xbyak::uint32)sizeof(mrb_callinfo));
+      mov(edi, dword [eax + OffsetOf(mrb_context, ci)]);
+
+      mov(eax, dword [edx + OffsetOf(mrb_callinfo, eidx)]);
+      mov(dword [edi + OffsetOf(mrb_callinfo, eidx)], eax);
+      mov(eax, dword [edx + OffsetOf(mrb_callinfo, ridx)]);
+      mov(dword [edi + OffsetOf(mrb_callinfo, ridx)], eax);
+
+      xor(eax, eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, env)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
+
+      mov(eax, (Xbyak::uint32)m);
+      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], eax);
+
+      mov(eax, (Xbyak::uint32)n);
+      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+
+      mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
+      mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
+      sub(eax, dword [edx + OffsetOf(mrb_context, stbase)]);
+      shr(eax, 3);		/* sizeof mrb_value */
+      mov(dword [edi + OffsetOf(mrb_callinfo, stackidx)], eax);
+
+      if (c->tt == MRB_TT_ICLASS) {
+	mov(eax, (Xbyak::uint32)c->c);
+      }
+      else {
+	mov(eax, (Xbyak::uint32)c);
+      }
+      mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], eax);
+
+      mov(eax, (Xbyak::uint32)(pc + 1));
+      mov(dword [edi + OffsetOf(mrb_callinfo, pc)], eax);
+
+      mov(eax, (Xbyak::uint32)m->body.irep->nregs);
+      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], eax);
+
+      mov(eax, (Xbyak::uint32)m);
+      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], eax);
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, proc)]);
+      mov(dword [edx], eax);
+
+      mov(eax, (Xbyak::uint32)a);
+      mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
+
+      /*  mrb->c   edi  */
+      mov(edi, dword [esi + OffsetOf(mrb_state, c)]);
+      shl(eax, 3);		/* * sizeof(mrb_value) */
+      add(dword [edi + OffsetOf(mrb_context, stack)], eax);
+
+      mov(eax, (Xbyak::uint32)m->body.irep);
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
+      mov(dword [edx], eax);
+
+      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
+      mov(dword [edx], eax);
+      mov(ecx, eax);
+
+      mov(eax, (Xbyak::uint32)m->body.irep->iseq);
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+      mov(dword [edx], eax);
 
       gen_set_jit_entry(mrb, pc, coi, irep);
+      pop(edi);
     }
 
     return code;
