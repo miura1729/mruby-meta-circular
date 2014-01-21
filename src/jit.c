@@ -93,12 +93,20 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 void *
 mrbjit_exec_extend_callinfo(mrb_state *mrb, struct mrb_context *cxt, int size)
 {
-  cxt->cibase_org = (mrb_callinfo *)mrb_realloc(mrb, cxt->cibase_org, sizeof(mrb_callinfo)*size*2 + 64);
+  mrb_callinfo *sci;
+  mrb_callinfo *dci;
+
+  cxt->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
+  sci = cxt->cibase;
   cxt->cibase = (mrb_callinfo *)((((int)(cxt->cibase_org)) & (~(64 - 1))) + 64);
+  for (dci = cxt->cibase; sci <= cxt->ci; sci++, dci++) {
+    *dci = *sci;
+  }
+
   cxt->ci = cxt->cibase + size;
   cxt->ciend = cxt->cibase + size * 2;
 
-    return NULL;
+  return NULL;
 }
 
 void *
@@ -425,7 +433,8 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     struct mrb_context *c = mrb->c;
     mrb_callinfo *ci = c->ci;
 
-    int acc, eidx = mrb->c->ci->eidx;
+    int acc;
+    int eidx = mrb->c->ci->eidx;
     mrb_value v = (*status->regs)[GETARG_A(i)];
 
     c->ci--;

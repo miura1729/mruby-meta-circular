@@ -111,7 +111,7 @@ stack_init(mrb_state *mrb)
   c->stack = c->stbase;
 
   /* mrb_assert(ci == NULL); */
-  c->cibase_org = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo) + 64);
+  c->cibase_org = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE + 2, sizeof(mrb_callinfo));
   c->cibase = (mrb_callinfo *)((((int)(c->cibase_org)) & (~(64 - 1))) + 64);
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
@@ -387,10 +387,16 @@ cipush(mrb_state *mrb)
 
   if (ci + 1 == c->ciend) {
     size_t size = ci - c->cibase;
+    mrb_callinfo *sci;
+    mrb_callinfo *dci;
 
-    c->cibase_org = (mrb_callinfo *)mrb_realloc(mrb, c->cibase_org, sizeof(mrb_callinfo)*size*2 + 64);
+    c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
+    sci = c->cibase;
     c->cibase = (mrb_callinfo *)((((int)(c->cibase_org)) & (~(64 - 1))) + 64);
-    
+    for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
+      *dci = *sci;
+    }
+
     c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
   }

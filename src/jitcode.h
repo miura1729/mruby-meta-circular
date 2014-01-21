@@ -812,18 +812,22 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       jb("@f");
 
       /* extend cfunction */
+      push(edx);
       push(ebx);
       mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
       mov(eax, dword [eax + OffsetOf(mrb_context, cibase)]);
       sub(eax, edx);
       neg(eax);
+      shr(eax, 6);		/* sizeof mrb_callinfo */
       push(eax);
       mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
       push(eax);
       push(esi);
       call((void *) mrbjit_exec_extend_callinfo);
-      add(eax, 3 * sizeof(void *));
+      add(esp, 3 * sizeof(void *));
       pop(ebx);
+      pop(edx);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
 
       L("@@");
 
@@ -886,6 +890,24 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [edx], eax);
 
       mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
+      mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
+      sub(edx, (Xbyak::uint32)m->body.irep->nregs * sizeof(mrb_value));
+      cmp(eax, edx);
+      jb("@f");
+
+      push(ebx);
+      mov(eax, (Xbyak::uint32)(m->body.irep->nregs + 2));
+      push(eax);
+      mov(eax, (Xbyak::uint32)n);
+      push(eax);
+      push(esi);
+      call((void *) mrbjit_stack_extend);
+      add(esp, 3 * sizeof(void *));
+      pop(ebx);
+      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
+      
+      L("@@");
+
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
       mov(dword [edx], eax);
       mov(ecx, eax);
