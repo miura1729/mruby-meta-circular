@@ -889,10 +889,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
       mov(dword [edx], eax);
 
-      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
+      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
       mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
       sub(edx, (Xbyak::uint32)m->body.irep->nregs * sizeof(mrb_value));
-      cmp(eax, edx);
+      cmp(ecx, edx);
       jb("@f");
 
       push(ebx);
@@ -904,13 +904,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       call((void *) mrbjit_stack_extend);
       add(esp, 3 * sizeof(void *));
       pop(ebx);
-      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
+      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
       
       L("@@");
 
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
-      mov(dword [edx], eax);
-      mov(ecx, eax);
+      mov(dword [edx], ecx);
 
       mov(eax, (Xbyak::uint32)m->body.irep->iseq);
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
