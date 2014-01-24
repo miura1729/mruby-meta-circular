@@ -5,11 +5,9 @@
 */
 
 #include "mruby.h"
-#include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
-#include "error.h"
 
 mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
@@ -293,6 +291,17 @@ mrb_init_object(mrb_state *mrb)
 }
 
 static mrb_value
+inspect_type(mrb_state *mrb, mrb_value val)
+{
+  if (mrb_type(val) == MRB_TT_FALSE || mrb_type(val) == MRB_TT_TRUE) {
+    return mrb_inspect(mrb, val);
+  }
+  else {
+    return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, val));
+  }
+}
+
+static mrb_value
 convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, int raise)
 {
   mrb_sym m = 0;
@@ -300,7 +309,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
   m = mrb_intern_cstr(mrb, method);
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", val, mrb_str_new_cstr(mrb, tname));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_str_new_cstr(mrb, tname));
       return mrb_nil_value();
     }
     else {
@@ -315,9 +324,9 @@ mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 {
   mrb_value v;
 
-  if (mrb_type(val) == MRB_TT_FIXNUM) return val;
+  if (mrb_fixnum_p(val)) return val;
   v = convert_type(mrb, val, "Integer", method, FALSE);
-  if (mrb_nil_p(v) || mrb_type(v) != MRB_TT_FIXNUM) {
+  if (mrb_nil_p(v) || !mrb_fixnum_p(v)) {
     return mrb_nil_value();
   }
   return v;
@@ -393,7 +402,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         if (mrb_nil_p(x)) {
           etype = "nil";
         }
-        else if (mrb_type(x) == MRB_TT_FIXNUM) {
+        else if (mrb_fixnum_p(x)) {
           etype = "Fixnum";
         }
         else if (mrb_type(x) == MRB_TT_SYMBOL) {
@@ -499,8 +508,9 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
   if (mrb_fixnum_p(val)) return val;
   v = convert_type(mrb, val, "Integer", method, TRUE);
   if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
+    mrb_value type = inspect_type(mrb, val);
     mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Integer (%S#%S gives %S)",
-               val, val, mrb_str_new_cstr(mrb, method), v);
+               type, type, mrb_str_new_cstr(mrb, method), inspect_type(mrb, v));
   }
   return v;
 }

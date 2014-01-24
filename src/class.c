@@ -4,9 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include <stdarg.h>
 #include <ctype.h>
+#include <stdarg.h>
+#include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
@@ -48,7 +48,7 @@ mrb_gc_mark_mt_size(mrb_state *mrb, struct RClass *c)
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
-  kh_destroy(mt, c->mt);
+  kh_destroy(mt, mrb, c->mt);
 }
 
 void
@@ -299,7 +299,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   khiter_t k;
 
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, h, mid);
+  k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = p;
   if (p) {
     mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
@@ -383,7 +383,7 @@ mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value b
   }
   
   if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, h, name);
+  k = kh_put(mt, mrb, h, name);
   p = mrb_proc_ptr(body);
   kh_value(h, k) = p;
   if (p) {
@@ -575,7 +575,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           s = mrb_str_ptr(ss);
           len = (mrb_int)strlen(s->ptr);
           if (len < s->len) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "String contains NUL");
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
           }
           else if (len > s->len) {
             mrb_str_modify(mrb, s);
@@ -1048,7 +1048,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     khash_t(mt) *h = c->mt;
 
     if (h) {
-      k = kh_get(mt, h, mid);
+      k = kh_get(mt, mrb, h, mid);
       if (k != kh_end(h)) {
         m = kh_value(h, k);
         if (!m) break;
@@ -1233,7 +1233,7 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
 }
 
 mrb_bool
-mrb_obj_respond_to(struct RClass* c, mrb_sym mid)
+mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 {
   khiter_t k;
 
@@ -1241,7 +1241,7 @@ mrb_obj_respond_to(struct RClass* c, mrb_sym mid)
     khash_t(mt) *h = c->mt;
 
     if (h) {
-      k = kh_get(mt, h, mid);
+      k = kh_get(mt, mrb, h, mid);
       if (k != kh_end(h)) {
         if (kh_value(h, k)) {
           return TRUE;  /* method exists */
@@ -1259,7 +1259,7 @@ mrb_obj_respond_to(struct RClass* c, mrb_sym mid)
 mrb_bool
 mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid)
 {
-  return mrb_obj_respond_to(mrb_class(mrb, obj), mid);
+  return mrb_obj_respond_to(mrb, mrb_class(mrb, obj), mid);
 }
 
 mrb_value
@@ -1495,7 +1495,7 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
   mrb_value m;
 
-  if (!mrb_obj_respond_to(c, a)) {
+  if (!mrb_obj_respond_to(mrb, c, a)) {
     mrb_name_error(mrb, a, "undefined method '%S' for class '%S'", mrb_sym2str(mrb, a), mrb_obj_value(c));
   }
   else {
@@ -1766,7 +1766,7 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 
   id = get_sym_or_str_arg(mrb);
   if (mrb_symbol_p(id)) {
-    method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), mrb_symbol(id));
+    method_defined_p = mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(id));
   }
   else {
     mrb_value sym = mrb_check_intern_str(mrb, id);
@@ -1774,7 +1774,7 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
       method_defined_p = FALSE;
     }
     else {
-      method_defined_p = mrb_obj_respond_to(mrb_class_ptr(mod), mrb_symbol(sym));
+      method_defined_p = mrb_obj_respond_to(mrb, mrb_class_ptr(mod), mrb_symbol(sym));
     }
   }
   return mrb_bool_value(method_defined_p);
@@ -1788,9 +1788,9 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
   khiter_t k;
 
   if (h) {
-    k = kh_get(mt, h, mid);
+    k = kh_get(mt, mrb, h, mid);
     if (k != kh_end(h)) {
-      kh_del(mt, h, k);
+      kh_del(mt, mrb, h, k);
       return;
     }
   }

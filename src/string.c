@@ -5,12 +5,7 @@
 */
 
 #include <ctype.h>
-#ifndef SIZE_MAX
- /* Some versions of VC++
-  * has SIZE_MAX in stdint.h
-  */
-# include <limits.h>
-#endif
+#include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,6 +84,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     }
     s->ptr[s->len] = '\0';
     s->aux.capa = s->len;
+    s->flags &= ~MRB_STR_NOFREE;
     return;
   }
 }
@@ -109,16 +105,6 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
     s->ptr[len] = '\0';   /* sentinel */
   }
   return str;
-}
-
-static inline void
-str_mod_check(mrb_state *mrb, mrb_value str, char *p, mrb_int len)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  if (s->ptr != p || s->len != len) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "string modified");
-  }
 }
 
 #define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
@@ -1247,7 +1233,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
   mrb_bool include_p;
 
   mrb_get_args(mrb, "o", &str2);
-  if (mrb_type(str2) == MRB_TT_FIXNUM) {
+  if (mrb_fixnum_p(str2)) {
     include_p = (memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self)) != NULL);
   }
   else {
@@ -2426,7 +2412,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
     for (;p < pend; p++) {
-      unsigned int c, cc;
+      unsigned char c, cc;
 
       c = *p;
       if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {

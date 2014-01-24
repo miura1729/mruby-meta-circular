@@ -4,14 +4,12 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <ctype.h>
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
-#include "mruby/variable.h"
-#include "error.h"
-#include <ctype.h>
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
@@ -312,7 +310,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   khash_t(iv) *h = &t->h;
   khiter_t k;
 
-  k = kh_put(iv, h, sym);
+  k = kh_put(iv, mrb, h, sym);
   kh_value(h, k) = val;
 }
 
@@ -322,7 +320,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   khash_t(iv) *h = &t->h;
   khiter_t k;
 
-  k = kh_get(iv, h, sym);
+  k = kh_get(iv, mrb, h, sym);
   if (k != kh_end(h)) {
     if (vp) *vp = kh_value(h, k);
     return TRUE;
@@ -337,10 +335,10 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   khiter_t k;
 
   if (h) {
-    k = kh_get(iv, h, sym);
+    k = kh_get(iv, mrb, h, sym);
     if (k != kh_end(h)) {
       mrb_value val = kh_value(h, k);
-      kh_del(iv, h, k);
+      kh_del(iv, mrb, h, k);
       if (vp) *vp = val;
       return TRUE;
     }
@@ -361,7 +359,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
         n = (*func)(mrb, kh_key(h, k), kh_value(h, k), p);
         if (n > 0) return FALSE;
         if (n < 0) {
-          kh_del(iv, h, k);
+          kh_del(iv, mrb, h, k);
         }
       }
     }
@@ -387,7 +385,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
 static void
 iv_free(mrb_state *mrb, iv_tbl *t)
 {
-  kh_destroy(iv, &t->h);
+  kh_destroy(iv, mrb, &t->h);
 }
 
 #endif
@@ -789,7 +787,7 @@ mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 }
 
 void
-mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_value v)
+mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 {
   struct RClass * cls = c;
 
@@ -856,24 +854,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   struct RClass *c = mrb->c->ci->proc->target_class;
 
   if (!c) c = mrb->c->ci->target_class;
-  while (c) {
-    if (c->iv) {
-      iv_tbl *t = c->iv;
-
-      if (iv_get(mrb, t, sym, NULL)) {
-        mrb_write_barrier(mrb, (struct RBasic*)c);
-        iv_put(mrb, t, sym, v);
-        return;
-      }
-    }
-    c = c->super;
-  }
-  c = mrb->c->ci->target_class;
-  if (!c->iv) {
-    c->iv = iv_new(mrb);
-  }
-  mrb_write_barrier(mrb, (struct RBasic*)c);
-  iv_put(mrb, c->iv, sym, v);
+  mrb_mod_cv_set(mrb, c, sym, v);
 }
 
 mrb_bool

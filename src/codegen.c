@@ -428,7 +428,7 @@ new_lit(codegen_scope *s, mrb_value val)
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
       pv = &s->irep->pool[i];
-      if (mrb_type(*pv) != MRB_TT_FIXNUM) continue;
+      if (!mrb_fixnum_p(*pv)) continue;
       if (mrb_fixnum(*pv) == mrb_fixnum(val)) return i;
     }
     break;
@@ -690,7 +690,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
 }
 
 static int
-scope_body(codegen_scope *s, node *tree)
+scope_body(codegen_scope *s, node *tree, int val)
 {
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
 
@@ -698,15 +698,16 @@ scope_body(codegen_scope *s, node *tree)
   if (!s->iseq) {
     genop(scope, MKOP_A(OP_STOP, 0));
   }
+  else if (!val) {
+    genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
+  }
   else {
     if (scope->nregs == 0) {
       genop(scope, MKOP_A(OP_LOADNIL, 0));
       genop(scope, MKOP_AB(OP_RETURN, 0, OP_R_NORMAL));
     }
     else {
-      pop();
-      genop_peep(scope, MKOP_AB(OP_RETURN, cursp(), OP_R_NORMAL), NOVAL);
-      push();
+      genop_peep(scope, MKOP_AB(OP_RETURN, scope->sp-1, OP_R_NORMAL), NOVAL);
     }
   }
   scope_finish(scope);
@@ -1277,7 +1278,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOP_Bx(OP_EPUSH, 0));
       s->ensure_level++;
       codegen(s, tree->car, val);
-      idx = scope_body(s, tree->cdr);
+      idx = scope_body(s, tree->cdr, NOVAL);
       s->iseq[epush] = MKOP_Bx(OP_EPUSH, idx);
       s->ensure_level--;
       genop_peep(s, MKOP_A(OP_EPOP, 1), NOVAL);
@@ -1447,7 +1448,12 @@ codegen(codegen_scope *s, node *tree, int val)
           if (head) {
             genop(s, MKOP_AB(OP_MOVE, cursp(), head));
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+            if ((intptr_t)n->car->car == NODE_SPLAT) {
+              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1));
+            }
+            else {
+              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+            }
           }
           else {
             pop();
@@ -1471,15 +1477,21 @@ codegen(codegen_scope *s, node *tree, int val)
         tree = tree->cdr;
       }
       if (val) {
+        int pos = cursp();
         genop(s, MKOP_A(OP_LOADNIL, cursp()));
+        if (pos3) dispatch_linked(s, pos3);
+        pop();
+        genop(s, MKOP_AB(OP_MOVE, cursp(), pos));
         push();
       }
-      if (pos3) dispatch_linked(s, pos3);
+      else if (pos3) {
+        dispatch_linked(s, pos3);
+      }
     }
     break;
 
   case NODE_SCOPE:
-    scope_body(s, tree);
+    scope_body(s, tree, NOVAL);
     break;
 
   case NODE_FCALL:
@@ -1565,7 +1577,14 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_SPLAT:
-    codegen(s, tree, VAL);
+    {
+      int idx = new_msym(s, mrb_intern_lit(s->mrb, "to_a"));
+
+      codegen(s, tree, VAL);
+      pop();
+      genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 0));
+      push();
+    }
     break;
 
   case NODE_ASGN:
@@ -2345,7 +2364,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop(); pop();
       idx = new_msym(s, sym(tree->car->cdr));
       genop(s, MKOP_AB(OP_CLASS, cursp(), idx));
-      idx = scope_body(s, tree->cdr->cdr->car);
+      idx = scope_body(s, tree->cdr->cdr->car, val);
       genop(s, MKOP_ABx(OP_EXEC, cursp(), idx));
       if (val) {
         push();
@@ -2371,7 +2390,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       idx = new_msym(s, sym(tree->car->cdr));
       genop(s, MKOP_AB(OP_MODULE, cursp(), idx));
-      idx = scope_body(s, tree->cdr->car);
+      idx = scope_body(s, tree->cdr->car, val);
       genop(s, MKOP_ABx(OP_EXEC, cursp(), idx));
       if (val) {
         push();
@@ -2386,7 +2405,7 @@ codegen(codegen_scope *s, node *tree, int val)
       codegen(s, tree->car, VAL);
       pop();
       genop(s, MKOP_AB(OP_SCLASS, cursp(), cursp()));
-      idx = scope_body(s, tree->cdr->car);
+      idx = scope_body(s, tree->cdr->car, val);
       genop(s, MKOP_ABx(OP_EXEC, cursp(), idx));
       if (val) {
         push();
@@ -2988,7 +3007,7 @@ codedump_recur(mrb_state *mrb, mrb_irep *irep)
 void
 codedump_all(mrb_state *mrb, struct RProc *proc)
 {
-  return codedump_recur(mrb, proc->body.irep);
+  codedump_recur(mrb, proc->body.irep);
 }
 
 struct RProc*
