@@ -52,7 +52,12 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   ci = mrbjit_cipush(mrb);
   ci->stackidx = mrb->c->stack - mrb->c->stbase;
   ci->argc = n;
-  ci->target_class = c;
+  if (c->tt == MRB_TT_ICLASS) {
+    ci->target_class = c->c;
+  }
+  else {
+    ci->target_class = c;
+  }
 
   ci->pc = pc + 1;
   ci->acc = a;
@@ -76,7 +81,9 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
-      *(status->irep) = ci[-1].proc->body.irep;
+      irep = *(status->irep) = ci[-1].proc->body.irep;
+      *(status->pool) = irep->pool;
+      *(status->syms) = irep->syms;
     }
     *(status->regs) = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
     mrbjit_cipop(mrb);
