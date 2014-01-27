@@ -845,6 +845,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       xor(eax, eax);
       mov(dword [edi + OffsetOf(mrb_callinfo, env)], eax);
       mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
 
       mov(eax, (Xbyak::uint32)m);
       mov(dword [edi + OffsetOf(mrb_callinfo, proc)], eax);
@@ -913,6 +914,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(eax, (Xbyak::uint32)m->body.irep->iseq);
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+      mov(dword [edx], eax);
+
+      mov(eax, (Xbyak::uint32)m->body.irep->pool);
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pool)]);
+      mov(dword [edx], eax);
+
+      mov(eax, (Xbyak::uint32)m->body.irep->syms);
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, syms)]);
       mov(dword [edx], eax);
 
       gen_set_jit_entry(mrb, pc, coi, irep);

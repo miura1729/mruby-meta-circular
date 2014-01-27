@@ -421,10 +421,12 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
       }
-      while (eidx > mrb->c->ci->eidx) {
-        mrbjit_ecall(mrb, --eidx);
+      if (ci > mrb->c->cibase) {
+	while (eidx > mrb->c->ci->eidx) {
+	  mrbjit_ecall(mrb, --eidx);
+	}
       }
-      if (ci == mrb->c->cibase) {
+      else if (ci == mrb->c->cibase) {
 	if (ci->ridx == 0) {
 	  *status->regs = mrb->c->stack = mrb->c->stbase;
 	  return status->gototable[4]; /* L_STOP */
