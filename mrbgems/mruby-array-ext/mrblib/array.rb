@@ -213,7 +213,7 @@ class Array
   #    a[1,2]   => ["b", "c"]
   #    a[1..-2] => ["b", "c", "d"]
   #
-  def [](idx, len=nil)
+  def fo(idx, len=nil)
     case idx
     when Range
       if idx.last < 0 then
