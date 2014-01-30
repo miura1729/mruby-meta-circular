@@ -1063,13 +1063,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 #define OVERFLOW_CHECK_GEN(AINSTF)                                      \
     jno("@f");                                                          \
-    mov(eax, dword [ecx + reg0off]);                                    \
-    cvtsi2sd(xmm0, eax);                                                \
-    mov(eax, dword [ecx + reg1off]);                                    \
-    cvtsi2sd(xmm1, eax);                                                \
+    cvtsi2sd(xmm0, dword [ecx + reg0off]);                              \
+    cvtsi2sd(xmm1, dword [ecx + reg1off]);				\
     AINSTF(xmm0, xmm1);                                                 \
-    movsd(dword [ecx + reg0off], xmm0);                                 \
-    gen_exit(*status->pc + 1, 0, 0);					\
+    movsd(ptr [ecx + reg0off], xmm0);                                   \
+    gen_exit(*status->pc + 1, 1, 1);                                    \
     L("@@");                                                            \
 
 
@@ -1091,8 +1089,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
       mov(eax, dword [ecx + reg0off]);                                  \
       AINSTI(eax, dword [ecx + reg1off]);			        \
-      mov(dword [ecx + reg0off], eax);                                  \
       OVERFLOW_CHECK_GEN(AINSTF);                                       \
+      mov(dword [ecx + reg0off], eax);                                  \
       dinfo->type = MRB_TT_FIXNUM;  					\
       dinfo->klass = mrb->fixnum_class; 				\
     }                                                                   \
@@ -1194,13 +1192,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 #define OVERFLOW_CHECK_I_GEN(AINSTF)                                    \
     jno("@f");                                                          \
-    mov(eax, dword [ecx + off]);                                        \
-    cvtsi2sd(xmm0, eax);                                                \
+    cvtsi2sd(xmm0, dword [ecx + off]);                                  \
     mov(eax, y);                                                        \
     cvtsi2sd(xmm1, eax);                                                \
     AINSTF(xmm0, xmm1);                                                 \
-    movsd(dword [ecx + off], xmm0);                                     \
-    gen_exit(*status->pc + 1, 0, 0);					\
+    movsd(ptr [ecx + off], xmm0);                                       \
+    gen_exit(*status->pc + 1, 1, 1);                                    \
     L("@@");                                                            \
 
 #define ARTH_I_GEN(AINSTI, AINSTF)                                      \
@@ -1217,8 +1214,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (atype == MRB_TT_FIXNUM) {                                       \
       mov(eax, dword [ecx + off]);                                      \
       AINSTI(eax, y);                                                   \
-      mov(dword [ecx + off], eax);                                      \
       OVERFLOW_CHECK_I_GEN(AINSTF);                                     \
+      mov(dword [ecx + off], eax);                                      \
       dinfo->type = MRB_TT_FIXNUM;       				\
       dinfo->klass = mrb->fixnum_class; 				\
     }                                                                   \
