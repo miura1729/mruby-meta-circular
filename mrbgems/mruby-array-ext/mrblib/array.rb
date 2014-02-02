@@ -213,8 +213,14 @@ class Array
   #    a[1,2]   => ["b", "c"]
   #    a[1..-2] => ["b", "c", "d"]
   #
-  def fo(idx, len=nil)
+  def [](idx, len=nil)
     case idx
+    when Numeric
+      if len then
+        return self.slice(idx.to_i, len.to_i)
+      else
+        return self.slice(idx.to_i)
+      end
     when Range
       if idx.last < 0 then
         len = self.length - idx.first + idx.last + 1
@@ -222,12 +228,6 @@ class Array
         len = idx.last - idx.first + 1
       end
       return self.slice(idx.first, len)
-    when Numeric
-      if len then
-        return self.slice(idx.to_i, len.to_i)
-      else
-        return self.slice(idx.to_i)
-      end
     else
       self.slice(idx)
     end
