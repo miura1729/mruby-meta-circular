@@ -8,6 +8,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/string.h"
+#include "mruby/range.h"
 #include "value_array.h"
 
 #include "mruby/primitive.h"
@@ -679,63 +680,144 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   return mrb_obj_value(b);
 }
 
+static mrb_int
+aget_index(mrb_state *mrb, mrb_value index)
+{
+  if (mrb_fixnum_p(index)) {
+    return mrb_fixnum(index);
+  }
+  else {
+    mrb_int i;
+
+    mrb_get_args(mrb, "i", &i);
+    return i;
+  }
+}
+
+/*
+ *  call-seq:
+ *     ary[index]                -> obj     or nil
+ *     ary[start, length]        -> new_ary or nil
+ *     ary[range]                -> new_ary or nil
+ *     ary.slice(index)          -> obj     or nil
+ *     ary.slice(start, length)  -> new_ary or nil
+ *     ary.slice(range)          -> new_ary or nil
+ *
+ *  Element Reference --- Returns the element at +index+, or returns a
+ *  subarray starting at the +start+ index and continuing for +length+
+ *  elements, or returns a subarray specified by +range+ of indices.
+ *
+ *  Negative indices count backward from the end of the array (-1 is the last
+ *  element).  For +start+ and +range+ cases the starting index is just before
+ *  an element.  Additionally, an empty array is returned when the starting
+ *  index for an element range is at the end of the array.
+ *
+ *  Returns +nil+ if the index (or starting index) are out of range.
+ *
+ *  a = [ "a", "b", "c", "d", "e" ]
+ *  a[1]     => "b"
+ *  a[1,2]   => ["b", "c"]
+ *  a[1..-2] => ["b", "c", "d"]
+ *
+ */
+
 mrb_value
 mrb_ary_aget(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int index, len;
-  mrb_value *argv;
-  int size;
+  mrb_int i, len;
+  mrb_value index;
 
-  mrb_get_args(mrb, "i*", &index, &argv, &size);
-  switch(size) {
-  case 0:
-    return mrb_ary_ref(mrb, self, index);
-
-  case 1:
-    if (!mrb_fixnum_p(argv[0])) {
-      mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum");
+  if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
+    switch (mrb_type(index)) {
+      /* a[n..m] */
+    case MRB_TT_RANGE:
+      if (mrb_range_beg_len(mrb, index, &i, &len, a->len)) {
+        return ary_subseq(mrb, a, i, len);
+      }
+      else {
+        return mrb_nil_value();
+      }
+    case MRB_TT_FIXNUM:
+      return mrb_ary_ref(mrb, self, mrb_fixnum(index));
+    default:
+      return mrb_ary_ref(mrb, self, aget_index(mrb, index));
     }
-    if (index < 0) index += a->len;
-    if (index < 0 || a->len < (int)index) return mrb_nil_value();
-    len = mrb_fixnum(argv[0]);
-    if (len < 0) return mrb_nil_value();
-    if (a->len == (int)index) return mrb_ary_new(mrb);
-    if (len > a->len - index) len = a->len - index;
-    return ary_subseq(mrb, a, index, len);
-
-  default:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-    break;
   }
 
-  return mrb_nil_value(); /* dummy to avoid warning : not reach here */
+  i = aget_index(mrb, index);
+  if (i < 0) i += a->len;
+  if (i < 0 || a->len < (int)i) return mrb_nil_value();
+  if (len < 0) return mrb_nil_value();
+  if (a->len == (int)i) return mrb_ary_new(mrb);
+  if (len > a->len - i) len = a->len - i;
+
+  return ary_subseq(mrb, a, i, len);
 }
+
+/*
+ *  call-seq:
+ *     ary[index]         = obj                      ->  obj
+ *     ary[start, length] = obj or other_ary or nil  ->  obj or other_ary or nil
+ *     ary[range]         = obj or other_ary or nil  ->  obj or other_ary or nil
+ *
+ *  Element Assignment --- Sets the element at +index+, or replaces a subarray
+ *  from the +start+ index for +length+ elements, or replaces a subarray
+ *  specified by the +range+ of indices.
+ *
+ *  If indices are greater than the current capacity of the array, the array
+ *  grows automatically.  Elements are inserted into the array at +start+ if
+ *  +length+ is zero.
+ *
+ *  Negative indices will count backward from the end of the array.  For
+ *  +start+ and +range+ cases the starting index is just before an element.
+ *
+ *  An IndexError is raised if a negative index points past the beginning of
+ *  the array.
+ *
+ *  See also Array#push, and Array#unshift.
+ *
+ *     a = Array.new
+ *     a[4] = "4";                 #=> [nil, nil, nil, nil, "4"]
+ *     a[0, 3] = [ 'a', 'b', 'c' ] #=> ["a", "b", "c", nil, "4"]
+ *     a[1..2] = [ 1, 2 ]          #=> ["a", 1, 2, nil, "4"]
+ *     a[0, 2] = "?"               #=> ["?", 2, nil, "4"]
+ *     a[0..2] = "A"               #=> ["A", "4"]
+ *     a[-1]   = "Z"               #=> ["A", "Z"]
+ *     a[1..-1] = nil              #=> ["A", nil]
+ *     a[1..-1] = []               #=> ["A"]
+ *     a[0, 0] = [ 1, 2 ]          #=> [1, 2, "A"]
+ *     a[3, 0] = "B"               #=> [1, 2, "A", "B"]
+ */
 
 mrb_value
 mrb_ary_aset(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
+  mrb_value v1, v2, v3;
+  mrb_int i, len;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  switch(argc) {
-  case 2:
-    if (!mrb_fixnum_p(argv[0])) {
-      /* Should we support Range object for 1st arg ? */
-      mrb_raise(mrb, E_TYPE_ERROR, "expected Fixnum for 1st argument");
+  if (mrb_get_args(mrb, "oo|o", &v1, &v2, &v3) == 2) {
+    switch (mrb_type(v1)) {
+    /* a[n..m] = v */
+    case MRB_TT_RANGE:
+      if (mrb_range_beg_len(mrb, v1, &i, &len, RARRAY_LEN(self))) {
+        mrb_ary_splice(mrb, self, i, len, v2);
+      }
+      break;
+    /* a[n] = v */
+    case MRB_TT_FIXNUM:
+      mrb_ary_set(mrb, self, mrb_fixnum(v1), v2);
+      break;
+    default:
+      mrb_ary_set(mrb, self, aget_index(mrb, v1), v2);
+      break;
     }
-    mrb_ary_set(mrb, self, mrb_fixnum(argv[0]), argv[1]);
-    return argv[1];
-
-  case 3:
-    mrb_ary_splice(mrb, self, mrb_fixnum(argv[0]), mrb_fixnum(argv[1]), argv[2]);
-    return argv[2];
-
-  default:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-    return mrb_nil_value();
+    return v2;
   }
+
+  /* a[n,m] = v */
+  mrb_ary_splice(mrb, self, aget_index(mrb, v1), aget_index(mrb, v2), v3);
+  return v3;
 }
 
 mrb_value
@@ -1112,22 +1194,6 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   return mrb_true_value();
 }
 
-static mrb_value
-mrb_ary_ceqq(mrb_state *mrb, mrb_value ary)
-{
-  mrb_value v;
-  mrb_int i, len;
-  mrb_sym eqq = mrb_intern_lit(mrb, "===");
-
-  mrb_get_args(mrb, "o", &v);
-  len = RARRAY_LEN(ary);
-  for (i=0; i<len; i++) {
-    mrb_value c = mrb_funcall_argv(mrb, ary_elt(ary, i), eqq, 1, &v);
-    if (mrb_test(c)) return mrb_true_value();
-  }
-  return mrb_false_value();
-}
-
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1143,6 +1209,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "*",               mrb_ary_times,        MRB_ARGS_REQ(1)); /* 15.2.12.5.2  */
   mrb_define_method(mrb, a, "<<",              mrb_ary_push_m,       MRB_ARGS_REQ(1)); /* 15.2.12.5.3  */
   mrb_define_method(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
+  mrbjit_define_primitive(mrb, a, "[]", mrbjit_prim_ary_aget);
+
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */
   //  mrbjit_define_primitive(mrb, a, "[]=", mrbjit_prim_ary_aset);
 
@@ -1165,8 +1233,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "shift",           mrb_ary_shift,        MRB_ARGS_NONE()); /* 15.2.12.5.27 */
   mrb_define_method(mrb, a, "size",            mrb_ary_size,         MRB_ARGS_NONE()); /* 15.2.12.5.28 */
   mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
-
   mrbjit_define_primitive(mrb, a, "slice", mrbjit_prim_ary_aget);
+
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
 
   mrb_define_method(mrb, a, "inspect",         mrb_ary_inspect,      MRB_ARGS_NONE()); /* 15.2.12.5.31 (x) */
@@ -1174,5 +1242,4 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "==",              mrb_ary_equal,        MRB_ARGS_REQ(1)); /* 15.2.12.5.33 (x) */
   mrb_define_method(mrb, a, "eql?",            mrb_ary_eql,          MRB_ARGS_REQ(1)); /* 15.2.12.5.34 (x) */
   mrb_define_method(mrb, a, "<=>",             mrb_ary_cmp,          MRB_ARGS_REQ(1)); /* 15.2.12.5.36 (x) */
-  mrb_define_method(mrb, a, "__case_eqq",      mrb_ary_ceqq,         MRB_ARGS_REQ(1)); /* internal */
 }

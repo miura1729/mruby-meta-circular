@@ -177,8 +177,10 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   const Xbyak::uint32 offary = regno * sizeof(mrb_value);
   const Xbyak::uint32 offidx = offary + sizeof(mrb_value);
 
-  if (nargs > 1) {
-    return mrb_nil_value();    	// No support 2 args
+  // No support 2 args or Index is not Fixnum
+  if ((nargs > 1) ||
+      (mrb_type((*status->regs)[regno]) != MRB_TT_FIXNUM)) {
+    return mrb_nil_value();
   }
 
   inLocalLabel();

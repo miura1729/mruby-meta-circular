@@ -26,7 +26,7 @@ enum looptype {
   LOOP_FOR,
   LOOP_BEGIN,
   LOOP_RESCUE,
-} type;
+};
 
 struct loopinfo {
   enum looptype type;
@@ -1577,14 +1577,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_SPLAT:
-    {
-      int idx = new_msym(s, mrb_intern_lit(s->mrb, "to_a"));
-
-      codegen(s, tree, VAL);
-      pop();
-      genop(s, MKOP_ABC(OP_SEND, cursp(), idx, 0));
-      push();
-    }
+    codegen(s, tree, VAL);
     break;
 
   case NODE_ASGN:
@@ -3005,7 +2998,7 @@ codedump_recur(mrb_state *mrb, mrb_irep *irep)
 }
 
 void
-codedump_all(mrb_state *mrb, struct RProc *proc)
+mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
 {
   codedump_recur(mrb, proc->body.irep);
 }

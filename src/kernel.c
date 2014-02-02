@@ -296,12 +296,22 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
 }
 
 static void
+copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
+{
+  struct RClass *dc = mrb_class_ptr(dst);
+  struct RClass *sc = mrb_class_ptr(src);
+  dc->mt = kh_copy(mt, mrb, sc->mt);
+  dc->super = sc->super;
+}
+
+static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
-    switch (mrb_type(obj)) {
-      case MRB_TT_OBJECT:
+  switch (mrb_type(obj)) {
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
+        copy_class(mrb, dest, obj);
+      case MRB_TT_OBJECT:
       case MRB_TT_SCLASS:
       case MRB_TT_HASH:
       case MRB_TT_DATA:
@@ -741,7 +751,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
 }
 
 mrb_value
-class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
 {
   khint_t i;
   mrb_value ary;
@@ -808,7 +818,7 @@ mrb_value
 mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
 {
   if (recur)
-      return class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
+      return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
   else
       return mrb_obj_singleton_methods(mrb, recur, obj);
 }
@@ -1011,7 +1021,7 @@ basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
  *  If the method is not defined, <code>respond_to_missing?</code>
  *  method is called and the result is returned.
  */
-mrb_value
+static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
@@ -1100,6 +1110,23 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_singleton_methods(mrb, recur, self);
 }
 
+static mrb_value
+mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value v;
+  mrb_int i, len;
+  mrb_sym eqq = mrb_intern_lit(mrb, "===");
+  mrb_value ary = mrb_ary_splat(mrb, self);
+
+  mrb_get_args(mrb, "o", &v);
+  len = RARRAY_LEN(ary);
+  for (i=0; i<len; i++) {
+    mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);
+    if (mrb_test(c)) return mrb_true_value();
+  }
+  return mrb_false_value();
+}
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -1153,6 +1180,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     MRB_ARGS_OPT(1));    /* 15.3.1.3.45 */
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
+  mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
   mrb_alias_method(mrb, mrb->module_class, mrb_intern_lit(mrb, "dup"), mrb_intern_lit(mrb, "clone"));
