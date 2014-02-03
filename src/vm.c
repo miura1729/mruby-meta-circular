@@ -808,6 +808,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->compile_info.prev_pc;
+
   if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
   }
@@ -818,12 +819,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   cbase = mrb->compile_info.code_base;
   n = ISEQ_OFFSET_OF(*ppc);
-  if (prev_pc) {
-    ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
-  }
-  else {
-    ci = NULL;
-  }
+  ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
   if (ci) {
     if (cbase) {
       if (ci->used > 0) {
