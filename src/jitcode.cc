@@ -61,6 +61,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   if (code == NULL) {
     code = the_code;
+    printf("%x \n", code->getCurr());
     mrb->compile_info.code_base = code;
   }
   const void *entry = code->gen_entry(mrb, status);

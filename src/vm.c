@@ -865,6 +865,17 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("%x %x %x \n", irep, *ppc, prev_entry);
       //puts("foo");
       //}
+
+      /* Skip Internal guard fail */
+      switch(GET_OPCODE(**ppc)) {
+      case OP_CALL:
+      case OP_SEND:
+      case OP_SENDB:
+      case OP_RETURN:
+	ci = NULL;
+	goto skip;
+      }
+
       n = ISEQ_OFFSET_OF(*ppc);
       if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
 	caller_pc = mrb->c->ci->pc;
@@ -951,6 +962,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     mrb->compile_info.code_base = NULL;
     mrb->compile_info.nest_level = 0;
   }
+
+ skip:
 
   mrb->compile_info.prev_pc = *ppc;
   mrb->compile_info.prev_coi = ci;
