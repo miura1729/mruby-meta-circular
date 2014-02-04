@@ -806,9 +806,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
       mov(edx, dword [eax + OffsetOf(mrb_context, ci)]);
 
-      mov(eax, dword [eax + OffsetOf(mrb_context, ciend)]);
-      cmp(edx, eax);
-      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      cmp(edx, dword [eax + OffsetOf(mrb_context, ciend)]);
       jb("@f");
 
       /* extend cfunction */
@@ -847,52 +845,50 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
       mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
 
-      mov(eax, (Xbyak::uint32)m);
-      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
 
-      mov(eax, (Xbyak::uint32)n);
-      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
 
       mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
-      mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
-      sub(eax, dword [edx + OffsetOf(mrb_context, stbase)]);
-      shr(eax, 3);		/* sizeof mrb_value */
-      mov(dword [edi + OffsetOf(mrb_callinfo, stackidx)], eax);
+      sub(ecx, dword [edx + OffsetOf(mrb_context, stbase)]);
+      shr(ecx, 3);		/* sizeof mrb_value */
+      mov(dword [edi + OffsetOf(mrb_callinfo, stackidx)], ecx);
 
       if (c->tt == MRB_TT_ICLASS) {
-	mov(eax, (Xbyak::uint32)c->c);
+	mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
+	    (Xbyak::uint32)c->c);
       }
       else {
-	mov(eax, (Xbyak::uint32)c);
+	mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
+	    (Xbyak::uint32)c);
       }
-      mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], eax);
 
-      mov(eax, (Xbyak::uint32)(pc + 1));
-      mov(dword [edi + OffsetOf(mrb_callinfo, pc)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
 
-      mov(eax, (Xbyak::uint32)m->body.irep->nregs);
-      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
 
-      mov(eax, (Xbyak::uint32)m);
-      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], eax);
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, proc)]);
       mov(dword [edx], eax);
 
-      mov(eax, (Xbyak::uint32)a);
+      mov(eax,  (Xbyak::uint32)a);
       mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
+
+      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
+	  (Xbyak::uint32)m->body.irep->nregs);
 
       /*  mrb->c   edi  */
       mov(edi, dword [esi + OffsetOf(mrb_state, c)]);
       shl(eax, 3);		/* * sizeof(mrb_value) */
       add(dword [edi + OffsetOf(mrb_context, stack)], eax);
-
-      mov(eax, (Xbyak::uint32)m->body.irep);
-      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
-      mov(dword [edx], eax);
-
       mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
+      mov(dword [edx], (Xbyak::uint32)m->body.irep);
+
       mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
-      sub(edx, (Xbyak::uint32)m->body.irep->nregs * sizeof(mrb_value));
+      if (m->body.irep->nregs != 0) {
+	sub(edx, (Xbyak::uint32)m->body.irep->nregs * sizeof(mrb_value));
+      }
       cmp(ecx, edx);
       jb("@f");
 
@@ -912,17 +908,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
       mov(dword [edx], ecx);
 
-      mov(eax, (Xbyak::uint32)m->body.irep->iseq);
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
-      mov(dword [edx], eax);
+      mov(dword [edx], (Xbyak::uint32)m->body.irep->iseq);
 
-      mov(eax, (Xbyak::uint32)m->body.irep->pool);
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pool)]);
-      mov(dword [edx], eax);
+      mov(dword [edx], (Xbyak::uint32)m->body.irep->pool);
 
-      mov(eax, (Xbyak::uint32)m->body.irep->syms);
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, syms)]);
-      mov(dword [edx], eax);
+      mov(dword [edx], (Xbyak::uint32)m->body.irep->syms);
 
       gen_set_jit_entry(mrb, pc, coi, irep);
       pop(edi);
