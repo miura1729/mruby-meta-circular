@@ -850,9 +850,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
 
       mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
-      sub(ecx, dword [edx + OffsetOf(mrb_context, stbase)]);
-      shr(ecx, 3);		/* sizeof mrb_value */
-      mov(dword [edi + OffsetOf(mrb_callinfo, stackidx)], ecx);
+      mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
+      sub(eax, dword [edx + OffsetOf(mrb_context, stbase)]);
+      shr(eax, 3);		/* sizeof mrb_value */
+      mov(dword [edi + OffsetOf(mrb_callinfo, stackidx)], eax);
 
       if (c->tt == MRB_TT_ICLASS) {
 	mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
@@ -865,16 +866,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(dword [edi + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
 
+      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
+	  (Xbyak::uint32)m->body.irep->nregs);
+
       mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
 
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, proc)]);
       mov(dword [edx], eax);
 
-      mov(eax,  (Xbyak::uint32)a);
+      mov(eax, (Xbyak::uint32)a);
       mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
-
-      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
-	  (Xbyak::uint32)m->body.irep->nregs);
 
       /*  mrb->c   edi  */
       mov(edi, dword [esi + OffsetOf(mrb_state, c)]);
