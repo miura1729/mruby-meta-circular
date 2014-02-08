@@ -997,7 +997,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   /* check recursive */
   for(i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
-      return mrb_str_new(mrb, "[...]", 5);
+      return mrb_str_new_lit(mrb, "[...]");
     }
   }
 
@@ -1040,7 +1040,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
 static mrb_value
 mrb_ary_inspect(mrb_state *mrb, mrb_value ary)
 {
-  if (RARRAY_LEN(ary) == 0) return mrb_str_new(mrb, "[]", 2);
+  if (RARRAY_LEN(ary) == 0) return mrb_str_new_lit(mrb, "[]");
     return inspect_ary(mrb, ary, mrb_ary_new(mrb));
 }
 
@@ -1201,7 +1201,6 @@ mrb_init_array(mrb_state *mrb)
 
   a = mrb->array_class = mrb_define_class(mrb, "Array", mrb->object_class);
   MRB_SET_INSTANCE_TT(a, MRB_TT_ARRAY);
-  mrb_include_module(mrb, a, mrb_class_get(mrb, "Enumerable"));
 
   mrb_define_class_method(mrb, a, "[]",        mrb_ary_s_create,     MRB_ARGS_ANY());  /* 15.2.12.4.1 */
 
