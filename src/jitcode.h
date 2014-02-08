@@ -842,9 +842,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
       mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
-      sub(eax, dword [edx + OffsetOf(mrb_context, stbase)]);
-      shr(eax, 3);		/* sizeof mrb_value */
-      mov(dword [edi + OffsetOf(mrb_callinfo, stackidx)], eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, stackent)], eax);
 
       if (c->tt == MRB_TT_ICLASS) {
 	mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 

@@ -50,7 +50,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   // puts(mrb_sym2name(mrb, mid));
 
   ci = mrbjit_cipush(mrb);
-  ci->stackidx = mrb->c->stack - mrb->c->stbase;
+  ci->stackent = mrb->c->stack;
   ci->argc = n;
   if (c->tt == MRB_TT_ICLASS) {
     ci->target_class = c->c;
@@ -85,13 +85,13 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
     }
-    *(status->regs) = mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+    *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
     mrbjit_cipop(mrb);
     *(status->pc) = ci->pc;
 
     return status->optable[GET_OPCODE(**(status->pc))];
   }
-  mrb->c->stack = mrb->c->stbase + mrb->c->ci->stackidx;
+  mrb->c->stack = mrb->c->ci->stackent;
   mrbjit_cipop(mrb);
 
   return NULL;
@@ -152,7 +152,7 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
 
   ci->mid = mid;
   ci->proc = m;
-  ci->stackidx = mrb->c->stack - mrb->c->stbase;
+  ci->stackent = mrb->c->stack;
   ci->argc = n;
   if (c->tt == MRB_TT_ICLASS) {
     ci->target_class = c->c;
@@ -311,7 +311,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
     *status->irep = ci->proc->body.irep;
-    *status->regs = mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
+    *status->regs = mrb->c->stack = ci[1].stackent;
     *status->pc = mrb->c->rescue[--ci->ridx];
   }
   else {
@@ -371,7 +371,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     mrbjit_cipop(mrb);
     acc = ci->acc;
     *status->pc = ci->pc;
-    *status->regs = mrb->c->stack = mrb->c->stbase + ci->stackidx;
+    *status->regs = mrb->c->stack = ci->stackent;
     while (eidx > mrb->c->ci->eidx) {
       mrbjit_ecall(mrb, --eidx);
     }
@@ -435,7 +435,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
     *status->irep = ci->proc->body.irep;
-    *status->regs = mrb->c->stack = mrb->c->stbase + ci[1].stackidx;
+    *status->regs = mrb->c->stack = ci[1].stackent;
     *status->pc = mrb->c->rescue[--ci->ridx];
   }
   else {
@@ -449,7 +449,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     c->ci--;
     acc = ci->acc;
     *status->pc = ci->pc;
-    *status->regs = c->stack = c->stbase + ci->stackidx;
+    *status->regs = c->stack = ci->stackent;
     while (eidx > c->ci->eidx) {
       mrbjit_ecall(mrb, --eidx);
     }
