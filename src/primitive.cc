@@ -75,18 +75,19 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   L(".cmpneq");
   jb(".cmplt");
 
-  mov(eax, 1);
+  xor(eax, eax);
+  inc(eax);
   jmp(".cmpend");
 
   L(".cmplt");
-  mov(eax, -1);
+  xor(eax, eax);
+  dec(eax);
 
   L(".cmpend");
   outLocalLabel();
 
   mov(dword [ecx + off0], eax);
-  mov(eax, 0xfff00000 | MRB_TT_FIXNUM);
-  mov(dword [ecx + off0 + 4], eax);
+  mov(dword [ecx + off0 + 4], 0xfff00000 | MRB_TT_FIXNUM);
 
   return mrb_true_value();
 }
@@ -206,8 +207,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   L(".retnil");
   xor(eax, eax);
   mov(dword [ecx + offary], eax);
-  mov(eax, 0xfff00000 | MRB_TT_FALSE);
-  mov(dword [ecx + offary + 4], eax);
+  mov(dword [ecx + offary + 4], 0xfff00000 | MRB_TT_FALSE);
 
   L(".exit");
   outLocalLabel();
@@ -276,8 +276,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   L(".retnil");
   xor(eax, eax);
   mov(dword [ecx + offary], eax);
-  mov(eax, 0xfff00000 | MRB_TT_FALSE);
-  mov(dword [ecx + offary + 4], eax);
+  mov(dword [ecx + offary + 4], 0xfff00000 | MRB_TT_FALSE);
 
   L(".exit");
   outLocalLabel();
