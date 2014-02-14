@@ -836,7 +836,26 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
       mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
 
-      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
+      switch(n) {
+      case 0:
+	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+	break;
+
+      case 1:
+	inc(eax);
+	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+	break;
+
+      case 2:
+	inc(eax);
+	inc(eax);
+	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+	break;
+
+      default:
+	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
+	break;
+      }
 
       mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
       mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
