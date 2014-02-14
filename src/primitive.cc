@@ -180,7 +180,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
   // No support 2 args or Index is not Fixnum
   if ((nargs > 1) ||
-      (mrb_type((*status->regs)[regno]) != MRB_TT_FIXNUM)) {
+      (mrb_type((*status->regs)[regno + 1]) != MRB_TT_FIXNUM)) {
     return mrb_nil_value();
   }
 
