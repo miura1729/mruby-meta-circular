@@ -1421,21 +1421,22 @@ do {                                                                 \
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 3 * sizeof(void *);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    int i;
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
 
-    push(ecx);
-    push(ebx);
-    push(idxpos);
-    push(uppos);
-    push(esi);
-    call((void *)mrb_uvget);
-    add(esp, argsize);
-    pop(ebx);
-    pop(ecx);
-    mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], edx);
+    mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+    mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
+    mov(eax, dword [eax + OffsetOf(mrb_callinfo, proc)]);
+    mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
+    for (i = 0; i < uppos; i++) {
+      mov(eax, dword [eax + OffsetOf(struct REnv, c)]);
+    }
+    mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
+
+    movsd(xmm0, ptr [eax + idxpos * sizeof(mrb_value)]);
+    movsd(ptr [ecx + dstoff], xmm0);
 
     return code;
   }
@@ -1449,20 +1450,19 @@ do {                                                                 \
     const Xbyak::uint32 idxpos = GETARG_B(**ppc);
     const Xbyak::uint32 valoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const int argsize = 5 * sizeof(void *);
+    int i;
 
-    push(ecx);
-    push(ebx);
-    mov(eax, dword [ecx + valoff + 4]);
-    push(eax);
-    mov(eax, dword [ecx + valoff]);
-    push(eax);
-    push(idxpos);
-    push(uppos);
-    push(esi);
-    call((void *)mrb_uvset);
-    add(esp, argsize);
-    pop(ebx);
-    pop(ecx);
+    mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+    mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
+    mov(eax, dword [eax + OffsetOf(mrb_callinfo, proc)]);
+    mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
+    for (i = 0; i < uppos; i++) {
+      mov(eax, dword [eax + OffsetOf(struct REnv, c)]);
+    }
+    mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
+
+    movsd(xmm0, ptr [ecx + valoff]);
+    movsd(ptr [eax + idxpos * sizeof(mrb_value)], xmm0);
 
     return code;
   }
