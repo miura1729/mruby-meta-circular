@@ -248,7 +248,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   L(".retnil");
   xor(eax, eax);
   mov(dword [ecx + offary], eax);
-  mov(dword [ecx + offary + 4], 0xfff80000 | MRB_TT_FALSE);
+  mov(dword [ecx + offary + 4], 0xfff00000 | MRB_TT_FALSE);
 
   L(".exit");
   outLocalLabel();
@@ -317,7 +317,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   L(".retnil");
   xor(eax, eax);
   mov(dword [ecx + offary], eax);
-  mov(dword [ecx + offary + 4], 0xfff80000 | MRB_TT_FALSE);
+  mov(dword [ecx + offary + 4], 0xfff00000 | MRB_TT_FALSE);
 
   L(".exit");
   outLocalLabel();
