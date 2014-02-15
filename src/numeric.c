@@ -1305,6 +1305,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "-",        fix_minus,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2  */
   mrb_define_method(mrb, fixnum,  "*",        fix_mul,           MRB_ARGS_REQ(1)); /* 15.2.8.3.3  */
   mrb_define_method(mrb, fixnum,  "%",        fix_mod,           MRB_ARGS_REQ(1)); /* 15.2.8.3.5  */
+  mrbjit_define_primitive(mrb, numeric, "%", mrbjit_prim_fix_mod);
+
   mrb_define_method(mrb, fixnum,  "==",       fix_equal,         MRB_ARGS_REQ(1)); /* 15.2.8.3.7  */
   mrb_define_method(mrb, fixnum,  "~",        fix_rev,           MRB_ARGS_NONE()); /* 15.2.8.3.8  */
   mrb_define_method(mrb, fixnum,  "&",        fix_and,           MRB_ARGS_REQ(1)); /* 15.2.8.3.9  */

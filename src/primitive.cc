@@ -87,7 +87,7 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   outLocalLabel();
 
   mov(dword [ecx + off0], eax);
-  mov(dword [ecx + off0 + 4], 0xfff00000 | MRB_TT_FIXNUM);
+  mov(dword [ecx + off0 + 4], 0xfff80000 | MRB_TT_FIXNUM);
 
   return mrb_true_value();
 }
@@ -121,6 +121,47 @@ mrbjit_prim_fix_succ(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
   return code->mrbjit_prim_fix_succ_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_value *regs = *status->regs;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
+  const Xbyak::uint32 off1 = (regno + 1) * sizeof(mrb_value);
+
+  if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
+      mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
+    return mrb_nil_value();
+  }
+  gen_type_guard(mrb, regno, status, pc, coi);
+  gen_type_guard(mrb, regno + 1, status, pc, coi);
+
+  mov(eax, ptr [ecx + off0]);
+  mov(edx, eax);
+  sar(edx, (sizeof(void *) * 8) - 1);
+  idiv(ptr [ecx + off1]);
+  test(edx, edx);
+  setnz(edx);
+  neg(edx);
+  and(edx, eax);
+  setl(edx);
+  sub(eax, edx);
+  mov(ptr [ecx + off0], eax);
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_fix_mod(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_fix_mod_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
