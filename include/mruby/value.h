@@ -149,8 +149,8 @@ typedef struct mrb_value {
 #if !defined(__x86_64__)
 
 #define mrb_tt(o)     ((o).value.ttt & 0xff)
-#define mrb_mktt(tt)  (0xfff00000|(tt))
-#define mrb_type(o)   ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
+#define mrb_mktt(tt)  (0xfff80000|(tt))
+#define mrb_type(o)   ((uint32_t)0xfff80000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
 #define mrb_ptr(o)      ((void*)((o).value.p0))
 #define MRB_SET_VALUE(o, tt, attr, v) do {\
   (o).value.ttt = mrb_mktt(tt);\
