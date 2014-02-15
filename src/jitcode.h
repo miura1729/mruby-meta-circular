@@ -157,11 +157,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
-      cmp(eax, 0xfff00000);
+      cmp(eax, 0xfff80000);
       jb("@f");
     } 
     else {
-      cmp(eax, 0xfff00000 | tt);
+      cmp(eax, 0xfff80000 | tt);
       jz("@f");
     }
 
@@ -175,7 +175,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc)
   {
     /* Input eax for tested boolean */
-    cmp(eax, 0xfff00001);
+    cmp(eax, 0xfff80001);
     if (b) {
       jnz("@f");
     } 
@@ -208,11 +208,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       rinfo->type = tt;
 
       if (tt == MRB_TT_FLOAT) {
-	cmp(dword [eax + 4], 0xfff00000);
+	cmp(dword [eax + 4], 0xfff80000);
 	jb("@f");
       } 
       else {
-	cmp(dword [eax + 4], 0xfff00000 | tt);
+	cmp(dword [eax + 4], 0xfff80000 | tt);
 	jz("@f");
       }
 
@@ -373,7 +373,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->constp = 1;
 
     mov(dword [ecx + dstoff], src);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FIXNUM);
+    mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_FIXNUM);
 
     return code;
   }
@@ -393,7 +393,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->constp = 1;
 
     mov(dword [ecx + dstoff], src);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_SYMBOL);
+    mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_SYMBOL);
 
     return code;
   }
@@ -428,7 +428,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     mov(eax, 1);
     mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_TRUE);
+    mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_TRUE);
 
     return code;
   }
@@ -445,7 +445,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->constp = 1;
 
     mov(dword [ecx + dstoff], 1);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+    mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_FALSE);
 
     return code;
   }
@@ -614,7 +614,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     xor(eax, eax);
     mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+    mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_FALSE);
 
     return code;
   }
@@ -764,7 +764,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       int dstoff = (a + n + 1) * sizeof(mrb_value);
       xor(eax, eax);
       mov(dword [ecx + dstoff], eax);
-      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+      mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_FALSE);
     }
 
     prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
@@ -1324,7 +1324,7 @@ do {                                                                 \
     }                                                                \
     cwde();                                                          \
     add(eax, eax);                                                   \
-    or(eax, 0xfff00001);                                             \
+    or(eax, 0xfff80001);                                             \
     mov(dword [ecx + off0 + 4], eax);                                \
     mov(dword [ecx + off0], 1);                                      \
  } while(0)
@@ -1536,7 +1536,7 @@ do {                                                                 \
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;
 	  mov(dword [ecx + dstoff], (Xbyak::uint32)nproc);
-	  mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_PROC);
+	  mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_PROC);
 	  /* mov(edx, (Xbyak::uint32)nproc->env);
 	     mov(dword [edx + OffsetOf(struct REnv, stack)], ecx);
 	     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
@@ -1575,7 +1575,7 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
     mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_PROC);
+    mov(dword [ecx + dstoff + 4], 0xfff80000 | MRB_TT_PROC);
     if (flags & OP_L_STRICT) {
       mov(edx, (Xbyak::uint32)MRB_PROC_STRICT);
       shl(edx, 11);
