@@ -36,8 +36,8 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   // not need guard for self because guard geneate already
   //mov(eax, dword [ecx + off0 + 4]);
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
-  mov(eax, dword [ecx + off1 + 4]); /* Get type tag */
 
+  mov(eax, dword [ecx + off1 + 4]); /* Get type tag */
   gen_type_guard(mrb, regno + 1, status, pc, coi);
   
   if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
@@ -138,20 +138,23 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
       mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
     return mrb_nil_value();
   }
+  mov(eax, dword [ecx + off0 + 4]);
   gen_type_guard(mrb, regno, status, pc, coi);
+
+  mov(eax, dword [ecx + off1 + 4]);
   gen_type_guard(mrb, regno + 1, status, pc, coi);
 
   mov(eax, ptr [ecx + off0]);
   mov(edx, eax);
   sar(edx, (sizeof(void *) * 8) - 1);
   idiv(ptr [ecx + off1]);
-  test(edx, edx);
-  setnz(edx);
-  neg(edx);
-  and(edx, eax);
-  setl(edx);
-  sub(eax, edx);
-  mov(ptr [ecx + off0], eax);
+  test(eax, eax);
+  setl(al);
+  and(eax, 1);
+  neg(eax);
+  xor(edx, eax);
+  sub(edx, eax);
+  mov(ptr [ecx + off0], edx);
 
   return mrb_true_value();
 }
