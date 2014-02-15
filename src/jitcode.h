@@ -1419,9 +1419,8 @@ do {                                                                 \
     const Xbyak::uint32 uppos = GETARG_C(**ppc);
     const Xbyak::uint32 idxpos = GETARG_B(**ppc);
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    const int argsize = 3 * sizeof(void *);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    int i;
+    Xbyak::uint32 i;
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
@@ -1449,8 +1448,7 @@ do {                                                                 \
     const Xbyak::uint32 uppos = GETARG_C(**ppc);
     const Xbyak::uint32 idxpos = GETARG_B(**ppc);
     const Xbyak::uint32 valoff = GETARG_A(**ppc) * sizeof(mrb_value);
-    const int argsize = 5 * sizeof(void *);
-    int i;
+    Xbyak::uint32 i;
 
     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
     mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
