@@ -37,6 +37,7 @@ extern "C" {
 
 #include "mrbconf.h"
 #include "mruby/value.h"
+#include "mruby/version.h"
 
 static inline mrb_value
 mrb_cache_value(void *p)

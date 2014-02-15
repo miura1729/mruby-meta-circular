@@ -88,12 +88,29 @@ array_copy(mrb_value *dst, const mrb_value *src, size_t size)
 }
 
 mrb_value
+mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
+{
+  mrb_value ary;
+  struct RArray *a;
+
+  ary = mrb_ary_new_capa(mrb, size);
+  a = mrb_ary_ptr(ary);
+  array_copy(a->ptr, vals, size);
+  a->len = size;
+
+  return ary;
+}
+
+mrb_value
 mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 {
-  mrb_value arv[2];
-  arv[0] = car;
-  arv[1] = cdr;
-  return mrb_ary_new_from_values(mrb, 2, arv);
+  struct RArray *a;
+
+  a = ary_new_capa(mrb, 2);
+  a->ptr[0] = car;
+  a->ptr[1] = cdr;
+  a->len = 2;
+  return mrb_obj_value(a);
 }
 
 static void
@@ -101,7 +118,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 {
   mrb_value nil = mrb_nil_value();
 
-  while ((int)(size--)) {
+  while (size--) {
     *ptr++ = nil;
   }
 }
@@ -215,7 +232,7 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value self)
 {
   mrb_value *vals;
@@ -245,7 +262,7 @@ mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   ary_concat(mrb, mrb_ary_ptr(self), a2->ptr, a2->len);
 }
 
-mrb_value
+static mrb_value
 mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *ptr;
@@ -256,7 +273,7 @@ mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
@@ -293,7 +310,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
  *     [ 1, 2, 3, 4, 5, 6 ] <=> [ 1, 2 ]            #=> +1
  *
  */
-mrb_value
+static mrb_value
 mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2;
@@ -341,7 +358,7 @@ mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
   ary_replace(mrb, mrb_ary_ptr(self), a2->ptr, a2->len);
 }
 
-mrb_value
+static mrb_value
 mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
@@ -352,7 +369,7 @@ mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
@@ -379,7 +396,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -400,7 +417,7 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self), *b;
@@ -422,22 +439,8 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
-mrb_value
-mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
-{
-  mrb_value ary;
-  struct RArray *a;
-
-  ary = mrb_ary_new_capa(mrb, size);
-  a = mrb_ary_ptr(ary);
-  array_copy(a->ptr, vals, size);
-  a->len = size;
-
-  return ary;
-}
-
 void
-mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem) /* mrb_ary_push */
+mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem)
 {
   struct RArray *a = mrb_ary_ptr(ary);
 
@@ -448,7 +451,7 @@ mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem) /* mrb_ary_push */
   mrb_write_barrier(mrb, (struct RBasic*)a);
 }
 
-mrb_value
+static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
@@ -496,7 +499,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
     mrb_int size = a->len;
 
     val = *ptr;
-    while ((int)(--size)) {
+    while (--size) {
       *ptr = *(ptr+1);
       ++ptr;
     }
@@ -533,7 +536,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -567,13 +570,13 @@ mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
 
   /* range check */
   if (n < 0) n += a->len;
-  if (n < 0 || a->len <= (int)n) return mrb_nil_value();
+  if (n < 0 || a->len <= n) return mrb_nil_value();
 
   return a->ptr[n];
 }
 
 void
-mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val) /* rb_ary_store */
+mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
 {
   struct RArray *a = mrb_ary_ptr(ary);
 
@@ -585,8 +588,8 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val) /* rb_ary_s
       mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of array", mrb_fixnum_value(n - a->len));
     }
   }
-  if (a->len <= (int)n) {
-    if (a->aux.capa <= (int)n)
+  if (a->len <= n) {
+    if (a->aux.capa <= n)
       ary_expand_capa(mrb, a, n + 1);
     ary_fill_with_nil(a->ptr + a->len, n + 1 - a->len);
     a->len = n + 1;
@@ -633,7 +636,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     ary_expand_capa(mrb, a, size);
 
   if (head > a->len) {
-    ary_fill_with_nil(a->ptr + a->len, (int)(head - a->len));
+    ary_fill_with_nil(a->ptr + a->len, head - a->len);
   }
   else if (head < a->len) {
     value_move(a->ptr + head + argc, a->ptr + tail, a->len - tail);
@@ -646,12 +649,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   a->len = size;
 
   return ary;
-}
-
-mrb_int
-mrb_ary_len(mrb_state *mrb, mrb_value ary)
-{
-  return RARRAY_LEN(ary);
 }
 
 void
@@ -721,7 +718,7 @@ aget_index(mrb_state *mrb, mrb_value index)
  *
  */
 
-mrb_value
+static mrb_value
 mrb_ary_aget(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -747,9 +744,9 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
 
   i = aget_index(mrb, index);
   if (i < 0) i += a->len;
-  if (i < 0 || a->len < (int)i) return mrb_nil_value();
+  if (i < 0 || a->len < i) return mrb_nil_value();
   if (len < 0) return mrb_nil_value();
-  if (a->len == (int)i) return mrb_ary_new(mrb);
+  if (a->len == i) return mrb_ary_new(mrb);
   if (len > a->len - i) len = a->len - i;
 
   return ary_subseq(mrb, a, i, len);
@@ -790,7 +787,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
  *     a[3, 0] = "B"               #=> [1, 2, "A", "B"]
  */
 
-mrb_value
+static mrb_value
 mrb_ary_aset(mrb_state *mrb, mrb_value self)
 {
   mrb_value v1, v2, v3;
@@ -820,7 +817,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   return v3;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -831,14 +828,14 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "i", &index);
   if (index < 0) index += a->len;
-  if (index < 0 || a->len <= (int)index) return mrb_nil_value();
+  if (index < 0 || a->len <= index) return mrb_nil_value();
 
   ary_modify(mrb, a);
   val = a->ptr[index];
 
   ptr = a->ptr + index;
   len = a->len - index;
-  while ((int)(--len)) {
+  while (--len) {
     *ptr = *(ptr+1);
     ++ptr;
   }
@@ -849,7 +846,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_first(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -869,7 +866,7 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, size, a->ptr);
 }
 
-mrb_value
+static mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -896,7 +893,7 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, size, a->ptr + a->len - size);
 }
 
-mrb_value
+static mrb_value
 mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj;
@@ -911,7 +908,7 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-mrb_value
+static mrb_value
 mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj;
@@ -962,7 +959,7 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -973,7 +970,7 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 {
-    return mrb_check_convert_type(mrb, ary, MRB_TT_ARRAY, "Array", "to_ary");
+  return mrb_check_convert_type(mrb, ary, MRB_TT_ARRAY, "Array", "to_ary");
 }
 
 mrb_value

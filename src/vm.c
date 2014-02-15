@@ -7,6 +7,7 @@
 #include <setjmp.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <math.h>
 #include "mruby.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"
@@ -985,7 +986,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
 
-#ifdef __GNUC__
+#if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define DIRECT_THREADED
 #endif
 
@@ -2204,6 +2205,11 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
       default:
         goto L_SEND;
       }
+#ifdef MRB_NAN_BOXING
+      if (isnan(regs[a].attr_f)) {
+        regs[a] = mrb_float_value(mrb, regs[a].attr_f);
+      }
+#endif
       NEXT;
     }
 
