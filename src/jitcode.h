@@ -1022,10 +1022,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
     mov(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
     test(eax, eax);
+    push(eax);
     jnz("@f");
+    pop(eax);
     gen_exit(*status->pc, 1, 0);
     L("@@");
-    push(eax);
     
     push(ecx);
     push(ebx);
