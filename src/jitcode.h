@@ -959,10 +959,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, dword [eax + OffsetOf(struct RProc, body.irep)]);
     mov(eax, dword [eax + OffsetOf(mrb_irep, jit_top_entry)]);
     test(eax, eax);
+    push(eax);
     jnz("@f");
+    pop(eax);
     gen_exit(*status->pc, 1, 1);
     L("@@");
-    push(eax);
     CALL_CFUNC_BEGIN;
     push(ebx);
 
