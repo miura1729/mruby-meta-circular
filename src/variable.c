@@ -10,28 +10,11 @@
 #include "mruby/class.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
+#include "mruby/variable.h"
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
 #ifdef MRB_USE_IV_SEGLIST
-
-#ifndef MRB_SEGMENT_SIZE
-#define MRB_SEGMENT_SIZE 32
-#endif
-
-typedef struct segment
-{
-  mrb_value val[MRB_SEGMENT_SIZE];
-  mrb_sym key[MRB_SEGMENT_SIZE];
-  struct segment *next;
-} segment;
-
-/* Instance variable table structure */
-typedef struct iv_tbl {
-  segment *rootseg;
-  size_t size;
-  size_t last_len;
-} iv_tbl;
 
 /*
  * Creates the instance variable table.
