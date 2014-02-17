@@ -489,9 +489,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_irep *irep = *status->irep;
     mrb_sym id = irep->syms[idpos];
     mrb_value self = mrb->c->stack[0];
-    const int ivoff = mrbjit_iv_off(mrb, self, id);
+    int ivoff = mrbjit_iv_off(mrb, self, id);
 
-    if (ivoff < 0) {
+    if (ivoff == -1) {
       /* Normal instance variable set (not defined yet) */
       push(ecx);
       push(ebx);
@@ -499,7 +499,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       push(eax);
       mov(eax, ptr [ecx + srcoff]);
       push(eax);
-      push((Xbyak::uint32)irep->syms[idpos]);
+      push((Xbyak::uint32)id);
       push(esi);
       call((void *)mrb_vm_iv_set);
       add(esp, sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
@@ -521,8 +521,19 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ebx);
     pop(ecx);
     mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
-    mov(eax, dword [eax]);
-    movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
+    if (ivoff == -2) {
+      ivoff =  mrb_obj_ptr(self)->iv->last_len;
+      inc(dword [eax + OffsetOf(iv_tbl, last_len)]);
+      inc(dword [eax + OffsetOf(iv_tbl, size)]);
+      mov(eax, dword [eax]);
+      movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
+      add(eax, MRB_SEGMENT_SIZE * sizeof(mrb_value));
+      mov(dword [eax + ivoff * sizeof(mrb_sym)], (Xbyak::uint32)id);
+    }
+    else {
+      mov(eax, dword [eax]);
+      movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
+    }
 
     return code;
   }

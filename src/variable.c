@@ -479,7 +479,7 @@ mrbjit_iv_off(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     mrb_sym key = seg->key[i];
 
     if (!seg->next && i >= t->last_len) {
-      return -1;
+      return -2;
     }
     if (key == sym) {
       return i;
