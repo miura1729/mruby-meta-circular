@@ -1027,6 +1027,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     struct mrb_context *c = mrb->c;
     mrb_code *pc = *status->pc;
     mrb_code i = *pc;
+    int can_use_fast = (c->ci != c->cibase &&
+			GETARG_B(i) == OP_R_NORMAL &&
+			(c->ci->env == 0 || c->ci->proc->body.irep->shared_lambda));
+    int can_inline = (can_use_fast && 
+		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
     /* Set return address from callinfo */
     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
@@ -1039,18 +1044,24 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_exit(*status->pc, 1, 0);
     L("@@");
     
-    push(ecx);
-    push(ebx);
+    if (can_inline) {
+      /* Check exception happened? */
+      mov(eax, dword [esi + OffsetOf(mrb_state, exc)]);
+      test(eax, eax);
+      inLocalLabel();
+      jz(".skipcall");
+    }
 
-    push(ebx);
     /* Update pc */
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
 
+    push(ecx);
+    push(ebx);
+
+    push(ebx);
     push(esi);
-    if (c->ci != c->cibase &&
-	GETARG_B(i) == OP_R_NORMAL &&
-	(c->ci->env == 0 || c->ci->proc->body.irep->shared_lambda)) {
+    if (can_use_fast) {
       call((void *)mrbjit_exec_return_fast);
     }
     else {
@@ -1070,6 +1081,55 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     L("@@");
 
     ret();
+
+    if (can_inline) {
+      L(".skipcall");
+      outLocalLabel();
+      
+      /* Inline else part of mrbjit_exec_return_fast (but not ensure call) */
+      push(edi);
+
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      mov(edi, dword [eax + OffsetOf(mrb_context, ci)]);
+
+      /* Restore PC */
+      mov(edx, dword [edi + OffsetOf(mrb_callinfo, pc)]);
+      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+      mov(dword [eax], edx);
+
+      /* Save return value */
+      movsd(xmm0, ptr [ecx + GETARG_A(i) * sizeof(mrb_value)]);
+      /* Store return value (bottom of stack always return space) */
+      movsd(ptr [ecx], xmm0);
+
+      /* Restore Regs */
+      mov(ecx, dword [edi + OffsetOf(mrb_callinfo, stackent)]);
+      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
+      mov(dword [eax], ecx);
+
+      /* Restore c->stack */
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      mov(dword [eax + OffsetOf(mrb_context, stack)], ecx);
+
+      /* pop ci */
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      sub(edi, (Xbyak::uint32)sizeof(mrb_callinfo));
+      mov(dword [eax + OffsetOf(mrb_context, ci)], edi);
+
+      /* restore proc */
+      mov(edx, dword [edi + OffsetOf(mrb_callinfo, proc)]);
+      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, proc)]);
+      mov(dword [eax], edx);
+
+      /* restore irep */
+      mov(edx, dword [edx + OffsetOf(struct RProc, body.irep)]);
+      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
+      mov(dword [eax], edx);
+
+      pop(edi);
+
+      ret();
+    }
 
     return code;
   }
