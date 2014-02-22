@@ -502,6 +502,8 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
     (*(status->regs))[0] = mrb_obj_value(m->target_class);
   }
   *status->pc = m->body.irep->iseq;
+  *status->pool = m->body.irep->pool;
+  *status->syms = m->body.irep->syms;
 
   return NULL;
 }
