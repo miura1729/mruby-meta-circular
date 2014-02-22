@@ -883,13 +883,24 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(dword [edi + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
 
-      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
-	  (Xbyak::uint32)m->body.irep->nregs);
+      if (m->body.irep->ilen > 2) {
+	mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
+	    (Xbyak::uint32)m->body.irep->nregs);
 
-      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
+	mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
 
-      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, proc)]);
-      mov(dword [edx], eax);
+	mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, proc)]);
+	mov(dword [edx], eax);
+
+	mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
+	mov(dword [edx], (Xbyak::uint32)m->body.irep);
+
+	mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pool)]);
+	mov(dword [edx], (Xbyak::uint32)m->body.irep->pool);
+
+	mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, syms)]);
+	mov(dword [edx], (Xbyak::uint32)m->body.irep->syms);
+      }
 
       mov(eax, (Xbyak::uint32)a);
       mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
@@ -899,9 +910,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       shl(eax, 3);		/* * sizeof(mrb_value) */
       add(dword [edi + OffsetOf(mrb_context, stack)], eax);
       mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
-
-      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, irep)]);
-      mov(dword [edx], (Xbyak::uint32)m->body.irep);
 
       mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
       if (m->body.irep->nregs != 0) {
@@ -928,12 +936,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
       mov(dword [edx], (Xbyak::uint32)m->body.irep->iseq);
-
-      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, pool)]);
-      mov(dword [edx], (Xbyak::uint32)m->body.irep->pool);
-
-      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, syms)]);
-      mov(dword [edx], (Xbyak::uint32)m->body.irep->syms);
 
       gen_set_jit_entry(mrb, pc, coi, irep);
       pop(edi);
@@ -987,12 +989,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     add(esp, 2 * sizeof(void *));
     pop(ebx);
     pop(ecx);
-
-    test(eax, eax);
-    jz("@f");
-    add(esp, sizeof(void *));
-    gen_exit(NULL, 0, 0);
-    L("@@");
     ret();
 
     return code;
