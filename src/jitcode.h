@@ -722,6 +722,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+    int callee_nregs;
+
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
@@ -736,6 +738,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (!m) {
       return NULL;
     }
+    callee_nregs = m->body.irep->nregs;
 
     lea(eax, ptr [ecx + a * sizeof(mrb_value)]);
     gen_class_guard(mrb, a, status, pc, coi);
@@ -901,6 +904,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, syms)]);
 	mov(dword [edx], (Xbyak::uint32)m->body.irep->syms);
       }
+      else {
+	/* Block call */
+	callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
+      }
 
       mov(eax, (Xbyak::uint32)a);
       mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
@@ -913,15 +920,15 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
       if (m->body.irep->nregs != 0) {
-	sub(edx, (Xbyak::uint32)m->body.irep->nregs * sizeof(mrb_value));
+	sub(edx, (Xbyak::uint32)callee_nregs * sizeof(mrb_value));
       }
       cmp(ecx, edx);
       jb("@f");
 
       push(ebx);
-      mov(eax, (Xbyak::uint32)(m->body.irep->nregs + 2));
+      mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
       push(eax);
-      mov(eax, (Xbyak::uint32)n);
+      mov(eax, (Xbyak::uint32)callee_nregs);
       push(eax);
       push(esi);
       call((void *) mrbjit_stack_extend);

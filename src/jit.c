@@ -491,9 +491,6 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   *status->proc = m;
   *status->irep = m->body.irep;
   ci->nregs = (*(status->irep))->nregs;
-  if (mrb->c->stack + (*(status->irep))->nregs >= mrb->c->stend) {
-    mrbjit_stack_extend(mrb, (*(status->irep))->nregs,  ci->argc+2);
-  }
   *status->regs = mrb->c->stack;
   if (m->env) {
     (*(status->regs))[0] = m->env->stack[0];
