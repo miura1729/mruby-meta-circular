@@ -499,7 +499,6 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   /* setup environment for calling method */
-  *status->regs = stack;
   *status->proc = m;
   *status->irep = irep;
   *status->pc = irep->iseq;
