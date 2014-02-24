@@ -984,16 +984,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(eax);
     gen_exit(*status->pc, 1, 1);
     L("@@");
-    CALL_CFUNC_BEGIN;
-    push(ebx);
-
     /* Update pc */
     mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
     mov(dword [eax], (Xbyak::uint32)(*status->pc));
 
+    push(ecx);
+    push(ebx);
+
     push(esi);
     call((void *)mrbjit_exec_call);
-    add(esp, 2 * sizeof(void *));
+    add(esp, 1 * sizeof(void *));
+
     pop(ebx);
     pop(ecx);
     ret();

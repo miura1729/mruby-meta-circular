@@ -471,36 +471,40 @@ void *
 mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   mrb_callinfo *ci;
-  mrb_value recv = mrb->c->stack[0];
+  mrb_value *stack = mrb->c->stack; 
+  mrb_value recv = stack[0];
   struct RProc *m = mrb_proc_ptr(recv);
+  struct REnv *env = m->env;
+  mrb_irep *irep = m->body.irep;
 
   /* replace callinfo */
   ci = mrb->c->ci;
   ci->target_class = m->target_class;
   ci->proc = m;
-  if (m->env) {
-    if (m->env->mid) {
-      ci->mid = m->env->mid;
+  ci->nregs = irep->nregs;
+
+  if (env) {
+    if (env->mid) {
+      ci->mid = env->mid;
     }
-    if (!m->env->stack) {
-      m->env->stack = mrb->c->stack;
+    if (!env->stack) {
+      env->stack = stack;
     }
+    else {
+      stack[0] = env->stack[0];
+    }
+  }
+  else {
+    stack[0] = mrb_obj_value(m->target_class);
   }
 
   /* setup environment for calling method */
+  *status->regs = stack;
   *status->proc = m;
-  *status->irep = m->body.irep;
-  ci->nregs = (*(status->irep))->nregs;
-  *status->regs = mrb->c->stack;
-  if (m->env) {
-    (*(status->regs))[0] = m->env->stack[0];
-  } 
-  else {
-    (*(status->regs))[0] = mrb_obj_value(m->target_class);
-  }
-  *status->pc = m->body.irep->iseq;
-  *status->pool = m->body.irep->pool;
-  *status->syms = m->body.irep->syms;
+  *status->irep = irep;
+  *status->pc = irep->iseq;
+  *status->pool = irep->pool;
+  *status->syms = irep->syms;
 
   return NULL;
 }
