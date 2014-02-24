@@ -21,7 +21,7 @@
 #include "mruby/range.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "error.h"
+#include "mruby/error.h"
 #include "opcode.h"
 #include "value_array.h"
 
