@@ -42,11 +42,16 @@ void *mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
  * esi   -- pointer to mrb                */
 class MRBJitCode: public Xbyak::CodeGenerator {
 
+  void *addr_call_extend_callinfo;
+  void *addr_call_stack_extend;
+
  public:
 
  MRBJitCode():
   CodeGenerator(1024 * 1024)
   {
+    addr_call_extend_callinfo = NULL;
+    addr_call_stack_extend = NULL;
   }
 
   const void
@@ -814,26 +819,36 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       cmp(edx, dword [eax + OffsetOf(mrb_context, ciend)]);
       jb("@f");
 
-      /* extend cfunction */
-      push(edx);
-      push(ebx);
-      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-      mov(eax, dword [eax + OffsetOf(mrb_context, cibase)]);
-      sub(eax, edx);
-      neg(eax);
-      shr(eax, 6);		/* sizeof mrb_callinfo */
-      push(eax);
-      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-      push(eax);
-      push(esi);
-      call((void *) mrbjit_exec_extend_callinfo);
-      add(esp, 3 * sizeof(void *));
-      pop(ebx);
-      pop(edx);
-      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      if (addr_call_extend_callinfo == NULL) {
+	mov(eax, "@f");
+	push(eax);
+
+	addr_call_extend_callinfo = (void *)getCurr();
+
+	/* extend cfunction */
+	push(edx);
+	push(ebx);
+	mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+	mov(eax, dword [eax + OffsetOf(mrb_context, cibase)]);
+	sub(eax, edx);
+	neg(eax);
+	shr(eax, 6);		/* sizeof mrb_callinfo */
+	push(eax);
+	mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+	push(eax);
+	push(esi);
+	call((void *) mrbjit_exec_extend_callinfo);
+	add(esp, 3 * sizeof(void *));
+	pop(ebx);
+	pop(edx);
+	mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+	ret();
+      }
+      else {
+	call(addr_call_extend_callinfo);
+      }
 
       L("@@");
-
       /*    ci  edi */
       /*    tmp  edx */
       /*    tmp  eax */
@@ -925,16 +940,26 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       cmp(ecx, edx);
       jb("@f");
 
-      push(ebx);
-      mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
-      push(eax);
-      mov(eax, (Xbyak::uint32)callee_nregs);
-      push(eax);
-      push(esi);
-      call((void *) mrbjit_stack_extend);
-      add(esp, 3 * sizeof(void *));
-      pop(ebx);
-      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+      if (addr_call_stack_extend == NULL) {
+	mov(eax, "@f");
+	push(eax);
+
+	addr_call_stack_extend = (void *)getCurr();
+
+	push(ebx);
+	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+	push(eax);
+	mov(eax, (Xbyak::uint32)callee_nregs);
+	push(eax);
+	push(esi);
+	call((void *) mrbjit_stack_extend);
+	add(esp, 3 * sizeof(void *));
+	pop(ebx);
+	mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+      }
+      else {
+	call(addr_call_stack_extend);
+      }
       
       L("@@");
 
