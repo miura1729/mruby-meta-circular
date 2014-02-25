@@ -943,21 +943,24 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       if (addr_call_stack_extend == NULL) {
 	mov(eax, "@f");
 	push(eax);
+	mov(edx, (Xbyak::uint32)callee_nregs);
+	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
 
 	addr_call_stack_extend = (void *)getCurr();
 
 	push(ebx);
-	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
 	push(eax);
-	mov(eax, (Xbyak::uint32)callee_nregs);
-	push(eax);
+	push(edx);
 	push(esi);
 	call((void *) mrbjit_stack_extend);
 	add(esp, 3 * sizeof(void *));
 	pop(ebx);
 	mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+	ret();
       }
       else {
+	mov(edx, (Xbyak::uint32)callee_nregs);
+	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
 	call(addr_call_stack_extend);
       }
       
