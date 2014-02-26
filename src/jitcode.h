@@ -1065,13 +1065,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
+    inLocalLabel();
+
     /* Set return address from callinfo */
     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-    mov(eax, dword [eax + OffsetOf(mrb_context, ci)]);
-    mov(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
+    mov(edx, dword [eax + OffsetOf(mrb_context, ci)]);
+    mov(eax, dword [edx + OffsetOf(mrb_callinfo, jit_entry)]);
     test(eax, eax);
     push(eax);
     jnz("@f");
+    L(".ret_vm");
     pop(eax);
     gen_exit(*status->pc, 1, 0);
     L("@@");
@@ -1080,49 +1083,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       /* Check exception happened? */
       mov(eax, dword [esi + OffsetOf(mrb_state, exc)]);
       test(eax, eax);
-      inLocalLabel();
-      jz(".skipcall");
-    }
+      jnz(".ret_vm");
 
-    /* Update pc */
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
-    mov(dword [eax], (Xbyak::uint32)(*status->pc));
-
-    push(ecx);
-    push(ebx);
-
-    push(ebx);
-    push(esi);
-    if (can_use_fast) {
-      call((void *)mrbjit_exec_return_fast);
-    }
-    else {
-      call((void *)mrbjit_exec_return);
-    }
-    add(esp, 2 * 4);
-    pop(ebx);
-    pop(ecx);
-
-    mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
-    mov(ecx, dword [edx]);
-
-    test(eax, eax);
-    jz("@f");
-    pop(edx);			/* pop return address from callinfo */
-    gen_exit(NULL, 0, 0);
-    L("@@");
-
-    ret();
-
-    if (can_inline) {
-      L(".skipcall");
-      outLocalLabel();
-      
       /* Inline else part of mrbjit_exec_return_fast (but not ensure call) */
       push(edi);
 
-      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-      mov(edi, dword [eax + OffsetOf(mrb_context, ci)]);
+      mov(edi, edx);
 
       /* Restore PC */
       mov(edx, dword [edi + OffsetOf(mrb_callinfo, pc)]);
@@ -1162,6 +1128,39 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       ret();
     }
+    else {
+      /* Update pc */
+      mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+      mov(dword [eax], (Xbyak::uint32)(*status->pc));
+
+      push(ecx);
+      push(ebx);
+
+      push(ebx);
+      push(esi);
+      if (can_use_fast) {
+	call((void *)mrbjit_exec_return_fast);
+      }
+      else {
+	call((void *)mrbjit_exec_return);
+      }
+      add(esp, 2 * 4);
+      pop(ebx);
+      pop(ecx);
+
+      mov(edx, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
+      mov(ecx, dword [edx]);
+
+      test(eax, eax);
+      jz("@f");
+      pop(edx);			/* pop return address from callinfo */
+      gen_exit(NULL, 0, 0);
+      L("@@");
+
+      ret();
+    }
+
+    outLocalLabel();
 
     return code;
   }
