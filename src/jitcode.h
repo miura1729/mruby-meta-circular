@@ -377,7 +377,29 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->klass = mrb->fixnum_class;
     dinfo->constp = 1;
 
-    mov(dword [ecx + dstoff], src);
+    switch(src) {
+    case 0:
+      xor(eax, eax);
+      mov(dword [ecx + dstoff], eax);
+      break;
+
+    case 1:
+      xor(eax, eax);
+      inc(eax);
+      mov(dword [ecx + dstoff], eax);
+      break;
+
+    case 2:
+      xor(eax, eax);
+      inc(eax);
+      inc(eax);
+      mov(dword [ecx + dstoff], eax);
+      break;
+
+    default:
+      mov(dword [ecx + dstoff], src);
+      break;
+    }
     mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FIXNUM);
 
     return code;
