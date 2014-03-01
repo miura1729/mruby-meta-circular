@@ -2599,6 +2599,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 	if (k != kh_end(h)) {
 	  p = kh_value(h, k);
 	  if (p && !MRB_PROC_CFUNC_P(p)) {
+	    /* Disable JIT output code for redefined method */
 	    mrb_irep *irep = p->body.irep;
 	    mrbjit_codetab *tab = irep->jit_entry_tab;
 	    mrbjit_code_info *entry;
