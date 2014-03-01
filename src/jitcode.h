@@ -389,13 +389,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff], eax);
       break;
 
-    case 2:
-      xor(eax, eax);
-      inc(eax);
-      inc(eax);
-      mov(dword [ecx + dstoff], eax);
-      break;
-
     default:
       mov(dword [ecx + dstoff], src);
       break;
@@ -893,12 +886,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	break;
 
       case 1:
-	inc(eax);
-	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
-	break;
-
-      case 2:
-	inc(eax);
 	inc(eax);
 	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
 	break;
