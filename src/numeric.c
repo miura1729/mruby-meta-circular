@@ -21,9 +21,11 @@
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
 #define FLO_MAX_DIGITS 7
+#define FLO_MAX_SIGN_LENGTH 3
 #define FLO_EPSILON FLT_EPSILON
 #else
 #define FLO_MAX_DIGITS 14
+#define FLO_MAX_SIGN_LENGTH 10
 #define FLO_EPSILON DBL_EPSILON
 #endif
 
@@ -108,17 +110,11 @@ num_div(mrb_state *mrb, mrb_value x)
  *  representation.
  */
 
-mrb_value
-mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
+static mrb_value
+mrb_flo_to_str(mrb_state *mrb, mrb_float flo)
 {
-  double n;
+  double n = (double)flo;
   int max_digits = FLO_MAX_DIGITS;
-
-  if (!mrb_float_p(flo)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
-  }
-
-  n = (double)mrb_float(flo);
 
   if (isnan(n)) {
     return mrb_str_new_lit(mrb, "NaN");
@@ -140,12 +136,22 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
     char *c = &s[0];
     int length = 0;
 
-    if (n < 0) {
+    if (signbit(n)) {
       n = -n;
       *(c++) = '-';
     }
 
-    exp = (n > 1) ? floor(log10(n)) : -ceil(-log10(n));
+    if (n != 0.0) {
+      if (n > 1.0) {
+        exp = (int)floor(log10(n));
+      }
+      else {
+        exp = (int)-ceil(-log10(n));
+      }
+    }
+    else {
+      exp = 0;
+    }
     
     /* preserve significands */
     if (exp < 0) {
@@ -161,6 +167,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
         }
       }
       if (beg >= 0) length = end - beg;
+      if (length > FLO_MAX_SIGN_LENGTH) length = FLO_MAX_SIGN_LENGTH;
     }
 
     if (abs(exp) + length >= FLO_MAX_DIGITS) {
@@ -168,7 +175,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
       e = TRUE;
       n = n / pow(10.0, exp);
       if (isinf(n)) {
-        if (s[0] == '-') {
+        if (s < c) {            /* s[0] == '-' */
           return mrb_str_new_lit(mrb, "-0.0");
         }
         else {
@@ -187,7 +194,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
     while (max_digits >= 0) {
       double weight = pow(10.0, m);
       double fdigit = n / weight;
-      
+
       if (fdigit < 0) fdigit = n = 0;
       if (m < -1 && fdigit < FLO_EPSILON) {
         if (e || exp > 0 || m <= -abs(exp)) {
@@ -253,7 +260,7 @@ mrb_flo_to_str(mrb_state *mrb, mrb_value flo)
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-  return mrb_flo_to_str(mrb, flt);
+  return mrb_flo_to_str(mrb, mrb_float(flt));
 }
 
 /* 15.2.9.3.2  */

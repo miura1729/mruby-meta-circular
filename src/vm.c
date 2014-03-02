@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <setjmp.h>
 #include <stddef.h>
 #include <stdarg.h>
 #include <math.h>
@@ -24,6 +23,7 @@
 #include "mruby/error.h"
 #include "opcode.h"
 #include "value_array.h"
+#include "mrb_throw.h"
 
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)
@@ -525,10 +525,16 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
   mrb_value val;
 
   if (!mrb->jmp) {
-    jmp_buf c_jmp;
+    struct mrb_jmpbuf c_jmp;
     mrb_callinfo *old_ci = mrb->c->ci;
 
-    if (setjmp(c_jmp) != 0) { /* error */
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      /* recursive call */
+      val = mrb_funcall_with_block(mrb, self, mid, argc, argv, blk);
+      mrb->jmp = 0;
+    }
+    MRB_CATCH(&c_jmp) { /* error */
       while (old_ci != mrb->c->ci) {
         mrb->c->stack = mrb->c->ci->stackent;
         cipop(mrb);
@@ -536,12 +542,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
       mrb->jmp = 0;
       val = mrb_obj_value(mrb->exc);
     }
-    else {
-      mrb->jmp = &c_jmp;
-      /* recursive call */
-      val = mrb_funcall_with_block(mrb, self, mid, argc, argv, blk);
-      mrb->jmp = 0;
-    }
+    MRB_END_EXC(&c_jmp);
   }
   else {
     struct RProc *p;
@@ -612,6 +613,68 @@ mrb_value
 mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_value *argv)
 {
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
+}
+
+/* 15.3.1.3.4  */
+/* 15.3.1.3.44 */
+/*
+ *  call-seq:
+ *     obj.send(symbol [, args...])        -> obj
+ *     obj.__send__(symbol [, args...])      -> obj
+ *
+ *  Invokes the method identified by _symbol_, passing it any
+ *  arguments specified. You can use <code>__send__</code> if the name
+ *  +send+ clashes with an existing method in _obj_.
+ *
+ *     class Klass
+ *       def hello(*args)
+ *         "Hello " + args.join(' ')
+ *       end
+ *     end
+ *     k = Klass.new
+ *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
+ */
+mrb_value
+mrb_f_send(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym name;
+  mrb_value block, *argv, *regs;
+  int argc, i, len;
+  struct RProc *p;
+  struct RClass *c;
+  mrb_callinfo *ci;
+
+  mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
+
+  c = mrb_class(mrb, self);
+  p = mrb_method_search_vm(mrb, &c, name);
+  if (!p || MRB_PROC_CFUNC_P(p)) {
+    return mrb_funcall_with_block(mrb, self, name, argc, argv, block);
+  }
+
+  ci = mrb->c->ci;
+  ci->mid = name;
+  ci->target_class = c;
+  ci->proc = p;
+  regs = mrb->c->stack+1;
+  /* remove first symbol from arguments */
+  if (ci->argc >= 0) {
+    for (i=0,len=ci->argc; i<len; i++) {
+      regs[i] = regs[i+1];
+    }
+    ci->argc--;
+  }
+  else {                     /* variable length arguments */
+    mrb_ary_shift(mrb, regs[0]);
+  }
+  cipush(mrb);
+  ci = mrb->c->ci;
+  ci->target_class = 0;
+  ci->pc = p->body.irep->iseq;
+  ci->stackent = mrb->c->stack;
+  ci->acc = 0;
+
+  return self;
 }
 
 mrb_value
@@ -1028,8 +1091,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   mrb_value *regs = NULL;
   mrb_code i;
   int ai = mrb_gc_arena_save(mrb);
-  jmp_buf *prev_jmp = (jmp_buf *)mrb->jmp;
-  jmp_buf c_jmp;
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
   void *gtptr;			/* Use in NEXT/JUMP */
 
   mrb->compile_info.nest_level = 0;
@@ -1066,13 +1129,16 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     optable, gototable, &prev_jmp
   };
 
+  mrb_bool exc_catched = FALSE;
+RETRY_TRY_BLOCK:
 
-  if (setjmp(c_jmp) == 0) {
-    mrb->jmp = &c_jmp;
-  }
-  else {
+  MRB_TRY(&c_jmp) {
+
+  if (exc_catched) {
+    exc_catched = FALSE;
     goto L_RAISE;
   }
+  mrb->jmp = &c_jmp;
   if (!mrb->c->stack) {
     stack_init(mrb);
   }
@@ -1434,7 +1500,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
         ci = mrb->c->ci;
         if (!ci->target_class) { /* return from context modifying method (resume/yield) */
           if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
-            irep = ci[-1].proc->body.irep;
+            proc = ci[-1].proc;
+            irep = proc->body.irep;
             pool = irep->pool;
             syms = irep->syms;
           }
@@ -1781,7 +1848,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           mrb->c->stack = ci[1].stackent;
           if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
-            mrb_longjmp(mrb);
+            MRB_THROW(prev_jmp);
           }
           if (ci > mrb->c->cibase) {
             while (eidx > ci[-1].eidx) {
@@ -1790,8 +1857,17 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           }
           else if (ci == mrb->c->cibase) {
             if (ci->ridx == 0) {
-              regs = mrb->c->stack = mrb->c->stbase;
-              goto L_STOP;
+              if (mrb->c == mrb->root_c) {
+                regs = mrb->c->stack = mrb->c->stbase;
+                goto L_STOP;
+              }
+              else {
+                struct mrb_context *c = mrb->c;
+
+                mrb->c = c->prev;
+                c->prev = NULL;
+                goto L_RAISE;
+              }
             }
             break;
           }
@@ -1810,7 +1886,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
         switch (GETARG_B(i)) {
         case OP_R_RETURN:
-          // Fall through to OP_R_NORMAL otherwise
+          /* Fall through to OP_R_NORMAL otherwise */
           if (proc->env && !MRB_PROC_STRICT_P(proc)) {
             struct REnv *e = top_env(mrb, proc);
 
@@ -1833,7 +1909,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mrb_str_new(mrb, "double resume", 13));
+              mrb_value exc = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, mrb_str_new_lit(mrb, "double resume"));
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }
@@ -1848,6 +1924,13 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
           if (!proc->env || proc->env->cioff < 0) {
             localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
             goto L_RAISE;
+          }
+          /* break from fiber block */
+          if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
+            struct mrb_context *c = mrb->c;
+
+            mrb->c = c->prev;
+            c->prev = NULL;
           }
           ci = mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           break;
@@ -2699,7 +2782,13 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     }
   }
   END_DISPATCH;
-  mrb_bug(mrb, "never reach here"); /* should never happen */
+
+  }
+  MRB_CATCH(&c_jmp) {
+    exc_catched = TRUE;
+    goto RETRY_TRY_BLOCK;
+  }
+  MRB_END_EXC(&c_jmp);
 
 L_DISPATCH:
   gtptr = mrbjit_dispatch(mrb, &status);
@@ -2711,11 +2800,5 @@ L_DISPATCH:
 mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
-    return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
-}
-
-void
-mrb_longjmp(mrb_state *mrb)
-{
-  longjmp(*(jmp_buf*)mrb->jmp, 1);
+  return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }

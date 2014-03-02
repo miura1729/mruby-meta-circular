@@ -59,6 +59,7 @@ typedef short mrb_sym;
 #  include <float.h>
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))
+#  define signbit(n) (_copysign(1.0, (n)) < 0.0)
 #  define strtoll _strtoi64
 #  define strtof (float)strtod
 #  define PRId32 "I32d"
@@ -99,7 +100,7 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   5 */
   MRB_TT_UNDEF,       /*   6 */
   MRB_TT_FLOAT,       /*   7 */
-  MRB_TT_CPTR,       /*   8 */
+  MRB_TT_CPTR,        /*   8 */
   MRB_TT_OBJECT,      /*   9 */
   MRB_TT_CLASS,       /*  10 */
   MRB_TT_MODULE,      /*  11 */
@@ -224,7 +225,7 @@ enum mrb_vtype {
   MRB_TT_SYMBOL,      /*   4 */
   MRB_TT_UNDEF,       /*   5 */
   MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_CPTR,       /*   7 */
+  MRB_TT_CPTR,        /*   7 */
   MRB_TT_OBJECT,      /*   8 */
   MRB_TT_CLASS,       /*   9 */
   MRB_TT_MODULE,      /*  10 */

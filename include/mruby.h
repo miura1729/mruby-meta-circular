@@ -142,8 +142,10 @@ enum gc_state {
 };
 
 struct mrb_irep;
+struct mrb_jmpbuf;
+
 typedef struct mrb_state {
-  void *jmp;
+  struct mrb_jmpbuf *jmp;
 
   mrb_allocf allocf;                      /* memory allocation function */
 
@@ -353,7 +355,7 @@ mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
 /* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
-//#define ISASCII(c) isascii((int)(unsigned char)(c))
+/* #define ISASCII(c) isascii((int)(unsigned char)(c)) */
 #define ISASCII(c) 1
 #define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
 #define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
@@ -422,6 +424,9 @@ mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
 mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
+
+/* fiber functions (you need to link mruby-fiber mrbgem to use) */
+mrb_value mrb_fiber_yield(mrb_state *mrb, int argc, mrb_value *argv);
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;

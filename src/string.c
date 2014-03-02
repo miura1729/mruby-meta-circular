@@ -216,6 +216,9 @@ mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
+  if ((mrb_int)len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
+  }
 
   s = str_new(mrb, p, len);
   return mrb_obj_value(s);
@@ -253,6 +256,9 @@ mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
+  if ((mrb_int)len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size (or size too big)");
+  }
 
   s = mrb_obj_alloc_string(mrb);
   s->len = len;
@@ -2361,7 +2367,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
         }
     }
   }
-  *q++ = '"';
+  *q = '"';
   return mrb_obj_value(result);
 }
 
@@ -2406,7 +2412,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 {
     const char *p, *pend;
     char buf[CHAR_ESC_LEN + 1];
-    mrb_value result = mrb_str_new(mrb, "\"", 1);
+    mrb_value result = mrb_str_new_lit(mrb, "\"");
 
     p = RSTRING_PTR(str); pend = RSTRING_END(str);
     for (;p < pend; p++) {

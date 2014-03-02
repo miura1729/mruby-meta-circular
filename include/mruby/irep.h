@@ -71,7 +71,7 @@ typedef struct mrbjit_vmstatus {
   int *ai;
   void **optable;
   void **gototable;
-  jmp_buf **prev_jmp;
+  struct mrb_jmpbuf **prev_jmp;
 } mrbjit_vmstatus;
 
 #define MRB_ISEQ_NO_FREE 1

@@ -84,7 +84,7 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
     val &= 0x3ff;
 
   if (val == 0) {
-    return mrb_str_new(mrb, "0", 1);
+    return mrb_str_new_lit(mrb, "0");
   }
   *--b = '\0';
   do {
@@ -654,7 +654,7 @@ retry:
       case '\n':
       case '\0':
         p--;
-
+        /* fallthrough */
       case '%':
         if (flags != FNONE) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");
@@ -665,38 +665,37 @@ retry:
       case 'c': {
         mrb_value val = GETARG();
         mrb_value tmp;
-        unsigned int c;
+        char *c;
 
         tmp = mrb_check_string_type(mrb, val);
         if (!mrb_nil_p(tmp)) {
-          if (RSTRING_LEN(tmp) != 1 ) {
+          if (mrb_fixnum(mrb_funcall(mrb, tmp, "size", 0)) != 1 ) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
           }
-          c = RSTRING_PTR(tmp)[0];
-          n = 1;
+        }
+        else if (mrb_fixnum_p(val)) {
+          tmp = mrb_funcall(mrb, val, "chr", 0);
         }
         else {
-          c = mrb_fixnum(val);
-          n = 1;
-        }
-        if (n <= 0) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
         }
+        c = RSTRING_PTR(tmp);
+        n = RSTRING_LEN(tmp);
         if (!(flags & FWIDTH)) {
           CHECK(n);
-          buf[blen] = c;
+          memcpy(buf+blen, c, n);
           blen += n;
         }
         else if ((flags & FMINUS)) {
           CHECK(n);
-          buf[blen] = c;
+          memcpy(buf+blen, c, n);
           blen += n;
           FILL(' ', width-1);
         }
         else {
           FILL(' ', width-1);
           CHECK(n);
-          buf[blen] = c;
+          memcpy(buf+blen, c, n);
           blen += n;
         }
       }

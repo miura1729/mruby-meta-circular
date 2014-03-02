@@ -10,7 +10,7 @@ get_file(mrb_irep_debug_info *info, uint32_t pc)
   int32_t count;
 
   if(pc >= info->pc_count) { return NULL; }
-  // get upper bound
+  /* get upper bound */
   ret = info->files;
   count =  info->flen;
   while (count > 0) {
@@ -24,9 +24,9 @@ get_file(mrb_irep_debug_info *info, uint32_t pc)
 
   --ret;
 
-  // check returning file exists inside debug info
+  /* check returning file exists inside debug info */
   mrb_assert(info->files <= ret && ret < (info->files + info->flen));
-  // check pc is within the range of returning file
+  /* check pc is within the range of returning file */
   mrb_assert((*ret)->start_pos <= pc &&
              pc < (((ret + 1 - info->files) < info->flen)
                    ? (*(ret+1))->start_pos : info->pc_count));
@@ -77,7 +77,7 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
           return f->line_ary[pc - f->start_pos];
 
         case mrb_debug_line_flat_map: {
-          // get upper bound
+          /* get upper bound */
           mrb_irep_debug_info_line *ret = f->line_flat_map;
           uint32_t count = f->line_entry_count;
           while (count > 0) {
@@ -91,9 +91,9 @@ mrb_debug_get_line(mrb_irep *irep, uint32_t pc)
 
           --ret;
 
-          // check line entry pointer range
+          /* check line entry pointer range */
           mrb_assert(f->line_flat_map <= ret && ret < (f->line_flat_map + f->line_entry_count));
-          // check pc range
+          /* check pc range */
           mrb_assert(ret->start_pos <= pc &&
                      pc < (((ret + 1 - f->line_flat_map) < f->line_entry_count)
                            ? (ret+1)->start_pos : irep->debug_info->pc_count));
@@ -143,9 +143,10 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
 
   ret = (mrb_irep_debug_info_file *)mrb_malloc(mrb, sizeof(*ret));
   info->files =
-      (mrb_irep_debug_info_file*)info->files
-      ? mrb_realloc(mrb, info->files, sizeof(mrb_irep_debug_info_file*) * (info->flen + 1))
-      : mrb_malloc(mrb, sizeof(mrb_irep_debug_info_file*));
+      (mrb_irep_debug_info_file**)(
+          info->files
+          ? mrb_realloc(mrb, info->files, sizeof(mrb_irep_debug_info_file*) * (info->flen + 1))
+          : mrb_malloc(mrb, sizeof(mrb_irep_debug_info_file*)));
   info->files[info->flen++] = ret;
 
   file_pc_count = end_pos - start_pos;
@@ -164,7 +165,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
   switch(ret->line_type) {
     case mrb_debug_line_ary:
       ret->line_entry_count = file_pc_count;
-      ret->line_ary = mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
+      ret->line_ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
       for(i = 0; i < file_pc_count; ++i) {
         ret->line_ary[i] = irep->lines[start_pos + i];
       }
@@ -173,19 +174,19 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep *irep,
     case mrb_debug_line_flat_map: {
       uint16_t prev_line = 0;
       mrb_irep_debug_info_line m;
-      ret->line_flat_map = mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
+      ret->line_flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
       ret->line_entry_count = 0;
       for(i = 0; i < file_pc_count; ++i) {
         if(irep->lines[start_pos + i] == prev_line) { continue; }
 
-        ret->line_flat_map = mrb_realloc(
+        ret->line_flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
             mrb, ret->line_flat_map,
             sizeof(mrb_irep_debug_info_line) * (ret->line_entry_count + 1));
         m.start_pos = start_pos + i;
         m.line = irep->lines[start_pos + i];
         ret->line_flat_map[ret->line_entry_count] = m;
 
-        // update
+        /* update */
         ++ret->line_entry_count;
         prev_line = irep->lines[start_pos + i];
       }

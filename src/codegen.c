@@ -16,6 +16,7 @@
 #include "node.h"
 #include "opcode.h"
 #include "re.h"
+#include "mrb_throw.h"
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
@@ -38,7 +39,7 @@ struct loopinfo {
 typedef struct scope {
   mrb_state *mrb;
   mrb_pool *mpool;
-  jmp_buf jmp;
+  struct mrb_jmpbuf jmp;
 
   struct scope *prev;
 
@@ -106,7 +107,7 @@ codegen_error(codegen_scope *s, const char *message)
     fprintf(stderr, "codegen error: %s\n", message);
   }
 #endif
-  longjmp(s->jmp, 1);
+  MRB_THROW(&s->jmp);
 }
 
 static void*
@@ -565,15 +566,15 @@ for_body(codegen_scope *s, node *tree)
   node *n2;
   mrb_code c;
 
-  // generate receiver
+  /* generate receiver */
   codegen(s, tree->cdr->car, VAL);
-  // generate loop-block
+  /* generate loop-block */
   s = scope_new(s->mrb, s, tree->car);
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
 
-  // generate loop variable
+  /* generate loop variable */
   n2 = tree->car;
   if (n2->car && !n2->car->cdr && !n2->cdr) {
     genop(s, MKOP_Ax(OP_ENTER, 0x40000));
@@ -751,7 +752,7 @@ gen_values(codegen_scope *s, node *t, int val)
   int is_splat;
 
   while (t) {
-    is_splat = (intptr_t)t->car->car == NODE_SPLAT; // splat mode
+    is_splat = (intptr_t)t->car->car == NODE_SPLAT; /* splat mode */
     if (n >= 127 || is_splat) {
       if (val) {
         pop_n(n);
@@ -789,7 +790,7 @@ gen_values(codegen_scope *s, node *t, int val)
       }
       return -1;
     }
-    // normal (no splat) mode
+    /* normal (no splat) mode */
     codegen(s, t->car, val);
     n++;
     t = t->cdr;
@@ -1593,7 +1594,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int rhs = cursp();
 
       if ((intptr_t)t->car == NODE_ARRAY && nosplat(t->cdr)) {
-        // fixed rhs
+        /* fixed rhs */
         t = t->cdr;
         while (t) {
           codegen(s, t->car, VAL);
@@ -1642,7 +1643,7 @@ codegen(codegen_scope *s, node *tree, int val)
         }
       }
       else {
-        // variable rhs
+        /* variable rhs */
         codegen(s, t, VAL);
         gen_vmassignment(s, tree->car, rhs, val);
       }
@@ -1981,7 +1982,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_ARG:
-    // should not happen
+    /* should not happen */
     break;
 
   case NODE_BLOCK_ARG:
@@ -2520,7 +2521,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   p->simple_lambda = 1;
   p->shared_lambda = 1;
 
-  // debug setting
+  /* debug setting */
   p->debug_start_pos = 0;
   if(p->filename) {
     mrb_debug_info_alloc(mrb, p->irep);
@@ -2582,7 +2583,7 @@ scope_finish(codegen_scope *s)
     mrb_debug_info_append_file(mrb, s->irep, s->debug_start_pos, s->pc);
 
     fname_len = strlen(s->filename);
-    fname = codegen_malloc(s, fname_len + 1);
+    fname = (char*)codegen_malloc(s, fname_len + 1);
     memcpy(fname, s->filename, fname_len);
     fname[fname_len] = '\0';
     irep->filename = fname;
@@ -3020,15 +3021,16 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
   scope->parser = p;
   scope->filename = p->filename;
   scope->filename_index = p->current_filename_index;
-  if (setjmp(scope->jmp) == 0) {
-    // prepare irep
+
+  MRB_TRY(&scope->jmp) {
+    /* prepare irep */
     codegen(scope, p->tree, NOVAL);
     proc = mrb_proc_new(mrb, scope->irep);
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     return proc;
   }
-  else {
+  MRB_CATCH(&scope->jmp) {
     if (scope->filename == scope->irep->filename) {
       scope->irep->filename = NULL;
     }
@@ -3036,4 +3038,5 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     mrb_pool_close(scope->mpool);
     return NULL;
   }
+  MRB_END_EXC(&scope->jmp);
 }

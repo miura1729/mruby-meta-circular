@@ -14,6 +14,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
+#include "mruby/data.h"
 
 #include "mruby/primitive.h"
 
@@ -459,6 +460,7 @@ to_hash(mrb_state *mrb, mrb_value val)
     i:      Integer        [mrb_int]
     b:      Boolean        [mrb_bool]
     n:      Symbol         [mrb_sym]
+    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
     &:      Block          [mrb_value]
     *:      rest argument  [mrb_value*,int]       Receive the rest of the arguments as an array.
     |:      optional                              Next argument of '|' and later are optional.
@@ -711,6 +713,19 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
+    case 'd':
+      {
+        void** datap;
+        struct mrb_data_type const* type;
+
+        datap = va_arg(ap, void**);
+        type = va_arg(ap, struct mrb_data_type const*);
+        if (i < argc) {
+          *datap = mrb_data_get_ptr(mrb, *sp++, type);
+          ++i;
+        }
+      }
+      break;
 
     case '&':
       {
@@ -769,8 +784,13 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   struct RClass *c;
 
   c = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_CLASS, mrb->class_class);
-  c->super = super ? super : mrb->object_class;
-  mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)super);
+  if (super) {
+    c->super = super;
+    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)super);
+  }
+  else {
+    c->super = mrb->object_class;
+  }
   c->mt = kh_init(mt, mrb);
   return c;
 }
@@ -1156,7 +1176,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   }
   new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
   if (!mrb_nil_p(blk)) {
-    mrb_funcall_with_block(mrb, new_class, mrb_intern_cstr(mrb, "class_eval"), 0, NULL, blk);
+    mrb_funcall_with_block(mrb, new_class, mrb_intern_lit(mrb, "class_eval"), 0, NULL, blk);
   }
   mrb_funcall(mrb, super, "inherited", 1, new_class);
   return new_class;
@@ -1227,22 +1247,28 @@ mrb_bob_missing(mrb_state *mrb, mrb_value mod)
   mrb_sym name;
   mrb_value *a;
   int alen;
-  mrb_value inspect;
+  mrb_sym inspect;
+  mrb_value repr;
 
   mrb_get_args(mrb, "n*", &name, &a, &alen);
 
-  if (mrb_respond_to(mrb,mod,mrb_intern_lit(mrb, "inspect"))){
-    inspect = mrb_funcall(mrb, mod, "inspect", 0);
-    if (RSTRING_LEN(inspect) > 64) {
-      inspect = mrb_any_to_s(mrb, mod);
+  inspect = mrb_intern_lit(mrb, "inspect");
+  if (mrb->c->ci > mrb->c->cibase && mrb->c->ci[-1].mid == inspect) {
+    /* method missing in inspect; avoid recursion */
+    repr = mrb_any_to_s(mrb, mod);
+  }
+  else if (mrb_respond_to(mrb, mod, inspect)) {
+    repr = mrb_funcall_argv(mrb, mod, inspect, 0, 0);
+    if (RSTRING_LEN(repr) > 64) {
+      repr = mrb_any_to_s(mrb, mod);
     }
   }
   else {
-    inspect = mrb_any_to_s(mrb, mod);
+    repr = mrb_any_to_s(mrb, mod);
   }
 
   mrb_raisef(mrb, E_NOMETHOD_ERROR, "undefined method '%S' for %S",
-             mrb_sym2str(mrb, name), inspect);
+             mrb_sym2str(mrb, name), repr);
   /* not reached */
   return mrb_nil_value();
 }
@@ -1323,7 +1349,7 @@ mrb_class_name(mrb_state *mrb, struct RClass* c)
   if (mrb_nil_p(path)) {
     path = mrb_str_new_lit(mrb, "#<Class:");
     mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
-    mrb_str_cat(mrb, path, ">", 1);
+    mrb_str_cat_lit(mrb, path, ">");
   }
   return mrb_str_ptr(path)->ptr;
 }
@@ -1458,7 +1484,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
         mrb_str_append(mrb, str, mrb_any_to_s(mrb, v));
         break;
     }
-    mrb_str_cat(mrb, str, ">", 1);
+    mrb_str_cat_lit(mrb, str, ">");
   }
   else {
     struct RClass *c;
@@ -1471,20 +1497,20 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     if (mrb_nil_p(path)) {
       switch (mrb_type(klass)) {
         case MRB_TT_CLASS:
-          mrb_str_cat(mrb, str, "#<Class:", 8);
+          mrb_str_cat_lit(mrb, str, "#<Class:");
           break;
 
         case MRB_TT_MODULE:
-          mrb_str_cat(mrb, str, "#<Module:", 9);
+          mrb_str_cat_lit(mrb, str, "#<Module:");
           break;
 
         default:
           /* Shouldn't be happened? */
-          mrb_str_cat(mrb, str, "#<??????:", 9);
+          mrb_str_cat_lit(mrb, str, "#<??????:");
           break;
       }
       mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, c));
-      mrb_str_cat(mrb, str, ">", 1);
+      mrb_str_cat_lit(mrb, str, ">");
     }
     else {
       str = path;
@@ -1958,7 +1984,6 @@ mrb_init_class(mrb_state *mrb)
   struct RClass *obj;           /* Object */
   struct RClass *mod;           /* Module */
   struct RClass *cls;           /* Class */
-  //struct RClass *krn;    /* Kernel */
 
   /* boot class hierarchy */
   bob = boot_defclass(mrb, 0);

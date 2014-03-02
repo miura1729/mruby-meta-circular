@@ -216,15 +216,15 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
   return mrb_struct_set(mrb, obj, val);
 }
 
-#define is_notop_id(id) (id)//((id)>tLAST_TOKEN)
-#define is_local_id(id) (is_notop_id(id))//&&((id)&ID_SCOPE_MASK)==ID_LOCAL)
+#define is_notop_id(id) (id) /* ((id)>tLAST_TOKEN) */
+#define is_local_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_LOCAL) */
 int
 mrb_is_local_id(mrb_sym id)
 {
   return is_local_id(id);
 }
 
-#define is_const_id(id) (is_notop_id(id))//&&((id)&ID_SCOPE_MASK)==ID_CONST)
+#define is_const_id(id) (is_notop_id(id)) /* &&((id)&ID_SCOPE_MASK)==ID_CONST) */
 int
 mrb_is_const_id(mrb_sym id)
 {
@@ -251,7 +251,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     }
     if (mrb_const_defined_at(mrb, klass, id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
-      //?rb_mod_remove_const(klass, mrb_sym2name(mrb, id));
+      /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
@@ -262,7 +262,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, MRB_ARGS_NONE());
-  //RSTRUCT(nstr)->basic.c->super = c->c;
+  /* RSTRUCT(nstr)->basic.c->super = c->c; */
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
   for (i=0; i< len; i++) {
@@ -442,7 +442,7 @@ static mrb_value
 inspect_struct(mrb_state *mrb, mrb_value s, int recur)
 {
   const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
-  mrb_value members, str = mrb_str_new(mrb, "#<struct ", 9);
+  mrb_value members, str = mrb_str_new_lit(mrb, "#<struct ");
   mrb_value *ptr, *ptr_members;
   mrb_int i, len;
 
@@ -450,7 +450,7 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
     mrb_str_append(mrb, str, mrb_str_new_cstr(mrb, cn));
   }
   if (recur) {
-    return mrb_str_cat_cstr(mrb, str, ":...>");
+    return mrb_str_cat_lit(mrb, str, ":...>");
   }
 
   members = mrb_struct_members(mrb, s);
@@ -462,10 +462,10 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
     mrb_sym id;
 
     if (i > 0) {
-      mrb_str_cat_cstr(mrb, str, ", ");
+      mrb_str_cat_lit(mrb, str, ", ");
     }
     else if (cn) {
-      mrb_str_cat_cstr(mrb, str, " ");
+      mrb_str_cat_lit(mrb, str, " ");
     }
     slot = ptr_members[i];
     id = mrb_symbol(slot);
@@ -479,10 +479,10 @@ inspect_struct(mrb_state *mrb, mrb_value s, int recur)
     else {
       mrb_str_append(mrb, str, mrb_inspect(mrb, slot));
     }
-    mrb_str_cat_cstr(mrb, str, "=");
+    mrb_str_cat_lit(mrb, str, "=");
     mrb_str_append(mrb, str, mrb_inspect(mrb, ptr[i]));
   }
-  mrb_str_cat_cstr(mrb, str, ">");
+  mrb_str_cat_lit(mrb, str, ">");
 
   return str;
 }

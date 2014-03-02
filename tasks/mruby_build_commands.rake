@@ -24,9 +24,17 @@ module MRuby
       target
     end
 
+    NotFoundCommands = {}
+
     private
     def _run(options, params={})
-      sh build.filename(command) + ' ' + ( options % params )
+      return sh command + ' ' + ( options % params ) if NotFoundCommands.key? @command
+      begin
+        sh build.filename(command) + ' ' + ( options % params )
+      rescue RuntimeError
+        NotFoundCommands[@command] = true
+        _run options, params
+      end
     end
   end
 
@@ -110,7 +118,7 @@ module MRuby
         File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
       else
         []
-      end
+      end + [ MRUBY_CONFIG ]
     end
   end
 
@@ -225,7 +233,7 @@ module MRuby
     def initialize(build)
       super
       @command = 'git'
-      @flags = []
+      @flags = %w[--depth 1]
       @clone_options = "clone %{flags} %{url} %{dir}"
       @pull_options = "pull"
     end
