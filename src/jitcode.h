@@ -123,6 +123,19 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
+    gen_align(unsigned align)
+  {
+    const unsigned char *code = getCurr();
+    unsigned padsize = (((size_t)code) & (align - 1));
+    unsigned i;
+
+    padsize = (align - padsize) & (align - 1);
+    for (i = 0; i < padsize; i++) {
+      nop();
+    }
+  }
+
+  void 
     gen_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrb_code *curpc, mrb_code *newpc)
   {
     mrbjit_code_info *newci;

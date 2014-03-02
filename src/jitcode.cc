@@ -51,6 +51,19 @@ mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc)
   code->gen_exit_patch(dst, pc);
 }
 
+void
+mrbjit_gen_align(mrbjit_code_area coderaw, unsigned align)
+{
+  MRBJitCode *code;
+  if (coderaw == NULL) {
+    code = the_code;
+  } 
+  else {
+    code  = (MRBJitCode *) coderaw;
+  }
+  code->gen_align(align);
+}
+
 static const void *
 mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 		     MRBJitCode *code, mrbjit_code_info *coi)
