@@ -171,6 +171,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return;
     }
 
+    mov(eax, dword [ecx + regpos * sizeof(mrb_value) + 4]); /* Get type tag */
     rinfo->type = tt;
     rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
     /* Input eax for type tag */
@@ -1220,9 +1221,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];                     \
 \
-    mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */             \
     gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
-    mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */             \
     gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
@@ -1299,9 +1298,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];
 
-    mov(eax, dword [ecx + reg0off + 4]); /* Get type tag */
     gen_type_guard(mrb, reg0pos, status, *ppc, coi);
-    mov(eax, dword [ecx + reg1off + 4]); /* Get type tag */
     gen_type_guard(mrb, reg1pos, status, *ppc, coi);
 
     if (r0type == MRB_TT_FIXNUM) {
@@ -1347,7 +1344,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];                       \
 \
-    mov(eax, dword [ecx + off + 4]); /* Get type tag */                 \
     gen_type_guard(mrb, regno, status, *ppc, coi);			\
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
@@ -1428,9 +1424,7 @@ do {                                                                 \
     int regno = GETARG_A(**ppc);                                     \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
-    mov(eax, dword [ecx + off0 + 4]); /* Get type tag */             \
     gen_type_guard(mrb, regno, status, *ppc, coi);		     \
-    mov(eax, dword [ecx + off1 + 4]); /* Get type tag */             \
     gen_type_guard(mrb, regno + 1, status, *ppc, coi);		     \
                                                                      \
     if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \

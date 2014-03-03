@@ -1027,7 +1027,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   if (cbase && entry == NULL) {
     /* Finish compile */
     mrbjit_gen_exit(cbase, mrb, irep, ppc);
-    mrbjit_gen_align(cbase, 16);
+    //mrbjit_gen_align(cbase, 16);
     mrb->compile_info.code_base = NULL;
     mrb->compile_info.nest_level = 0;
   }
