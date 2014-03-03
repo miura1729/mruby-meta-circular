@@ -9,7 +9,9 @@ MRuby::Build.new do |conf|
   end
 
   conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32))
+#  conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -pg -m32))
   conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
+#  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32 -pg))
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
