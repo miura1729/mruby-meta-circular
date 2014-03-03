@@ -11,6 +11,7 @@ IMAGE_HEIGHT = 64
 NSUBSAMPLES = 2
 NAO_SAMPLES = 8
 
+srand(100)
 module Rand
   # Use xorshift
   @@x = 123456789
@@ -224,8 +225,10 @@ class Scene
                 isect.pl.z + eps * isect.n.z)
     nphi.times do |j|
       ntheta.times do |i|
-        r = Rand::rand
-        phi = 2.0 * 3.14159265 * Rand::rand
+#        r = Rand::rand
+        r = rand
+#        phi = 2.0 * 3.14159265 * Rand::rand
+        phi = 2.0 * 3.14159265 * rand
         x = Math.cos(phi) * Math.sqrt(1.0 - r)
         y = Math.sin(phi) * Math.sqrt(1.0 - r)
         z = Math.sqrt(r)
@@ -298,9 +301,9 @@ class Scene
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-        #printf("%c", clamp(r))
-        #printf("%c", clamp(g))
-        #printf("%c", clamp(b))
+#        printf("%c", clamp(r))
+#        printf("%c", clamp(g))
+#        printf("%c", clamp(b))
       end
     end
   end
