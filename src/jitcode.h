@@ -387,9 +387,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     const Xbyak::uint32 src = GETARG_sBx(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_FIXNUM;
-    dinfo->klass = mrb->fixnum_class;
-    dinfo->constp = 1;
 
     switch(src) {
     case 0:
@@ -407,7 +404,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [ecx + dstoff], src);
       break;
     }
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FIXNUM);
+    if (dinfo->type != MRB_TT_FIXNUM) {
+      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FIXNUM);
+      dinfo->type = MRB_TT_FIXNUM;
+      dinfo->klass = mrb->fixnum_class;
+    }
+    dinfo->constp = 1;
 
     return code;
   }
@@ -456,13 +458,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;
 
-    mov(eax, 1);
-    mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_TRUE);
+    if (dinfo->type != MRB_TT_TRUE) {
+      xor(eax, eax);
+      inc(eax);
+      mov(dword [ecx + dstoff], eax);
+      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_TRUE);
+      dinfo->type = MRB_TT_TRUE;
+      dinfo->klass = mrb->true_class;
+      dinfo->constp = 1;
+    }
 
     return code;
   }
@@ -474,12 +479,16 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_code **ppc = status->pc;
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_FALSE;
-    dinfo->klass = mrb->false_class;
-    dinfo->constp = 1;
 
-    mov(dword [ecx + dstoff], 1);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+    if (dinfo->type != MRB_TT_FALSE) {
+      xor(eax, eax);
+      inc(eax);
+      mov(dword [ecx + dstoff], eax);
+      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+      dinfo->type = MRB_TT_FALSE;
+      dinfo->klass = mrb->false_class;
+      dinfo->constp = 1;
+    }
 
     return code;
   }
