@@ -850,7 +850,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       /* Reg map */
       /*    old ci  edx */
       /*    tmp  eax */
-      push(edi);
       mov(edx, dword [edi + OffsetOf(mrb_context, ci)]);
 
       cmp(edx, dword [edi + OffsetOf(mrb_context, ciend)]);
@@ -1003,7 +1002,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [edx], (Xbyak::uint32)m->body.irep->iseq);
 
       gen_set_jit_entry(mrb, pc, coi, irep);
-      pop(edi);
     }
 
     return code;
