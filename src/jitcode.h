@@ -308,7 +308,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* This is unused entry, but right.Because no other pathes */
-    mov(edx, (Xbyak::uint32)ctab->body);
+    mov(edx, (Xbyak::uint32)ctab);
+    mov(edx, dword [edx + OffsetOf(mrbjit_codetab, body)]);
     mov(edx, dword [edx 
 		    + toff * sizeof(mrbjit_code_info)
 		    + OffsetOf(mrbjit_code_info, entry)]);
