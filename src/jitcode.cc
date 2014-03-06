@@ -3,10 +3,10 @@
 extern "C" {
 
 void
-mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc)
+mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_vmstatus *status)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->gen_exit(*ppc, 1, 0);
+  code->gen_exit(*ppc, 1, 0, status);
 }
 
 void
@@ -39,7 +39,7 @@ mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
 }
 
 void
-mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc)
+mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc, mrbjit_vmstatus *status)
 {
   MRBJitCode *code;
   if (coderaw == NULL) {
@@ -48,7 +48,7 @@ mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc)
   else {
     code  = (MRBJitCode *) coderaw;
   }
-  code->gen_exit_patch(dst, pc);
+  code->gen_exit_patch(dst, pc, status);
 }
 
 void
@@ -74,7 +74,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   if (code == NULL) {
     code = the_code;
-    printf("%x \n", code->getCurr());
+    //    printf("%x \n", code->getCurr());
     mrb->compile_info.code_base = code;
   }
   const void *entry = code->gen_entry(mrb, status);

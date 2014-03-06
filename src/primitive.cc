@@ -396,12 +396,11 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     push(eax);
     CALL_CFUNC_STATUS(mrbjit_exec_send_mruby, 2);
 
-    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, regs)]);
-    mov(ecx, dword [eax]);
+    mov(ecx, dword [ebx + VMSOffsetOf(regs)]);
 
     gen_set_jit_entry(mrb, pc, coi, irep);
 
-    gen_exit(m->body.irep->iseq, 1, 0);
+    gen_exit(m->body.irep->iseq, 1, 0, status);
   }
 
   return mrb_true_value();
@@ -421,7 +420,7 @@ MRBJitCode::mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
 {
   mrb_code *pc = *status->pc;
 
-  gen_exit(pc, 1, 1);
+  gen_exit(pc, 1, 1, status);
   return mrb_true_value();
 }
 
