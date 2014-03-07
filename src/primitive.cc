@@ -226,7 +226,6 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
-  lea(eax, ptr [ecx + offary]);
   gen_class_guard(mrb, regno, status, pc, coi);
 
   mov(edx, ptr [ecx + offary]);

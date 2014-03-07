@@ -227,12 +227,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       rinfo->type = tt;
 
+      mov(eax, ptr [ecx + regpos * sizeof(mrb_value) + 4]);
+
       if (tt == MRB_TT_FLOAT) {
-	cmp(dword [eax + 4], 0xfff00000);
+	cmp(eax, 0xfff00000);
 	jb("@f");
-      } 
+      }
       else {
-	cmp(dword [eax + 4], 0xfff00000 | tt);
+	cmp(eax, 0xfff00000 | tt);
 	jz("@f");
       }
 
@@ -259,7 +261,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	  return;
 	}
 	rinfo->klass = c;
-	mov(eax, dword [eax]);
+	mov(eax, dword [ecx + regpos * sizeof(mrb_value)]);
 	mov(eax, dword [eax + OffsetOf(struct RBasic, c)]);
 	cmp(eax, (int)c);
 	jz("@f");
@@ -783,7 +785,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
     callee_nregs = m->body.irep->nregs;
 
-    lea(eax, ptr [ecx + a * sizeof(mrb_value)]);
     gen_class_guard(mrb, a, status, pc, coi);
 
     if ((ivid = is_reader(mrb, m))) {
