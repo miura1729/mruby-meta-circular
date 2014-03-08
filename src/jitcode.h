@@ -191,10 +191,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     L("@@");
   }
 
+  /*
+   input EAX Pointer to tested boolean
+  */
   void
     gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc, mrbjit_vmstatus *status)
   {
-    /* Input eax for tested boolean */
     cmp(eax, 0xfff00001);
     if (b) {
       jnz("@f");
@@ -211,7 +213,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
   /* Check current object blong to class. Difference of type guard is 
    this guard chaeck obj->c when v is normal object.
-   input EAX Pointer to  checkee object
      destroy EAX
   */
   void 
@@ -326,7 +327,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push(ecx);
     push(ebx);
     push(ecx);
-    //    mov(eax, dword [ebx + OffsetOf(mrbjit_vmstatus, pc)]);
+    //    mov(eax, dword [ebx + VMSOffsetOf(pc)]);
     mov(eax, (Xbyak::uint32)(*(status->pc)));
     push(eax);
     mov(eax, (Xbyak::uint32)(*(status->irep)));
