@@ -142,7 +142,7 @@ append_cmdline:
       args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
       if (args->rfp == NULL) {
         printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
-        return 0;
+        return EXIT_FAILURE;
       }
       args->fname = TRUE;
       args->cmdline = argv[0];
@@ -201,7 +201,7 @@ main(int argc, char **argv)
   if (args.verbose)
     c->dump_result = TRUE;
   if (args.check_syntax)
-    c->no_exec = FALSE;
+    c->no_exec = TRUE;
   if (args.mrbfile) {
     v = mrb_load_irep_file_cxt(mrb, args.rfp, c);
   }

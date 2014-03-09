@@ -676,14 +676,14 @@ inspect_hash(mrb_state *mrb, mrb_value hash, int recur)
 
       str2 = mrb_inspect(mrb, kh_key(h,k));
       mrb_str_append(mrb, str, str2);
-      mrb_str_buf_cat(mrb, str, "=>", 2);
+      mrb_str_cat_lit(mrb, str, "=>");
       str2 = mrb_inspect(mrb, kh_value(h,k));
       mrb_str_append(mrb, str, str2);
 
       mrb_gc_arena_restore(mrb, ai);
     }
   }
-  mrb_str_buf_cat(mrb, str, "}", 1);
+  mrb_str_cat_lit(mrb, str, "}");
 
   return str;
 }
@@ -874,16 +874,22 @@ static mrb_value
 hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
 {
   khash_t(ht) *h1, *h2;
+  mrb_bool eq;
 
   if (mrb_obj_equal(mrb, hash1, hash2)) return mrb_true_value();
   if (!mrb_hash_p(hash2)) {
       if (!mrb_respond_to(mrb, hash2, mrb_intern_lit(mrb, "to_hash"))) {
           return mrb_false_value();
       }
-      if (eql)
-          return mrb_fixnum_value(mrb_eql(mrb, hash2, hash1));
-      else
-          return mrb_fixnum_value(mrb_equal(mrb, hash2, hash1));
+      else {
+        if (eql) {
+          eq = mrb_eql(mrb, hash2, hash1);
+        }
+        else {
+          eq = mrb_equal(mrb, hash2, hash1);
+        }
+        return mrb_bool_value(eq);
+      }
   }
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
@@ -901,7 +907,11 @@ hash_equal(mrb_state *mrb, mrb_value hash1, mrb_value hash2, mrb_bool eql)
       key = kh_key(h1,k1);
       k2 = kh_get(ht, mrb, h2, key);
       if (k2 != kh_end(h2)) {
-        if (mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2))) {
+        if (eql)
+          eq = mrb_eql(mrb, kh_value(h1,k1), kh_value(h2,k2));
+        else
+          eq = mrb_equal(mrb, kh_value(h1,k1), kh_value(h2,k2));
+        if (eq) {
           continue; /* next key */
         }
       }

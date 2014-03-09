@@ -4,10 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
-
-#include "mruby.h"
 #include <stdio.h>
 #include <time.h>
+#include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/data.h"
 
@@ -35,14 +34,51 @@
 #endif
 
 /* timegm(3) */
-/* mktime() creates tm structure for localtime; timegm() is for UTF time */
+/* mktime() creates tm structure for localtime; timegm() is for UTC time */
 /* define following macro to use probably faster timegm() on the platform */
 /* #define USE_SYSTEM_TIMEGM */
 
 /** end of Time class configuration */
 
 #ifndef NO_GETTIMEOFDAY
-#include <sys/time.h>
+# ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
+#  include <windows.h>
+#  define gettimeofday my_gettimeofday
+
+#  ifdef _MSC_VER
+#    define UI64(x) x##ui64
+#  else
+#    define UI64(x) x##ull
+#  endif
+
+typedef long suseconds_t;
+struct timeval {
+  time_t tv_sec;
+  suseconds_t tv_usec;
+};
+static int
+gettimeofday(struct timeval *tv, void *tz)
+{
+  if (tz) {
+    mrb_assert(0);  /* timezone is not supported */
+  }
+  if (tv) {
+    union {
+      FILETIME ft;
+      unsigned __int64 u64;
+    } t;
+    GetSystemTimeAsFileTime(&t.ft);   /* 100 ns intervals since Windows epoch */
+    t.u64 -= UI64(116444736000000000);  /* Unix epoch bias */
+    t.u64 /= 10;                      /* to microseconds */
+    tv->tv_sec = (time_t)(t.u64 / (1000 * 1000));
+    tv->tv_usec = t.u64 % 1000 * 1000;
+  }
+  return 0;
+}
+# else
+#  include <sys/time.h>
+# endif
 #endif
 #ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
@@ -81,7 +117,7 @@ timegm(struct tm *tm)
 }
 #endif
 
-/* Since we are limited to using ISO C89, this implementation is based
+/* Since we are limited to using ISO C99, this implementation is based
 * on time_t. That means the resolution of time is only precise to the
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
@@ -94,22 +130,21 @@ enum mrb_timezone {
 };
 
 typedef struct mrb_timezone_name {
-  const char *name;
+  const char name[8];
   size_t len;
 } mrb_timezone_name;
 
-static mrb_timezone_name timezone_names[] = {
+static const mrb_timezone_name timezone_names[] = {
   { "none", sizeof("none") - 1 },
-  { "UTC",  sizeof("UTC") - 1 },
+  { "UTC", sizeof("UTC") - 1 },
   { "LOCAL", sizeof("LOCAL") - 1 },
-  { NULL, 0 }
 };
 
-static const char *mon_names[] = {
+static const char mon_names[12][4] = {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
 
-static const char *wday_names[] = {
+static const char wday_names[7][4] = {
   "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
 };
 
@@ -120,7 +155,7 @@ struct mrb_time {
   struct tm           datetime;
 };
 
-static struct mrb_data_type mrb_time_type = { "Time", mrb_free };
+static const struct mrb_data_type mrb_time_type = { "Time", mrb_free };
 
 /** Updates the datetime of a mrb_time based on it's timezone and
 seconds setting. Returns self on success, NULL of failure. */
@@ -406,7 +441,7 @@ mrb_time_zone(mrb_state *mrb, mrb_value self)
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   if (tm->timezone <= MRB_TIMEZONE_NONE) return mrb_nil_value();
   if (tm->timezone >= MRB_TIMEZONE_LAST) return mrb_nil_value();
-  return mrb_str_new_static(mrb, 
+  return mrb_str_new_static(mrb,
                             timezone_names[tm->timezone].name,
                             timezone_names[tm->timezone].len);
 }
@@ -424,10 +459,10 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   tm = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   d = &tm->datetime;
   len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
-  wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
-  d->tm_hour, d->tm_min, d->tm_sec,
-  tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
-  d->tm_year + 1900);
+    wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
+    d->tm_hour, d->tm_min, d->tm_sec,
+    tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
+    d->tm_year + 1900);
   return mrb_str_new(mrb, buf, len);
 }
 

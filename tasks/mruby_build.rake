@@ -194,7 +194,8 @@ module MRuby
     end
 
     def run_bintest
-      sh "ruby test/bintest.rb"
+      targets = @gems.select { |v| Dir.exists? "#{v.dir}/bintest" }.map { |v| filename v.dir }
+      sh "ruby test/bintest.rb #{targets.join ' '}"
     end
 
     def print_build_summary
@@ -219,8 +220,8 @@ module MRuby
     attr_block %w(test_runner)
 
     def initialize(name, build_dir=nil, &block)
-  @test_runner = Command::CrossTestRunner.new(self)
-  super
+      @test_runner = Command::CrossTestRunner.new(self)
+      super
     end
 
     def mrbcfile

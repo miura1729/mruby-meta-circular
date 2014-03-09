@@ -12,6 +12,7 @@ end
 assert('Hash#==', '15.2.13.4.1') do
   assert_true({ 'abc' => 'abc' } == { 'abc' => 'abc' })
   assert_false({ 'abc' => 'abc' } ==  { 'cba' => 'cba' })
+  assert_true({ :equal => 1 } == { :equal => 1.0 })
 end
 
 assert('Hash#[]', '15.2.13.4.2') do
@@ -268,6 +269,14 @@ assert('Hash#values', '15.2.13.4.28') do
 end
 
 # Not ISO specified
+
+assert('Hash#eql?') do
+  a = { 'a' => 1, 'b' => 2, 'c' => 3 }
+  b = { 'a' => 1, 'b' => 2, 'c' => 3 }
+  c = { 'a' => 1.0, 'b' => 2, 'c' => 3 }
+  assert_true(a.eql?(b))
+  assert_false(a.eql?(c))
+end
 
 assert('Hash#reject') do
   h = {:one => 1, :two => 2, :three => 3, :four => 4}

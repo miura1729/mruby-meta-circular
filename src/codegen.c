@@ -5,6 +5,7 @@
 */
 
 #include <ctype.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mruby.h"
@@ -737,7 +738,11 @@ attrsym(codegen_scope *s, mrb_sym a)
   char *name2;
 
   name = mrb_sym2name_len(s->mrb, a, &len);
-  name2 = (char *)codegen_palloc(s, len+1);
+  name2 = (char *)codegen_palloc(s,
+                                 len
+                                 + 1 /* '=' */
+                                 + 1 /* '\0' */
+                                 );
   memcpy(name2, name, len);
   name2[len] = '=';
   name2[len+1] = '\0';
@@ -1225,7 +1230,12 @@ codegen(codegen_scope *s, node *tree, int val)
             }
             genop(s, MKOP_AB(OP_MOVE, cursp(), exc));
             pop();
-            genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+            if (n4 && n4->car && (intptr_t)n4->car->car == NODE_SPLAT) {
+              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1));
+            }
+            else {
+              genop(s, MKOP_ABC(OP_SEND, cursp(), new_msym(s, mrb_intern_lit(s->mrb, "===")), 1));
+            }
             tmp = new_label(s);
             genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
             pos2 = tmp;
@@ -1973,7 +1983,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_value fix = mrb_fixnum_value((intptr_t)tree);
       mrb_value str = mrb_str_buf_new(mrb, 4);
 
-      mrb_str_buf_cat(mrb, str, "$", 1);
+      mrb_str_cat_lit(mrb, str, "$");
       mrb_str_buf_append(mrb, str, mrb_fixnum_to_str(mrb, fix, 10));
       sym = new_sym(s, mrb_intern_str(mrb, str));
       genop(s, MKOP_ABx(OP_GETGLOBAL, cursp(), sym));
@@ -2673,14 +2683,16 @@ static void
 codedump(mrb_state *mrb, mrb_irep *irep)
 {
 #ifdef ENABLE_STDIO
-  uint32_t i;
+  int i;
   int ai;
   mrb_code c;
 
   if (!irep) return;
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
-  for (i=0; i<irep->ilen; i++) {
+
+  mrb_assert(irep->ilen <= INT_MAX);
+  for (i = 0; i < (int)(irep->ilen); i++) {
     ai = mrb_gc_arena_save(mrb);
     printf("%03d ", i);
     c = irep->iseq[i];
