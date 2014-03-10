@@ -1447,7 +1447,21 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    COMP_GEN(setz, setz);
+    int regno = GETARG_A(**ppc);
+    enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regno]);
+    /* Import from class.h */
+    switch (tt) {
+    case MRB_TT_TRUE:
+    case MRB_TT_FALSE:
+    case MRB_TT_SYMBOL:
+    case MRB_TT_FIXNUM:
+    case MRB_TT_FLOAT:
+      COMP_GEN(setz, setz);
+      break;
+
+    default:
+      gen_exit(*status->pc, 1, 1, status);
+    }
 
     return code;
   }
