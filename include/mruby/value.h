@@ -403,6 +403,7 @@ struct RBasic {
 struct RObject {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
+  mrb_value *segcache;
 };
 #define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
 /* obsolete macro mrb_object; will be removed soon */

@@ -517,10 +517,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
-    mov(eax, dword [ecx]);
-    mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
-    mov(eax, dword [eax]);
-    movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
+    /* You can not change class of self in Ruby */
+    if (mrb_type(self) == MRB_TT_OBJECT) {
+      mov(eax, dword [ecx]);
+      mov(eax, dword [eax + OffsetOf(struct RObject, segcache)]);
+      movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
+    }
+    else {
+      mov(eax, dword [ecx]);
+      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+      mov(eax, dword [eax]);
+      movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
+    }
     movsd(ptr [ecx + dstoff], xmm0);
 
     return code;
@@ -567,17 +575,19 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(eax);
     pop(ebx);
     pop(ecx);
-    mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
     if (ivoff == -2) {
+      mov(edx, eax);
+      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       ivoff =  mrb_obj_ptr(self)->iv->last_len;
       inc(dword [eax + OffsetOf(iv_tbl, last_len)]);
       inc(dword [eax + OffsetOf(iv_tbl, size)]);
       mov(eax, dword [eax]);
       movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
-      add(eax, MRB_SEGMENT_SIZE * sizeof(mrb_value));
-      mov(dword [eax + ivoff * sizeof(mrb_sym)], (Xbyak::uint32)id);
+      mov(dword [edx + OffsetOf(struct RObject, segcache)], eax);
+      mov(dword [eax + MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym)], (Xbyak::uint32)id);
     }
     else {
+      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       mov(eax, dword [eax]);
       movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
     }
