@@ -576,14 +576,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ebx);
     pop(ecx);
     if (ivoff == -2) {
-      mov(edx, eax);
+      if (mrb_type(self) == MRB_TT_OBJECT) {
+	mov(edx, eax);
+      }
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       ivoff =  mrb_obj_ptr(self)->iv->last_len;
       inc(dword [eax + OffsetOf(iv_tbl, last_len)]);
       inc(dword [eax + OffsetOf(iv_tbl, size)]);
       mov(eax, dword [eax]);
       movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
-      mov(dword [edx + OffsetOf(struct RObject, segcache)], eax);
+      if (mrb_type(self) == MRB_TT_OBJECT) {
+	mov(dword [edx + OffsetOf(struct RObject, segcache)], eax);
+      }
       mov(dword [eax + MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym)], (Xbyak::uint32)id);
     }
     else {
