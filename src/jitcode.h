@@ -705,7 +705,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 #define CALL_CFUNC_STATUS(func_name, auxargs)			     \
   do {                                                               \
-    push((Xbyak::uint32)status);                                     \
+    lea(eax, dword [ebx + VMSOffsetOf(status)]);                     \
+    push(eax);                                                       \
 \
     /* Update pc */                                                  \
     mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)(*status->pc));\
@@ -860,7 +861,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     if (MRB_PROC_CFUNC_P(m)) {
+      //mrb_p(mrb, regs[a]);
       //puts(mrb_sym2name(mrb, mid)); // for tuning
+      //printf("%x \n", irep);
       CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
       push(eax);
@@ -1062,7 +1065,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push(ecx);
     push(ebx);
 
-    push((Xbyak::uint32)status);
+    lea(eax, dword [ebx + VMSOffsetOf(status)]);
+    push(eax);
     push(esi);
     call((void *)mrbjit_exec_call);
     add(esp, 2 * sizeof(void *));
@@ -1174,7 +1178,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       push(ecx);
       push(ebx);
 
-      push((Xbyak::uint32)status);
+      lea(eax, dword [ebx + VMSOffsetOf(status)]);
+      push(eax);
       push(esi);
       if (can_use_fast) {
 	call((void *)mrbjit_exec_return_fast);

@@ -1134,7 +1134,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   };
 #endif
   mrbjit_vmstatus status = {
-    &irep, &proc, &pc, &pool, &syms, &regs, &ai, 
+    &irep, &proc, &pc, &pool, &syms, &regs, &ai, &status,
     optable, gototable, &prev_jmp
   };
 

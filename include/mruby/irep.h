@@ -69,6 +69,7 @@ typedef struct mrbjit_vmstatus {
   mrb_sym **syms;
   mrb_value **regs;
   int *ai;
+  struct mrbjit_vmstatus *status;
   void **optable;
   void **gototable;
   struct mrb_jmpbuf **prev_jmp;

@@ -12,7 +12,7 @@
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
-  mrb_bool lit;
+  mrb_bool lit : 1;
   uint16_t len;
   const char *name;
 } symbol_name;
@@ -35,7 +35,7 @@ KHASH_DECLARE(n2s, symbol_name, mrb_sym, 1)
 KHASH_DEFINE (n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
 static mrb_sym
-sym_intern(mrb_state *mrb, const char *name, size_t len, int lit)
+sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   khash_t(n2s) *h = mrb->name2sym;
   symbol_name sname;
@@ -72,13 +72,13 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, int lit)
 mrb_sym
 mrb_intern(mrb_state *mrb, const char *name, size_t len)
 {
-  return sym_intern(mrb, name, len, 0);
+  return sym_intern(mrb, name, len, FALSE);
 }
 
 mrb_sym
 mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
-  return sym_intern(mrb, name, len, 1);
+  return sym_intern(mrb, name, len, TRUE);
 }
 
 mrb_sym
