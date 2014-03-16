@@ -288,10 +288,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int toff;
     mrbjit_codetab *ctab;
 
-    //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
-    /* edi must point current context  */
-    mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
-    lea(eax, dword [eax + OffsetOf(mrb_callinfo, jit_entry)]);
     ioff = ISEQ_OFFSET_OF(pc);
     toff = coi - (irep->jit_entry_tab + ioff)->body;
 
@@ -313,12 +309,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     /* This is unused entry, but right.Because no other pathes */
     mov(edx, (Xbyak::uint32)ctab);
     mov(edx, dword [edx + OffsetOf(mrbjit_codetab, body)]);
+
+    //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
+    /* edi must point current context  */
+    mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
+
     mov(edx, dword [edx 
 		    + toff * sizeof(mrbjit_code_info)
 		    + OffsetOf(mrbjit_code_info, entry)]);
 
     //printf("%d ", toff);
-    mov(dword [eax], edx);
+    mov(dword [eax + OffsetOf(mrb_callinfo, jit_entry)], edx);
   }
 
   void
