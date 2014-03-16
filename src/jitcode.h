@@ -1016,8 +1016,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(dword [ebx + VMSOffsetOf(regs)], ecx);
 
-      mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)m->body.irep->iseq);
-
       gen_set_jit_entry(mrb, pc, coi, irep);
     }
 
@@ -1057,8 +1055,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(eax);
     gen_exit(*status->pc, 1, 1, status);
     L("@@");
-    /* Update pc */
-    mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)(*status->pc));
 
     push(ecx);
     push(ebx);
@@ -1135,9 +1131,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(edi, edx);
 
-      /* Restore PC */
-      mov(edx, dword [edi + OffsetOf(mrb_callinfo, pc)]);
-      mov(dword [ebx + VMSOffsetOf(pc)], edx);
 
       /* Save return value */
       movsd(xmm0, ptr [ecx + GETARG_A(i) * sizeof(mrb_value)]);
