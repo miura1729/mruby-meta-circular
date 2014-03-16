@@ -578,7 +578,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value str = *(mrb_value*)p;
   const char *s;
-  size_t len;
+  mrb_int len;
   mrb_value ins;
 
   /* need not to show internal data */
@@ -657,7 +657,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  size_t len;
+  mrb_int len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
@@ -701,7 +701,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  size_t len;
+  mrb_int len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
@@ -965,7 +965,7 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   mrb_value ary;
   const char* s;
-  size_t len;
+  mrb_int len;
 
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
