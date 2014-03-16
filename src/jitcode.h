@@ -966,9 +966,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 	mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
 
-	mov(dword [ebx + VMSOffsetOf(pool)], (Xbyak::uint32)m->body.irep->pool);
-
-	mov(dword [ebx + VMSOffsetOf(syms)], (Xbyak::uint32)m->body.irep->syms);
       }
       else {
 	/* Block call */

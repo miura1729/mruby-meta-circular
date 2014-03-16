@@ -502,8 +502,6 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   *status->proc = m;
   *status->irep = irep;
   *status->pc = irep->iseq;
-  *status->pool = irep->pool;
-  *status->syms = irep->syms;
 
   return NULL;
 }
