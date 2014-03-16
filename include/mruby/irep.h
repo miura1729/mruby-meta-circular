@@ -65,7 +65,7 @@ typedef struct mrbjit_vmstatus {
   mrb_irep **irep;
   struct RProc **proc;
   mrb_code **pc;
-  struct mrb_value **pool;
+  mrb_value **pool;
   mrb_sym **syms;
   mrb_value **regs;
   int *ai;
