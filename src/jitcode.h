@@ -962,8 +962,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 	mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
 
-	mov(dword [ebx + VMSOffsetOf(proc)], eax);
-
 	mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
 
       }
