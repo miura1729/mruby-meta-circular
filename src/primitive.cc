@@ -33,10 +33,12 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   // not need guard for self because guard geneate already
   //mov(eax, dword [ecx + off0 + 4]);
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
 
+  gen_type_guard(mrb, regno, status, pc, coi);
   gen_type_guard(mrb, regno + 1, status, pc, coi);
   
   if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
@@ -87,6 +89,8 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
 
   mov(dword [ecx + off0], eax);
   mov(dword [ecx + off0 + 4], 0xfff80000 | MRB_TT_FIXNUM);
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
 
   return mrb_true_value();
 }
@@ -108,8 +112,11 @@ MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
   add(dword [ecx + off0], 1);
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
 
   return mrb_true_value();
 }
@@ -132,6 +139,7 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   const Xbyak::uint32 off1 = (regno + 1) * sizeof(mrb_value);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
       mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
@@ -153,6 +161,8 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   sub(edx, eax);
   mov(ptr [ecx + off0], edx);
 
+  dinfo->type = MRB_TT_FLOAT;
+  dinfo->klass = mrb->float_class;
   return mrb_true_value();
 }
 
@@ -172,10 +182,13 @@ MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
   mov(eax, dword [ecx + off0]);
   cvtsi2sd(xmm0, eax);
   movsd(ptr [ecx + off0], xmm0);
+  dinfo->type = MRB_TT_FLOAT;
+  dinfo->klass = mrb->float_class;
 
   return mrb_true_value();
 }
@@ -497,7 +510,6 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_value *regs = *status->regs;
-  mrb_irep *irep = *status->irep;
   mrb_code *pc = *status->pc;
   int i = *pc;
   const int dst = GETARG_A(i);
