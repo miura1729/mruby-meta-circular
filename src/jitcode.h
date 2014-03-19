@@ -862,9 +862,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     if (MRB_PROC_CFUNC_P(m)) {
-      //mrb_p(mrb, regs[a]);
-      //puts(mrb_sym2name(mrb, mid)); // for tuning
-      //printf("%x \n", irep);
+      mrb_p(mrb, regs[a]);
+      puts(mrb_sym2name(mrb, mid)); // for tuning
+      printf("%x \n", irep);
       CALL_CFUNC_BEGIN;
       mov(eax, (Xbyak::uint32)c);
       push(eax);

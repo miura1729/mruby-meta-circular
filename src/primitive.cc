@@ -314,6 +314,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   jmp(".exit");
 
   L(".retnil");
+  add(esp, sizeof(void *) + sizeof(mrb_value)); // ecx, val
   xor(eax, eax);
   mov(dword [ecx + offary], eax);
   mov(dword [ecx + offary + 4], 0xfff00000 | MRB_TT_FALSE);

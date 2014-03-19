@@ -1209,7 +1209,7 @@ mrb_init_array(mrb_state *mrb)
   mrbjit_define_primitive(mrb, a, "[]", mrbjit_prim_ary_aget);
 
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */
-  //  mrbjit_define_primitive(mrb, a, "[]=", mrbjit_prim_ary_aset);
+  mrbjit_define_primitive(mrb, a, "[]=", mrbjit_prim_ary_aset);
 
   mrb_define_method(mrb, a, "clear",           mrb_ary_clear,        MRB_ARGS_NONE()); /* 15.2.12.5.6  */
   mrb_define_method(mrb, a, "concat",          mrb_ary_concat_m,     MRB_ARGS_REQ(1)); /* 15.2.12.5.8  */
