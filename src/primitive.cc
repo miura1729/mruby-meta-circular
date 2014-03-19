@@ -504,7 +504,7 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   const int dstoff = dst * sizeof(mrb_value);
   const int src = dst + 1;
   const int srcoff = src * sizeof(mrb_value);
-  mrbjit_reginfo *dinfo = &coi->reginfo[dstoff];
+  mrbjit_reginfo *dinfo = &coi->reginfo[dst];
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
