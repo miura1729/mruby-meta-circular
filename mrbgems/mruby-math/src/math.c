@@ -6,6 +6,7 @@
 
 #include "mruby.h"
 #include "mruby/array.h"
+#include "mruby/primitive.h"
 
 #include <math.h>
 
@@ -663,7 +664,11 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
   mrb_define_module_function(mrb, mrb_math, "log", math_log, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_module_function(mrb, mrb_math, "log2", math_log2, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "log10", math_log10, MRB_ARGS_REQ(1));
+
   mrb_define_module_function(mrb, mrb_math, "sqrt", math_sqrt, MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, ((struct RBasic *)mrb_math)->c, "sqrt", mrbjit_prim_math_sqrt);
+  mrbjit_define_primitive(mrb, mrb_math, "sqrt", mrbjit_prim_math_sqrt);
+
   mrb_define_module_function(mrb, mrb_math, "cbrt", math_cbrt, MRB_ARGS_REQ(1));
 
   mrb_define_module_function(mrb, mrb_math, "frexp", math_frexp, MRB_ARGS_REQ(1));

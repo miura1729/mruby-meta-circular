@@ -491,3 +491,49 @@ mrbjit_prim_enum_all(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 
   return code->mrbjit_prim_enum_all_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
+
+mrb_value
+MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
+					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_irep *irep = *status->irep;
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  const int dst = GETARG_A(i);
+  const int dstoff = dst * sizeof(mrb_value);
+  const int src = dst + 1;
+  const int srcoff = src * sizeof(mrb_value);
+  mrbjit_reginfo *dinfo = &coi->reginfo[dstoff];
+
+  if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
+    gen_type_guard(mrb, src, status, pc, coi);
+    movsd(xmm0, ptr [ecx + srcoff]);
+    sqrtsd(xmm0, xmm0);
+    movsd(ptr [ecx + dstoff], xmm0);
+    dinfo->type = MRB_TT_FLOAT;
+    dinfo->klass = mrb->float_class;
+
+    return mrb_true_value();
+  }
+  else if (mrb_type(regs[src]) == MRB_TT_FIXNUM) {
+    gen_type_guard(mrb, src, status, pc, coi);
+    cvtsi2sd(xmm0, ptr [ecx + srcoff]);
+    sqrtsd(xmm0, xmm0);
+    movsd(ptr [ecx + dstoff], xmm0);
+    dinfo->type = MRB_TT_FLOAT;
+    dinfo->klass = mrb->float_class;
+
+    return mrb_true_value();
+  }
+
+  return mrb_nil_value();
+}
+  
+extern "C" mrb_value
+mrbjit_prim_math_sqrt(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_math_sqrt_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}

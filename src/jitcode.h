@@ -1796,6 +1796,10 @@ do {                                                                 \
   mrb_value
     mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
+  mrb_value
+    mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
+			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 };
 
 #endif  /* MRUBY_JITCODE_H */
