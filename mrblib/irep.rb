@@ -189,6 +189,75 @@ class RiteVM
       @pc = @pc + 1
     end
   end
+
+  def to_relocate_iseq(irep)
+    res = []
+    labels = {}
+    syms = irep.syms
+    lno = 0
+    irep.iseq.each_with_index do |cop, pos|
+      case Irep::OPTABLE_SYM[get_opcode(cop)]
+        when :JMPIF, :JMPNOT, :JMP
+        labels[pos + getarg_sbx(cop)] = "L#{lno}".to_sym
+        lno = lno + 1
+      end
+    end
+
+    p labels
+    irep.iseq.each_with_index do |cop, pos|
+      code = Irep::OPTABLE_SYM[get_opcode(cop)]
+      if labels[pos] then
+        res.push labels[pos]
+      end
+      case code
+      when :NOP
+
+      when :MOVE
+        res.push [code, getarg_a(cop), getarg_b(cop)]
+
+      when :LOADL
+        res.push [code, getarg_a(cop), getarg_bx(cop)]
+
+      when :LOADI
+        res.push [code, getarg_a(cop), getarg_sbx(cop)]
+
+      when :LOADSYM
+        res.push [code, getarg_a(cop), getarg_bx(cop)]
+
+      when :LOADSELF
+        res.push [code, getarg_a(cop)]
+
+      when :LOADT
+        res.push [code, getarg_a(cop)]
+
+      when :ADD,
+        :SUB,
+        :MUL,
+        :DIV,
+        :EQ,
+        :RETURN
+        res.push [code, getarg_a(cop)]
+
+      when :ADDI,
+        :SUBI
+        res.push [code, getarg_a(cop), getarg_c(cop)]
+
+      when :JMP, :JMPIF, :JMPNOT
+        res.push [code, getarg_a(cop), labels[pos + getarg_sbx(cop)]]
+
+      when :ENTER
+        res.push [code, cop]
+
+      when :SEND
+        res.push [code, getarg_a(cop), syms[getarg_b(cop)], getarg_c(cop)]
+
+      else
+        printf("Unkown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
+      end
+    end
+
+    res
+  end
 end
 
 class Irep

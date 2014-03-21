@@ -47,11 +47,12 @@ end
 
 #a = Irep::get_irep(self, :foo)
 #a = Irep::get_irep(self, :factt)
-a = Irep::get_irep(self, :fibt)
+#a = Irep::get_irep(self, :fibt)
 a.iseq.each do |n|
   p Irep::OPTABLE[n & 0x7f]
 end
 vm = RiteVM.new
+p vm.to_relocate_iseq(Irep::get_irep(self, :fib))
 p vm.eval(a)
 #p foo
 #p factt
