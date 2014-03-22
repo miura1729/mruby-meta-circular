@@ -47,7 +47,7 @@ end
 
 #a = Irep::get_irep(self, :foo)
 #a = Irep::get_irep(self, :factt)
-#a = Irep::get_irep(self, :fibt)
+a = Irep::get_irep(self, :fibt)
 a.iseq.each do |n|
   p Irep::OPTABLE[n & 0x7f]
 end

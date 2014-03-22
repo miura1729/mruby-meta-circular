@@ -198,12 +198,11 @@ class RiteVM
     irep.iseq.each_with_index do |cop, pos|
       case Irep::OPTABLE_SYM[get_opcode(cop)]
         when :JMPIF, :JMPNOT, :JMP
-        labels[pos + getarg_sbx(cop)] = "L#{lno}".to_sym
         lno = lno + 1
+        labels[pos + getarg_sbx(cop)] = lno
       end
     end
 
-    p labels
     irep.iseq.each_with_index do |cop, pos|
       code = Irep::OPTABLE_SYM[get_opcode(cop)]
       if labels[pos] then
