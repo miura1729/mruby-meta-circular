@@ -925,7 +925,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       asm volatile("call *%0\n\t"
 		   :
 		   : "g"(ci->entry)
-		   : "%edx");
+		   : );
 
       asm volatile("mov %%eax, %0\n\t"
 		   : "=c"(rc));
