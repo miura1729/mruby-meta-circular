@@ -857,6 +857,9 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
 }
 
 extern void disasm_once(mrb_state *, mrb_irep *, mrb_code);
+extern void *mrbjit_invoke(mrb_value *, mrb_code *, mrb_state *, 
+			   struct mrb_context *, void *, 
+			   void *(**)());
 static inline void *
 mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 {
@@ -906,7 +909,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
-
+#if 0
       asm volatile("mov %0, %%ecx\n\t"
 		   "mov %1, %%ebx\n\t"
 		   "mov %2, %%esi\n\t"
@@ -931,6 +934,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 		   : "=c"(rc));
       asm volatile("mov %%edx, %0\n\t"
 		   : "=c"(prev_entry));
+#else
+      rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, ci->entry, &prev_entry);
+
+#endif
 
       irep = *status->irep;
       regs = *status->regs;
