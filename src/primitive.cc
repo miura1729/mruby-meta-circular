@@ -206,11 +206,24 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 					     mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code **ppc = status->pc;
-  mrb_value *regs = *status->regs;
+  int regno = GETARG_A(**ppc);
+  mrb_value *regs  = *status->regs;
+  enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
+  /* Import from class.h */
+  switch (tt) {
+  case MRB_TT_TRUE:
+  case MRB_TT_FALSE:
+  case MRB_TT_SYMBOL:
+  case MRB_TT_FIXNUM:
+  case MRB_TT_FLOAT:
+    COMP_GEN(setnz, setnz);
+    return mrb_true_value();
 
-  COMP_GEN(setnz, setnz);
+  default:
+    return mrb_nil_value();
+  }
 
-  return mrb_true_value();
+  return mrb_nil_value();
 }
 
 extern "C" mrb_value
