@@ -18,6 +18,7 @@ extern "C" {
 #include "mruby/proc.h"
 #include "mruby/range.h"
 #include "mruby/array.h"
+#include "mruby/string.h"
 #include "mruby/class.h"
 #include "mruby/jit.h"
 
@@ -1426,28 +1427,72 @@ do {                                                                 \
     CMPINST(al);						     \
 } while(0)
     
+#define COMP_GEN_SS(CMPINST)                                         \
+do {                                                                 \
+    push(ecx);                                                       \
+    push(ebx);                                                       \
+    mov(eax, dword [ecx + off1 + 4]);                                \
+    push(eax);                                                       \
+    mov(eax, dword [ecx + off1]);                                    \
+    push(eax);                                                       \
+    mov(eax, dword [ecx + off0 + 4]);                                \
+    push(eax);                                                       \
+    mov(eax, dword [ecx + off0]);                                    \
+    push(eax);                                                       \
+    push(esi);                                                       \
+    call((void *)mrb_str_cmp);                                       \
+    add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2);           \
+    pop(ebx);                                                        \
+    pop(ecx);                                                        \
+    test(eax, eax);                                                  \
+    CMPINST(al);						     \
+    mov(ah, 0);							     \
+} while(0)
+
 #define COMP_GEN(CMPINSTI, CMPINSTF)				     \
 do {                                                                 \
     int regno = GETARG_A(**ppc);                                     \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
-    gen_type_guard(mrb, regno, status, *ppc, coi);		     \
-    gen_type_guard(mrb, regno + 1, status, *ppc, coi);		     \
                                                                      \
     if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \
              mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
           COMP_GEN_FI(CMPINSTF);                                     \
     }                                                                \
     else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&               \
              mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {            \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
           COMP_GEN_IF(CMPINSTF);                                     \
     }                                                                \
     else if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                \
              mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {            \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
           COMP_GEN_FF(CMPINSTF);                                     \
     }                                                                \
-    else {                                                           \
+    else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&               \
+             mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
           COMP_GEN_II(CMPINSTI);                                     \
+    }                                                                \
+    else if (mrb_type(regs[regno]) == MRB_TT_STRING &&               \
+             mrb_type(regs[regno + 1]) == MRB_TT_STRING) {           \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
+          COMP_GEN_SS(CMPINSTI);                                     \
+    }                                                                \
+    else {                                                           \
+        /* never reach  */                                           \
+        assert(0);                                                   \
     }                                                                \
     cwde();                                                          \
     add(eax, eax);                                                   \
@@ -1470,6 +1515,7 @@ do {                                                                 \
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
+    case MRB_TT_STRING:
       COMP_GEN(setz, setz);
       break;
 

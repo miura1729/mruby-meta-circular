@@ -28,6 +28,7 @@ MRuby::Build.new do |conf|
 
   # include the default GEMs
   #conf.gem '../mruby-meta-circular'
+  conf.gem '../mruby-pjson'
   conf.gembox 'default'
 
   # C compiler settings
