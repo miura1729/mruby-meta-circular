@@ -1265,7 +1265,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
     else {                                                              \
-      gen_exit(*ppc, 1, 0, status);					\
+      emit_send(mrb, status, coi);                                      \
     }                                                                   \
 } while(0)
 
