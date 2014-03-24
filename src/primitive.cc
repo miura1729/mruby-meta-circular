@@ -38,33 +38,43 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   //mov(eax, dword [ecx + off0 + 4]);
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
 
-  gen_type_guard(mrb, regno, status, pc, coi);
-  gen_type_guard(mrb, regno + 1, status, pc, coi);
-  
   if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
       mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {
+    gen_type_guard(mrb, regno, status, pc, coi);
+    gen_type_guard(mrb, regno + 1, status, pc, coi);
+  
     movsd(xmm0, ptr [ecx + off0]);
     cvtsi2sd(xmm1, ptr [ecx + off1]);
     comisd(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&
 	   mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {
+    gen_type_guard(mrb, regno, status, pc, coi);
+    gen_type_guard(mrb, regno + 1, status, pc, coi);
+
     cvtsi2sd(xmm0, ptr [ecx + off0]);
     movsd(xmm1, ptr [ecx + off1]);
     comisd(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
 	   mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {
+    gen_type_guard(mrb, regno, status, pc, coi);
+    gen_type_guard(mrb, regno + 1, status, pc, coi);
+
     movsd(xmm0, ptr [ecx + off0]);
     movsd(xmm1, ptr [ecx + off1]);
     comisd(xmm0, xmm1);
   }
-  else {
+  else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&
+	   mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {
     cvtsi2sd(xmm0, ptr [ecx + off0]);
     cvtsi2sd(xmm1, ptr [ecx + off1]);
     comisd(xmm0, xmm1);
     /*    mov(eax, dword [ecx + off0]);
 	  cmp(eax, dword [ecx + off1]);*/
+  }
+  else {
+    return mrb_nil_value();
   }
 
   inLocalLabel();
