@@ -1810,6 +1810,39 @@ do {                                                                 \
     return code;
   }
 
+  const void *
+    emit_string(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    mrb_irep *irep = *status->irep;
+    int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    mrb_value *str = irep->pool + GETARG_Bx(**ppc);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_RANGE;
+    dinfo->klass = mrb_class(mrb, 
+			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "String")));
+
+    push(ecx);
+    push(ebx);
+
+    mov(eax, (Xbyak::uint32)str);
+    mov(edx, dword [eax + 4]);
+    push(edx);
+    mov(edx, dword [eax]);
+    push(edx);
+    push(esi);
+    call((void *) mrb_str_dup);
+    add(esp, sizeof(mrb_state *) + sizeof(mrb_value));
+    
+    pop(ebx);
+    pop(ecx);
+
+    mov(ptr [ecx + dstoff], eax);
+    mov(ptr [ecx + dstoff + 4], edx);
+    return code;
+  }
+
   /* primitive methodes */
   mrb_value 
     mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
