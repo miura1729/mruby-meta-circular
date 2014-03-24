@@ -1229,10 +1229,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];                     \
 \
-    gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
-    gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
-\
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
+      gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
+      gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
+\
       mov(eax, dword [ecx + reg0off]);                                  \
       AINSTI(eax, dword [ecx + reg1off]);			        \
       OVERFLOW_CHECK_GEN(AINSTF);                                       \
@@ -1242,6 +1242,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }                                                                   \
     else if ((r0type == MRB_TT_FLOAT || r0type == MRB_TT_FIXNUM) &&     \
              (r1type == MRB_TT_FLOAT || r1type == MRB_TT_FIXNUM)) {	\
+      gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
+      gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
+\
       if (r0type == MRB_TT_FIXNUM) {                                    \
         cvtsi2sd(xmm0, dword [ecx + reg0off]);                          \
       }                                                                 \
