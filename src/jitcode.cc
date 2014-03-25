@@ -141,6 +141,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->emit_getconst(mrb, status, coi);
     break;
 
+  case OP_GETMCNST:
+    rc =code->emit_getmconst(mrb, status, coi);
+    break;
+
   case OP_SENDB:
   case OP_SEND:
     rc =code->emit_send(mrb, status, coi);

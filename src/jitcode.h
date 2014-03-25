@@ -683,6 +683,27 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
+    emit_getmconst(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int sympos = GETARG_Bx(**ppc);
+    mrb_irep *irep = *status->irep;
+    mrb_value *regs = *status->regs;
+    const mrb_value v = mrb_const_get(mrb, regs[GETARG_A(**ppc)], irep->syms[sympos]);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = (mrb_vtype)mrb_type(v);
+    dinfo->klass = mrb_class(mrb, v);
+    dinfo->constp = 1;
+
+    mov(dword [ecx + dstoff], v.value.i);
+    mov(dword [ecx + dstoff + 4], v.value.ttt);
+    
+    return code;
+  }
+
+  const void *
     emit_loadnil(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
