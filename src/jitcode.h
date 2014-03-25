@@ -19,6 +19,7 @@ extern "C" {
 #include "mruby/range.h"
 #include "mruby/array.h"
 #include "mruby/string.h"
+#include "mruby/hash.h"
 #include "mruby/class.h"
 #include "mruby/jit.h"
 
@@ -1843,6 +1844,70 @@ do {                                                                 \
 
     mov(ptr [ecx + dstoff], eax);
     mov(ptr [ecx + dstoff + 4], edx);
+    return code;
+  }
+
+  const void *
+    emit_hash(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
+    int num = GETARG_C(**ppc);
+    int i;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_RANGE;
+    dinfo->klass = mrb_class(mrb, 
+			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "Hash")));
+
+    push(ecx);
+    push(ebx);
+
+    push((Xbyak::uint32)num);
+    push(esi);
+    call((void *) mrb_hash_new_capa);
+    add(esp, sizeof(mrb_state *) + sizeof(int));
+    pop(ebx);
+    pop(ecx);
+
+    mov(ptr [ecx + dstoff], eax);
+    mov(ptr [ecx + dstoff + 4], edx);
+
+    for(i = 0; i < num; i+= 2) {
+      push(ecx);
+      push(ebx);
+      push(edx);
+      push(eax);
+
+      /* key */
+      mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value) + 4)]);
+      push(ebx);
+      mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value))]);
+      push(ebx);
+
+      /* val */
+      mov(ebx, dword [ecx + (srcoff + i * sizeof(mrb_value) + 4)]);
+      push(ebx);
+      mov(ebx, dword [ecx + (srcoff + i * sizeof(mrb_value))]);
+      push(ebx);
+
+      /* hash */
+      push(edx);
+      push(eax);
+
+      /* mrb */
+      push(esi);
+
+      call((void *)mrb_hash_set);
+      add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 3);
+
+      pop(eax);
+      pop(eax);
+      pop(ecx);
+      pop(ebx);
+    }
+
     return code;
   }
 

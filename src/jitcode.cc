@@ -246,6 +246,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->emit_string(mrb, status, coi, regs);
     break;
 
+  case OP_HASH:
+    rc =code->emit_hash(mrb, status, coi, regs);
+    break;
+
   default:
     mrb->compile_info.nest_level = 0;
     rc =NULL;
