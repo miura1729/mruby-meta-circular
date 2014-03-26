@@ -530,6 +530,28 @@ mrbjit_prim_enum_all(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 }
 
 mrb_value
+MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_value *regs = *status->regs;
+  int i = *pc;
+  int a = GETARG_A(i);
+  struct RClass *c = mrb_class(mrb, regs[a]);
+  struct RProc *m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "=="));
+
+  return mrb_obj_value(m);
+}
+
+extern "C" mrb_value
+mrbjit_prim_kernel_equal(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_kernel_equal_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
 MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {

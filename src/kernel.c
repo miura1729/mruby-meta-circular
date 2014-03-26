@@ -1117,6 +1117,8 @@ mrb_init_kernel(mrb_state *mrb)
   mrbjit_define_primitive(mrb, krn, "!=", mrbjit_prim_obj_not_equal_m);
 
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
+  mrbjit_define_primitive(mrb, krn, "===", mrbjit_prim_kernel_equal);
+
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
