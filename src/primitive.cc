@@ -384,6 +384,11 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   struct RProc *m;
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
+  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+
+  dinfo->type = MRB_TT_OBJECT;
+  dinfo->klass = mrb_class_ptr(klass);
+  dinfo->constp = 0;
 
   m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
 
