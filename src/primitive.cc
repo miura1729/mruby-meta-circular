@@ -171,8 +171,8 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   sub(edx, eax);
   mov(ptr [ecx + off0], edx);
 
-  dinfo->type = MRB_TT_FLOAT;
-  dinfo->klass = mrb->float_class;
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
   return mrb_true_value();
 }
 
