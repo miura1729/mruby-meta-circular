@@ -342,6 +342,163 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ecx);
   }
 
+  void 
+    gen_send_mruby(mrb_state *mrb, struct RProc *m, mrb_value recv, 
+		   mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi)
+  {
+    mrb_irep *irep = *status->irep;
+    int i = *pc;
+    int a = GETARG_A(i);
+    int n = GETARG_C(i);
+    struct RClass *c = mrb_class(mrb, recv);
+    int callee_nregs;
+
+    callee_nregs = m->body.irep->nregs;
+
+    /* Reg map */
+    /*    old ci  edx */
+    /*    tmp  eax */
+    mov(edx, dword [edi + OffsetOf(mrb_context, ci)]);
+
+    cmp(edx, dword [edi + OffsetOf(mrb_context, ciend)]);
+    jb("@f");
+
+    if (addr_call_extend_callinfo == NULL) {
+      mov(eax, "@f");
+      push(eax);
+
+      addr_call_extend_callinfo = (void *)getCurr();
+
+      /* extend cfunction */
+      push(edx);
+      push(ebx);
+      mov(eax, dword [edi + OffsetOf(mrb_context, cibase)]);
+      sub(eax, edx);
+      neg(eax);
+      shr(eax, 6);		/* sizeof mrb_callinfo */
+      push(eax);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      push(eax);
+      push(esi);
+      call((void *) mrbjit_exec_extend_callinfo);
+      add(esp, 3 * sizeof(void *));
+      pop(ebx);
+      pop(edx);
+      mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
+      ret();
+    }
+    else {
+      call(addr_call_extend_callinfo);
+    }
+
+    L("@@");
+    /*    ci  edi */
+    /*    tmp  edx */
+    /*    tmp  eax */
+    add(dword [edi + OffsetOf(mrb_context, ci)], (Xbyak::uint32)sizeof(mrb_callinfo));
+    mov(edi, dword [edi + OffsetOf(mrb_context, ci)]);
+
+    mov(eax, dword [edx + OffsetOf(mrb_callinfo, eidx)]);
+    mov(dword [edi + OffsetOf(mrb_callinfo, eidx)], eax);
+    mov(eax, dword [edx + OffsetOf(mrb_callinfo, ridx)]);
+    mov(dword [edi + OffsetOf(mrb_callinfo, ridx)], eax);
+
+    xor(eax, eax);
+    mov(dword [edi + OffsetOf(mrb_callinfo, env)], eax);
+    mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
+    mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
+
+    switch(n) {
+    case 0:
+      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+      break;
+
+    case 1:
+      inc(eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+      break;
+
+    default:
+      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
+      break;
+    }
+
+    mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
+    mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
+    mov(dword [edi + OffsetOf(mrb_callinfo, stackent)], eax);
+
+    if (c->tt == MRB_TT_ICLASS) {
+      mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
+	  (Xbyak::uint32)c->c);
+    }
+    else {
+      mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
+	  (Xbyak::uint32)c);
+    }
+
+    mov(dword [edi + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
+
+    if (m->body.irep->ilen > 2) {
+      mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
+	  (Xbyak::uint32)m->body.irep->nregs);
+
+      mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
+
+      mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
+
+    }
+    else {
+      /* Block call */
+      callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
+    }
+
+    mov(eax, (Xbyak::uint32)a);
+    mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
+
+    /*  mrb->c   edi  */
+    mov(edi, dword [esi + OffsetOf(mrb_state, c)]);
+    shl(eax, 3);		/* * sizeof(mrb_value) */
+    add(dword [edi + OffsetOf(mrb_context, stack)], eax);
+    mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+
+    mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
+    if (m->body.irep->nregs != 0) {
+      sub(edx, (Xbyak::uint32)callee_nregs * sizeof(mrb_value));
+    }
+    cmp(ecx, edx);
+    jb("@f");
+
+    if (addr_call_stack_extend == NULL) {
+      mov(eax, "@f");
+      push(eax);
+      mov(edx, (Xbyak::uint32)callee_nregs);
+      mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+
+      addr_call_stack_extend = (void *)getCurr();
+
+      push(ebx);
+      push(eax);
+      push(edx);
+      push(esi);
+      call((void *) mrbjit_stack_extend);
+      add(esp, 3 * sizeof(void *));
+      pop(ebx);
+      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+      ret();
+    }
+    else {
+      mov(edx, (Xbyak::uint32)callee_nregs);
+      mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+      call(addr_call_stack_extend);
+    }
+      
+    L("@@");
+
+    mov(dword [ebx + VMSOffsetOf(regs)], ecx);
+
+    gen_set_jit_entry(mrb, pc, coi, irep);
+  }
+
   const void *
     emit_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
@@ -801,7 +958,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_code *pc = *status->pc;
     mrb_value *regs = *status->regs;
     mrb_sym *syms = *status->syms;
-    mrb_irep *irep = *status->irep;
     int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
@@ -813,7 +969,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
-    int callee_nregs;
 
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
@@ -829,7 +984,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (!m) {
       return NULL;
     }
-    callee_nregs = m->body.irep->nregs;
 
     gen_class_guard(mrb, a, status, pc, coi);
 
@@ -894,148 +1048,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
     }
     else {
-      /* Reg map */
-      /*    old ci  edx */
-      /*    tmp  eax */
-      mov(edx, dword [edi + OffsetOf(mrb_context, ci)]);
-
-      cmp(edx, dword [edi + OffsetOf(mrb_context, ciend)]);
-      jb("@f");
-
-      if (addr_call_extend_callinfo == NULL) {
-	mov(eax, "@f");
-	push(eax);
-
-	addr_call_extend_callinfo = (void *)getCurr();
-
-	/* extend cfunction */
-	push(edx);
-	push(ebx);
-	mov(eax, dword [edi + OffsetOf(mrb_context, cibase)]);
-	sub(eax, edx);
-	neg(eax);
-	shr(eax, 6);		/* sizeof mrb_callinfo */
-	push(eax);
-	mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-	push(eax);
-	push(esi);
-	call((void *) mrbjit_exec_extend_callinfo);
-	add(esp, 3 * sizeof(void *));
-	pop(ebx);
-	pop(edx);
-	mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
-	ret();
-      }
-      else {
-	call(addr_call_extend_callinfo);
-      }
-
-      L("@@");
-      /*    ci  edi */
-      /*    tmp  edx */
-      /*    tmp  eax */
-      add(dword [edi + OffsetOf(mrb_context, ci)], (Xbyak::uint32)sizeof(mrb_callinfo));
-      mov(edi, dword [edi + OffsetOf(mrb_context, ci)]);
-
-      mov(eax, dword [edx + OffsetOf(mrb_callinfo, eidx)]);
-      mov(dword [edi + OffsetOf(mrb_callinfo, eidx)], eax);
-      mov(eax, dword [edx + OffsetOf(mrb_callinfo, ridx)]);
-      mov(dword [edi + OffsetOf(mrb_callinfo, ridx)], eax);
-
-      xor(eax, eax);
-      mov(dword [edi + OffsetOf(mrb_callinfo, env)], eax);
-      mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
-      mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
-
-      switch(n) {
-      case 0:
-	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
-	break;
-
-      case 1:
-	inc(eax);
-	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
-	break;
-
-      default:
-	mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
-	break;
-      }
-
-      mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
-      mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
-      mov(dword [edi + OffsetOf(mrb_callinfo, stackent)], eax);
-
-      if (c->tt == MRB_TT_ICLASS) {
-	mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
-	    (Xbyak::uint32)c->c);
-      }
-      else {
-	mov(dword [edi + OffsetOf(mrb_callinfo, target_class)], 
-	    (Xbyak::uint32)c);
-      }
-
-      mov(dword [edi + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
-
-      if (m->body.irep->ilen > 2) {
-	mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
-	    (Xbyak::uint32)m->body.irep->nregs);
-
-	mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
-
-	mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
-
-      }
-      else {
-	/* Block call */
-	callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
-      }
-
-      mov(eax, (Xbyak::uint32)a);
-      mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
-
-      /*  mrb->c   edi  */
-      mov(edi, dword [esi + OffsetOf(mrb_state, c)]);
-      shl(eax, 3);		/* * sizeof(mrb_value) */
-      add(dword [edi + OffsetOf(mrb_context, stack)], eax);
-      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
-
-      mov(edx, dword [edi + OffsetOf(mrb_context, stend)]);
-      if (m->body.irep->nregs != 0) {
-	sub(edx, (Xbyak::uint32)callee_nregs * sizeof(mrb_value));
-      }
-      cmp(ecx, edx);
-      jb("@f");
-
-      if (addr_call_stack_extend == NULL) {
-	mov(eax, "@f");
-	push(eax);
-	mov(edx, (Xbyak::uint32)callee_nregs);
-	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
-
-	addr_call_stack_extend = (void *)getCurr();
-
-	push(ebx);
-	push(eax);
-	push(edx);
-	push(esi);
-	call((void *) mrbjit_stack_extend);
-	add(esp, 3 * sizeof(void *));
-	pop(ebx);
-	mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
-	ret();
-      }
-      else {
-	mov(edx, (Xbyak::uint32)callee_nregs);
-	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
-	call(addr_call_stack_extend);
-      }
-      
-      L("@@");
-
-      mov(dword [ebx + VMSOffsetOf(regs)], ecx);
-
-      gen_set_jit_entry(mrb, pc, coi, irep);
+      gen_send_mruby(mrb, m, recv, status, pc, coi);
     }
 
     return code;
