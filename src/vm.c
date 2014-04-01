@@ -857,7 +857,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
 }
 
 extern void disasm_once(mrb_state *, mrb_irep *, mrb_code);
-extern void *mrbjit_invoke(mrb_value *, mrb_code *, mrb_state *, 
+extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *, 
 			   struct mrb_context *, void *, 
 			   void *(**)());
 static inline void *
@@ -1100,18 +1100,6 @@ mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
-  mrb_irep *irep = proc->body.irep;
-  mrb_code *pc = irep->iseq;
-  mrb_value *pool = irep->pool;
-  mrb_sym *syms = irep->syms;
-  mrb_value *regs = NULL;
-  mrb_code i;
-  int ai = mrb_gc_arena_save(mrb);
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
-  void *gtptr;			/* Use in NEXT/JUMP */
-
-  mrb->compile_info.nest_level = 0;
 #ifdef DIRECT_THREADED
   static void *optable[] = {
     &&L_OP_NOP, &&L_OP_MOVE,
@@ -1136,16 +1124,37 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
   };
 
+  mrb_irep *irep;
+  mrb_code *pc;
+  mrb_value *pool;
+  mrb_sym *syms;
+  mrb_value *regs = NULL;
+  mrb_code i;
+  int ai;
+  struct mrb_jmpbuf *prev_jmp;
+  struct mrb_jmpbuf c_jmp;
+  void *gtptr;			/* Use in NEXT/JUMP */
+  mrb_bool exc_catched = FALSE;
+
   void *gototable[] = {
     &&L_RAISE, &&L_RETURN, &&L_RESCUE, &&L_SEND, &&L_STOP
   };
 #endif
+
   mrbjit_vmstatus status = {
     &irep, &proc, &pc, &pool, &syms, &regs, &ai, &status,
     optable, gototable, &prev_jmp
   };
 
-  mrb_bool exc_catched = FALSE;
+  irep = proc->body.irep;
+  pc = irep->iseq;
+  pool = irep->pool;
+  syms = irep->syms;
+  ai = mrb_gc_arena_save(mrb);
+  prev_jmp = mrb->jmp;
+
+  mrb->compile_info.nest_level = 0;
+
 RETRY_TRY_BLOCK:
 
   MRB_TRY(&c_jmp) {

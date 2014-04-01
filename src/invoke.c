@@ -3,7 +3,7 @@
 #include "mruby/irep.h"
 
 void *
-mrbjit_invoke(mrb_value *regs, mrb_code *pc, mrb_state *mrb, 
+mrbjit_invoke(mrb_value *regs, mrb_code **pc, mrb_state *mrb, 
 	      struct mrb_context *c, void * entry, 
 	      void *(**prev_entry)())
 {
