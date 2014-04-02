@@ -346,12 +346,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_send_mruby(mrb_state *mrb, struct RProc *m, mrb_value recv, 
 		   mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi)
   {
+    int callee_nregs;
     mrb_irep *irep = *status->irep;
     int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
     struct RClass *c = mrb_class(mrb, recv);
-    int callee_nregs;
+    int is_block_call = (m->body.irep->ilen <= 2);
 
     callee_nregs = m->body.irep->nregs;
 
@@ -438,18 +439,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     mov(dword [edi + OffsetOf(mrb_callinfo, pc)], (Xbyak::uint32)(pc + 1));
 
-    if (m->body.irep->ilen > 2) {
+    if (is_block_call) {
+      /* Block call */
+      callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
+    }
+    else {
+      /* normal call */
       mov(dword [edi + OffsetOf(mrb_callinfo, nregs)], 
 	  (Xbyak::uint32)m->body.irep->nregs);
 
       mov(dword [edi + OffsetOf(mrb_callinfo, proc)], (Xbyak::uint32)m);
 
       mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
-
-    }
-    else {
-      /* Block call */
-      callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
     }
 
     mov(eax, (Xbyak::uint32)a);
