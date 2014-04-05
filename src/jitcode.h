@@ -1075,10 +1075,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
-    if (ci->argc < 0) {
-      return NULL;
-    }
-
     mov(eax, dword [ecx + OffsetOf(mrb_value, value.p0)]);
     mov(eax, dword [eax + OffsetOf(struct RProc, body.irep)]);
     mov(eax, dword [eax + OffsetOf(mrb_irep, jit_top_entry)]);
