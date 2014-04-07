@@ -1133,7 +1133,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int m2 = (ax>>7)&0x1f;
 
     //printf("%x %x %x\n", irep, irep->block_lambda, getCurr());
-    mrb->compile_info.force_compile = 0;
     if (irep->block_lambda) {
       mov(eax, dword [ebx + VMSOffsetOf(irep)]);
       cmp(eax, (Xbyak::uint32)irep);
@@ -1172,6 +1171,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
+    mrb->compile_info.force_compile = 0;
     inLocalLabel();
 
     /* Set return address from callinfo */
