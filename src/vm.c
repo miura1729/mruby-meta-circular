@@ -1014,7 +1014,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
-    if (ci->used < 0 && irep->ilen > 2) {
+    if (ci->used < 0 && irep->ilen > 1) {
       entry = mrbjit_emit_code(mrb, status, ci);
       if (prev_entry && entry) {
 	//printf("patch %x %x \n", prev_entry, entry);
@@ -1043,7 +1043,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   if (cbase && 
-      entry == NULL && irep->ilen > 2 && !mrb->compile_info.force_compile) {
+      entry == NULL && irep->ilen > 1 && !mrb->compile_info.force_compile) {
     /* Finish compile */
     mrbjit_gen_exit(cbase, mrb, irep, ppc, status);
     //mrbjit_gen_align(cbase, 16);

@@ -352,7 +352,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int a = GETARG_A(i);
     int n = GETARG_C(i);
     struct RClass *c = mrb_class(mrb, recv);
-    int is_block_call = (m->body.irep->ilen <= 2);
+    int is_block_call = (m->body.irep->ilen <= 1);
 
     callee_nregs = m->body.irep->nregs;
 

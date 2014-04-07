@@ -10,7 +10,6 @@
 #include "opcode.h"
 
 static mrb_code call_iseq[] = {
-  MKOP_A(OP_NOP, 0),
   MKOP_A(OP_CALL, 0),
 };
 
@@ -205,7 +204,7 @@ mrb_init_proc(mrb_state *mrb)
   *call_irep = mrb_irep_zero;
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
-  call_irep->ilen = 2;
+  call_irep->ilen = 1;
   call_irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, 2, sizeof(mrbjit_codetab));
   for (i = 0; i < 2; i++) {
     call_irep->jit_entry_tab[i].size = 16;
