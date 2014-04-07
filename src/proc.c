@@ -59,6 +59,7 @@ mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
 {
   struct RProc *p = mrb_proc_new(mrb, irep);
 
+  irep->block_lambda = 1;
   closure_setup(mrb, p, mrb->c->ci->proc->body.irep->nlocals);
   return p;
 }

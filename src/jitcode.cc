@@ -151,7 +151,13 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     break;
 
   case OP_CALL:
-    rc =code->emit_call(mrb, status);
+    //    rc =code->emit_call(mrb, status);
+    if (mrb->compile_info.force_compile) {
+      rc = code->emit_nop(mrb, status, coi);
+    }
+    else {
+      rc = NULL;
+    }
     break;
     
   case OP_ENTER:

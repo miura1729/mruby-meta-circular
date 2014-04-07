@@ -361,6 +361,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   p->env->cioff = mrb->c->ci - mrb->c->cibase;
   p->env->c = (struct RClass*)mrb->c->ci->proc->env;
   c->proc_pool->proc.body.irep = mirep;
+  mirep->block_lambda = 1;
   mirep->flags |= MRB_ISEQ_NO_FREE; /* Guard from gc  */
   paint_partial_white(mrb, p);
   paint_partial_white(mrb, p->env);
@@ -975,7 +976,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
 
-  if (irep->prof_info[n]++ > COMPILE_THRESHOLD) {
+  if (irep->prof_info[n]++ > COMPILE_THRESHOLD ||
+      mrb->compile_info.force_compile) {
     //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
     if (ci == NULL) {
       //printf("p %x %x\n", *ppc, prev_pc);
@@ -1012,7 +1014,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
-    if (ci->used < 0) {
+    if (ci->used < 0 && irep->ilen > 2) {
       entry = mrbjit_emit_code(mrb, status, ci);
       if (prev_entry && entry) {
 	//printf("patch %x %x \n", prev_entry, entry);
@@ -1040,7 +1042,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
 
-  if (cbase && entry == NULL) {
+  if (cbase && 
+      entry == NULL && irep->ilen > 2 && !mrb->compile_info.force_compile) {
     /* Finish compile */
     mrbjit_gen_exit(cbase, mrb, irep, ppc, status);
     //mrbjit_gen_align(cbase, 16);

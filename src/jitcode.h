@@ -498,6 +498,22 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(dword [ebx + VMSOffsetOf(regs)], ecx);
 
     gen_set_jit_entry(mrb, pc, coi, irep);
+
+    if (is_block_call) {
+      push(ecx);
+      push(ebx);
+
+      lea(eax, dword [ebx + VMSOffsetOf(status)]);
+      push(eax);
+      push(esi);
+      call((void *)mrbjit_exec_call);
+      add(esp, 2 * sizeof(void *));
+
+      pop(ebx);
+      pop(ecx);
+
+      mrb->compile_info.force_compile = 1;
+    }
   }
 
   const void *
@@ -1106,6 +1122,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
+    mrb_irep *irep = *status->irep;
     mrb_code i = *pc;
     /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
     /* number of optional arguments times OP_JMP should follow */
@@ -1114,6 +1131,25 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int o  = (ax>>13)&0x1f;
     int r  = (ax>>12)&0x1;
     int m2 = (ax>>7)&0x1f;
+
+    //printf("%x %x %x\n", irep, irep->block_lambda, getCurr());
+    mrb->compile_info.force_compile = 0;
+    if (irep->block_lambda) {
+      mov(eax, dword [ebx + VMSOffsetOf(irep)]);
+      cmp(eax, (Xbyak::uint32)irep);
+      jz("@f");
+      inLocalLabel();
+
+      L(".exitlab");
+      mov(eax, dword [eax + OffsetOf(mrb_irep, iseq)]);
+      mov(dword [ebx + VMSOffsetOf(pc)], eax);
+      xor(eax, eax);
+      mov(edx, ".exitlab");
+      ret();
+
+      outLocalLabel();
+      L("@@");
+    }
 
     if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0) {
       CALL_CFUNC_BEGIN;

@@ -51,6 +51,7 @@ typedef struct mrb_irep {
   /* Lambda optimize */
   int simple_lambda;
   int shared_lambda;
+  int block_lambda;
   struct RProc *proc_obj;
 
   /* JIT stuff */
