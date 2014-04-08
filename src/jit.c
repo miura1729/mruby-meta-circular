@@ -845,3 +845,67 @@ disasm_irep(mrb_state *mrb, mrb_irep *irep)
   }
 }
 
+void
+disp_type(mrb_state *mrb, mrbjit_reginfo *rinfo)
+{
+  switch(rinfo->type) {
+  case MRB_TT_FREE:
+    printf("??? \n");
+    break;
+  case MRB_TT_FALSE:
+    printf("false \n");
+    break;
+
+  case MRB_TT_TRUE:
+    printf("true \n");
+    break;
+
+  case MRB_TT_SYMBOL:
+    printf("symbol\n");
+    break;
+
+  case MRB_TT_FLOAT:
+    printf("float \n");
+    break;
+
+  case MRB_TT_FIXNUM:
+    printf("fixnum \n");
+    break;
+
+  case MRB_TT_OBJECT:
+    printf("object ");
+    mrb_p(mrb, mrb_obj_value(rinfo->klass));
+    break;
+
+  case MRB_TT_PROC:
+    printf("proc ^\n");
+    break;
+
+  case MRB_TT_HASH:
+    printf("hash \n");
+    break;
+
+  case MRB_TT_ARRAY:
+    printf("array \n");
+    break;
+
+  case MRB_TT_STRING:
+    printf("string \n");
+    break;
+
+  case MRB_TT_RANGE:
+    printf("range \n");
+    break;
+
+  case MRB_TT_CLASS:
+    printf("class \n");
+    break;
+
+  case MRB_TT_MODULE:
+    printf("module \n");
+    break;
+
+  default:
+    printf("unkown %d \n", rinfo->type);
+  }
+}

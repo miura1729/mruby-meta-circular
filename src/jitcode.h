@@ -1177,6 +1177,15 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 			(c->ci->env == 0 || c->ci->proc->body.irep->shared_lambda));
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
+    mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
+
+#if 1
+    mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
+    printf("%s#%s -> ", 
+	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
+	   mrb_sym2name(mrb, mrb->c->ci->mid));
+    disp_type(mrb, rinfo);
+#endif
 
     mrb->compile_info.force_compile = 0;
     inLocalLabel();

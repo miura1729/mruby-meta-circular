@@ -33,6 +33,8 @@ void mrbjit_localjump_error(mrb_state *, localjump_error_kind);
 
 mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *);
 
+void disp_type(mrb_state *, mrbjit_reginfo *rinfo);
+
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
 #endif  /* MRUBY_JIT_H */
