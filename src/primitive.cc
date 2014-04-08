@@ -219,6 +219,12 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(**ppc);
   mrb_value *regs  = *status->regs;
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+
+  dinfo->type = MRB_TT_TRUE;
+  dinfo->klass = mrb->true_class;
+  dinfo->constp = 0;
+
   /* Import from class.h */
   switch (tt) {
   case MRB_TT_TRUE:
@@ -534,6 +540,12 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
   int a = GETARG_A(i);
   struct RClass *c = mrb_class(mrb, regs[a]);
   struct RProc *m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "=="));
+  mrbjit_reginfo *dinfo = &coi->reginfo[a];
+
+  dinfo->type = MRB_TT_TRUE;
+  dinfo->klass = mrb->true_class;
+  dinfo->constp = 0;
+
 
   return mrb_obj_value(m);
 }
