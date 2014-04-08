@@ -162,17 +162,17 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     
   case OP_ENTER:
     mrb->compile_info.nest_level++;
-    rc =code->emit_enter(mrb, status);
+    rc =code->emit_enter(mrb, status, coi);
     break;
 
   case OP_RETURN:
     mrb->compile_info.nest_level--;
     if (mrb->c->ci->proc->env ||
 	mrb->compile_info.nest_level < 0) {
-      rc =code->emit_return(mrb, status);
+      rc =code->emit_return(mrb, status, coi);
     }
     else {
-      rc =code->emit_return_inline(mrb, status);
+      rc =code->emit_return_inline(mrb, status, coi);
     }
     break;
 

@@ -1118,11 +1118,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_enter(mrb_state *mrb, mrbjit_vmstatus *status)
+    emit_enter(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
     mrb_irep *irep = *status->irep;
+    mrb_value *regs = *status->regs;
     mrb_code i = *pc;
     /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
     /* number of optional arguments times OP_JMP should follow */
@@ -1131,6 +1132,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int o  = (ax>>13)&0x1f;
     int r  = (ax>>12)&0x1;
     int m2 = (ax>>7)&0x1f;
+    mrbjit_reginfo *selfinfo = &coi->reginfo[0];
+
+    selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
+    selfinfo->klass = mrb_class(mrb, regs[0]);
+    selfinfo->constp = 1;
 
     //printf("%x %x %x\n", irep, irep->block_lambda, getCurr());
     if (irep->block_lambda) {
@@ -1159,9 +1165,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_return(mrb_state *mrb, mrbjit_vmstatus *status)
+    emit_return(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_value *regs = *status->regs;
     struct mrb_context *c = mrb->c;
     mrb_code *pc = *status->pc;
     mrb_code i = *pc;
@@ -1264,7 +1271,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status)
+    emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     CALL_CFUNC_BEGIN;
