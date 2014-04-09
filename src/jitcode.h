@@ -623,9 +623,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     mrb_value self = *status->regs[0];
-    dinfo->type = (mrb_vtype)mrb_type(self);
-    dinfo->klass = mrb_class(mrb, self);
-    dinfo->constp = 1;
+    //dinfo->type = (mrb_vtype)mrb_type(self);
+    //dinfo->klass = mrb_class(mrb, self);
+    //dinfo->constp = 1;
 
     movsd(xmm0, ptr [ecx]);
     movsd(ptr [ecx + dstoff], xmm0);
@@ -998,11 +998,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
-    dinfo->type = MRB_TT_FREE;
-    dinfo->klass = NULL;
-    dinfo->constp = 0;
-
     gen_class_guard(mrb, a, status, pc, coi);
+
+    //dinfo->type = MRB_TT_FREE;
+    //dinfo->klass = NULL;
+    //dinfo->constp = 0;
 
     if ((ivid = is_reader(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
