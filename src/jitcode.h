@@ -987,10 +987,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
 
-    dinfo->type = MRB_TT_FREE;
-    dinfo->klass = NULL;
-    dinfo->constp = 0;
-
     if (GETARG_C(i) == CALL_MAXARGS) {
       return NULL;
     }
@@ -1001,6 +997,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (!m) {
       return NULL;
     }
+
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
+    dinfo->constp = 0;
 
     gen_class_guard(mrb, a, status, pc, coi);
 
@@ -1283,6 +1283,19 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_value *regs = *status->regs;
+    mrb_code *pc = *status->pc;
+    mrb_code i = *pc;
+    mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
+
+#if 1
+    mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
+    printf("%s#%s -> ", 
+	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
+	   mrb_sym2name(mrb, mrb->c->ci->mid));
+    disp_type(mrb, rinfo);
+#endif
+
     CALL_CFUNC_BEGIN;
     CALL_CFUNC_STATUS(mrbjit_exec_return, 0);
 
@@ -1593,6 +1606,11 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     int regno = GETARG_A(**ppc);
     enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regno]);
+    /*    mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;*/
+
     /* Import from class.h */
     switch (tt) {
     case MRB_TT_TRUE:
@@ -1616,8 +1634,13 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
     COMP_GEN(setl, setb);
 
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;
     return code;
   }
 
@@ -1626,8 +1649,13 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
     COMP_GEN(setle, setbe);
 
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;
     return code;
   }
 
@@ -1636,8 +1664,13 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
     COMP_GEN(setg, seta);
 
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;
     return code;
   }
 
@@ -1646,8 +1679,13 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
     COMP_GEN(setge, setae);
 
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;
     return code;
   }
 
@@ -1660,9 +1698,6 @@ do {                                                                 \
     int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
     int siz = GETARG_C(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_ARRAY;
-    dinfo->klass = mrb->array_class;
-    dinfo->constp = 0;
 
     push(ecx);
     push(ebx);
@@ -1680,6 +1715,10 @@ do {                                                                 \
 
     mov(ptr [ecx + dstoff], eax);
     mov(ptr [ecx + dstoff + 4], edx);
+
+    dinfo->type = MRB_TT_ARRAY;
+    dinfo->klass = mrb->array_class;
+    dinfo->constp = 0;
     return code;
   }
 

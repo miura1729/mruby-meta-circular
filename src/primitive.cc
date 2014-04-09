@@ -221,10 +221,6 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
-  dinfo->type = MRB_TT_TRUE;
-  dinfo->klass = mrb->true_class;
-  dinfo->constp = 0;
-
   /* Import from class.h */
   switch (tt) {
   case MRB_TT_TRUE:
@@ -234,12 +230,23 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   case MRB_TT_FLOAT:
   case MRB_TT_STRING:
     COMP_GEN(setnz, setnz);
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
+
     return mrb_true_value();
 
   default:
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
+
     return mrb_nil_value();
   }
 
+  dinfo->type = MRB_TT_TRUE;
+  dinfo->klass = mrb->true_class;
+  dinfo->constp = 0;
   return mrb_nil_value();
 }
 
@@ -391,10 +398,6 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
 
-  dinfo->type = MRB_TT_OBJECT;
-  dinfo->klass = mrb_class_ptr(klass);
-  dinfo->constp = 0;
-
   m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
 
   // TODO add guard of class
@@ -440,6 +443,10 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 
     gen_exit(m->body.irep->iseq, 1, 0, status);
   }
+
+  dinfo->type = MRB_TT_OBJECT;
+  dinfo->klass = mrb_class_ptr(klass);
+  dinfo->constp = 0;
 
   return mrb_true_value();
 }
