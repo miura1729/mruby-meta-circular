@@ -623,9 +623,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     mrb_value self = *status->regs[0];
-    //dinfo->type = (mrb_vtype)mrb_type(self);
-    //dinfo->klass = mrb_class(mrb, self);
-    //dinfo->constp = 1;
+    dinfo->type = (mrb_vtype)mrb_type(self);
+    dinfo->klass = mrb->c->ci->target_class;
+    dinfo->constp = 1;
 
     movsd(xmm0, ptr [ecx]);
     movsd(ptr [ecx + dstoff], xmm0);
