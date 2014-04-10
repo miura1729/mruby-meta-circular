@@ -1608,10 +1608,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     int regno = GETARG_A(**ppc);
     enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regno]);
-    /*    mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;*/
+    mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
     /* Import from class.h */
     switch (tt) {
@@ -1628,6 +1625,9 @@ do {                                                                 \
       gen_exit(*status->pc, 1, 1, status);
     }
 
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 1;
     return code;
   }
 
