@@ -218,7 +218,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
      destroy EAX
   */
   void 
-    gen_class_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi)
+    gen_class_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi, struct RClass *c)
   {
     enum mrb_vtype tt;
     mrb_value v = (*status->regs)[regpos];
@@ -259,7 +259,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     default:
       {
-	RClass *c = mrb_object(v)->c;
+	if (c == NULL) {
+	  c = mrb_object(v)->c;
+	}
 	if (rinfo->klass == c) {
 	  return;
 	}
@@ -998,7 +1000,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
-    gen_class_guard(mrb, a, status, pc, coi);
+    gen_class_guard(mrb, a, status, pc, coi, c);
 
     //dinfo->type = MRB_TT_FREE;
     //dinfo->klass = NULL;
@@ -1179,7 +1181,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
 
-#if 1
+#if 0
     mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
     printf("%s#%s -> ", 
 	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
