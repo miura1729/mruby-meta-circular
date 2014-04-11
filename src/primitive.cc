@@ -229,7 +229,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
   case MRB_TT_STRING:
-    COMP_GEN(setnz, setnz);
+    COMP_GEN(setnz(al), setnz(al));
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;

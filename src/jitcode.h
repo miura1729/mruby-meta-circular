@@ -1498,7 +1498,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 do {                                                                 \
     mov(eax, dword [ecx + off0]);                                    \
     cmp(eax, dword [ecx + off1]);                                    \
-    CMPINST(al);						     \
+    CMPINST;     						     \
     mov(ah, 0);							     \
 } while(0)
 
@@ -1507,7 +1507,7 @@ do {                                                                 \
     cvtsi2sd(xmm0, ptr [ecx + off0]);                                \
     xor(eax, eax);					             \
     comisd(xmm0, ptr [ecx + off1]);				     \
-    CMPINST(al);						     \
+    CMPINST;    						     \
 } while(0)
 
 #define COMP_GEN_FI(CMPINST)                                         \
@@ -1516,7 +1516,7 @@ do {                                                                 \
     cvtsi2sd(xmm1, ptr [ecx + off1]);                                \
     xor(eax, eax);					             \
     comisd(xmm0, xmm1);     			                     \
-    CMPINST(al);						     \
+    CMPINST;     						     \
 } while(0)
 
 #define COMP_GEN_FF(CMPINST)                                         \
@@ -1524,7 +1524,7 @@ do {                                                                 \
     movsd(xmm0, dword [ecx + off0]);                                 \
     xor(eax, eax);					             \
     comisd(xmm0, ptr [ecx + off1]);				     \
-    CMPINST(al);						     \
+    CMPINST;    						     \
 } while(0)
     
 #define COMP_GEN_SS(CMPINST)                                         \
@@ -1545,16 +1545,12 @@ do {                                                                 \
     pop(ebx);                                                        \
     pop(ecx);                                                        \
     test(eax, eax);                                                  \
-    CMPINST(al);						     \
+    CMPINST;    						     \
     mov(ah, 0);							     \
 } while(0)
 
-#define COMP_GEN(CMPINSTI, CMPINSTF)				     \
+#define COMP_GEN_CMP(CMPINSTI, CMPINSTF)			     \
 do {                                                                 \
-    int regno = GETARG_A(**ppc);                                     \
-    const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
-    const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
-                                                                     \
     if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&                     \
              mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {           \
           gen_type_guard(mrb, regno, status, *ppc, coi);	     \
@@ -1594,13 +1590,27 @@ do {                                                                 \
         /* never reach  */                                           \
         assert(0);                                                   \
     }                                                                \
+ } while(0)
+
+#define COMP_BOOL_SET                                                \
+do {								     \
     cwde();                                                          \
     add(eax, eax);                                                   \
     or(eax, 0xfff00001);                                             \
     mov(dword [ecx + off0 + 4], eax);                                \
     mov(dword [ecx + off0], 1);                                      \
+  } while(0)
+
+#define COMP_GEN(CMPINSTI, CMPINSTF)			             \
+do {                                                                 \
+    int regno = GETARG_A(**ppc);                                     \
+    const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
+    const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
+                                                                     \
+    COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
+    COMP_BOOL_SET;                                                   \
  } while(0)
-  
+
   const void *
     emit_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
@@ -1618,7 +1628,7 @@ do {                                                                 \
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
     case MRB_TT_STRING:
-      COMP_GEN(setz, setz);
+      COMP_GEN(setz(al), setz(al));
       break;
 
     default:
@@ -1638,7 +1648,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    COMP_GEN(setl, setb);
+    COMP_GEN(setl(al), setb(al));
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
@@ -1653,7 +1663,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    COMP_GEN(setle, setbe);
+    COMP_GEN(setle(al), setbe(al));
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
@@ -1668,7 +1678,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    COMP_GEN(setg, seta);
+    COMP_GEN(setg(al), seta(al));
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
@@ -1683,7 +1693,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    COMP_GEN(setge, setae);
+    COMP_GEN(setge(al), setae(al));
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
