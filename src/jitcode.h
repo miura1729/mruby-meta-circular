@@ -197,8 +197,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
    input EAX Pointer to tested boolean
   */
   void
-    gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc, mrbjit_vmstatus *status)
+    gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc, 
+		   mrbjit_vmstatus *status, mrbjit_reginfo *rinfo)
   {
+    if (rinfo->constp) {
+      if (b && rinfo->type != MRB_TT_FALSE) {
+	return;
+      }
+      if (!b && rinfo->type == MRB_TT_FALSE) {
+	return;
+      }
+    }
+
     cmp(eax, 0xfff00001);
     if (b) {
       jnz("@f");
@@ -1636,7 +1646,7 @@ do {                                                                 \
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;
+    dinfo->constp = 0;
     return code;
   }
 
@@ -1651,7 +1661,7 @@ do {                                                                 \
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;
+    dinfo->constp = 0;
     return code;
   }
 
@@ -1666,7 +1676,7 @@ do {                                                                 \
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;
+    dinfo->constp = 0;
     return code;
   }
 
@@ -1681,7 +1691,7 @@ do {                                                                 \
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;
+    dinfo->constp = 0;
     return code;
   }
 
@@ -1696,7 +1706,7 @@ do {                                                                 \
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
-    dinfo->constp = 1;
+    dinfo->constp = 0;
     return code;
   }
 
@@ -1801,14 +1811,15 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
+    mrbjit_reginfo *rinfo = &coi->reginfo[cond];
     
     mov(eax, ptr [ecx + coff + 4]);
     if (mrb_test(regs[cond])) {
-      gen_bool_guard(mrb, 1, *ppc + 1, status);
+      gen_bool_guard(mrb, 1, *ppc + 1, status, rinfo);
       gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
-      gen_bool_guard(mrb, 0, *ppc + GETARG_sBx(**ppc), status);
+      gen_bool_guard(mrb, 0, *ppc + GETARG_sBx(**ppc), status, rinfo);
     }
 
     return code;
@@ -1821,14 +1832,15 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
-    
+    mrbjit_reginfo *rinfo = &coi->reginfo[cond];
+
     mov(eax, ptr [ecx + coff + 4]);
     if (!mrb_test(regs[cond])) {
-      gen_bool_guard(mrb, 0, *ppc + 1, status);
+      gen_bool_guard(mrb, 0, *ppc + 1, status, rinfo);
       gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
-      gen_bool_guard(mrb, 1, *ppc + GETARG_sBx(**ppc), status);
+      gen_bool_guard(mrb, 1, *ppc + GETARG_sBx(**ppc), status, rinfo);
     }
 
     return code;
