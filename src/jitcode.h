@@ -1499,7 +1499,6 @@ do {                                                                 \
     mov(eax, dword [ecx + off0]);                                    \
     cmp(eax, dword [ecx + off1]);                                    \
     CMPINST;     						     \
-    mov(ah, 0);							     \
 } while(0)
 
 #define COMP_GEN_IF(CMPINST)                                         \
@@ -1546,7 +1545,6 @@ do {                                                                 \
     pop(ecx);                                                        \
     test(eax, eax);                                                  \
     CMPINST;    						     \
-    mov(ah, 0);							     \
 } while(0)
 
 #define COMP_GEN_CMP(CMPINSTI, CMPINSTF)			     \
@@ -1594,6 +1592,7 @@ do {                                                                 \
 
 #define COMP_BOOL_SET                                                \
 do {								     \
+    xor(ah, ah);                                                     \
     cwde();                                                          \
     add(eax, eax);                                                   \
     or(eax, 0xfff00001);                                             \
