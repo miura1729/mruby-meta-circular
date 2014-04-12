@@ -1684,7 +1684,9 @@ do {                                                                 \
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
-      b = (regs[regno].f == regs[regno + 1].f);
+      mrb->compile_info.disable_jit = 1;
+      b = mrb_bool(mrb_funcall(mrb, regs[regno], "==", 1, regs[regno + 1]));
+      mrb->compile_info.disable_jit = 0;
       switch (GET_OPCODE(jmpc)) {
       case OP_JMPNOT:
 	COMP_JMPNOT(jz("@f"), jz("@f"), jnz("@f"), jnz("@f"));
@@ -1721,10 +1723,12 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     int regno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    mrb_code jmpc = *(*ppc + 2);
+    mrb_code jmpc = *(*ppc + 1);
     int b;
 
+    mrb->compile_info.disable_jit = 1;
     b = mrb_bool(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
+    mrb->compile_info.disable_jit = 0;
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
       COMP_JMPNOT(jl("@f"), jl("@f"), jge("@f"), jge("@f"));
