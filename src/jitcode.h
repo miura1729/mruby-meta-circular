@@ -1620,14 +1620,26 @@ do {                                                                 \
     COMP_BOOL_SET;                                                   \
  } while(0)
 
+#define COMP_AND_JMP(CMPINSTI, CMPINSTF)                 	     \
+do {                                                                 \
+    int regno = GETARG_A(**ppc);                                     \
+    const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
+    const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
+                                                                     \
+    COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
+ } while(0)
+
   const void *
     emit_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     int regno = GETARG_A(**ppc);
-    enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regno]);
+    enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+
+    int b;
+    mrb_code jmpc = *(*ppc + 2);
 
     /* Import from class.h */
     switch (tt) {
@@ -1636,12 +1648,54 @@ do {                                                                 \
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
+      b = (regs[regno].f == regs[regno].f);
+      switch (GET_OPCODE(jmpc)) {
+      case OP_JMPNOT:
+	if (!b) {
+	  COMP_AND_JMP(jnz("@f"), jnz("@f"));
+	  gen_exit(*ppc + 3, 1, 0, status);
+	  dinfo->type = MRB_TT_FALSE;
+	  dinfo->klass = mrb->false_class;
+	}
+	else {
+	  COMP_AND_JMP(jz("@f"), jz("@f"));
+	  gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);
+	  dinfo->type = MRB_TT_TRUE;
+	  dinfo->klass = mrb->true_class;
+	}
+	L("@@");
+	dinfo->constp = 1;
+	return code;
+
+      case OP_JMPIF:
+	if (b) {
+	  COMP_AND_JMP(jz("@f"), jz("@f"));
+	  gen_exit(*ppc + 3, 1, 0, status);
+	  dinfo->type = MRB_TT_TRUE;
+	  dinfo->klass = mrb->true_class;
+	}
+	else {
+	  COMP_AND_JMP(jnz("@f"), jnz("@f"));
+	  gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);
+	  dinfo->type = MRB_TT_FALSE;
+	  dinfo->klass = mrb->false_class;
+	}
+	L("@@");
+	dinfo->constp = 1;
+	return code;
+
+      default:
+	break;
+      }
+      /* fall through */
+
     case MRB_TT_STRING:
       COMP_GEN(setz(al), setz(al));
       break;
 
     default:
       gen_exit(*status->pc, 1, 1, status);
+      break;
     }
 
     dinfo->type = MRB_TT_TRUE;
