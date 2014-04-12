@@ -1629,6 +1629,42 @@ do {                                                                 \
     COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
  } while(0)
 
+#define COMP_JMPNOT(CMPINSTI, CMPINSTF, NCMPINSTI, NCMPINSTF)	     \
+do {                                                                 \
+  if (!b) {                                                          \
+    COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
+    gen_exit(*ppc + 3, 1, 0, status);                                \
+    dinfo->type = MRB_TT_FALSE;                                      \
+    dinfo->klass = mrb->false_class;                                 \
+  }                                                                  \
+  else {                                                             \
+    COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
+    gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);            \
+    dinfo->type = MRB_TT_TRUE;                                       \
+    dinfo->klass = mrb->true_class;                                  \
+  }                                                                  \
+  L("@@");                                                           \
+  dinfo->constp = 1;                                                 \
+} while(0)
+
+#define COMP_JMPIF(CMPINSTI, CMPINSTF, NCMPINSTI, NCMPINSTF)	     \
+do {                                                                 \
+  if (b) {                                                           \
+    COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
+    gen_exit(*ppc + 3, 1, 0, status);                                \
+    dinfo->type = MRB_TT_TRUE;                                       \
+    dinfo->klass = mrb->false_class;                                 \
+  }                                                                  \
+  else {                                                             \
+    COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
+    gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);            \
+    dinfo->type = MRB_TT_FALSE;                                      \
+    dinfo->klass = mrb->false_class;                                 \
+  }                                                                  \
+  L("@@");                                                           \
+  dinfo->constp = 1;                                                 \
+} while(0)
+
   const void *
     emit_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
@@ -1648,40 +1684,14 @@ do {                                                                 \
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
-      b = (regs[regno].f == regs[regno].f);
+      b = (regs[regno].f == regs[regno + 1].f);
       switch (GET_OPCODE(jmpc)) {
       case OP_JMPNOT:
-	if (!b) {
-	  COMP_AND_JMP(jnz("@f"), jnz("@f"));
-	  gen_exit(*ppc + 3, 1, 0, status);
-	  dinfo->type = MRB_TT_FALSE;
-	  dinfo->klass = mrb->false_class;
-	}
-	else {
-	  COMP_AND_JMP(jz("@f"), jz("@f"));
-	  gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);
-	  dinfo->type = MRB_TT_TRUE;
-	  dinfo->klass = mrb->true_class;
-	}
-	L("@@");
-	dinfo->constp = 1;
+	COMP_JMPNOT(jz("@f"), jz("@f"), jnz("@f"), jnz("@f"));
 	return code;
 
       case OP_JMPIF:
-	if (b) {
-	  COMP_AND_JMP(jz("@f"), jz("@f"));
-	  gen_exit(*ppc + 3, 1, 0, status);
-	  dinfo->type = MRB_TT_TRUE;
-	  dinfo->klass = mrb->true_class;
-	}
-	else {
-	  COMP_AND_JMP(jnz("@f"), jnz("@f"));
-	  gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);
-	  dinfo->type = MRB_TT_FALSE;
-	  dinfo->klass = mrb->false_class;
-	}
-	L("@@");
-	dinfo->constp = 1;
+	COMP_JMPIF(jz("@f"), jz("@f"), jnz("@f"), jnz("@f"));
 	return code;
 
       default:
@@ -1709,7 +1719,24 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
+    int regno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    mrb_code jmpc = *(*ppc + 2);
+    int b;
+
+    b = mrb_bool(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
+    switch (GET_OPCODE(jmpc)) {
+    case OP_JMPNOT:
+      COMP_JMPNOT(jl("@f"), jl("@f"), jge("@f"), jge("@f"));
+      return code;
+
+    case OP_JMPIF:
+      COMP_JMPIF(jl("@f"), jl("@f"), jge("@f"), jge("@f"));
+      return code;
+
+    default:
+      break;
+    }
 
     COMP_GEN(setl(al), setb(al));
 
