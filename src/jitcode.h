@@ -1620,7 +1620,6 @@ do {								     \
     add(eax, eax);                                                   \
     or(eax, 0xfff00001);                                             \
     mov(dword [ecx + off0 + 4], eax);                                \
-    mov(dword [ecx + off0], 1);                                      \
   } while(0)
 
 #define COMP_GEN(CMPINSTI, CMPINSTF)			             \
@@ -1647,14 +1646,12 @@ do {                                                                 \
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);		     \
   if (!b) {                                                          \
     COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
-    COMP_BOOL_SET;                                                   \
     gen_exit(*ppc + 3, 1, 0, status);                                \
     dinfo->type = MRB_TT_FALSE;                                      \
     dinfo->klass = mrb->false_class;                                 \
   }                                                                  \
   else {                                                             \
     COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
-    COMP_BOOL_SET;                                                   \
     gen_exit(*ppc + 2 + GETARG_sBx(jmpc), 1, 0, status);             \
     dinfo->type = MRB_TT_TRUE;                                       \
     dinfo->klass = mrb->true_class;                                  \
@@ -1668,14 +1665,12 @@ do {                                                                 \
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);		     \
   if (b) {                                                           \
     COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
-    COMP_BOOL_SET;                                                   \
     gen_exit(*ppc + 3, 1, 0, status);                                \
     dinfo->type = MRB_TT_TRUE;                                       \
     dinfo->klass = mrb->false_class;                                 \
   }                                                                  \
   else {                                                             \
     COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
-    COMP_BOOL_SET;                                                   \
     gen_exit(*ppc + 2 + GETARG_sBx(jmpc), 1, 0, status);             \
     dinfo->type = MRB_TT_FALSE;                                      \
     dinfo->klass = mrb->false_class;                                 \
@@ -1704,6 +1699,7 @@ do {                                                                 \
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
     case MRB_TT_STRING:
+#if 0
       mrb->compile_info.disable_jit = 1;
       b = mrb_test(mrb_funcall(mrb, regs[regno], "==", 1, regs[regno + 1]));
       mrb->compile_info.disable_jit = 0;
@@ -1719,6 +1715,9 @@ do {                                                                 \
       default:
 	break;
       }
+#endif
+      
+      COMP_GEN(setz(al), setz(al));
       break;
 
     default:
@@ -1742,6 +1741,7 @@ do {                                                                 \
     mrb_code jmpc = *(*ppc + 2);
     int b;
 
+#if 0
     mrb->compile_info.disable_jit = 1;
     b = mrb_test(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
     mrb->compile_info.disable_jit = 0;
@@ -1757,6 +1757,7 @@ do {                                                                 \
     default:
       break;
     }
+#endif
 
     COMP_GEN(setl(al), setb(al));
 
