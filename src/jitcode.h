@@ -156,10 +156,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       if (newci->used > 0) {
 	jmp((void *)newci->entry);
       }
-      else {
+      /*      else {
 	newci->entry = (void *(*)())getCurr();
 	gen_exit(newpc, 1, 0, status);
-      }
+	}*/
       mrb->compile_info.code_base = NULL;
     }
   }
@@ -1594,6 +1594,19 @@ do {                                                                 \
                                                                      \
           COMP_GEN_SS(CMPINSTI);                                     \
     }                                                                \
+    else if (mrb_type(regs[regno]) == mrb_type(regs[regno + 1])) {   \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
+          COMP_GEN_II(CMPINSTI);                                     \
+    }                                                                \
+    else if (mrb_type(regs[regno]) == MRB_TT_FALSE ||                \
+             mrb_type(regs[regno + 1]) == MRB_TT_FALSE) {            \
+          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
+          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
+                                                                     \
+          COMP_GEN_II(CMPINSTI);                                     \
+    }                                                                \
     else {                                                           \
         /* never reach  */                                           \
         assert(0);                                                   \
@@ -1631,15 +1644,18 @@ do {                                                                 \
 
 #define COMP_JMPNOT(CMPINSTI, CMPINSTF, NCMPINSTI, NCMPINSTF)	     \
 do {                                                                 \
+  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);		     \
   if (!b) {                                                          \
     COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
+    COMP_BOOL_SET;                                                   \
     gen_exit(*ppc + 3, 1, 0, status);                                \
     dinfo->type = MRB_TT_FALSE;                                      \
     dinfo->klass = mrb->false_class;                                 \
   }                                                                  \
   else {                                                             \
     COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
-    gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);            \
+    COMP_BOOL_SET;                                                   \
+    gen_exit(*ppc + 2 + GETARG_sBx(jmpc), 1, 0, status);             \
     dinfo->type = MRB_TT_TRUE;                                       \
     dinfo->klass = mrb->true_class;                                  \
   }                                                                  \
@@ -1649,15 +1665,18 @@ do {                                                                 \
 
 #define COMP_JMPIF(CMPINSTI, CMPINSTF, NCMPINSTI, NCMPINSTF)	     \
 do {                                                                 \
+  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);		     \
   if (b) {                                                           \
     COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
+    COMP_BOOL_SET;                                                   \
     gen_exit(*ppc + 3, 1, 0, status);                                \
     dinfo->type = MRB_TT_TRUE;                                       \
     dinfo->klass = mrb->false_class;                                 \
   }                                                                  \
   else {                                                             \
     COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
-    gen_exit(*ppc + 2  + GETARG_sBx(jmpc), 1, 0, status);            \
+    COMP_BOOL_SET;                                                   \
+    gen_exit(*ppc + 2 + GETARG_sBx(jmpc), 1, 0, status);             \
     dinfo->type = MRB_TT_FALSE;                                      \
     dinfo->klass = mrb->false_class;                                 \
   }                                                                  \
@@ -1684,8 +1703,9 @@ do {                                                                 \
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
+    case MRB_TT_STRING:
       mrb->compile_info.disable_jit = 1;
-      b = mrb_bool(mrb_funcall(mrb, regs[regno], "==", 1, regs[regno + 1]));
+      b = mrb_test(mrb_funcall(mrb, regs[regno], "==", 1, regs[regno + 1]));
       mrb->compile_info.disable_jit = 0;
       switch (GET_OPCODE(jmpc)) {
       case OP_JMPNOT:
@@ -1699,10 +1719,6 @@ do {                                                                 \
       default:
 	break;
       }
-      /* fall through */
-
-    case MRB_TT_STRING:
-      COMP_GEN(setz(al), setz(al));
       break;
 
     default:
@@ -1723,19 +1739,19 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     int regno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    mrb_code jmpc = *(*ppc + 1);
+    mrb_code jmpc = *(*ppc + 2);
     int b;
 
     mrb->compile_info.disable_jit = 1;
-    b = mrb_bool(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
+    b = mrb_test(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
     mrb->compile_info.disable_jit = 0;
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
-      COMP_JMPNOT(jl("@f"), jl("@f"), jge("@f"), jge("@f"));
+      COMP_JMPNOT(jl("@f"), jb("@f"), jge("@f"), jae("@f"));
       return code;
 
     case OP_JMPIF:
-      COMP_JMPIF(jl("@f"), jl("@f"), jge("@f"), jge("@f"));
+      COMP_JMPIF(jl("@f"), jb("@f"), jge("@f"), jae("@f"));
       return code;
 
     default:
