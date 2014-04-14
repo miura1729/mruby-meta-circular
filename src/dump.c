@@ -91,7 +91,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       {
         mrb_int len = RSTRING_LEN(str);
         mrb_assert(len >= 0);
-        mrb_assert((size_t)len <= SIZE_MAX);
+        mrb_assert(len <= SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -101,7 +101,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
         int len;
         len = mrb_float_to_str(buf, mrb_float(irep->pool[pool_no]));
         mrb_assert(len >= 0);
-        mrb_assert((size_t)len <= SIZE_MAX);
+        mrb_assert(len <= SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -110,7 +110,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       {
         mrb_int len = RSTRING_LEN(irep->pool[pool_no]);
         mrb_assert(len >= 0);
-        mrb_assert((size_t)len <= SIZE_MAX);
+        mrb_assert(len <= SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -422,7 +422,7 @@ write_lineno_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
 
   uint32_to_bin((uint32_t)diff, bin); /* record size */
 
-  mrb_assert((size_t)diff <= SIZE_MAX);
+  mrb_assert(diff <= SIZE_MAX);
   return (size_t)diff;
 }
 
@@ -484,7 +484,7 @@ get_debug_record_size(mrb_state *mrb, mrb_irep *irep)
     /* lines */
     ret += sizeof(uint32_t); /* entry count */
     ret += sizeof(uint8_t); /* line type */
-    switch(file->line_type) {
+    switch (file->line_type) {
       case mrb_debug_line_ary:
         ret += sizeof(uint16_t) * (size_t)(file->line_entry_count);
         break;
@@ -577,7 +577,7 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
     /* lines */
     cur += uint32_to_bin(file->line_entry_count, cur);
     cur += uint8_to_bin(file->line_type, cur);
-    switch(file->line_type) {
+    switch (file->line_type) {
       case mrb_debug_line_ary: {
         uint32_t l;
         for (l = 0; l < file->line_entry_count; ++l) {
@@ -602,7 +602,7 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
   mrb_assert(ret <= UINT32_MAX);
   uint32_to_bin(ret, bin);
 
-  mrb_assert((size_t)ret <= SIZE_MAX);
+  mrb_assert(ret <= SIZE_MAX);
   return (size_t)ret;
 }
 

@@ -31,11 +31,11 @@ sym_hash_func(mrb_state *mrb, const symbol_name s)
 }
 #define sym_hash_equal(mrb,a, b) (a.len == b.len && memcmp(a.name, b.name, a.len) == 0)
 
-KHASH_DECLARE(n2s, symbol_name, mrb_sym, 1)
-KHASH_DEFINE (n2s, symbol_name, mrb_sym, 1, sym_hash_func, sym_hash_equal)
+KHASH_DECLARE(n2s, symbol_name, mrb_sym, TRUE)
+KHASH_DEFINE (n2s, symbol_name, mrb_sym, TRUE, sym_hash_func, sym_hash_equal)
 /* ------------------------------------------------------ */
 static mrb_sym
-sym_intern(mrb_state *mrb, const char *name, mrb_int len, mrb_bool lit)
+sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   khash_t(n2s) *h = mrb->name2sym;
   symbol_name sname;
@@ -70,13 +70,13 @@ sym_intern(mrb_state *mrb, const char *name, mrb_int len, mrb_bool lit)
 }
 
 mrb_sym
-mrb_intern(mrb_state *mrb, const char *name, mrb_int len)
+mrb_intern(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, FALSE);
 }
 
 mrb_sym
-mrb_intern_static(mrb_state *mrb, const char *name, mrb_int len)
+mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, TRUE);
 }
@@ -84,7 +84,7 @@ mrb_intern_static(mrb_state *mrb, const char *name, mrb_int len)
 mrb_sym
 mrb_intern_cstr(mrb_state *mrb, const char *name)
 {
-  return mrb_intern(mrb, name, (mrb_int)strlen(name));
+  return mrb_intern(mrb, name, strlen(name));
 }
 
 mrb_sym
@@ -94,7 +94,7 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
 }
 
 mrb_value
-mrb_check_intern(mrb_state *mrb, const char *name, mrb_int len)
+mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
   khash_t(n2s) *h = mrb->name2sym;
   symbol_name sname = { 0 };
@@ -401,7 +401,8 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   memcpy(RSTRING_PTR(str)+1, name, len);
   if (!symname_p(name) || strlen(name) != len) {
     str = mrb_str_dump(mrb, str);
-    memcpy(RSTRING_PTR(str), ":\"", 2);
+    RSTRING_PTR(str)[0] = ':';
+    RSTRING_PTR(str)[1] = '"';
   }
   return str;
 }

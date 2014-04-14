@@ -59,9 +59,6 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
  *     k.instance_exec(5) {|x| @secret+x }   #=> 104
  */
 
-mrb_value
-mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
-
 static mrb_value
 mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
 {
@@ -87,7 +84,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
     break;
   }
 
-  return mrb_yield_internal(mrb, blk, argc, argv, self, c);
+  return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
 }
 
 void

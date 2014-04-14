@@ -90,6 +90,10 @@ end
 assert 'Enumerator#inspect' do
   e = (0..10).each
   assert_equal("#<Enumerator: 0..10:each>", e.inspect)
+  e = Enumerator.new("FooObject", :foo, 1)
+  assert_equal("#<Enumerator: FooObject:foo(1)>", e.inspect)
+  e = Enumerator.new("FooObject", :foo, 1, 2, 3)
+  assert_equal("#<Enumerator: FooObject:foo(1, 2, 3)>", e.inspect)
 end
 
 assert 'Enumerator#each' do
@@ -438,6 +442,10 @@ assert 'Integral#times' do
   assert_equal [0,1,2], c
 end
 
+assert 'Enumerable#each_with_index' do
+  assert_equal [['a',0],['b',1],['c',2]], ['a','b','c'].each_with_index.to_a
+end
+
 assert 'Enumerable#map' do
   a = [1,2,3]
   b = a.map
@@ -446,6 +454,10 @@ assert 'Enumerable#map' do
   end
   assert_equal [1,2,3], a
   assert_equal [[1,0],[4,1],[9,4]], c
+end
+
+assert 'Enumerable#find_all' do
+  assert_equal [[3,4]], [[1,2],[3,4],[5,6]].find_all.each{ |i| i[1] == 4 }
 end
 
 assert 'Array#each_index' do
@@ -476,6 +488,42 @@ assert 'Hash#each' do
     c << [k,v]
   end
   assert_equal [[:a,1], [:b,2]], c.sort
+end
+
+assert 'Hash#each_key' do
+  assert_equal [:a,:b], {a:1,b:2}.each_key.to_a.sort
+end
+
+assert 'Hash#each_value' do
+  assert_equal [1,2], {a:1,b:2}.each_value.to_a.sort
+end
+
+assert 'Hash#select' do
+  h = {1=>2,3=>4,5=>6}
+  hret = h.select.with_index {|a,b| a[1] == 4}
+  assert_equal({3=>4}, hret)
+  assert_equal({1=>2,3=>4,5=>6}, h)
+end
+
+assert 'Hash#select!' do
+  h = {1=>2,3=>4,5=>6}
+  hret = h.select!.with_index {|a,b| a[1] == 4}
+  assert_equal h, hret
+  assert_equal({3=>4}, h)
+end
+
+assert 'Hash#reject' do
+  h = {1=>2,3=>4,5=>6}
+  hret = h.reject.with_index {|a,b| a[1] == 4}
+  assert_equal({1=>2,5=>6}, hret)
+  assert_equal({1=>2,3=>4,5=>6}, h)
+end
+
+assert 'Hash#reject!' do
+  h = {1=>2,3=>4,5=>6}
+  hret = h.reject!.with_index {|a,b| a[1] == 4}
+  assert_equal h, hret
+  assert_equal({1=>2,5=>6}, h)
 end
 
 assert 'Range#each' do

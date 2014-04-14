@@ -201,4 +201,205 @@ class Array
       self.replace(result)
     end
   end
+
+  # for efficiency
+  def reverse_each(&block)
+    return to_enum :reverse_each unless block_given?
+
+    i = self.size - 1
+    while i>=0
+      block.call(self[i])
+      i -= 1
+    end
+    self
+  end
+
+  NONE=Object.new
+  ##
+  #  call-seq:
+  #     ary.fetch(index)                    -> obj
+  #     ary.fetch(index, default)           -> obj
+  #     ary.fetch(index) { |index| block }  -> obj
+  #
+  #  Tries to return the element at position +index+, but throws an IndexError
+  #  exception if the referenced +index+ lies outside of the array bounds.  This
+  #  error can be prevented by supplying a second argument, which will act as a
+  #  +default+ value.
+  #
+  #  Alternatively, if a block is given it will only be executed when an
+  #  invalid +index+ is referenced.  Negative values of +index+ count from the
+  #  end of the array.
+  #
+  #     a = [ 11, 22, 33, 44 ]
+  #     a.fetch(1)               #=> 22
+  #     a.fetch(-1)              #=> 44
+  #     a.fetch(4, 'cat')        #=> "cat"
+  #     a.fetch(100) { |i| puts "#{i} is out of bounds" }
+  #                              #=> "100 is out of bounds"
+  #
+
+  def fetch(n=nil, ifnone=NONE, &block)
+    warn "block supersedes default value argument" if n != nil && ifnone != NONE && block
+
+    idx = n
+    if idx < 0
+      idx += size
+    end
+    if idx < 0 || size <= idx
+      return block.call(n) if block
+      if ifnone == NONE
+        raise IndexError, "index #{n} outside of array bounds: #{-size}...#{size}"
+      end
+      return ifnone
+    end
+    self[idx]
+  end
+
+  ##
+  #  call-seq:
+  #     ary.fill(obj)                                 -> ary
+  #     ary.fill(obj, start [, length])               -> ary
+  #     ary.fill(obj, range )                         -> ary
+  #     ary.fill { |index| block }                    -> ary
+  #     ary.fill(start [, length] ) { |index| block } -> ary
+  #     ary.fill(range) { |index| block }             -> ary
+  #
+  #  The first three forms set the selected elements of +self+ (which
+  #  may be the entire array) to +obj+.
+  #
+  #  A +start+ of +nil+ is equivalent to zero.
+  #
+  #  A +length+ of +nil+ is equivalent to the length of the array.
+  #
+  #  The last three forms fill the array with the value of the given block,
+  #  which is passed the absolute index of each element to be filled.
+  #
+  #  Negative values of +start+ count from the end of the array, where +-1+ is
+  #  the last element.
+  #
+  #     a = [ "a", "b", "c", "d" ]
+  #     a.fill("x")              #=> ["x", "x", "x", "x"]
+  #     a.fill("w", -1)          #=> ["x", "x", "x", "w"]
+  #     a.fill("z", 2, 2)        #=> ["x", "x", "z", "z"]
+  #     a.fill("y", 0..1)        #=> ["y", "y", "z", "z"]
+  #     a.fill { |i| i*i }       #=> [0, 1, 4, 9]
+  #     a.fill(-2) { |i| i*i*i } #=> [0, 1, 8, 27]
+  #     a.fill(1, 2) { |i| i+1 } #=> [0, 2, 3, 27]
+  #     a.fill(0..1) { |i| i+1 } #=> [1, 2, 3, 27]
+  #
+
+  def fill(arg0=nil, arg1=nil, arg2=nil, &block)
+    if arg0 == nil && arg1 == nil && arg2 == nil && !block
+      raise ArgumentError, "wrong number of arguments (0 for 1..3)" 
+    end
+
+    beg = len = 0
+    ary = []
+    if block
+      if arg0 == nil && arg1 == nil && arg2 == nil
+        # ary.fill { |index| block }                    -> ary
+        beg = 0
+        len = self.size
+      elsif arg0 != nil && arg0.respond_to?(:begin) && arg0.respond_to?(:end)
+        # ary.fill(range) { |index| block }             -> ary
+        beg = arg0.begin
+        beg += self.size if beg < 0
+        len = arg0.end - beg + 1
+      elsif arg0 != nil
+        # ary.fill(start [, length] ) { |index| block } -> ary
+        beg = arg0
+        beg += self.size if beg < 0
+        if arg1 == nil
+          len = self.size
+        else
+          len = arg0 + arg1
+        end
+      end
+    else
+      if arg0 != nil && arg1 == nil && arg2 == nil
+        # ary.fill(obj)                                 -> ary
+        beg = 0
+        len = self.size      
+      elsif arg0 != nil && arg1 != nil && arg1.respond_to?(:begin) && arg1.respond_to?(:end)
+        # ary.fill(obj, range )                         -> ary
+        len = self.size
+        beg = arg1.begin
+        len = arg1.end - beg + 1
+      elsif arg0 != nil && arg1 != nil
+        # ary.fill(obj, start [, length])               -> ary
+        beg = arg1
+        beg += self.size if beg < 0
+       if arg2 == nil
+          len = self.size
+        else
+          len = arg1 + arg2
+        end
+      end
+    end
+
+    i = beg
+    if block
+      while i < len
+        self[i] = block.call(i)
+        i += 1
+      end
+    else 
+      while i < len
+        self[i] = arg0
+        i += 1
+      end
+    end
+    self
+  end
+
+  ##
+  #  call-seq:
+  #     ary.rotate(count=1)    -> new_ary
+  #
+  #  Returns a new array by rotating +self+ so that the element at +count+ is
+  #  the first element of the new array.
+  #
+  #  If +count+ is negative then it rotates in the opposite direction, starting
+  #  from the end of +self+ where +-1+ is the last element.
+  #
+  #     a = [ "a", "b", "c", "d" ]
+  #     a.rotate         #=> ["b", "c", "d", "a"]
+  #     a                #=> ["a", "b", "c", "d"]
+  #     a.rotate(2)      #=> ["c", "d", "a", "b"]
+  #     a.rotate(-3)     #=> ["b", "c", "d", "a"]
+
+  def rotate(count=1)
+    ary = []
+    len = self.length
+
+    if len > 0
+      idx = (count < 0) ? (len - (~count % len) - 1) : (count % len) # rotate count
+      len.times do
+        ary << self[idx]
+        idx += 1
+        idx = 0 if idx > len-1
+      end
+    end
+    ary
+  end
+
+  ##
+  #  call-seq:
+  #     ary.rotate!(count=1)   -> ary
+  #
+  #  Rotates +self+ in place so that the element at +count+ comes first, and
+  #  returns +self+.
+  #
+  #  If +count+ is negative then it rotates in the opposite direction, starting
+  #  from the end of the array where +-1+ is the last element.
+  #
+  #     a = [ "a", "b", "c", "d" ]
+  #     a.rotate!        #=> ["b", "c", "d", "a"]
+  #     a                #=> ["b", "c", "d", "a"]
+  #     a.rotate!(2)     #=> ["d", "a", "b", "c"]
+  #     a.rotate!(-3)    #=> ["a", "b", "c", "d"]
+
+  def rotate!(count=1)
+    self.replace(self.rotate(count))
+  end
 end

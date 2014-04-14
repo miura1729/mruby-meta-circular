@@ -18,7 +18,7 @@
 
 #include "mruby/primitive.h"
 
-KHASH_DEFINE(mt, mrb_sym, struct RProc*, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_DEFINE(mt, mrb_sym, struct RProc*, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
 void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
@@ -621,25 +621,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_float*);
         if (i < argc) {
-          switch (mrb_type(*sp)) {
-            case MRB_TT_FLOAT:
-              *p = mrb_float(*sp);
-              break;
-            case MRB_TT_FIXNUM:
-              *p = (mrb_float)mrb_fixnum(*sp);
-              break;
-            case MRB_TT_STRING:
-              mrb_raise(mrb, E_TYPE_ERROR, "String can't be coerced into Float");
-              break;
-            default:
-              {
-                mrb_value tmp;
-
-                tmp = mrb_convert_type(mrb, *sp, MRB_TT_FLOAT, "Float", "to_f");
-                *p = mrb_float(tmp);
-              }
-              break;
-          }
+          *p = mrb_to_flo(mrb, *sp);
           sp++;
           i++;
         }
@@ -664,6 +646,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
                 }
                 *p = (mrb_int)f;
               }
+              break;
+            case MRB_TT_STRING:
+              mrb_raise(mrb, E_TYPE_ERROR, "no implicit conversion of String into Integer");
               break;
             default:
               *p = mrb_fixnum(mrb_Integer(mrb, *sp));
@@ -996,8 +981,6 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   return mrb_class_instance_method_list(mrb, recur, c, 0);
 }
 
-mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
-
 /* 15.2.2.4.35 */
 /*
  *  call-seq:
@@ -1019,7 +1002,7 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
     mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
   }
   c = mrb_class_ptr(mod);
-  return mrb_yield_internal(mrb, b, 0, 0, mod, c);
+  return mrb_yield_with_class(mrb, b, 0, 0, mod, c);
 }
 
 mrb_value
@@ -1052,6 +1035,10 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   }
   obj = mrb_basic_ptr(v);
   prepare_singleton_class(mrb, obj);
+  if (mrb->c && mrb->c->ci && mrb->c->ci->target_class) {
+    mrb_obj_iv_set(mrb, (struct RObject*)obj->c, mrb_intern_lit(mrb, "__outer__"),
+                   mrb_obj_value(mrb->c->ci->target_class));
+  }
   return mrb_obj_value(obj->c);
 }
 
@@ -1158,7 +1145,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
 }
 
 mrb_value
-mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv)
+mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, const mrb_value *argv)
 {
   mrb_value obj;
 

@@ -713,7 +713,7 @@ retry:
         str = mrb_obj_as_string(mrb, arg);
         len = RSTRING_LEN(str);
         if (RSTRING(result)->flags & MRB_STR_EMBED) {
-          int tmp_n = len;
+          mrb_int tmp_n = len;
           RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
           RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
         } else {
@@ -843,7 +843,7 @@ retry:
           else {
             val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
-          v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, 0/*Qfalse*/));
+          v = mrb_fixnum(mrb_str_to_inum(mrb, val, 10, FALSE));
         }
         if (sign) {
           char c = *p;

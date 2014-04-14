@@ -3,6 +3,47 @@
 #
 # ISO 15.2.13
 class Hash
+  ##
+  #  Equality---Two hashes are equal if they each contain the same number
+  #  of keys and if each key-value pair is equal to (according to
+  #  <code>Object#==</code>) the corresponding elements in the other
+  #  hash.
+  #
+  # ISO 15.2.13.4.1
+  def == (hash)
+    return true if self.equal?(hash)
+    begin
+      hash = hash.to_hash
+    rescue NoMethodError
+      return false
+    end
+    return false if self.size != hash.size
+    self.each do |k,v|
+      return false unless hash.key?(k)
+      return false unless self[k] == hash[k]
+    end
+    return true
+  end
+
+  ##
+  # Returns <code>true</code> if <i>hash</i> and <i>other</i> are
+  # both hashes with the same content compared by eql?.
+  #
+  # ISO 15.2.13.4.32 (x)
+  def eql?(hash)
+    return true if self.equal?(hash)
+    begin
+      hash = hash.to_hash
+    rescue NoMethodError
+      return false
+    end
+    return false if self.size != hash.size
+    self.each do |k,v|
+      return false unless hash.key?(k)
+      return false unless self[k].eql?(hash[k])
+    end
+    return true
+  end
 
   ##
   # Delete the element with the key +key+.
@@ -45,7 +86,14 @@ class Hash
   def each(&block)
     return to_enum :each unless block_given?
 
-    self.keys.each { |k| block.call [k, self[k]] }
+    keys = self.keys
+    vals = self.values
+    len = self.size
+    i = 0
+    while i < len
+      block.call [keys[i], vals[i]]
+      i += 1
+    end
     self
   end
 
@@ -69,6 +117,8 @@ class Hash
   #
   # ISO 15.2.13.4.10
   def each_key(&block)
+    return to_enum :each_key unless block_given?
+
     self.keys.each{|k| block.call(k)}
     self
   end
@@ -93,17 +143,31 @@ class Hash
   #
   # ISO 15.2.13.4.11
   def each_value(&block)
+    return to_enum :each_value unless block_given?
+
     self.keys.each{|k| block.call(self[k])}
     self
   end
 
   ##
-  # Create a direct instance of the class Hash.
+  # Replaces the contents of <i>hsh</i> with the contents of other hash
   #
-  # ISO 15.2.13.4.16
-  def initialize(*args, &block)
-    self.__init_core(block, *args)
+  # ISO 15.2.13.4.23
+  def replace(hash)
+    self.clear
+    hash = hash.to_hash
+    hash.each_key{|k|
+      self[k] = hash[k]
+    }
+    if hash.default_proc
+      self.default_proc = hash.default_proc
+    else 
+      self.default = hash.default
+    end
+    self
   end
+  # ISO 15.2.13.4.17
+  alias initialize_copy replace
 
   ##
   # Return a hash which contains the content of
@@ -128,12 +192,26 @@ class Hash
     h
   end
 
+  ##
+  # Return the contents of this hash as a string.
+  #
+  # ISO 15.2.13.4.30 (x)
+  def inspect
+    return "{}" if self.size == 0
+    "{"+self.map {|k,v|
+      k.inspect + "=>" + v.inspect
+    }.join(", ")+"}"
+  end
+  # ISO 15.2.13.4.31 (x)
+  alias to_s inspect
+
   # 1.8/1.9 Hash#reject! returns Hash; ISO says nothing.
   def reject!(&b)
+    return to_enum :reject! unless block_given?
+
     keys = []
-    self.each_key{|k|
-      v = self[k]
-      if b.call(k, v)
+    self.each{|k,v|
+      if b.call([k, v])
         keys.push(k)
       end
     }
@@ -146,10 +224,11 @@ class Hash
 
   # 1.8/1.9 Hash#reject returns Hash; ISO says nothing.
   def reject(&b)
+    return to_enum :reject unless block_given?
+
     h = {}
-    self.each_key{|k|
-      v = self[k]
-      unless b.call(k, v)
+    self.each{|k,v|
+      unless b.call([k, v])
         h[k] = v
       end
     }
@@ -158,10 +237,11 @@ class Hash
 
   # 1.9 Hash#select! returns Hash; ISO says nothing.
   def select!(&b)
+    return to_enum :select! unless block_given?
+
     keys = []
-    self.each_key{|k|
-      v = self[k]
-      unless b.call(k, v)
+    self.each{|k,v|
+      unless b.call([k, v])
         keys.push(k)
       end
     }
@@ -174,14 +254,20 @@ class Hash
 
   # 1.9 Hash#select returns Hash; ISO says nothing.
   def select(&b)
+    return to_enum :select unless block_given?
+
     h = {}
-    self.each_key{|k|
-      v = self[k]
-      if b.call(k, v)
+    self.each{|k,v|
+      if b.call([k, v])
         h[k] = v
       end
     }
     h
+  end
+
+  def __update(h)
+    h.each_key{|k| self[k] = h[k]}
+    self
   end
 end
 

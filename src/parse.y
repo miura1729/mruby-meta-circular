@@ -40,7 +40,7 @@ static void yyerror(parser_state *p, const char *s);
 static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
-static void tokadd(parser_state *p, int c);
+static void tokadd(parser_state *p, int32_t c);
 
 #ifndef isascii
 #define isascii(c) (((c) & ~0x7f) == 0)
@@ -936,10 +936,12 @@ heredoc_treat_nextline(parser_state *p)
       while (n->cdr)
         n = n->cdr;
       n->cdr = p->parsing_heredoc;
-    } else {
+    }
+    else {
       p->all_heredocs = p->parsing_heredoc;
     }
-  } else {
+  }
+  else {
     node *n, *m;
     m = p->heredocs_from_nextline;
     while (m->cdr)
@@ -950,7 +952,8 @@ heredoc_treat_nextline(parser_state *p)
       m->cdr = n;
       p->all_heredocs = p->heredocs_from_nextline;
       p->parsing_heredoc = p->heredocs_from_nextline;
-    } else {
+    }
+    else {
       while (n->cdr != p->parsing_heredoc) {
         n = n->cdr;
         mrb_assert(n != NULL);
@@ -974,7 +977,8 @@ heredoc_end(parser_state *p)
     p->lex_strterm = p->lex_strterm_before_heredoc;
     p->lex_strterm_before_heredoc = NULL;
     p->heredoc_end_now = TRUE;
-  } else {
+  }
+  else {
     /* next heredoc */
     p->lex_strterm->car = (node*)(intptr_t)parsing_heredoc_inf(p)->type;
   }
@@ -3314,13 +3318,16 @@ backref_error(parser_state *p, node *n)
 
   if (c == NODE_NTH_REF) {
     yyerror_i(p, "can't set variable $%d", (int)(intptr_t)n->cdr);
-  } else if (c == NODE_BACK_REF) {
+  }
+  else if (c == NODE_BACK_REF) {
     yyerror_i(p, "can't set variable $%c", (int)(intptr_t)n->cdr);
-  } else {
-    mrb_bug(p->mrb, "Internal error in backref_error() : n=>car == %d", c);
+  }
+  else {
+    mrb_bug(p->mrb, "Internal error in backref_error() : n=>car == %S", mrb_fixnum_value(c));
   }
 }
 
+static void pushback(parser_state *p, int c);
 static mrb_bool peeks(parser_state *p, const char *s);
 static mrb_bool skips(parser_state *p, const char *s);
 
@@ -3354,6 +3361,14 @@ nextc(parser_state *p)
       }
   }
   p->column++;
+  if (c == '\r') {
+    c = nextc(p);
+    if (c != '\n') {
+      pushback(p, c);
+      return '\r';
+    }
+    return c;
+  }
   return c;
 
   eof:
@@ -3465,10 +3480,48 @@ newtok(parser_state *p)
 }
 
 static void
-tokadd(parser_state *p, int c)
+tokadd(parser_state *p, int32_t c)
 {
-  if (p->bidx < MRB_PARSER_BUF_SIZE) {
-    p->buf[p->bidx++] = c;
+  char utf8[4];
+  unsigned len;
+
+  /* mrb_assert(-0x10FFFF <= c && c <= 0xFF); */
+  if (c >= 0) {
+    /* Single byte from source or non-Unicode escape */
+    utf8[0] = (char)c;
+    len = 1;
+  }
+  else {
+    /* Unicode character */
+    c = -c;
+    if (c < 0x80) {
+      utf8[0] = (char)c;
+      len = 1;
+    }
+    else if (c < 0x800) {
+      utf8[0] = (char)(0xC0 | (c >> 6));
+      utf8[1] = (char)(0x80 | (c & 0x3F));
+      len = 2;
+    }
+    else if (c < 0x10000) {
+      utf8[0] = (char)(0xE0 |  (c >> 12)        );
+      utf8[1] = (char)(0x80 | ((c >>  6) & 0x3F));
+      utf8[2] = (char)(0x80 | ( c        & 0x3F));
+      len = 3;
+    }
+    else {
+      utf8[0] = (char)(0xF0 |  (c >> 18)        );
+      utf8[1] = (char)(0x80 | ((c >> 12) & 0x3F));
+      utf8[2] = (char)(0x80 | ((c >>  6) & 0x3F));
+      utf8[3] = (char)(0x80 | ( c        & 0x3F));
+      len = 4;
+    }
+  }
+  if (p->bidx+len <= MRB_PARSER_BUF_SIZE) {
+    unsigned i;
+    for (i = 0; i < len; i++) {
+      p->buf[p->bidx++] = utf8[i];
+    }
   }
 }
 
@@ -3522,15 +3575,15 @@ scan_oct(const int *start, int len, int *retlen)
   return retval;
 }
 
-static int
+static int32_t
 scan_hex(const int *start, int len, int *retlen)
 {
   static const char hexdigit[] = "0123456789abcdef0123456789ABCDEF";
   const int *s = start;
-  int retval = 0;
+  int32_t retval = 0;
   char *tmp;
 
-  /* mrb_assert(len <= 2) */
+  /* mrb_assert(len <= 8) */
   while (len-- && *s && (tmp = (char*)strchr(hexdigit, *s))) {
     retval <<= 4;
     retval |= (tmp - hexdigit) & 15;
@@ -3541,10 +3594,11 @@ scan_hex(const int *start, int len, int *retlen)
   return retval;
 }
 
-static int
+/* Return negative to indicate Unicode code point */
+static int32_t
 read_escape(parser_state *p)
 {
-  int c;
+  int32_t c;
 
   switch (c = nextc(p)) {
   case '\\':/* Backslash */
@@ -3611,6 +3665,56 @@ read_escape(parser_state *p)
   }
   return c;
 
+  case 'u':     /* Unicode */
+  {
+    int buf[9];
+    int i;
+
+    /* Look for opening brace */
+    i = 0;
+    buf[0] = nextc(p);
+    if (buf[0] < 0) goto eof;
+    if (buf[0] == '{') {
+      /* \u{xxxxxxxx} form */
+      for (i=0; i<9; i++) {
+        buf[i] = nextc(p);
+        if (buf[i] < 0) goto eof;
+        if (buf[i] == '}') {
+          break;
+        }
+        else if (!ISXDIGIT(buf[i])) {
+          yyerror(p, "Invalid escape character syntax");
+          pushback(p, buf[i]);
+          return 0;
+        }
+      }
+    }
+    else if (ISXDIGIT(buf[0])) {
+      /* \uxxxx form */
+      for (i=1; i<4; i++) {
+        buf[i] = nextc(p);
+        if (buf[i] < 0) goto eof;
+        if (!ISXDIGIT(buf[i])) {
+          pushback(p, buf[i]);
+          break;
+        }
+      }
+    }
+    else {
+      pushback(p, buf[0]);
+    }
+    c = scan_hex(buf, i, &i);
+    if (i == 0) {
+      yyerror(p, "Invalid escape character syntax");
+      return 0;
+    }
+    if (c < 0 || c > 0x10FFFF || (c & 0xFFFFF800) == 0xD800) {
+      yyerror(p, "Invalid Unicode code point");
+      return 0;
+    }
+  }
+  return -c;
+
   case 'b':/* backspace */
     return '\010';
 
@@ -3656,7 +3760,6 @@ read_escape(parser_state *p)
     return c;
   }
 }
-
 
 static int
 parse_string(parser_state *p)
@@ -3719,37 +3822,32 @@ parse_string(parser_state *p)
         if (c == end || c == beg) {
           tokadd(p, c);
         }
-        else if ((c == '\n') && (type & STR_FUNC_ARRAY)) {
+        else if (c == '\n') {
           p->lineno++;
           p->column = 0;
-          tokadd(p, '\n');
+          if (type & STR_FUNC_ARRAY) {
+            tokadd(p, '\n');
+          }
+        }
+        else if (type & STR_FUNC_REGEXP) {
+          tokadd(p, '\\');
+          tokadd(p, c);
         }
         else {
-          if (type & STR_FUNC_REGEXP) {
-            tokadd(p, '\\');
-            if (c >= 0)
-              tokadd(p, c);
-          } else {
-            pushback(p, c);
-            tokadd(p, read_escape(p));
-          }
+          pushback(p, c);
+          tokadd(p, read_escape(p));
           if (hinf)
             hinf->line_head = FALSE;
         }
-      } else {
+      }
+      else {
         if (c != beg && c != end) {
-          switch (c) {
-          case '\n':
+          if (c == '\n') {
             p->lineno++;
             p->column = 0;
-            break;
-
-          case '\\':
-            break;
-
-          default:
-            if (! ISSPACE(c))
-              tokadd(p, '\\');
+          }
+          if (!(c == '\\' || ((type & STR_FUNC_ARRAY) && ISSPACE(c)))) {
+            tokadd(p, '\\');
           }
         }
         tokadd(p, c);
@@ -3787,16 +3885,15 @@ parse_string(parser_state *p)
         } while (ISSPACE(c = nextc(p)));
         pushback(p, c);
         return tLITERAL_DELIM;
-      } else {
+      }
+      else {
         pushback(p, c);
         tokfix(p);
         yylval.nd = new_str(p, tok(p), toklen(p));
         return tSTRING_MID;
       }
     }
-
     tokadd(p, c);
-
   }
 
   tokfix(p);
@@ -3887,7 +3984,8 @@ heredoc_identifier(parser_state *p)
       yyerror(p, "unterminated here document identifier");
       return 0;
     }
-  } else {
+  }
+  else {
     if (c < 0) {
       return 0;                 /* missing here document identifier */
     }
@@ -3932,7 +4030,7 @@ arg_ambiguous(parser_state *p)
 static int
 parser_yylex(parser_state *p)
 {
-  int c;
+  int32_t c;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
@@ -4046,7 +4144,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     return c;
@@ -4080,7 +4179,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     if ((c = nextc(p)) == '=') {
@@ -4113,7 +4213,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
       if (p->lstate == EXPR_CLASS) {
         p->cmd_start = TRUE;
@@ -4141,7 +4242,8 @@ parser_yylex(parser_state *p)
   case '>':
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     if ((c = nextc(p)) == '=') {
@@ -4239,17 +4341,8 @@ parser_yylex(parser_state *p)
       }
     }
     if (c == '\\') {
-      c = nextc(p);
-      if (c == 'u') {
-#if 0
-        tokadd_utf8(p);
-#endif
-      }
-      else {
-        pushback(p, c);
-        c = read_escape(p);
-        tokadd(p, c);
-      }
+      c = read_escape(p);
+      tokadd(p, c);
     }
     else {
       tokadd(p, c);
@@ -4288,7 +4381,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     return c;
@@ -4668,7 +4762,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     return '/';
@@ -4681,7 +4776,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     pushback(p, c);
@@ -4857,7 +4953,8 @@ parser_yylex(parser_state *p)
     }
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
-    } else {
+    }
+    else {
       p->lstate = EXPR_BEG;
     }
     pushback(p, c);
@@ -5315,8 +5412,8 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
   p->filename = mrb_sym2name_len(p->mrb, sym, NULL);
   p->lineno = (p->filename_table_length > 0)? 0 : 1;
 
-  for(i = 0; i < p->filename_table_length; ++i) {
-    if(p->filename_table[i] == sym) {
+  for (i = 0; i < p->filename_table_length; ++i) {
+    if (p->filename_table[i] == sym) {
       p->current_filename_index = i;
       return;
     }
@@ -5419,7 +5516,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   if (mrb->c->ci) {
     mrb->c->ci->target_class = target;
   }
-  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  v = mrb_toplevel_run(mrb, proc);
   if (mrb->exc) return mrb_nil_value();
   return v;
 }

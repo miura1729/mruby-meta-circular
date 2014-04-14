@@ -212,6 +212,26 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(given_p);
 }
 
+/*
+ *  call-seq:
+ *     __method__         -> symbol
+ *
+ *  Returns the name at the definition of the current method as a
+ *  Symbol.
+ *  If called outside of a method, it returns <code>nil</code>.
+ *
+ */
+static mrb_value
+mrb_f_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  ci--;
+  if (ci->mid)
+    return mrb_symbol_value(ci->mid);
+  else
+    return mrb_nil_value();
+}
+
 /* 15.3.1.3.7  */
 /*
  *  call-seq:
@@ -457,8 +477,6 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c);
-
 /* 15.3.1.3.18 */
 /*
  *  call-seq:
@@ -501,7 +519,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
     c = mrb_class_ptr(cv);
     break;
   }
-  return mrb_yield_internal(mrb, b, 0, 0, self, c);
+  return mrb_yield_with_class(mrb, b, 0, 0, self, c);
 }
 
 mrb_bool
@@ -704,8 +722,8 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(kind_of_p);
 }
 
-KHASH_DECLARE(st, mrb_sym, char, 0)
-KHASH_DEFINE(st, mrb_sym, char, 0, kh_int_hash_func, kh_int_hash_equal)
+KHASH_DECLARE(st, mrb_sym, char, FALSE)
+KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal)
 
 static void
 method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
@@ -1082,6 +1100,24 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mod_define_singleton_method(mrb_state *mrb, mrb_value self)
+{
+  struct RProc *p;
+  mrb_sym mid;
+  mrb_value blk = mrb_nil_value();
+
+  mrb_get_args(mrb, "n&", &mid, &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
+  p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+  mrb_proc_copy(p, mrb_proc_ptr(blk));
+  p->flags |= MRB_PROC_STRICT;
+  mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, p);
+  return mrb_symbol_value(mid);
+}
+
+static mrb_value
 mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {
   mrb_value v;
@@ -1121,6 +1157,7 @@ mrb_init_kernel(mrb_state *mrb)
 
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */
+  mrb_define_method(mrb, krn, "__method__",                 mrb_f_method,                    MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
@@ -1152,6 +1189,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  MRB_ARGS_ANY());     /* 15.3.1.3.43 */
   mrb_define_method(mrb, krn, "send",                       mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.44 */
   mrb_define_method(mrb, krn, "singleton_methods",          mrb_obj_singleton_methods_m,     MRB_ARGS_OPT(1));    /* 15.3.1.3.45 */
+  mrb_define_method(mrb, krn, "define_singleton_method",    mod_define_singleton_method,     MRB_ARGS_ANY());
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
 

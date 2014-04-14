@@ -126,7 +126,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   if (newbase == oldbase) return;
   while (ci <= mrb->c->ci) {
     struct REnv *e = ci->env;
-    if (e && e->cioff >= 0) {
+    if (e && MRB_ENV_STACK_SHARED_P(e)) {
       ptrdiff_t off = e->stack - oldbase;
 
       e->stack = newbase + off;
@@ -268,7 +268,7 @@ is_strict(mrb_state *mrb, struct REnv *e)
 {
   int cioff = e->cioff;
 
-  if (cioff >= 0 && mrb->c->cibase[cioff].proc &&
+  if (MRB_ENV_STACK_SHARED_P(e) && mrb->c->cibase[cioff].proc &&
       MRB_PROC_STRICT_P(mrb->c->cibase[cioff].proc)) {
     return TRUE;
   }
@@ -428,10 +428,10 @@ cipop(mrb_state *mrb)
 
   if (c->ci->env && !c->ci->proc->body.irep->shared_lambda) {
     struct REnv *e = c->ci->env;
-    size_t len = (size_t)e->flags;
+    size_t len = (size_t)MRB_ENV_STACK_LEN(e);
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
 
-    e->cioff = -1;
+    MRB_ENV_UNSHARE_STACK(e);
     stack_copy(p, e->stack, len);
     e->stack = p;
   }
@@ -521,7 +521,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 }
 
 mrb_value
-mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_value *argv, mrb_value blk)
+mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv, mrb_value blk)
 {
   mrb_value val;
 
@@ -611,7 +611,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mr
 }
 
 mrb_value
-mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, mrb_value *argv)
+mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv)
 {
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
@@ -674,8 +674,8 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     return p->body.func(mrb, self);
   }
 
-  cipush(mrb);
-  ci = mrb->c->ci;
+  ci->nregs = p->body.irep->nregs;
+  ci = cipush(mrb);
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
   ci->stackent = mrb->c->stack;
@@ -685,7 +685,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_value self, struct RClass *c)
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
   struct RProc *p;
   mrb_sym mid = mrb->c->ci->mid;
@@ -734,11 +734,11 @@ mrb_yield_internal(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv, mrb_v
 }
 
 mrb_value
-mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv)
+mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, argc, argv, p->env->stack[0], p->target_class);
+  return mrb_yield_with_class(mrb, b, argc, argv, p->env->stack[0], p->target_class);
 }
 
 mrb_value
@@ -746,7 +746,7 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
   struct RProc *p = mrb_proc_ptr(b);
 
-  return mrb_yield_internal(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
+  return mrb_yield_with_class(mrb, b, 1, &arg, p->env->stack[0], p->target_class);
 }
 
 static void
@@ -1905,7 +1905,8 @@ RETRY_TRY_BLOCK:
           }
         }
       L_RESCUE:
-        irep = ci->proc->body.irep;
+        proc = ci->proc;
+        irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
         regs = mrb->c->stack = ci[1].stackent;
@@ -1922,7 +1923,7 @@ RETRY_TRY_BLOCK:
           if (proc->env && !MRB_PROC_STRICT_P(proc)) {
             struct REnv *e = top_env(mrb, proc);
 
-            if (e->cioff < 0) {
+            if (!MRB_ENV_STACK_SHARED_P(e)) {
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
@@ -1941,7 +1942,7 @@ RETRY_TRY_BLOCK:
               goto L_RAISE;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "double resume");
+              mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
               mrb->exc = mrb_obj_ptr(exc);
               goto L_RAISE;
             }
@@ -1953,7 +1954,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
           break;
         case OP_R_BREAK:
-          if (!proc->env || proc->env->cioff < 0) {
+          if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
             localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
             goto L_RAISE;
           }
@@ -2832,4 +2833,24 @@ mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
   return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
+}
+
+mrb_value
+mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
+{
+  mrb_callinfo *ci;
+  mrb_value v;
+
+  if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
+    return mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  }
+  ci = cipush(mrb);
+  ci->acc = CI_ACC_SKIP;
+  ci->eidx = 0;
+  ci->ridx = 0;
+  ci->target_class = mrb->object_class;
+  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
+  cipop(mrb);
+
+  return v;
 }

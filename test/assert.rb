@@ -63,7 +63,7 @@ def assert(str = 'Assertion failed', iso = '')
       $asserts.push "Skip: #{str} #{iso} #{e.cause}"
       t_print('?')
     else
-      $asserts.push(assertion_string('Error: ', str, iso, e))
+      $asserts.push(assertion_string("#{e.class}: ", str, iso, e))
       $kill_test += 1
       t_print('X')
     end
@@ -81,7 +81,7 @@ end
 def assert_true(ret, msg = nil, diff = nil)
   if $mrbtest_assert
     $mrbtest_assert_idx += 1
-    if !ret
+    unless ret
       msg = "Expected #{ret.inspect} to be true" unless msg
       diff = assertion_diff(true, ret)  unless diff
       $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
@@ -221,7 +221,7 @@ def report()
     puts msg
   end
 
-  $total_test = $ok_test.+($ko_test)
+  $total_test = $ok_test+$ko_test+$kill_test
   t_print("Total: #{$total_test}\n")
 
   t_print("   OK: #{$ok_test}\n")

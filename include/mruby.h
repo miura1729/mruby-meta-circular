@@ -84,7 +84,9 @@ typedef struct {
 enum mrb_fiber_state {
   MRB_FIBER_CREATED = 0,
   MRB_FIBER_RUNNING,
+  MRB_FIBER_RESUMING,
   MRB_FIBER_SUSPENDED,
+  MRB_FIBER_TRANSFERRED,
   MRB_FIBER_TERMINATED,
 };
 
@@ -231,7 +233,7 @@ void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_fun
 void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_value);
 void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
-mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, mrb_value *argv);
+mrb_value mrb_obj_new(mrb_state *mrb, struct RClass *c, int argc, const mrb_value *argv);
 #define mrb_class_new_instance(mrb,argc,argv,c) mrb_obj_new(mrb,c,argc,argv)
 mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 struct RClass * mrb_class_new(mrb_state *mrb, struct RClass *super);
@@ -266,7 +268,7 @@ void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name,
 #define MRB_ARGS_BLOCK()    ((mrb_aspec)1)
 
 /* accept any number of arguments */
-#define MRB_ARGS_ANY()      ARGS_REST()
+#define MRB_ARGS_ANY()      MRB_ARGS_REST()
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
 
@@ -291,15 +293,15 @@ int mrb_get_args(mrb_state *mrb, const char *format, ...);
 #define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
 
 mrb_value mrb_funcall(mrb_state*, mrb_value, const char*, int,...);
-mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, mrb_value*);
-mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, mrb_value*, mrb_value);
+mrb_value mrb_funcall_argv(mrb_state*, mrb_value, mrb_sym, int, const mrb_value*);
+mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, int, const mrb_value*, mrb_value);
 mrb_sym mrb_intern_cstr(mrb_state*,const char*);
-mrb_sym mrb_intern(mrb_state*,const char*,mrb_int);
-mrb_sym mrb_intern_static(mrb_state*,const char*,mrb_int);
-#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, (mrb_int)mrb_strlen_lit(lit))
+mrb_sym mrb_intern(mrb_state*,const char*,size_t);
+mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
+#define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, lit, mrb_strlen_lit(lit))
 mrb_sym mrb_intern_str(mrb_state*,mrb_value);
 mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
-mrb_value mrb_check_intern(mrb_state*,const char*,mrb_int);
+mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
 mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
 const char *mrb_sym2name(mrb_state*,mrb_sym);
 const char *mrb_sym2name_len(mrb_state*,mrb_sym,mrb_int*);
@@ -313,10 +315,10 @@ void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memory availa
 struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
 void mrb_free(mrb_state*, void*);
 
-mrb_value mrb_str_new(mrb_state *mrb, const char *p, mrb_int len);
+mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 mrb_value mrb_str_new_cstr(mrb_state*, const char*);
-mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, mrb_int len);
-#define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), (mrb_int)mrb_strlen_lit(lit))
+mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
+#define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
@@ -324,6 +326,7 @@ void mrb_close(mrb_state*);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
+mrb_value mrb_toplevel_run(mrb_state*, struct RProc*);
 mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
 
 void mrb_p(mrb_state*, mrb_value);
@@ -345,11 +348,11 @@ int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
-  if (mrb_type(val) >= MRB_TT_HAS_BASIC) mrb_gc_mark((mrb), mrb_basic_ptr(val));\
+  if (MRB_TT_HAS_BASIC_P(mrb_type(val))) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
 } while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
-  if ((val.tt >= MRB_TT_HAS_BASIC)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val));\
+  if (MRB_TT_HAS_BASIC_P(val.tt)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
 } while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
@@ -413,7 +416,8 @@ void mrb_print_error(mrb_state *mrb);
 #define E_KEY_ERROR                 (mrb_class_get(mrb, "KeyError"))
 
 mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
-mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, mrb_value *argv);
+mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv);
+mrb_value mrb_yield_with_class(mrb_state *mrb, mrb_value b, int argc, const mrb_value *argv, mrb_value self, struct RClass *c);
 
 void mrb_gc_protect(mrb_state *mrb, mrb_value obj);
 mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
@@ -436,7 +440,8 @@ mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 
 /* fiber functions (you need to link mruby-fiber mrbgem to use) */
-mrb_value mrb_fiber_yield(mrb_state *mrb, int argc, mrb_value *argv);
+mrb_value mrb_fiber_yield(mrb_state *mrb, int argc, const mrb_value *argv);
+#define E_FIBER_ERROR (mrb_class_get(mrb, "FiberError"))
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;

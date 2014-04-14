@@ -20,6 +20,10 @@ struct REnv {
   int cioff;
 };
 
+#define MRB_ENV_STACK_LEN(e) ((e)->flags)
+#define MRB_ENV_UNSHARE_STACK(e) ((e)->cioff = -1)
+#define MRB_ENV_STACK_SHARED_P(e) ((e)->cioff >= 0)
+
 struct RProc {
   MRB_OBJECT_HEADER;
   union {
@@ -61,8 +65,12 @@ struct RProc * mrbjit_get_local_proc(mrb_state *mrb, mrb_irep *mirep);
 /* implementation of #send method */
 mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
+/* following functions are defined in mruby-proc-ext so please include it when using */
+struct RProc *mrb_proc_new_cfunc_with_env(mrb_state*, mrb_func_t, mrb_int, const mrb_value*);
+mrb_value mrb_cfunc_env_get(mrb_state*, mrb_int);
+
 #include "mruby/khash.h"
-KHASH_DECLARE(mt, mrb_sym, struct RProc*, 1)
+KHASH_DECLARE(mt, mrb_sym, struct RProc*, TRUE)
 
 #if defined(__cplusplus)
 }  /* extern "C" { */

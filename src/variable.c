@@ -30,11 +30,10 @@ iv_new(mrb_state *mrb)
   iv_tbl *t;
 
   t = mrb_malloc(mrb, sizeof(iv_tbl));
-  if (t) {
-    t->size = 0;
-    t->rootseg =  NULL;
-    t->last_len = 0;
-  }
+  t->size = 0;
+  t->rootseg =  NULL;
+  t->last_len = 0;
+
   return t;
 }
 
@@ -274,8 +273,8 @@ iv_free(mrb_state *mrb, iv_tbl *t)
 #define MRB_IVHASH_INIT_SIZE 8
 #endif
 
-KHASH_DECLARE(iv, mrb_sym, mrb_value, 1)
-KHASH_DEFINE(iv, mrb_sym, mrb_value, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_DECLARE(iv, mrb_sym, mrb_value, TRUE)
+KHASH_DEFINE(iv, mrb_sym, mrb_value, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
 typedef struct iv_tbl {
   khash_t(iv) h;

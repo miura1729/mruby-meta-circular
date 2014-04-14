@@ -124,7 +124,7 @@ mrb_struct_getmember(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "%S is not struct member", mrb_sym2str(mrb, id));
+  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
@@ -203,9 +203,8 @@ mrb_struct_set(mrb_state *mrb, mrb_value obj, mrb_value val)
       return ptr[i] = val;
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member",
-             mrb_sym2str(mrb, mid));
-  return mrb_nil_value();            /* not reached */
+  mrb_raisef(mrb, E_INDEX_ERROR, "`%S' is not a struct member", mrb_sym2str(mrb, mid));
+  return mrb_nil_value();       /* not reached */
 }
 
 static mrb_value
@@ -239,6 +238,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   mrb_sym id;
   mrb_int i, len;
   struct RClass *c;
+  int ai;
 
   if (mrb_nil_p(name)) {
     c = mrb_class_new(mrb, klass);
@@ -266,6 +266,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   ptr_members = RARRAY_PTR(members);
   len = RARRAY_LEN(members);
+  ai = mrb_gc_arena_save(mrb);
   for (i=0; i< len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
     if (mrb_is_local_id(id) || mrb_is_const_id(id)) {
@@ -276,6 +277,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
         mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
       }
       mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
+      mrb_gc_arena_restore(mrb, ai);
     }
   }
   return nstr;
@@ -382,7 +384,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   }
   st = make_struct(mrb, name, rest, struct_class(mrb));
   if (!mrb_nil_p(b)) {
-    mrb_funcall(mrb, b, "call", 1, st);
+    mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(klass));
   }
 
   return st;
@@ -507,7 +509,7 @@ mrb_value
 mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value s;
-  int i, len;
+  mrb_int i, len;
 
   mrb_get_args(mrb, "o", &s);
 

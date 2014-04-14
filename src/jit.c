@@ -7,6 +7,7 @@
 #include "mruby.h"
 #include "opcode.h"
 #include "error.h"
+#include "value_array.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"
 #include "mruby/variable.h"
@@ -227,10 +228,14 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   if (argc < len) {
     regs[len+1] = *blk; /* move block */
     if (argv0 != argv) {
-      memmove(&regs[1], argv, sizeof(mrb_value)*(argc-m2)); /* m1 + o */
+      value_move(&regs[1], argv, argc-m2); /* m1 + o */
     }
     if (m2) {
-      memmove(&regs[len-m2+1], &argv[argc-m2], sizeof(mrb_value)*m2); /* m2 */
+      int mlen = m2;
+      if (argc-m2 <= m1) {
+	mlen = argc - m1;
+      }
+      value_move(&regs[len-m2+1], &argv[argc-mlen], m2); /* m2 */
     }
     if (r) {                  /* r */
       regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
@@ -244,13 +249,16 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   }
   else {
     if (argv0 != argv) {
-      memmove(&regs[1], argv, sizeof(mrb_value)*(m1+o)); /* m1 + o */
+      regs[len+1] = *blk; /* move block */
+      value_move(&regs[1], argv, m1+o); /* m1 + o */
     }
     if (r) {                  /* r */
       regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
     }
     if (m2) {
-      memmove(&regs[m1+o+r+1], &argv[argc-m2], sizeof(mrb_value)*m2);
+      if (argc-m2 > m1) {
+	value_move(&regs[m1+o+r+1], &argv[argc-m2], m2);
+      }
     }
     if (argv0 == argv) {
       regs[len+1] = *blk; /* move block */
@@ -310,6 +318,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	break;
       }
     }
+    *status->proc = ci->proc;
     *status->irep = ci->proc->body.irep;
     *status->regs = mrb->c->stack = ci[1].stackent;
     *status->pc = mrb->c->rescue[--ci->ridx];
@@ -434,6 +443,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 	break;
       }
     }
+    *status->proc = ci->proc;
     *status->irep = ci->proc->body.irep;
     *status->regs = mrb->c->stack = ci[1].stackent;
     *status->pc = mrb->c->rescue[--ci->ridx];
