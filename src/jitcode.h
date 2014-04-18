@@ -1027,7 +1027,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
-    gen_class_guard(mrb, a, status, pc, coi, c);
+    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
+    //gen_class_guard(mrb, a, status, pc, coi, c);
 
     //dinfo->type = MRB_TT_FREE;
     //dinfo->klass = NULL;
