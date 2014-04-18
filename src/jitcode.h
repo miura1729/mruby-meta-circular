@@ -2058,15 +2058,19 @@ do {                                                                 \
 	     mov(eax, dword [eax + OffsetOf(mrb_callinfo, proc)]);
 	     mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
 	     mov(dword [edx + OffsetOf(struct REnv, c)], eax); */
-
-	  /*	  mov(eax, dword [ecx + dstoff + 4]);
+	  /*
+                  push(ecx);
+                  push(ebx);
+                  mov(eax, dword [ecx + dstoff + 4]);
 		  push(eax);
 		  mov(eax, dword [ecx + dstoff]);
 		  push(eax);
 		  push(esi);
 		  call((void *)mrb_p);
-		  add(esp, 12);*/
-
+		  add(esp, 12);
+		  pop(ebx);
+		  pop(ecx);
+	  */
 	  return code;
 	}
       }

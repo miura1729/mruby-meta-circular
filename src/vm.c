@@ -363,6 +363,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   c->proc_pool->proc.body.irep = mirep;
   mirep->block_lambda = 1;
   mirep->flags |= MRB_ISEQ_NO_FREE; /* Guard from gc  */
+  mrb_irep_incref(mrb, mirep);
   paint_partial_white(mrb, p);
   paint_partial_white(mrb, p->env);
   
