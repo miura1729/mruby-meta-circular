@@ -1822,6 +1822,8 @@ do {                                                                 \
     int siz = GETARG_C(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
+    mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
+    push(eax);
     push(ecx);
     push(ebx);
 
@@ -1838,6 +1840,66 @@ do {                                                                 \
 
     mov(ptr [ecx + dstoff], eax);
     mov(ptr [ecx + dstoff + 4], edx);
+
+    pop(eax);
+    mov(ptr [esi + OffsetOf(mrb_state, arena_idx)], eax);
+
+    dinfo->type = MRB_TT_ARRAY;
+    dinfo->klass = mrb->array_class;
+    dinfo->constp = 0;
+    return code;
+  }
+
+  const void *
+    emit_arycat(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
+    mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
+    push(eax);
+
+    push(ecx);
+    push(ebx);
+
+    mov(eax, ptr [ecx + srcoff + 4]);
+    push(eax);
+    mov(eax, ptr [ecx + srcoff]);
+    push(eax);
+    push(esi);
+    call((void *) mrb_ary_splat);
+    add(esp, sizeof(mrb_state *) + sizeof(mrb_value));
+
+    pop(ebx);
+    pop(ecx);
+
+    push(ecx);
+    push(ebx);
+
+    /* rc of splat */
+    push(edx);
+    push(eax);
+    /* arg1 reg */
+    mov(eax, ptr [ecx + dstoff + 4]);
+    push(eax);
+    mov(eax, ptr [ecx + dstoff]);
+    push(eax);
+    /* mrb */
+    push(esi);
+    call((void *) mrb_ary_concat);
+    add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
+    
+    pop(ebx);
+    pop(ecx);
+
+    mov(ptr [ecx + dstoff], eax);
+    mov(ptr [ecx + dstoff + 4], edx);
+
+    pop(eax);
+    mov(ptr [esi + OffsetOf(mrb_state, arena_idx)], eax);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;

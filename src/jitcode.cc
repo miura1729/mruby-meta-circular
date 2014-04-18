@@ -224,6 +224,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->emit_array(mrb, status, coi, regs);
     break;
     
+  case OP_ARYCAT:
+    rc =code->emit_arycat(mrb, status, coi, regs);
+    break;
+    
   case OP_GETUPVAR:
     rc =code->emit_getupvar(mrb, status, coi);
     break;
