@@ -431,6 +431,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
       break;
 
+    case CALL_MAXARGS:
+      dec(eax);
+      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
+      break;
+
     default:
       mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
       break;
@@ -484,8 +489,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (addr_call_stack_extend == NULL) {
       mov(eax, "@f");
       push(eax);
-      mov(edx, (Xbyak::uint32)callee_nregs);
-      mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+      if (n == CALL_MAXARGS) {
+	mov(edx, (Xbyak::uint32)((callee_nregs < 3) ? 3 : callee_nregs));
+	mov(eax, 3);
+      }
+      else {
+	mov(edx, (Xbyak::uint32)callee_nregs);
+	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+      }
 
       addr_call_stack_extend = (void *)getCurr();
 
@@ -500,8 +511,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       ret();
     }
     else {
-      mov(edx, (Xbyak::uint32)callee_nregs);
-      mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+      if (n == CALL_MAXARGS) {
+	mov(edx, (Xbyak::uint32)((callee_nregs < 3) ? 3 : callee_nregs));
+	mov(eax, 3);
+      }
+      else {
+	mov(edx, (Xbyak::uint32)callee_nregs);
+	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+      }
       call(addr_call_stack_extend);
     }
       
@@ -998,9 +1015,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
-
+    
     if (GETARG_C(i) == CALL_MAXARGS) {
-      return NULL;
+      n = 1;
     }
 
     recv = regs[a];
