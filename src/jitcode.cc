@@ -84,7 +84,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     code->gen_call_fetch_hook(mrb, status);
   }
 
-  if ((*status->irep)->iseq == *ppc) {
+  if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
     rc2 = code->emit_block_guard(mrb, status, coi);
   }
@@ -157,13 +157,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     break;
 
   case OP_CALL:
-    //    rc =code->emit_call(mrb, status);
-    if (mrb->compile_info.force_compile) {
-      rc = code->emit_nop(mrb, status, coi);
-    }
-    else {
-      rc = NULL;
-    }
+    rc = NULL;
     break;
     
   case OP_ENTER:
