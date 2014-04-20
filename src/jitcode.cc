@@ -71,6 +71,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_value *regs = *status->regs;
   mrb_code **ppc = status->pc;
   const void *rc;
+  const void *rc2 = NULL;
 
   if (code == NULL) {
     code = the_code;
@@ -81,6 +82,11 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   if (mrb->code_fetch_hook) {
     code->gen_call_fetch_hook(mrb, status);
+  }
+
+  if ((*status->irep)->iseq == *ppc) {
+    /* Top of iseq */
+    rc2 = code->emit_block_guard(mrb, status, coi);
   }
 
   switch(GET_OPCODE(**ppc)) {
@@ -268,6 +274,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     mrb->compile_info.nest_level = 0;
     rc =NULL;
     break;
+  }
+
+  if (rc2) {
+    return rc2;
   }
 
   if (rc == NULL) {

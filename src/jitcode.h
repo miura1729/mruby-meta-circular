@@ -1102,6 +1102,32 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
+    emit_block_guard(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    mrb_irep *irep = *status->irep;
+    const void *code = getCurr();
+
+    if (irep->block_lambda) {
+      mov(eax, dword [ebx + VMSOffsetOf(irep)]);
+      cmp(eax, (Xbyak::uint32)irep);
+      jz("@f");
+      inLocalLabel();
+
+      L(".exitlab");
+      mov(eax, dword [eax + OffsetOf(mrb_irep, iseq)]);
+      mov(dword [ebx + VMSOffsetOf(pc)], eax);
+      xor(eax, eax);
+      mov(edx, ".exitlab");
+      ret();
+
+      outLocalLabel();
+      L("@@");
+    }
+
+    return code;
+  }
+
+  const void *
     emit_call(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
@@ -1152,7 +1178,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
-    mrb_irep *irep = *status->irep;
     mrb_value *regs = *status->regs;
     mrb_code i = *pc;
     /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
@@ -1167,24 +1192,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
-
-    //printf("%x %x %x\n", irep, irep->block_lambda, getCurr());
-    if (irep->block_lambda) {
-      mov(eax, dword [ebx + VMSOffsetOf(irep)]);
-      cmp(eax, (Xbyak::uint32)irep);
-      jz("@f");
-      inLocalLabel();
-
-      L(".exitlab");
-      mov(eax, dword [eax + OffsetOf(mrb_irep, iseq)]);
-      mov(dword [ebx + VMSOffsetOf(pc)], eax);
-      xor(eax, eax);
-      mov(edx, ".exitlab");
-      ret();
-
-      outLocalLabel();
-      L("@@");
-    }
 
     if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0) {
       CALL_CFUNC_BEGIN;
