@@ -947,7 +947,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 \
     test(eax, eax);					             \
     jz("@f");                                                        \
-    gen_exit(NULL, 0, 0, status); 		                     \
+    gen_exit(NULL, 0, 1, status); 		                     \
     L("@@");                                                         \
   }while (0)
 
@@ -1199,6 +1199,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
     }
 
+    mrb->compile_info.force_compile = 0;
     return code;
   }
 
@@ -1224,7 +1225,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     disp_type(mrb, rinfo);
 #endif
 
-    mrb->compile_info.force_compile = 0;
     inLocalLabel();
 
     /* Set return address from callinfo */
