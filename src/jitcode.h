@@ -1215,9 +1215,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 			(c->ci->env == 0 || c->ci->proc->body.irep->shared_lambda));
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
-    mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
 
 #if 0
+    mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
     mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
     printf("%s#%s -> ", 
 	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
@@ -1320,9 +1320,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
-    mrb_value *regs = *status->regs;
 
 #if 0
+    mrb_value *regs = *status->regs;
     mrb_code *pc = *status->pc;
     mrb_code i = *pc;
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
