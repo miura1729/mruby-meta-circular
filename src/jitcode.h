@@ -33,6 +33,7 @@ void *mrbjit_exec_enter(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_return_fast(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
+void disasm_once(mrb_state *, mrb_irep *, mrb_code);
 } /* extern "C" */
 
 #define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
@@ -1014,7 +1015,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_value recv;
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
-    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+    //    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
     
     if (GETARG_C(i) == CALL_MAXARGS) {
       n = 1;
@@ -1205,7 +1206,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
-    mrb_value *regs = *status->regs;
     struct mrb_context *c = mrb->c;
     mrb_code *pc = *status->pc;
     mrb_code i = *pc;
@@ -1321,11 +1321,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     const void *code = getCurr();
     mrb_value *regs = *status->regs;
+
+#if 0
     mrb_code *pc = *status->pc;
     mrb_code i = *pc;
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
-
-#if 1
     mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
     printf("%s#%s -> ", 
 	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
@@ -1713,8 +1713,8 @@ do {                                                                 \
     enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
-    int b;
-    mrb_code jmpc = *(*ppc + 2);
+    //    int b;
+    //mrb_code jmpc = *(*ppc + 2);
 
     /* Import from class.h */
     switch (tt) {
@@ -1761,12 +1761,13 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    int regno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    mrb_code jmpc = *(*ppc + 2);
-    int b;
 
 #if 0
+    int b;
+    mrb_code jmpc = *(*ppc + 2);
+    int regno = GETARG_A(**ppc);
+
     mrb->compile_info.disable_jit = 1;
     b = mrb_test(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
     mrb->compile_info.disable_jit = 0;
@@ -2052,7 +2053,7 @@ do {                                                                 \
     dinfo->klass = mrb->proc_class;
     dinfo->constp = 1;
 
-    if (mirep->shared_lambda && c->proc_pool) {
+    if (mirep->shared_lambda && c->proc_pool && 0) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;
