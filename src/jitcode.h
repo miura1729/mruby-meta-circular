@@ -1397,7 +1397,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
     else {                                                              \
-      emit_send(mrb, status, coi);                                      \
+      return emit_send(mrb, status, coi);				\
     }                                                                   \
 } while(0)
 
@@ -2053,7 +2053,7 @@ do {                                                                 \
     dinfo->klass = mrb->proc_class;
     dinfo->constp = 1;
 
-    if (mirep->shared_lambda && c->proc_pool && 0) {
+    if (mirep->shared_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;
