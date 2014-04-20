@@ -394,15 +394,18 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   const char *name;
   mrb_int len;
   mrb_sym id = mrb_symbol(sym);
+  char *sp;
 
   name = mrb_sym2name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
+  sp = RSTRING_PTR(str);
   RSTRING_PTR(str)[0] = ':';
-  memcpy(RSTRING_PTR(str)+1, name, len);
+  memcpy(sp+1, name, len);
   if (!symname_p(name) || strlen(name) != len) {
     str = mrb_str_dump(mrb, str);
-    RSTRING_PTR(str)[0] = ':';
-    RSTRING_PTR(str)[1] = '"';
+    sp = RSTRING_PTR(str);
+    sp[0] = ':';
+    sp[1] = '"';
   }
   return str;
 }
@@ -470,7 +473,7 @@ mrb_init_symbol(mrb_state *mrb)
 {
   struct RClass *sym;
 
-  sym = mrb->symbol_class = mrb_define_class(mrb, "Symbol", mrb->object_class);
+  sym = mrb->symbol_class = mrb_define_class(mrb, "Symbol", mrb->object_class);                 /* 15.2.11 */
 
   mrb_define_method(mrb, sym, "===",             sym_equal,      MRB_ARGS_REQ(1));              /* 15.2.11.3.1  */
   mrb_define_method(mrb, sym, "id2name",         mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.2  */

@@ -14,7 +14,7 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
-#include "re.h"
+#include "mruby/re.h"
 
 #define STR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define STR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
@@ -717,7 +717,7 @@ noregexp(mrb_state *mrb, mrb_value self)
 static void
 regexp_check(mrb_state *mrb, mrb_value obj)
 {
-  if (!memcmp(mrb_obj_classname(mrb, obj), REGEXP_CLASS, sizeof(REGEXP_CLASS) - 1)) {
+  if (mrb_regexp_p(mrb, obj)) {
     noregexp(mrb, obj);
   }
 }
@@ -2586,7 +2586,7 @@ mrb_init_string(mrb_state *mrb)
 {
   struct RClass *s;
 
-  s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);
+  s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
   mrb_define_method(mrb, s, "bytesize",        mrb_str_bytesize,        MRB_ARGS_NONE());

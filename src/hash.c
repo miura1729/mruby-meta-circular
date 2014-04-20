@@ -204,21 +204,23 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
   khash_t(ht) *h;
   khiter_t k;
+  int r;
 
   mrb_hash_modify(mrb, hash);
   h = RHASH_TBL(hash);
 
   if (!h) h = RHASH_TBL(hash) = kh_init(ht, mrb);
-  k = kh_get(ht, mrb, h, key);
-  if (k == kh_end(h)) {
+  k = kh_put2(ht, mrb, h, key, &r);
+  kh_value(h, k).v = val;
+
+  if (r != 0) {
     /* expand */
     int ai = mrb_gc_arena_save(mrb);
-    k = kh_put(ht, mrb, h, KEY(key));
+    kh_key(h, k) = KEY(key);
     mrb_gc_arena_restore(mrb, ai);
     kh_value(h, k).n = kh_size(h)-1;
   }
 
-  kh_value(h, k).v = val;
   mrb_write_barrier(mrb, (struct RBasic*)RHASH(hash));
   return;
 }
@@ -824,7 +826,7 @@ mrb_init_hash(mrb_state *mrb)
 {
   struct RClass *h;
 
-  h = mrb->hash_class = mrb_define_class(mrb, "Hash", mrb->object_class);
+  h = mrb->hash_class = mrb_define_class(mrb, "Hash", mrb->object_class);              /* 15.2.13 */
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
   mrb_define_method(mrb, h, "[]",              mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */

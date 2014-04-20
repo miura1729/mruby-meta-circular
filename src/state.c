@@ -196,6 +196,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
     ns->as.heap.aux.capa = 0;
   }
   else {
+    ns->flags = 0;
     if (s->flags & MRB_STR_EMBED) {
       ptr = s->as.ary;
       len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);

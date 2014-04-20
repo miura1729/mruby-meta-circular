@@ -982,8 +982,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
                mrb_fixnum_value(width),
                mrb_fixnum_value(NUMERIC_SHIFT_WIDTH_MAX));
   }
-  val = val << width;
-  return mrb_fixnum_value(val);
+  return mrb_fixnum_value(val << width);
 }
 
 static mrb_value
@@ -1011,8 +1010,7 @@ fix_shift_get_width(mrb_state *mrb, mrb_int *width)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-  y = bit_coerce(mrb, y);
-  *width = mrb_fixnum(y);
+  *width = mrb_fixnum(bit_coerce(mrb, y));
 }
 
 /* 15.2.8.3.12 */
@@ -1077,11 +1075,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 fix_to_f(mrb_state *mrb, mrb_value num)
 {
-    mrb_float val;
-
-    val = (mrb_float)mrb_fixnum(num);
-
-    return mrb_float_value(mrb, val);
+  return mrb_float_value(mrb, (mrb_float)mrb_fixnum(num));
 }
 
 /*
@@ -1317,7 +1311,7 @@ mrb_init_numeric(mrb_state *mrb)
   struct RClass *numeric, *integer, *fixnum, *fl;
 
   /* Numeric Class */
-  numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);
+  numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
 
   mrb_define_method(mrb, numeric, "**",       num_pow,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "/",        num_div,        MRB_ARGS_REQ(1));  /* 15.2.8.3.4  */
@@ -1326,9 +1320,9 @@ mrb_init_numeric(mrb_state *mrb)
   mrbjit_define_primitive(mrb, numeric, "<=>", mrbjit_prim_num_cmp);
 
   /* Integer Class */
-  integer = mrb_define_class(mrb, "Integer",  numeric);
+  integer = mrb_define_class(mrb, "Integer",  numeric);                          /* 15.2.8 */
   mrb_undef_class_method(mrb, integer, "new");
-  mrb_define_method(mrb, integer, "to_i", int_to_i, MRB_ARGS_NONE());              /* 15.2.8.3.24 */
+  mrb_define_method(mrb, integer, "to_i", int_to_i, MRB_ARGS_NONE());            /* 15.2.8.3.24 */
   mrb_define_method(mrb, integer, "to_int", int_to_i, MRB_ARGS_NONE());
 
   fixnum = mrb->fixnum_class = mrb_define_class(mrb, "Fixnum", integer);
@@ -1358,7 +1352,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,        MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
 
   /* Float Class */
-  fl = mrb->float_class = mrb_define_class(mrb, "Float", numeric);
+  fl = mrb->float_class = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
   mrb_undef_class_method(mrb,  fl, "new");
   mrb_define_method(mrb, fl,      "+",         flo_plus,         MRB_ARGS_REQ(1)); /* 15.2.9.3.1  */
   mrb_define_method(mrb, fl,      "-",         flo_minus,        MRB_ARGS_REQ(1)); /* 15.2.9.3.2  */

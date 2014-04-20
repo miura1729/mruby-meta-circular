@@ -122,34 +122,41 @@ static mrb_value
 exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value str, mesg, file, line;
+  mrb_bool append_mesg;
 
   mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
   file = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "file"));
   line = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "line"));
 
+  append_mesg = !mrb_nil_p(mesg);
+  if (append_mesg) {
+    mesg = mrb_obj_as_string(mrb, mesg);
+    append_mesg = RSTRING_LEN(mesg) > 0;
+  }
+
   if (!mrb_nil_p(file) && !mrb_nil_p(line)) {
-    str = file;
+    str = mrb_str_dup(mrb, file);
     mrb_str_cat_lit(mrb, str, ":");
     mrb_str_append(mrb, str, line);
     mrb_str_cat_lit(mrb, str, ": ");
-    if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
+    if (append_mesg) {
       mrb_str_append(mrb, str, mesg);
       mrb_str_cat_lit(mrb, str, " (");
     }
     mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
-    if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
+    if (append_mesg) {
       mrb_str_cat_lit(mrb, str, ")");
     }
   }
   else {
-    str = mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
-    if (!mrb_nil_p(mesg) && RSTRING_LEN(mesg) > 0) {
-      mrb_str_cat_lit(mrb, str, ": ");
+    const char *cname = mrb_obj_classname(mrb, exc);
+    str = mrb_str_new_cstr(mrb, cname);
+    mrb_str_cat_lit(mrb, str, ": ");
+    if (append_mesg) {
       mrb_str_append(mrb, str, mesg);
     }
     else {
-      mrb_str_cat_lit(mrb, str, ": ");
-      mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, exc));
+      mrb_str_cat_cstr(mrb, str, cname);
     }
   }
   return str;
@@ -213,7 +220,7 @@ exc_debug_info(mrb_state *mrb, struct RObject *exc)
   }
 }
 
-void
+mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
   mrb->exc = mrb_obj_ptr(exc);
@@ -225,7 +232,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   MRB_THROW(mrb->jmp);
 }
 
-void
+mrb_noreturn void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
   mrb_value mesg;
@@ -287,7 +294,7 @@ mrb_format(mrb_state *mrb, const char *format, ...)
   return str;
 }
 
-void
+mrb_noreturn void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list args;
@@ -299,7 +306,7 @@ mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
   mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, mesg));
 }
 
-void
+mrb_noreturn void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
   mrb_value exc;
@@ -330,7 +337,7 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 #endif
 }
 
-void
+mrb_noreturn void
 mrb_bug(mrb_state *mrb, const char *fmt, ...)
 {
 #ifdef ENABLE_STDIO
