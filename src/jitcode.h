@@ -1341,6 +1341,41 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return code;
   }
 
+  const void *
+    emit_blkpush(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+      /* A Bx   R(A) := block (16=6:1:5:4) */
+    mrb_code *pc = *status->pc;
+    int i = *pc;
+    int a = GETARG_A(i);
+    int bx = GETARG_Bx(i);
+    int m1 = (bx>>10)&0x3f;
+    int r  = (bx>>9)&0x1;
+    int m2 = (bx>>4)&0x1f;
+    int lv = (bx>>0)&0xf;
+
+    if (lv == 0) {
+      movsd(xmm0, ptr [ecx + (m1 + r + m2 + 1) * sizeof(mrb_value)]);
+      movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+    }
+    else {
+      int i;
+
+      mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
+      mov(eax, dword [eax + OffsetOf(mrb_callinfo, proc)]);
+      mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
+      for (i = 0; i < lv - 1; i++) {
+	mov(eax, dword [eax + OffsetOf(struct REnv, c)]);
+      }
+      mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
+      movsd(xmm0, ptr [eax + (m1 + r + m2 + 1) * sizeof(mrb_value)]);
+      movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+    }
+
+    return code;
+  }
+
 #define OVERFLOW_CHECK_GEN(AINSTF)                                      \
     jno("@f");                                                          \
     cvtsi2sd(xmm0, dword [ecx + reg0off]);                              \
