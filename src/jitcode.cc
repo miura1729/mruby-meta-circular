@@ -126,6 +126,14 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->emit_loadf(mrb, status, coi);
     break;
 
+  case OP_GETGLOBAL:
+    rc =code->emit_getglobal(mrb, status, coi);
+    break;
+
+  case OP_SETGLOBAL:
+    rc =code->emit_setglobal(mrb, status, coi);
+    break;
+
   case OP_GETIV:
     rc =code->emit_getiv(mrb, status, coi);
     break;

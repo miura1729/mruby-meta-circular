@@ -705,6 +705,60 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
+    emit_getglobal(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    const int idpos = GETARG_Bx(**ppc);
+    const Xbyak::uint32 dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int argsize = 2 * sizeof(void *);
+    mrb_irep *irep = *status->irep;
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
+    dinfo->constp = 0;
+
+    push(ecx);
+    push(ebx);
+    push((Xbyak::uint32)irep->syms[idpos]);
+    push(esi);
+    call((void *)mrb_gv_get);
+    add(esp, argsize);
+    pop(ebx);
+    pop(ecx);
+    mov(dword [ecx + dstoff], eax);
+    mov(dword [ecx + dstoff + 4], edx);
+
+    return code;
+  }
+
+  const void *
+    emit_setglobal(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    const int idpos = GETARG_Bx(**ppc);
+    const Xbyak::uint32 srcoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    const int argsize = 4 * sizeof(void *);
+    mrb_irep *irep = *status->irep;
+
+    push(ecx);
+    push(ebx);
+    mov(eax, dword [ecx + srcoff + 4]);
+    push(eax);
+    mov(eax, dword [ecx + srcoff]);
+    push(eax);
+    push((Xbyak::uint32)irep->syms[idpos]);
+    push(esi);
+    call((void *)mrb_gv_set);
+    add(esp, argsize);
+    pop(ebx);
+    pop(ecx);
+
+    return code;
+  }
+
+  const void *
     emit_getiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
