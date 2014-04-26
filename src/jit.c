@@ -493,15 +493,10 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   ci->proc = m;
   ci->nregs = irep->nregs;
 
-  if (env) {
-    if (env->mid) {
-      ci->mid = env->mid;
-    }
-    stack[0] = env->stack[0];
+  if (env->mid) {
+    ci->mid = env->mid;
   }
-  else {
-    stack[0] = mrb_obj_value(m->target_class);
-  }
+  stack[0] = env->stack[0];
 
   /* setup environment for calling method */
   *status->proc = m;
