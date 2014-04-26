@@ -497,12 +497,7 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
     if (env->mid) {
       ci->mid = env->mid;
     }
-    if (!env->stack) {
-      env->stack = stack;
-    }
-    else {
-      stack[0] = env->stack[0];
-    }
+    stack[0] = env->stack[0];
   }
   else {
     stack[0] = mrb_obj_value(m->target_class);

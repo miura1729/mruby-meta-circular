@@ -997,7 +997,7 @@ heredoc_end(parser_state *p)
     node *nd;
     mrb_sym id;
     int num;
-    unsigned int stack;
+    stack_type stack;
     const struct vtable *vars;
 }
 
@@ -1075,7 +1075,7 @@ heredoc_end(parser_state *p)
 %type <nd> brace_block cmd_brace_block do_block lhs none f_bad_arg
 %type <nd> mlhs mlhs_list mlhs_post mlhs_basic mlhs_item mlhs_node mlhs_inner
 %type <id> fsym sym basic_symbol operation operation2 operation3
-%type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg
+%type <id> cname fname op f_rest_arg f_block_arg opt_f_block_arg f_norm_arg f_opt_asgn
 %type <nd> heredoc words symbols
 
 %token tUPLUS             /* unary+ */
@@ -2226,6 +2226,8 @@ primary         : literal
                     {
                       p->in_def++;
                       $<nd>$ = local_switch(p);
+                      $<stack>1 = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
                     }
                   f_arglist
                   bodystmt
@@ -2234,12 +2236,15 @@ primary         : literal
                       $$ = new_def(p, $2, $4, $5);
                       local_resume(p, $<nd>3);
                       p->in_def--;
+                      p->cmdarg_stack = $<stack>1;
                     }
                 | keyword_def singleton dot_or_colon {p->lstate = EXPR_FNAME;} fname
                     {
                       p->in_single++;
                       p->lstate = EXPR_ENDFN; /* force for args */
                       $<nd>$ = local_switch(p);
+                      $<stack>1 = p->cmdarg_stack;
+                      p->cmdarg_stack = 0;
                     }
                   f_arglist
                   bodystmt
@@ -2248,6 +2253,7 @@ primary         : literal
                       $$ = new_sdef(p, $2, $5, $7, $8);
                       local_resume(p, $<nd>6);
                       p->in_single--;
+                      p->cmdarg_stack = $<stack>1;
                     }
                 | keyword_break
                     {
@@ -3046,17 +3052,22 @@ f_arg           : f_arg_item
                     }
                 ;
 
-f_opt           : tIDENTIFIER '=' arg_value
+f_opt_asgn      : tIDENTIFIER '='
                     {
                       local_add_f(p, $1);
-                      $$ = cons(nsym($1), $3);
+                      $$ = $1;
                     }
                 ;
 
-f_block_opt     : tIDENTIFIER '=' primary_value
+f_opt           : f_opt_asgn arg_value
                     {
-                      local_add_f(p, $1);
-                      $$ = cons(nsym($1), $3);
+                      $$ = cons(nsym($1), $2);
+                    }
+                ;
+
+f_block_opt     : f_opt_asgn primary_value
+                    {
+                      $$ = cons(nsym($1), $2);
                     }
                 ;
 
@@ -5252,8 +5263,8 @@ static void
 parser_init_cxt(parser_state *p, mrbc_context *cxt)
 {
   if (!cxt) return;
-  if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->filename) mrb_parser_set_filename(p, cxt->filename);
+  if (cxt->lineno) p->lineno = cxt->lineno;
   if (cxt->syms) {
     int i;
 

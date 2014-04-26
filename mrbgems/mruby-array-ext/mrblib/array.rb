@@ -313,7 +313,7 @@ class Array
 
   def fill(arg0=nil, arg1=nil, arg2=nil, &block)
     if arg0 == nil && arg1 == nil && arg2 == nil && !block
-      raise ArgumentError, "wrong number of arguments (0 for 1..3)" 
+      raise ArgumentError, "wrong number of arguments (0 for 1..3)"
     end
 
     beg = len = 0
@@ -323,11 +323,13 @@ class Array
         # ary.fill { |index| block }                    -> ary
         beg = 0
         len = self.size
-      elsif arg0 != nil && arg0.respond_to?(:begin) && arg0.respond_to?(:end)
+      elsif arg0 != nil && arg0.kind_of?(Range)
         # ary.fill(range) { |index| block }             -> ary
         beg = arg0.begin
         beg += self.size if beg < 0
-        len = arg0.end - beg + 1
+        len = arg0.end
+        len += self.size if len < 0
+        len += 1 unless arg0.exclude_end?
       elsif arg0 != nil
         # ary.fill(start [, length] ) { |index| block } -> ary
         beg = arg0
@@ -342,20 +344,22 @@ class Array
       if arg0 != nil && arg1 == nil && arg2 == nil
         # ary.fill(obj)                                 -> ary
         beg = 0
-        len = self.size      
-      elsif arg0 != nil && arg1 != nil && arg1.respond_to?(:begin) && arg1.respond_to?(:end)
-        # ary.fill(obj, range )                         -> ary
         len = self.size
+      elsif arg0 != nil && arg1 != nil && arg1.kind_of?(Range)
+        # ary.fill(obj, range )                         -> ary
         beg = arg1.begin
-        len = arg1.end - beg + 1
+        beg += self.size if beg < 0
+        len = arg1.end
+        len += self.size if len < 0
+        len += 1 unless arg1.exclude_end?
       elsif arg0 != nil && arg1 != nil
         # ary.fill(obj, start [, length])               -> ary
         beg = arg1
         beg += self.size if beg < 0
-       if arg2 == nil
+        if arg2 == nil
           len = self.size
         else
-          len = arg1 + arg2
+          len = beg + arg2
         end
       end
     end
@@ -424,5 +428,233 @@ class Array
 
   def rotate!(count=1)
     self.replace(self.rotate(count))
+  end
+
+  ##
+  #  call-seq:
+  #     ary.delete_if { |item| block }  -> ary
+  #     ary.delete_if                   -> Enumerator
+  #
+  #  Deletes every element of +self+ for which block evaluates to +true+.
+  #
+  #  The array is changed instantly every time the block is called, not after
+  #  the iteration is over.
+  #
+  #  See also Array#reject!
+  #
+  #  If no block is given, an Enumerator is returned instead.
+  #
+  #     scores = [ 97, 42, 75 ]
+  #     scores.delete_if {|score| score < 80 }   #=> [97]
+
+  def delete_if(&block)
+    return to_enum :delete_if unless block_given?
+
+    idx = 0
+    while idx < self.size do
+      if block.call(self[idx])
+        self.delete_at(idx)
+      else
+        idx += 1
+      end
+    end
+    self
+  end
+
+  ##
+  #  call-seq:
+  #     ary.reject! { |item| block }  -> ary or nil
+  #     ary.reject!                   -> Enumerator
+  #
+  #  Equivalent to Array#delete_if, deleting elements from +self+ for which the
+  #  block evaluates to +true+, but returns +nil+ if no changes were made.
+  #
+  #  The array is changed instantly every time the block is called, not after
+  #  the iteration is over.
+  #
+  #  See also Enumerable#reject and Array#delete_if.
+  #
+  #  If no block is given, an Enumerator is returned instead.
+
+  def reject!(&block)
+    return to_enum :reject! unless block_given?
+
+    len = self.size
+    idx = 0
+    while idx < self.size do
+      if block.call(self[idx])
+        self.delete_at(idx)
+      else
+        idx += 1
+      end
+    end
+    if self.size == len
+      nil
+    else
+      self
+    end
+  end
+
+  ##
+  #  call-seq:
+  #     ary.insert(index, obj...)  -> ary
+  #
+  #  Inserts the given values before the element with the given +index+.
+  #
+  #  Negative indices count backwards from the end of the array, where +-1+ is
+  #  the last element.
+  #
+  #     a = %w{ a b c d }
+  #     a.insert(2, 99)         #=> ["a", "b", 99, "c", "d"]
+  #     a.insert(-2, 1, 2, 3)   #=> ["a", "b", 99, "c", 1, 2, 3, "d"]
+
+  def insert(idx, *args)
+    idx += self.size + 1 if idx < 0
+    self[idx, 0] = args
+    self
+  end
+
+  ##
+  #  call-seq:
+  #     ary.bsearch {|x| block }  -> elem
+  #
+  #  By using binary search, finds a value from this array which meets
+  #  the given condition in O(log n) where n is the size of the array.
+  #
+  #  You can use this method in two use cases: a find-minimum mode and
+  #  a find-any mode.  In either case, the elements of the array must be
+  #  monotone (or sorted) with respect to the block.
+  #
+  #  In find-minimum mode (this is a good choice for typical use case),
+  #  the block must return true or false, and there must be an index i
+  #  (0 <= i <= ary.size) so that:
+  #
+  #  - the block returns false for any element whose index is less than
+  #    i, and
+  #  - the block returns true for any element whose index is greater
+  #    than or equal to i.
+  #
+  #  This method returns the i-th element.  If i is equal to ary.size,
+  #  it returns nil.
+  #
+  #     ary = [0, 4, 7, 10, 12]
+  #     ary.bsearch {|x| x >=   4 } #=> 4
+  #     ary.bsearch {|x| x >=   6 } #=> 7
+  #     ary.bsearch {|x| x >=  -1 } #=> 0
+  #     ary.bsearch {|x| x >= 100 } #=> nil
+  #
+  #  In find-any mode (this behaves like libc's bsearch(3)), the block
+  #  must return a number, and there must be two indices i and j
+  #  (0 <= i <= j <= ary.size) so that:
+  #
+  #  - the block returns a positive number for ary[k] if 0 <= k < i,
+  #  - the block returns zero for ary[k] if i <= k < j, and
+  #  - the block returns a negative number for ary[k] if
+  #    j <= k < ary.size.
+  #
+  #  Under this condition, this method returns any element whose index
+  #  is within i...j.  If i is equal to j (i.e., there is no element
+  #  that satisfies the block), this method returns nil.
+  #
+  #     ary = [0, 4, 7, 10, 12]
+  #     # try to find v such that 4 <= v < 8
+  #     ary.bsearch {|x| 1 - (x / 4).truncate } #=> 4 or 7
+  #     # try to find v such that 8 <= v < 10
+  #     ary.bsearch {|x| 4 - (x / 2).truncate } #=> nil
+  #
+  #  You must not mix the two modes at a time; the block must always
+  #  return either true/false, or always return a number.  It is
+  #  undefined which value is actually picked up at each iteration.
+
+  def bsearch(&block)
+    return to_enum :bsearch unless block_given?
+
+    low = 0
+    high = self.size
+    satisfied = false
+    while low < high
+      mid = low + ((high - low) / 2).truncate
+      val = self[mid]
+      v = block.call(val)
+      if v.is_a?(Integer)
+        return val if v == 0
+        smaller = v < 0
+      elsif v == true
+        satisfied = true
+        smaller = true
+      elsif v == false || v == nil
+        smaller = false
+      end
+      if smaller
+        high = mid
+      else
+        low = mid + 1
+      end
+    end
+    return nil if low == self.size
+    return nil unless satisfied
+    self[low]
+  end
+
+  ##
+  #  call-seq:
+  #     ary.delete_if { |item| block }  -> ary
+  #     ary.delete_if                   -> Enumerator
+  #
+  #  Deletes every element of +self+ for which block evaluates to +true+.
+  #
+  #  The array is changed instantly every time the block is called, not after
+  #  the iteration is over.
+  #
+  #  See also Array#reject!
+  #
+  #  If no block is given, an Enumerator is returned instead.
+  #
+  #     scores = [ 97, 42, 75 ]
+  #     scores.delete_if {|score| score < 80 }   #=> [97]
+
+  def delete_if(&block)
+    return to_enum :delete_if unless block_given?
+
+    idx = 0
+    len = self.size
+    while idx < self.size do
+      if block.call(self[idx])
+        self.delete_at(idx)
+      else
+        idx += 1
+      end
+    end
+    self
+  end
+
+  ##
+  #  call-seq:
+  #     ary.keep_if { |item| block } -> ary
+  #     ary.keep_if                  -> Enumerator
+  #
+  #  Deletes every element of +self+ for which the given block evaluates to
+  #  +false+.
+  #
+  #  See also Array#select!
+  #
+  #  If no block is given, an Enumerator is returned instead.
+  #
+  #     a = [1, 2, 3, 4, 5]
+  #     a.keep_if { |val| val > 3 } #=> [4, 5]
+
+  def keep_if(&block)
+    return to_enum :keep_if unless block_given?
+
+    idx = 0
+    len = self.size
+    while idx < self.size do
+      if block.call(self[idx])
+        idx += 1
+      else
+        self.delete_at(idx)
+      end
+    end
+    self
   end
 end

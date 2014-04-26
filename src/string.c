@@ -32,11 +32,11 @@
   }\
 } while (0)
 #define RSTRING_EMBED_LEN(s) \
-  (size_t)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (mrb_int)((RSTRING(s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_EMBED_LEN(s)\
-  (size_t)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
+  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
-#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (size_t)(s)->as.heap.len)
+#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (s)->as.heap.len)
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -272,17 +272,9 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
       ptr = STR_PTR(s) + off;
   }
   memcpy(STR_PTR(s) + STR_LEN(s), ptr, len);
-  mrb_assert(total <= MRB_INT_MAX);
+  mrb_assert_int_fit(size_t, total, mrb_int, MRB_INT_MAX);
   STR_SET_LEN(s, total);
   STR_PTR(s)[total] = '\0';   /* sentinel */
-}
-
-mrb_value
-mrb_str_buf_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
-{
-  if (len == 0) return str;
-  str_buf_cat(mrb, mrb_str_ptr(str), ptr, len);
-  return str;
 }
 
 mrb_value
@@ -1359,8 +1351,7 @@ static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value *argv;
-  int argc;
-
+  mrb_int argc;
   mrb_value sub;
   mrb_int pos;
 
@@ -1703,7 +1694,7 @@ static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value *argv;
-  int argc;
+  mrb_int argc;
   mrb_value sub;
   mrb_value vpos;
   mrb_int pos, len = RSTRING_LEN(str);
@@ -2112,7 +2103,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 }
 
 mrb_value
-mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, mrb_bool badcheck)
+mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
 {
   char *s;
   mrb_int len;
@@ -2158,16 +2149,9 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, int base, mrb_bool badcheck)
 static mrb_value
 mrb_str_to_i(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
-  int argc;
-  int base;
+  mrb_int base = 10;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
-  if (argc == 0)
-    base = 10;
-  else
-    base = mrb_fixnum(argv[0]);
-
+  mrb_get_args(mrb, "|i", &base);
   if (base < 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
   }
@@ -2518,12 +2502,12 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
       c = *p;
       if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
           buf[0] = '\\'; buf[1] = c;
-          mrb_str_buf_cat(mrb, result, buf, 2);
+          mrb_str_cat(mrb, result, buf, 2);
           continue;
       }
       if (ISPRINT(c)) {
           buf[0] = c;
-          mrb_str_buf_cat(mrb, result, buf, 1);
+          mrb_str_cat(mrb, result, buf, 1);
           continue;
       }
       switch (c) {
@@ -2540,7 +2524,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
       if (cc) {
           buf[0] = '\\';
           buf[1] = (char)cc;
-          mrb_str_buf_cat(mrb, result, buf, 2);
+          mrb_str_cat(mrb, result, buf, 2);
           continue;
       }
       else {
@@ -2548,7 +2532,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         buf[3] = '0' + c % 8; c /= 8;
         buf[2] = '0' + c % 8; c /= 8;
         buf[1] = '0' + c % 8;
-        mrb_str_buf_cat(mrb, result, buf, 4);
+        mrb_str_cat(mrb, result, buf, 4);
         continue;
       }
     }

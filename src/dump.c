@@ -90,8 +90,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
       {
         mrb_int len = RSTRING_LEN(str);
-        mrb_assert(len >= 0);
-        mrb_assert(len <= SIZE_MAX);
+        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -100,8 +99,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
       {
         int len;
         len = mrb_float_to_str(buf, mrb_float(irep->pool[pool_no]));
-        mrb_assert(len >= 0);
-        mrb_assert(len <= SIZE_MAX);
+        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -109,8 +107,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     case MRB_TT_STRING:
       {
         mrb_int len = RSTRING_LEN(irep->pool[pool_no]);
-        mrb_assert(len >= 0);
-        mrb_assert(len <= SIZE_MAX);
+        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
         size += (size_t)len;
       }
       break;
@@ -147,9 +144,9 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
       char_ptr = RSTRING_PTR(str);
       {
         mrb_int tlen;
+
         tlen = RSTRING_LEN(str);
-        mrb_assert(tlen >= 0);
-        mrb_assert(tlen <= INT16_MAX);
+        mrb_assert_int_fit(mrb_int, tlen, uint16_t, UINT16_MAX);
         len = (uint16_t)tlen;
       }
       break;
@@ -159,8 +156,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
       {
         int tlen;
         tlen = mrb_float_to_str(char_buf, mrb_float(irep->pool[pool_no]));
-        mrb_assert(tlen >= 0);
-        mrb_assert(tlen <= INT16_MAX);
+        mrb_assert_int_fit(int, tlen, uint16_t, UINT16_MAX);
         len = (uint16_t)tlen;
       }
       char_ptr = &char_buf[0];
@@ -171,9 +167,9 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
       char_ptr = RSTRING_PTR(irep->pool[pool_no]);
       {
         mrb_int tlen;
+
         tlen = RSTRING_LEN(irep->pool[pool_no]);
-        mrb_assert(tlen >= 0);
-        mrb_assert(tlen <= INT16_MAX);
+        mrb_assert_int_fit(mrb_int, tlen, uint16_t, UINT16_MAX);
         len = (uint16_t)tlen;
       }
       break;
@@ -227,7 +223,7 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 
       name = mrb_sym2name_len(mrb, irep->syms[sym_no], &len);
 
-      mrb_assert(len <= UINT16_MAX);
+      mrb_assert_int_fit(mrb_int, len, uint16_t, UINT16_MAX);
       cur += uint16_to_bin((uint16_t)len, cur); /* length of symbol name */
       memcpy(cur, name, len); /* symbol name */
       cur += (uint16_t)len;
@@ -320,7 +316,8 @@ write_section_irep_header(mrb_state *mrb, size_t section_size, uint8_t *bin)
   struct rite_section_irep_header *header = (struct rite_section_irep_header*)bin;
 
   memcpy(header->section_identify, RITE_SECTION_IREP_IDENTIFIER, sizeof(header->section_identify));
-  mrb_assert(section_size <= UINT32_MAX);
+
+  mrb_assert_int_fit(size_t, section_size, uint32_t, UINT32_MAX);
   uint32_to_bin((uint32_t)section_size, header->section_size);
   memcpy(header->rite_version, RITE_VM_VER, sizeof(header->rite_version));
 
@@ -397,7 +394,7 @@ write_lineno_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
   } else {
     filename_len = 0;
   }
-  mrb_assert(filename_len <= UINT16_MAX);
+  mrb_assert_int_fit(size_t, filename_len, uint16_t, UINT16_MAX);
   cur += uint16_to_bin((uint16_t)filename_len, cur); /* filename size */
 
   if (filename_len) {
@@ -406,7 +403,7 @@ write_lineno_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
   }
 
   if (irep->lines) {
-    mrb_assert(irep->ilen <= UINT32_MAX);
+    mrb_assert_int_fit(size_t, irep->ilen, uint32_t, UINT32_MAX);
     cur += uint32_to_bin((uint32_t)(irep->ilen), cur); /* niseq */
     for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
       cur += uint16_to_bin(irep->lines[iseq_no], cur); /* opcode */
@@ -417,12 +414,11 @@ write_lineno_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t* bin)
   }
 
   diff = cur - bin;
-  mrb_assert(diff >= 0);
-  mrb_assert(diff <= UINT32_MAX);
+  mrb_assert_int_fit(ptrdiff_t, diff, uint32_t, UINT32_MAX);
 
   uint32_to_bin((uint32_t)diff, bin); /* record size */
 
-  mrb_assert(diff <= SIZE_MAX);
+  mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
   return (size_t)diff;
 }
 
@@ -570,8 +566,7 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
     /* filename index */
     filename_idx = find_filename_index(filenames, filenames_len,
                                                   file->filename_sym);
-    mrb_assert(filename_idx >= 0);
-    mrb_assert(filename_idx <= UINT16_MAX);
+    mrb_assert_int_fit(int, filename_idx, uint16_t, UINT16_MAX);
     cur += uint16_to_bin((uint16_t)filename_idx, cur);
 
     /* lines */
@@ -598,11 +593,10 @@ write_debug_record_1(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, mrb_sym const
   }
 
   ret = cur - bin;
-  mrb_assert(ret >= 0);
-  mrb_assert(ret <= UINT32_MAX);
+  mrb_assert_int_fit(ptrdiff_t, ret, uint32_t, UINT32_MAX);
   uint32_to_bin(ret, bin);
 
-  mrb_assert(ret <= SIZE_MAX);
+  mrb_assert_int_fit(ptrdiff_t, ret, size_t, SIZE_MAX);
   return (size_t)ret;
 }
 
@@ -833,20 +827,20 @@ mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, int debug_info, FILE* fp)
   return result;
 }
 
-static int
+static mrb_bool
 is_valid_c_symbol_name(const char *name)
 {
    const char *c = NULL;
 
-   if (name == NULL || name[0] == '\0') return 0;
-   if (!ISALPHA(name[0]) && name[0] != '_') return 0;
+   if (name == NULL || name[0] == '\0') return FALSE;
+   if (!ISALPHA(name[0]) && name[0] != '_') return FALSE;
 
    c = &name[1];
    for (; *c != '\0'; ++c) {
-     if (!ISALNUM(*c) && *c != '_') return 0;
+     if (!ISALNUM(*c) && *c != '_') return FALSE;
    }
 
-   return 1;
+   return TRUE;
 }
 
 int

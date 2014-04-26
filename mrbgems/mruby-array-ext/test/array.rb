@@ -125,14 +125,31 @@ end
 assert("Array#fill") do
   a = [ "a", "b", "c", "d" ]
   assert_equal ["x", "x", "x", "x"], a.fill("x")
-  assert_equal ["x", "x", "x", "w"], a.fill("w", -1) 
+  assert_equal ["x", "x", "x", "w"], a.fill("w", -1)
   assert_equal ["x", "x", "z", "z"], a.fill("z", 2, 2)
   assert_equal ["y", "y", "z", "z"], a.fill("y", 0..1)
-  assert_equal [0, 1, 4, 9], a.fill { |i| i*i } 
+  assert_equal [0, 1, 4, 9], a.fill { |i| i*i }
   assert_equal [0, 1, 8, 27], a.fill(-2) { |i| i*i*i }
   assert_equal [0, 2, 3, 27], a.fill(1, 2) { |i| i+1 }
   assert_equal [1, 2, 3, 27], a.fill(0..1) { |i| i+1 }
   assert_raise(ArgumentError) { a.fill }
+
+  assert_equal([0, 1, 2, 3, -1, 5], [0, 1, 2, 3, 4, 5].fill(-1, -2, 1))
+  assert_equal([0, 1, 2, 3, -1, -1, -1], [0, 1, 2, 3, 4, 5].fill(-1, -2, 3))
+  assert_equal([0, 1, 2, -1, -1, 5], [0, 1, 2, 3, 4, 5].fill(-1, 3..4))
+  assert_equal([0, 1, 2, -1, 4, 5], [0, 1, 2, 3, 4, 5].fill(-1, 3...4))
+  assert_equal([0, 1, -1, -1, -1, 5], [0, 1, 2, 3, 4, 5].fill(-1, 2..-2))
+  assert_equal([0, 1, -1, -1, 4, 5], [0, 1, 2, 3, 4, 5].fill(-1, 2...-2))
+  assert_equal([0, 1, 2, 13, 14, 5], [0, 1, 2, 3, 4, 5].fill(3..4){|i| i+10})
+  assert_equal([0, 1, 2, 13, 4, 5], [0, 1, 2, 3, 4, 5].fill(3...4){|i| i+10})
+  assert_equal([0, 1, 12, 13, 14, 5], [0, 1, 2, 3, 4, 5].fill(2..-2){|i| i+10})
+  assert_equal([0, 1, 12, 13, 4, 5], [0, 1, 2, 3, 4, 5].fill(2...-2){|i| i+10})
+
+  assert_equal [1, 2, 3, 4, 'x', 'x'], [1, 2, 3, 4, 5, 6].fill('x', -2..-1)
+  assert_equal [1, 2, 3, 4, 'x', 6], [1, 2, 3, 4, 5, 6].fill('x', -2...-1)
+  assert_equal [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6].fill('x', -2...-2)
+  assert_equal [1, 2, 3, 4, 'x', 6], [1, 2, 3, 4, 5, 6].fill('x', -2..-2)
+  assert_equal [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6].fill('x', -2..0)
 end
 
 assert("Array#reverse_each") do
@@ -168,4 +185,84 @@ assert("Array#rotate!") do
   assert_equal ["a", "b", "c", "d"], a.rotate!(-3)
   assert_equal ["c", "d", "a", "b"], a.rotate(10)
   assert_equal [], [].rotate!
+end
+
+assert("Array#delete_if") do
+  a = [1, 2, 3, 4, 5]
+  assert_equal [1, 2, 3, 4, 5], a.delete_if { false }
+  assert_equal [1, 2, 3, 4, 5], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [], a.delete_if { true }
+  assert_equal [], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [1, 2, 3], a.delete_if { |i| i > 3 }
+  assert_equal [1, 2, 3], a
+end
+
+assert("Array#reject!") do
+  a = [1, 2, 3, 4, 5]
+  assert_nil a.reject! { false }
+  assert_equal [1, 2, 3, 4, 5], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [], a.reject! { true }
+  assert_equal [], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [1, 2, 3], a.reject! { |val| val > 3 }
+  assert_equal [1, 2, 3], a
+end
+
+assert("Array#insert") do
+  a = ["a", "b", "c", "d"]
+  assert_equal ["a", "b", 99, "c", "d"], a.insert(2, 99)
+  assert_equal ["a", "b", 99, "c", 1, 2, 3, "d"], a.insert(-2, 1, 2, 3)
+
+  b = ["a", "b", "c", "d"]
+  assert_equal ["a", "b", "c", "d", nil, nil, 99], b.insert(6, 99)
+end
+
+assert("Array#bsearch") do
+  # Find minimum mode
+  a = [0, 4, 7, 10, 12]
+  assert_include [4, 7], a.bsearch {|x| x >= 4 }
+  assert_equal 7, a.bsearch {|x| x >= 6 }
+  assert_equal 0, a.bsearch {|x| x >= -1 }
+  assert_nil a.bsearch {|x| x >= 100 }
+
+  # Find any mode
+  a = [0, 4, 7, 10, 12]
+  assert_include [4, 7], a.bsearch {|x| 1 - (x / 4).truncate }
+  assert_nil a.bsearch {|x| 4 - (x / 2).truncate }
+  assert_equal(nil, a.bsearch {|x| 1 })
+  assert_equal(nil, a.bsearch {|x| -1 })
+end
+
+assert("Array#delete_if") do
+  a = [1, 2, 3, 4, 5]
+  assert_equal [1, 2, 3, 4, 5], a.delete_if { false }
+  assert_equal [1, 2, 3, 4, 5], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [], a.delete_if { true }
+  assert_equal [], a
+
+  a = [ 1, 2, 3, 4, 5 ]
+  assert_equal [1, 2, 3], a.delete_if { |val| val > 3 }
+end
+
+assert("Array#keep_if") do
+  a = [1, 2, 3, 4, 5]
+  assert_equal [1, 2, 3, 4, 5], a.keep_if { true }
+  assert_equal [1, 2, 3, 4, 5], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [], a.keep_if { false }
+  assert_equal [], a
+
+  a = [1, 2, 3, 4, 5]
+  assert_equal [4, 5], a.keep_if { |val| val > 3 }
+  assert_equal [4, 5], a
 end
