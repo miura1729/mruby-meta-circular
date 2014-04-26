@@ -530,17 +530,42 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_set_jit_entry(mrb, pc, coi, irep);
 
     if (is_block_call) {
-      push(ecx);
-      push(ebx);
+      mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
+      mov(edx, dword [ecx]);
+      mov(dword [eax + OffsetOf(mrb_callinfo, proc)], edx);
 
-      lea(eax, dword [ebx + VMSOffsetOf(status)]);
-      push(eax);
-      push(esi);
-      call((void *)mrbjit_exec_call);
-      add(esp, 2 * sizeof(void *));
+      mov(edx, dword [edx + OffsetOf(struct RProc, target_class)]);
+      mov(dword [eax + OffsetOf(mrb_callinfo, target_class)], edx);
 
-      pop(ebx);
-      pop(ecx);
+      mov(edx, dword [ecx]);
+      mov(edx, dword [edx + OffsetOf(struct RProc, body.irep)]);
+      mov(dword [ebx + VMSOffsetOf(irep)], edx);
+
+      mov(edx, dword [edx + OffsetOf(mrb_irep, nregs)]);
+      mov(dword [eax + OffsetOf(mrb_callinfo, nregs)], edx);
+
+      mov(edx, dword [ecx]);
+      mov(edx, dword [edx + OffsetOf(struct RProc, env)]);
+      mov(edx, dword [edx + OffsetOf(struct REnv, mid)]);
+      test(edx, edx);
+      jz("@f");
+
+      mov(dword [eax + OffsetOf(mrb_callinfo, mid)], edx);
+      
+      L("@@");
+
+      mov(edx, dword [ecx]);
+      mov(dword [ebx + VMSOffsetOf(proc)], edx);
+      mov(edx, dword [edx + OffsetOf(struct RProc, body.irep)]);
+      mov(edx, dword [edx + OffsetOf(mrb_irep, iseq)]);
+      mov(dword [ebx + VMSOffsetOf(pc)], edx);
+
+      mov(edx, dword [ecx]);
+      mov(edx, dword [edx + OffsetOf(struct RProc, env)]);
+      mov(edx, dword [edx + OffsetOf(struct REnv, stack)]);
+      mov(edx, dword [edx]);
+      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
+      mov(dword [eax], edx);
 
       mrb->compile_info.force_compile = 1;
     }
