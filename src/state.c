@@ -155,6 +155,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_irep_decref(mrb, irep->reps[i]);
   }
   mrb_free(mrb, irep->reps);
+  mrb_free(mrb, irep->lv);
   mrb_free(mrb, (void *)irep->filename);
   mrb_free(mrb, irep->lines);
   mrb_free(mrb, irep->prof_info);

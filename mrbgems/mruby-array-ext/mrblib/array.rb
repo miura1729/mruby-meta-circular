@@ -657,4 +657,29 @@ class Array
     end
     self
   end
+
+  ##
+  #  call-seq:
+  #     ary.select!  {|item| block } -> ary or nil
+  #     ary.select!                  -> Enumerator
+  #
+  #  Invokes the given block passing in successive elements from +self+,
+  #  deleting elements for which the block returns a +false+ value.
+  #
+  #  If changes were made, it will return +self+, otherwise it returns +nil+.
+  #
+  #  See also Array#keep_if
+  #
+  #  If no block is given, an Enumerator is returned instead.
+
+  def select!(&block)
+    return to_enum :select! unless block_given?
+
+    result = []
+    self.each do |x|
+      result << x if block.call(x)
+    end
+    return nil if self.size == result.size
+    self.replace(result)
+  end
 end
