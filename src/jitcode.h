@@ -531,20 +531,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     if (is_block_call) {
       mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
-      mov(edx, dword [ecx]);
+      mov(edx, dword [edi + OffsetOf(mrb_context, stack)]);
+      mov(edx, dword [edx]);
       mov(dword [eax + OffsetOf(mrb_callinfo, proc)], edx);
 
       mov(edx, dword [edx + OffsetOf(struct RProc, target_class)]);
       mov(dword [eax + OffsetOf(mrb_callinfo, target_class)], edx);
 
-      mov(edx, dword [ecx]);
+      mov(edx, dword [eax + OffsetOf(mrb_callinfo, proc)]);
       mov(edx, dword [edx + OffsetOf(struct RProc, body.irep)]);
       mov(dword [ebx + VMSOffsetOf(irep)], edx);
 
       mov(edx, dword [edx + OffsetOf(mrb_irep, nregs)]);
       mov(dword [eax + OffsetOf(mrb_callinfo, nregs)], edx);
 
-      mov(edx, dword [ecx]);
+      mov(edx, dword [eax + OffsetOf(mrb_callinfo, proc)]);
       mov(edx, dword [edx + OffsetOf(struct RProc, env)]);
       mov(edx, dword [edx + OffsetOf(struct REnv, mid)]);
       test(edx, edx);
@@ -554,13 +555,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       
       L("@@");
 
-      mov(edx, dword [ecx]);
+      mov(edx, dword [eax + OffsetOf(mrb_callinfo, proc)]);
       mov(dword [ebx + VMSOffsetOf(proc)], edx);
       mov(edx, dword [edx + OffsetOf(struct RProc, body.irep)]);
       mov(edx, dword [edx + OffsetOf(mrb_irep, iseq)]);
       mov(dword [ebx + VMSOffsetOf(pc)], edx);
 
-      mov(edx, dword [ecx]);
+      mov(edx, dword [ebx + VMSOffsetOf(proc)]);
       mov(edx, dword [edx + OffsetOf(struct RProc, env)]);
       mov(edx, dword [edx + OffsetOf(struct REnv, stack)]);
       mov(edx, dword [edx]);
