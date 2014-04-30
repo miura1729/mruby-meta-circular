@@ -2166,7 +2166,7 @@ do {                                                                 \
     dinfo->klass = mrb->proc_class;
     dinfo->constp = 1;
 
-    if (mirep->shared_lambda && c->proc_pool) {
+    if (mirep->simple_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;
