@@ -53,13 +53,27 @@ mrb_irepobj_free(mrb_state *mrb, void *ptr)
   /* Do nothing */
 }
 
+static void
+mrb_env_free(mrb_state *mrb, void *ptr)
+{
+  /* Do nothing */
+}
+
 static struct mrb_data_type mrb_irep_type = { "Irep", mrb_irepobj_free };
+
+static struct mrb_data_type mrb_env_type = { "Env", mrb_env_free };
 
 static mrb_value
 mrb_irep_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_irep *irep)
 {
   mrb_irep_incref(mrb, irep);
   return mrb_obj_value(Data_Wrap_Struct(mrb, tc, &mrb_irep_type, irep));
+}
+
+static mrb_value
+mrb_env_wrap(mrb_state *mrb, struct RClass *tc, struct REnv *e)
+{
+  return mrb_obj_value(Data_Wrap_Struct(mrb, tc, &mrb_env_type, e));
 }
 
 static mrb_value
@@ -125,6 +139,59 @@ mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
   irep->nregs = mrb_fixnum(nregs);
   irep->nlocals = mrb_fixnum(nlocals);
   return mrb_irep_wrap(mrb, mrb_class_ptr(self), irep);
+}
+
+static mrb_value
+mrb_env_get_proc_env(mrb_state *mrb, mrb_value self)
+{
+  mrb_int level;
+  mrb_value proc;
+  int i;
+  struct REnv *e;
+
+  if (mrb_get_args(mrb, "o|i", &proc, &level) == 1) {
+    level = 0;
+  }
+
+  e = mrb_proc_ptr(proc)->env;
+
+  for (i = 0; i < level; i++) {
+    e = (struct REnv *)e->c;
+    if (!e) return mrb_nil_value();
+  }
+  return mrb_env_wrap(mrb, mrb_class_ptr(self), e);
+}
+
+static mrb_value
+mrb_env_get_current_env(mrb_state *mrb, mrb_value self)
+{
+  mrb_int level;
+  struct REnv *e;
+  mrb_callinfo *ci;
+
+  if (mrb_get_args(mrb, "|i", &level) == 0) {
+    level = 0;
+  }
+  level = level;
+  ci = &mrb->c->ci[-level - 1];
+
+  if (MRB_PROC_CFUNC_P(ci->proc)) {
+    return mrb_nil_value();
+  }
+
+  if (!ci->env) {
+    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)ci->proc->env);
+    MRB_ENV_STACK_LEN(e)= (unsigned int)ci->proc->body.irep->nlocals;
+    e->mid = ci->mid;
+    e->cioff = ci - mrb->c->cibase;
+    e->stack = mrb->c->ci[-level].stackent;
+    ci->env = e;
+  }
+  else {
+    e = ci->env;
+  }
+
+  return mrb_env_wrap(mrb, mrb_class_ptr(self), e);
 }
 
 static mrb_value
@@ -321,6 +388,21 @@ mrb_irep_to_proc(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(p);
 }
 
+static mrb_value
+mrb_env_to_a(mrb_state *mrb, mrb_value self)
+{
+  struct REnv *e = mrb_get_datatype(mrb, self, &mrb_env_type);
+  int len = MRB_ENV_STACK_LEN(e);
+  mrb_value a = mrb_ary_new_capa(mrb, len);
+  int i;
+
+  for (i = 0; i < len; i++) {
+    mrb_ary_push(mrb, a, e->stack[i]);
+  }
+
+  return a;
+}
+
 void
 mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
 {
@@ -345,6 +427,12 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, ARGS_NONE());
   mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, ARGS_REQ(1));
   mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, ARGS_NONE());
+
+  a = mrb_define_class(mrb, "Env", mrb->object_class);
+  MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);
+  mrb_define_class_method(mrb, a, "get_proc_env", mrb_env_get_proc_env, ARGS_ANY());
+  mrb_define_class_method(mrb, a, "get_current_env", mrb_env_get_current_env, ARGS_ANY());
+  mrb_define_method(mrb, a, "to_a", mrb_env_to_a, ARGS_NONE());
 }
 
 void
