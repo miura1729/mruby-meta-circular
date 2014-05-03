@@ -1115,6 +1115,9 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
 
   if (ttype == 0) ttype = MRB_TT_OBJECT;
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
+  if (ttype == MRB_TT_OBJECT) {
+    o->iv = &o->ivent;
+  }
   return mrb_obj_value(o);
 }
 

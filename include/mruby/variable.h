@@ -24,12 +24,6 @@ typedef struct segment
   struct segment *next;
 } segment;
 
-/* Instance variable table structure */
-typedef struct iv_tbl {
-  segment *rootseg;
-  size_t size;
-  size_t last_len;
-} iv_tbl;
 #endif
 
 typedef struct global_variable {

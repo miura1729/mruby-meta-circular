@@ -405,10 +405,16 @@ struct RBasic {
 /* obsolete macro mrb_basic; will be removed soon */
 #define mrb_basic(v)     mrb_basic_ptr(v)
 
+/* Instance variable table structure */
+typedef struct iv_tbl {
+  struct segment *rootseg;
+  size_t last_len;
+} iv_tbl;
+
 struct RObject {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-  mrb_value *segcache;
+  struct iv_tbl ivent;
 };
 #define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
 /* obsolete macro mrb_object; will be removed soon */

@@ -1264,10 +1264,6 @@ RETRY_TRY_BLOCK:
     CASE(OP_SETIV) {
       /* ivset(Sym(B),R(A)) */
       mrb_value self = regs[0];
-      if (mrb_type(self) == MRB_TT_OBJECT && 
-	  mrb_obj_ptr(self)->iv && mrb_obj_ptr(self)->iv->rootseg) {
-	mrb_obj_ptr(self)->segcache = mrb_obj_ptr(self)->iv->rootseg->val;
-      }
       mrb_vm_iv_set(mrb, syms[GETARG_Bx(i)], regs[GETARG_A(i)]);
       NEXT;
     }

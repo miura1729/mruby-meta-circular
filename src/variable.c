@@ -30,7 +30,6 @@ iv_new(mrb_state *mrb)
   iv_tbl *t;
 
   t = mrb_malloc(mrb, sizeof(iv_tbl));
-  t->size = 0;
   t->rootseg =  NULL;
   t->last_len = 0;
 
@@ -63,7 +62,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
         seg->key[i] = sym;
         seg->val[i] = val;
         t->last_len = i+1;
-        t->size++;
         return;
       }
       if (!matched_seg && key == 0) {
@@ -80,7 +78,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   }
 
   /* Not found */
-  t->size++;
   if (matched_seg) {
     matched_seg->key[matched_idx] = sym;
     matched_seg->val[matched_idx] = val;
@@ -163,7 +160,6 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
         return FALSE;
       }
       if (key == sym) {
-        t->size--;
         seg->key[i] = 0;
         if (vp) *vp = seg->val[i];
         return TRUE;
@@ -194,7 +190,6 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
         n =(*func)(mrb, key, seg->val[i], p);
         if (n > 0) return FALSE;
         if (n < 0) {
-          t->size--;
           seg->key[i] = 0;
         }
       }
@@ -211,7 +206,6 @@ iv_size(mrb_state *mrb, iv_tbl *t)
   size_t size = 0;
 
   if (!t) return 0;
-  if (t->size > 0) return t->size;
   seg = t->rootseg;
   while (seg) {
     if (seg->next == NULL) {
@@ -417,7 +411,7 @@ mrb_gc_mark_iv_size(mrb_state *mrb, struct RObject *obj)
 void
 mrb_gc_free_iv(mrb_state *mrb, struct RObject *obj)
 {
-  if (obj->iv) {
+  if (obj->iv && obj->tt != MRB_TT_OBJECT) {
     iv_free(mrb, obj->iv);
   }
 }
