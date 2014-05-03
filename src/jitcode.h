@@ -803,7 +803,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* You can not change class of self in Ruby */
-    if (mrb_type(self) == MRB_TT_OBJECT && 0) {
+    if (mrb_type(self) == MRB_TT_OBJECT) {
       mov(eax, dword [ecx]);
       mov(eax, dword [eax + OffsetOf(struct RObject, ivent.rootseg)]);
       movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);

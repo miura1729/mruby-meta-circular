@@ -11,6 +11,7 @@
 #include "mruby/proc.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/value.h"
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
@@ -246,7 +247,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
 }
 
 static void
-iv_free(mrb_state *mrb, iv_tbl *t)
+iv_free(mrb_state *mrb, iv_tbl *t, enum mrb_vtype type)
 {
   segment *seg;
 
@@ -256,7 +257,9 @@ iv_free(mrb_state *mrb, iv_tbl *t)
     seg = seg->next;
     mrb_free(mrb, p);
   }
-  mrb_free(mrb, t);
+  if (type != MRB_TT_OBJECT) {
+    mrb_free(mrb, t);
+  }
 }
 
 #else
@@ -393,7 +396,7 @@ void
 mrb_gc_free_gv(mrb_state *mrb)
 {
   if (mrb->globals)
-    iv_free(mrb, mrb->globals);
+    iv_free(mrb, mrb->globals, MRB_TT_FREE);
 }
 
 void
@@ -411,8 +414,8 @@ mrb_gc_mark_iv_size(mrb_state *mrb, struct RObject *obj)
 void
 mrb_gc_free_iv(mrb_state *mrb, struct RObject *obj)
 {
-  if (obj->iv && obj->tt != MRB_TT_OBJECT) {
-    iv_free(mrb, obj->iv);
+  if (obj->iv) {
+    iv_free(mrb, obj->iv, obj->tt);
   }
 }
 
@@ -470,6 +473,9 @@ mrbjit_iv_off(mrb_state *mrb, mrb_value obj, mrb_sym sym)
     return -1;
   }
   seg = t->rootseg;
+  if (seg == NULL) {
+    return -1;
+  }
   for (i=0; i<MRB_SEGMENT_SIZE; i++) {
     mrb_sym key = seg->key[i];
 
@@ -557,9 +563,11 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
   struct RObject *d = mrb_obj_ptr(dest);
   struct RObject *s = mrb_obj_ptr(src);
 
-  if (d->iv) {
-    iv_free(mrb, d->iv);
-    d->iv = 0;
+  if (d->iv && d->tt) {
+    iv_free(mrb, d->iv, d->tt);
+    if (d->tt != MRB_TT_OBJECT) {
+      d->iv = 0;
+    }
   }
   if (s->iv) {
     d->iv = iv_copy(mrb, s->iv);
