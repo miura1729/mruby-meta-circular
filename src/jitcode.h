@@ -1199,7 +1199,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_call(mrb_state *mrb, mrbjit_vmstatus *status)
   {
     const void *code = getCurr();
-    mrb_callinfo *ci = mrb->c->ci;
     mrb_value recv = mrb->c->stack[0];
     struct RProc *m = mrb_proc_ptr(recv);
     

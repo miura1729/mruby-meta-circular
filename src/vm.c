@@ -1261,7 +1261,6 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_SETIV) {
       /* ivset(Sym(B),R(A)) */
-      mrb_value self = regs[0];
       mrb_vm_iv_set(mrb, syms[GETARG_Bx(i)], regs[GETARG_A(i)]);
       NEXT;
     }
