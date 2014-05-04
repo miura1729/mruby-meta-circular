@@ -1204,10 +1204,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_value recv = mrb->c->stack[0];
     struct RProc *m = mrb_proc_ptr(recv);
     
-    if (ci->argc < 0) {
-      return NULL;
-    }
-
     if (MRB_PROC_CFUNC_P(m)) {
       return NULL;
     }
