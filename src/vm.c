@@ -1104,8 +1104,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 mrb_value mrb_gv_val_get(mrb_state *mrb, mrb_sym sym);
 void mrb_gv_val_set(mrb_state *mrb, mrb_sym sym, mrb_value val);
 
-#define CALL_MAXARGS 127
-
 mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {

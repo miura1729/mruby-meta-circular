@@ -38,7 +38,6 @@ void disasm_once(mrb_state *, mrb_irep *, mrb_code);
 
 #define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
 #define VMSOffsetOf(field) (((intptr_t)status->field) - ((intptr_t)status->pc))
-#define CALL_MAXARGS 127
 
 /* Regs Map                               *
  * ecx   -- pointer to regs               *

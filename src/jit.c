@@ -52,7 +52,15 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 
   ci = mrbjit_cipush(mrb);
   ci->stackent = mrb->c->stack;
-  ci->argc = n;
+  if (n == CALL_MAXARGS) {
+    ci->argc = -1;
+    ci->nregs = 3;
+  }
+  else {
+    ci->argc = n;
+    ci->nregs = n + 2;
+  }
+
   if (c->tt == MRB_TT_ICLASS) {
     ci->target_class = c->c;
   }
@@ -66,7 +74,6 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   /* prepare stack */
   mrb->c->stack += a;
 
-  ci->nregs = n + 2;
   //mrb_p(mrb, recv);
   mrb->compile_info.disable_jit = 1;
   result = m->body.func(mrb, recv);
