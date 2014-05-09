@@ -463,6 +463,94 @@ mrbjit_prim_instance_new(mrb_state *mrb, mrb_value proc, void *status, void *coi
 }
 
 mrb_value
+MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
+					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int a = GETARG_A(i);
+  //int nargs = GETARG_C(i);
+
+  struct RProc *m;
+  mrb_value klass = regs[a];
+  struct RClass *c = mrb_class_ptr(klass);
+  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+  int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
+
+  m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
+
+  // TODO add guard of class
+  
+  // obj = mrbjit_instance_alloc(mrb, klass);
+  if (civoff >= 0) {
+    mov(eax, dword [ecx]);
+    mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+    mov(eax, dword [eax]);
+    mov(edx, ptr [eax + civoff * sizeof(mrb_value) + 4]);
+    mov(eax, ptr [eax + civoff * sizeof(mrb_value)]);
+    test(eax, eax);
+    jnz("@f");
+  }    
+
+  push(ecx);
+  push(ebx);
+  mov(eax, *((Xbyak::uint32 *)(&klass) + 1));
+  push(eax);
+  mov(eax, *((Xbyak::uint32 *)(&klass)));
+  push(eax);
+  push(esi);
+  call((void *)mrbjit_instance_alloc);
+  add(esp, 3 * sizeof(void *));
+  pop(ebx);
+  pop(ecx);
+
+  L("@@");
+  // regs[a] = obj;
+  mov(ptr [ecx + a * sizeof(mrb_value)], eax);
+  mov(ptr [ecx + a * sizeof(mrb_value) + 4], edx);
+
+  if (MRB_PROC_CFUNC_P(m)) {
+    CALL_CFUNC_BEGIN;
+    mov(eax, (Xbyak::uint32)c);
+    push(eax);
+    mov(eax, (Xbyak::uint32)m);
+    push(eax);
+    CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
+  }
+  else {
+    /* patch initialize method */
+    mrb_irep *pirep = m->body.irep;
+    mrb_code *piseq = pirep->iseq;
+    for (unsigned int i = 0; i < pirep->ilen; i++) {
+      if (GET_OPCODE(piseq[i]) == OP_RETURN) {
+	/* clear A argument (return self always) */
+	piseq[i] &= ((1 << 23) - 1);
+      }
+    }
+    
+    /* call info setup */
+    gen_send_mruby(mrb, m, klass, status, pc, coi);
+
+    gen_exit(m->body.irep->iseq, 1, 0, status);
+  }
+
+  dinfo->type = MRB_TT_OBJECT;
+  dinfo->klass = mrb_class_ptr(klass);
+  dinfo->constp = 0;
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_mmm_instance_new(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_mmm_instance_new_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
 MRBJitCode::mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
