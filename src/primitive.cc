@@ -484,9 +484,10 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
-    mov(eax, dword [ecx]);
+    mov(eax, dword [ecx + a * sizeof(mrb_value)]);
     mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
     mov(eax, dword [eax]);
+    push(eax);			/* PUSH __objcache__ */
     mov(edx, ptr [eax + civoff * sizeof(mrb_value) + 4]);
     mov(eax, ptr [eax + civoff * sizeof(mrb_value)]);
     test(eax, eax);
@@ -509,6 +510,13 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   mov(ptr [ecx + a * sizeof(mrb_value)], eax);
   mov(ptr [ecx + a * sizeof(mrb_value) + 4], edx);
+
+  if (civoff >= 0) {
+    pop(eax);			/* POP __objcache__ */ 
+    xor(edx, edx);
+    mov(dword [eax + civoff * sizeof(mrb_value)], edx);
+    mov(dword [eax + civoff * sizeof(mrb_value) + 4], 0xfff00000 | MRB_TT_FALSE);
+  }    
 
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;

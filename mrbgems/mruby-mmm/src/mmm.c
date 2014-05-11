@@ -47,7 +47,7 @@ mrb_mruby_mmm_gem_init(mrb_state *mrb)
 
   mmmc = mrb_define_module(mrb, "MMMC");
   mrb_define_method(mrb, mmmc, "new", mrb_mmm_instance_new, MRB_ARGS_ANY());
-  //  mrbjit_define_primitive(mrb, mmmc, "new", mrbjit_prim_mmm_instance_new);
+  mrbjit_define_primitive(mrb, mmmc, "new", mrbjit_prim_mmm_instance_new);
 }
 
 void

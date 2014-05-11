@@ -830,7 +830,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_value self = mrb->c->stack[0];
     int ivoff = mrbjit_iv_off(mrb, self, id);
 
-    if (ivoff == -1) {
+    /* TODO || 1 must replace check for inclded MMM module. But to do this 
+       must make MMM module resident */
+    if (ivoff == -1 || 1) {
       /* Normal instance variable set (not defined yet) */
       push(ecx);
       push(ebx);
