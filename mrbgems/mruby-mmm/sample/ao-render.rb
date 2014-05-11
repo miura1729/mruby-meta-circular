@@ -72,6 +72,7 @@ class Vec
 
   def vnormalize
     len = vlength
+    self.move
     v = Vec.new(@x, @y, @z)
     if len > 1.0e-17 then
       v.x = v.x / len
@@ -104,9 +105,11 @@ class Sphere
       if t > 0.0 and t < isect.t then
         isect.t = t
         isect.hit = true
+        a = isect.pl
         isect.pl = Vec.new(ray.org.x + ray.dir.x * t,
                           ray.org.y + ray.dir.y * t,
                           ray.org.z + ray.dir.z * t)
+        a.move
         n = isect.pl.vsub(@center)
         isect.n = n.vnormalize
       end
@@ -146,6 +149,9 @@ class Plane
 end
 
 class Ray
+  include  MMMI
+  extend MMMC
+
   def initialize(org, dir)
     @org = org
     @dir = dir
@@ -253,6 +259,7 @@ class Scene
         @spheres[1].intersect(ray, occisect)
         @spheres[2].intersect(ray, occisect)
         @plane.intersect(ray, occisect)
+        ray.move
         if occisect.hit then
           occlusion = occlusion + 1.0
         else
@@ -296,6 +303,7 @@ class Scene
             @spheres[1].intersect(ray, isect)
             @spheres[2].intersect(ray, isect)
             @plane.intersect(ray, isect)
+            ray.move
 
             if isect.hit then
               col = ambient_occlusion(isect)
@@ -312,9 +320,9 @@ class Scene
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-        #printf("%c", clamp(r))
-        #printf("%c", clamp(g))
-        #printf("%c", clamp(b))
+#        printf("%c", clamp(r))
+#        printf("%c", clamp(g))
+#        printf("%c", clamp(b))
         rad.move
       end
     end
