@@ -16,12 +16,13 @@
 #include "mruby/class.h"
 #include "mruby/hash.h"
 #include "mruby/irep.h"
+#include "mruby/numeric.h"
 #include "mruby/proc.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "value_array.h"
 #include "mrb_throw.h"
 
@@ -136,15 +137,30 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   }
 }
 
+static inline void
+init_new_stack_space(mrb_state *mrb, int room, int keep)
+{
+  if (room > keep) {
+    /* do not leave uninitialized malloc region */
+    stack_clear(&(mrb->c->stack[keep]), room - keep);
+  }
+}
+
 /** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
 
 static void
-stack_extend_alloc(mrb_state *mrb, int room)
+stack_extend_alloc(mrb_state *mrb, int room, int keep)
 {
   mrb_value *oldbase = mrb->c->stbase;
   int size = mrb->c->stend - mrb->c->stbase;
   int off = mrb->c->stack - mrb->c->stbase;
 
+#ifdef MRB_STACK_EXTEND_DOUBLING
+  if (room <= size)
+    size *= 2;
+  else
+    size += room;
+#else
   /* Use linear stack growth.
      It is slightly slower than doubling the stack space,
      but it saves memory on small devices. */
@@ -152,14 +168,17 @@ stack_extend_alloc(mrb_state *mrb, int room)
     size += MRB_STACK_GROWTH;
   else
     size += room;
+#endif
 
   mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
   mrb->c->stack = mrb->c->stbase + off;
   mrb->c->stend = mrb->c->stbase + size;
   envadjust(mrb, oldbase, mrb->c->stbase);
+
   /* Raise an exception if the new stack size will be too large,
      to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
   if (size > MRB_STACK_MAX) {
+    init_new_stack_space(mrb, room, keep);
     mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
   }
 }
@@ -168,12 +187,9 @@ static inline void
 stack_extend(mrb_state *mrb, int room, int keep)
 {
   if (mrb->c->stack + room >= mrb->c->stend) {
-    stack_extend_alloc(mrb, room);
+    stack_extend_alloc(mrb, room, keep);
   }
-  if (room > keep) {
-    /* do not leave uninitialized malloc region */
-    stack_clear(&(mrb->c->stack[keep]), room - keep);
-  }
+  init_new_stack_space(mrb, room, keep);
 }
 
 void
@@ -1777,6 +1793,9 @@ RETRY_TRY_BLOCK:
       int len = m1 + o + r + m2;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
+      if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
+        *blk = mrb_convert_type(mrb, *blk, MRB_TT_PROC, "Proc", "to_proc");
+      }
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
         argv = ary->ptr;
@@ -1792,20 +1811,25 @@ RETRY_TRY_BLOCK:
         }
       }
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
+        mrb_gc_protect(mrb, argv[0]);
         argc = mrb_ary_ptr(argv[0])->len;
         argv = mrb_ary_ptr(argv[0])->ptr;
       }
       mrb->c->ci->argc = len;
       if (argc < len) {
-        regs[len+1] = *blk; /* move block */
-        if (argv0 != argv) {
-          value_move(&regs[1], argv, argc-m2); /* m1 + o */
-        }
-        if (m2) {
-          int mlen = m2;
-          if (argc-m2 <= m1) {
+        int mlen = m2;
+        if (argc < m1+m2) {
+          if (m1 < argc)
             mlen = argc - m1;
-          }
+          else
+            mlen = 0;
+        }
+        regs[len+1] = *blk; /* move block */
+        SET_NIL_VALUE(regs[argc+1]);
+        if (argv0 != argv) {
+          value_move(&regs[1], argv, argc-mlen); /* m1 + o */
+        }
+        if (mlen) {
           value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
         }
         if (r) {
@@ -1816,16 +1840,18 @@ RETRY_TRY_BLOCK:
           pc += argc - m1 - m2 + 1;
       }
       else {
+        int rnum = 0;
         if (argv0 != argv) {
           regs[len+1] = *blk; /* move block */
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
-          regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
+          rnum = argc-m1-o-m2;
+          regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
         }
         if (m2) {
           if (argc-m2 > m1) {
-            value_move(&regs[m1+o+r+1], &argv[argc-m2], m2);
+            value_move(&regs[m1+o+r+1], &argv[m1+o+rnum], m2);
           }
         }
         if (argv0 == argv) {
@@ -1900,6 +1926,7 @@ RETRY_TRY_BLOCK:
           }
         }
       L_RESCUE:
+        if (ci->ridx == 0) goto L_STOP;
         proc = ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;
@@ -2104,12 +2131,7 @@ RETRY_TRY_BLOCK:
 
           x = mrb_fixnum(regs_a[0]);
           y = mrb_fixnum(regs_a[1]);
-          z = x + y;
-#ifdef MRB_WORD_BOXING
-          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
-#endif
-          if ((x < 0) != (z < 0) && ((x < 0) ^ (y < 0)) == 0) {
-            /* integer overflow */
+          if (mrb_int_add_overflow(x, y, &z)) {
             SET_FLT_VALUE(mrb, regs_a[0], (mrb_float)x + (mrb_float)y);
             break;
           }
@@ -2167,12 +2189,7 @@ RETRY_TRY_BLOCK:
 
           x = mrb_fixnum(regs[a]);
           y = mrb_fixnum(regs[a+1]);
-          z = x - y;
-#ifdef MRB_WORD_BOXING
-          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
-#endif
-          if (((x < 0) ^ (y < 0)) != 0 && (x < 0) != (z < 0)) {
-            /* integer overflow */
+          if (mrb_int_sub_overflow(x, y, &z)) {
             SET_FLT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)y);
             break;
           }
@@ -2222,19 +2239,24 @@ RETRY_TRY_BLOCK:
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
         {
-          mrb_int x, y, z;
+          mrb_value z;
 
-          x = mrb_fixnum(regs[a]);
-          y = mrb_fixnum(regs[a+1]);
-          z = x * y;
-#ifdef MRB_WORD_BOXING
-          z = (z << MRB_FIXNUM_SHIFT) / (1 << MRB_FIXNUM_SHIFT);
-#endif
-          if (x != 0 && z/x != y) {
-            SET_FLT_VALUE(mrb, regs[a], (mrb_float)x * (mrb_float)y);
-          }
-          else {
-            SET_INT_VALUE(regs[a], z);
+          z = mrb_fixnum_mul(mrb, regs[a], regs[a+1]);
+
+          switch (mrb_type(z)) {
+          case MRB_TT_FIXNUM:
+            {
+              SET_INT_VALUE(regs[a], mrb_fixnum(z));
+            }
+            break;
+          case MRB_TT_FLOAT:
+            {
+              SET_FLT_VALUE(mrb, regs[a], mrb_float(z));
+            }
+            break;
+          default:
+            /* cannot happen */
+            break;
           }
         }
         break;
@@ -2336,10 +2358,9 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = regs[a].attr_i;
           mrb_int y = GETARG_C(i);
-          mrb_int z = x + y;
+          mrb_int z;
 
-          if (((x < 0) ^ (y < 0)) == 0 && (x < 0) != (z < 0)) {
-            /* integer overflow */
+          if (mrb_int_add_overflow(x, y, &z)) {
             SET_FLT_VALUE(mrb, regs[a], (mrb_float)x + (mrb_float)y);
             break;
           }
@@ -2375,10 +2396,9 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = regs_a[0].attr_i;
           mrb_int y = GETARG_C(i);
-          mrb_int z = x - y;
+          mrb_int z;
 
-          if ((x < 0) != (z < 0) && ((x < 0) ^ (y < 0)) != 0) {
-            /* integer overflow */
+          if (mrb_int_sub_overflow(x, y, &z)) {
             SET_FLT_VALUE(mrb, regs_a[0], (mrb_float)x - (mrb_float)y);
           }
           else {
@@ -2782,10 +2802,10 @@ RETRY_TRY_BLOCK:
       /*        stop VM */
     L_STOP:
       {
-        int n = mrb->c->ci->eidx;
-
-        while (n--) {
-          ecall(mrb, n);
+        int eidx_stop = mrb->c->ci == mrb->c->cibase ? 0 : mrb->c->ci[-1].eidx;
+        int eidx = mrb->c->ci->eidx;
+        while (eidx > eidx_stop) {
+          ecall(mrb, --eidx);
         }
       }
       ERR_PC_CLR(mrb);
@@ -2844,8 +2864,6 @@ mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
   }
   ci = cipush(mrb);
   ci->acc = CI_ACC_SKIP;
-  ci->eidx = 0;
-  ci->ridx = 0;
   ci->target_class = mrb->object_class;
   v = mrb_context_run(mrb, proc, mrb_top_self(mrb), 0);
   cipop(mrb);

@@ -8,6 +8,7 @@
 #include "mruby/class.h"
 #include "mruby/range.h"
 #include "mruby/string.h"
+#include "mruby/array.h"
 
 #define RANGE_CLASS (mrb_class_get(mrb, "Range"))
 
@@ -233,59 +234,42 @@ mrb_range_include(mrb_state *mrb, mrb_value range)
   return mrb_bool_value(include_p);
 }
 
-/*
- *  call-seq:
- *     rng.each {| i | block } => rng
- *
- *  Iterates over the elements <i>rng</i>, passing each in turn to the
- *  block. You can only iterate if the start object of the range
- *  supports the +succ+ method (which means that you can't iterate over
- *  ranges of +Float+ objects).
- *
- *     (10..15).each do |n|
- *        print n, ' '
- *     end
- *
- *  <em>produces:</em>
- *
- *     10 11 12 13 14 15
- */
-
-mrb_value
-mrb_range_each(mrb_state *mrb, mrb_value range)
-{
-    return range;
-}
-
 mrb_bool
-mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
+range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
   mrb_int beg, end, b, e;
   struct RRange *r = mrb_range_ptr(range);
 
-  if (mrb_type(range) != MRB_TT_RANGE) {
-    mrb_raise(mrb, E_TYPE_ERROR, "expected Range.");
-  }
+  if (mrb_type(range) != MRB_TT_RANGE) return FALSE;
 
-  beg = b = mrb_fixnum(r->edges->beg);
-  end = e = mrb_fixnum(r->edges->end);
+  beg = b = mrb_int(mrb, r->edges->beg);
+  end = e = mrb_int(mrb, r->edges->end);
 
   if (beg < 0) {
     beg += len;
     if (beg < 0) return FALSE;
   }
 
-  if (beg > len) return FALSE;
-  if (end > len) end = len;
+  if (trunc) {
+    if (beg > len) return FALSE;
+    if (end > len) end = len;
+  }
 
   if (end < 0) end += len;
-  if (!r->excl && end < len) end++;  /* include end point */
+  if (!r->excl && (!trunc || end < len))
+    end++;                      /* include end point */
   len = end - beg;
   if (len < 0) len = 0;
 
   *begp = beg;
   *lenp = len;
   return TRUE;
+}
+
+mrb_bool
+mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len)
+{
+  return range_beg_len(mrb, range, begp, lenp, len, TRUE);
 }
 
 /* 15.2.14.4.12(x) */
@@ -395,6 +379,35 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
   return copy;
 }
 
+mrb_value
+mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int))
+{
+  mrb_int i, j, beg, len;
+  mrb_value result;
+  result = mrb_ary_new(mrb);
+
+  for (i = 0; i < argc; ++i) {
+    if (mrb_fixnum_p(argv[i])) {
+      mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
+    }
+    else if (range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE)) {
+      mrb_int const end = olen < beg + len ? olen : beg + len;
+      for (j = beg; j < end; ++j) {
+        mrb_ary_push(mrb, result, func(mrb, obj, j));
+      }
+
+      for (; j < beg + len; ++j) {
+        mrb_ary_push(mrb, result, mrb_nil_value());
+      }
+    }
+    else {
+      mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %S", argv[i]);
+    }
+  }
+
+  return result;
+}
+
 void
 mrb_init_range(mrb_state *mrb)
 {
@@ -407,7 +420,6 @@ mrb_init_range(mrb_state *mrb)
   mrb_define_method(mrb, r, "end",             mrb_range_end,         MRB_ARGS_NONE()); /* 15.2.14.4.5  */
   mrb_define_method(mrb, r, "==",              mrb_range_eq,          MRB_ARGS_REQ(1)); /* 15.2.14.4.1  */
   mrb_define_method(mrb, r, "===",             mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.2  */
-  mrb_define_method(mrb, r, "each",            mrb_range_each,        MRB_ARGS_NONE()); /* 15.2.14.4.4  */
   mrb_define_method(mrb, r, "exclude_end?",    mrb_range_excl,        MRB_ARGS_NONE()); /* 15.2.14.4.6  */
   mrb_define_method(mrb, r, "first",           mrb_range_beg,         MRB_ARGS_NONE()); /* 15.2.14.4.7  */
   mrb_define_method(mrb, r, "include?",        mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.8  */

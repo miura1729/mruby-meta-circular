@@ -15,7 +15,7 @@
 #include "mruby/string.h"
 #include "mruby/debug.h"
 #include "node.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "mruby/re.h"
 #include "mrb_throw.h"
 
@@ -66,8 +66,8 @@ typedef struct scope {
   size_t scapa;
   size_t rcapa;
 
-  int nlocals;
-  int nregs;
+  uint16_t nlocals;
+  uint16_t nregs;
   int ai;
 
   int idx;
@@ -2573,11 +2573,17 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
     node *n = lv;
     size_t i = 0;
 
-    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals)*p->nlocals);
+    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (p->nlocals - 1));
     for (i=0, n=lv; n; i++,n=n->cdr) {
       p->irep->lv[i].name = lv_name(n);
-      p->irep->lv[i].r = lv_idx(p, lv_name(n));
+      if (lv_name(n)) {
+        p->irep->lv[i].r = lv_idx(p, lv_name(n));
+      }
+      else {
+        p->irep->lv[i].r = 0;
+      }
     }
+    mrb_assert(i + 1 == p->nlocals);
   }
   p->ai = mrb_gc_arena_save(mrb);
 
@@ -2739,6 +2745,7 @@ loop_pop(codegen_scope *s, int val)
   if (val) push();
 }
 
+#ifdef ENABLE_STDIO
 static int
 print_r(mrb_state *mrb, mrb_irep *irep, size_t n, int pre)
 {
@@ -2781,6 +2788,7 @@ print_lv(mrb_state *mrb, mrb_irep *irep, mrb_code c, int r)
   }
   printf("\n");
 }
+#endif
 
 static void
 codedump(mrb_state *mrb, mrb_irep *irep)
@@ -2789,6 +2797,8 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   int i;
   int ai;
   mrb_code c;
+  const char *file = NULL, *next_file;
+  int32_t line;
 
   if (!irep) return;
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", irep,
@@ -2796,6 +2806,20 @@ codedump(mrb_state *mrb, mrb_irep *irep)
 
   for (i = 0; i < (int)irep->ilen; i++) {
     ai = mrb_gc_arena_save(mrb);
+
+    next_file = mrb_debug_get_filename(irep, i);
+    if (next_file && file != next_file) {
+      printf("file: %s\n", next_file);
+      file = next_file;
+    }
+    line = mrb_debug_get_line(irep, i);
+    if (line < 0) {
+      printf("      ");
+    }
+    else {
+      printf("%5d ", line);
+    }
+
     printf("%03d ", i);
     c = irep->iseq[i];
     switch (GET_OPCODE(c)) {
@@ -2840,7 +2864,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
     case OP_GETGLOBAL:
-      printf("OP_GETGLOBAL\tR%d\t:%s\n", GETARG_A(c),
+      printf("OP_GETGLOBAL\tR%d\t:%s", GETARG_A(c),
              mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
       print_lv(mrb, irep, c, RA);
       break;

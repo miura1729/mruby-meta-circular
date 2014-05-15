@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <mruby.h>
-#include <mruby/proc.h>
-#include <mruby/data.h>
-#include <mruby/compile.h>
-#include <mruby/string.h>
-#include <mruby/variable.h>
+#include "mruby.h"
+#include "mruby/proc.h"
+#include "mruby/data.h"
+#include "mruby/compile.h"
+#include "mruby/string.h"
+#include "mruby/variable.h"
 
 void
 mrb_init_mrbtest(mrb_state *);
@@ -63,7 +63,7 @@ t_printstr(mrb_state *mrb, mrb_value obj)
 {
   char *s;
   int len;
-   
+
   if (mrb_string_p(obj)) {
     s = RSTRING_PTR(obj);
     len = RSTRING_LEN(obj);
@@ -87,6 +87,7 @@ main(int argc, char **argv)
 {
   mrb_state *mrb;
   struct RClass *krn;
+  struct RClass *mrbtest;
   int ret;
 
   print_hint();
@@ -105,6 +106,12 @@ main(int argc, char **argv)
 
   krn = mrb->kernel_module;
   mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
+
+  mrbtest = mrb_define_module(mrb, "Mrbtest");
+
+  mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_fixnum_value(MRB_INT_MAX));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT));
 
   mrb_init_mrbtest(mrb);
   ret = eval_test(mrb);

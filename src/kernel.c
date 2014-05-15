@@ -95,24 +95,18 @@ static mrb_value
 mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
-  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &arg);
-  eql_p = mrb_obj_equal(mrb, self, arg);
-
-  return mrb_bool_value(eql_p);
+  return mrb_bool_value(mrb_obj_equal(mrb, self, arg));
 }
 
 static mrb_value
 mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
-  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &arg);
-  eql_p = mrb_equal(mrb, self, arg);
-
-  return mrb_bool_value(!eql_p);
+  return mrb_bool_value(!mrb_equal(mrb, self, arg));
 }
 
 /* 15.3.1.3.2  */
@@ -128,12 +122,9 @@ static mrb_value
 mrb_equal_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &arg);
-  equal_p = mrb_equal(mrb, self, arg);
-
-  return mrb_bool_value(equal_p);
+  return mrb_bool_value(mrb_equal(mrb, self, arg));
 }
 
 /* 15.3.1.3.3  */
@@ -212,26 +203,6 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(given_p);
 }
 
-/*
- *  call-seq:
- *     __method__         -> symbol
- *
- *  Returns the name at the definition of the current method as a
- *  Symbol.
- *  If called outside of a method, it returns <code>nil</code>.
- *
- */
-static mrb_value
-mrb_f_method(mrb_state *mrb, mrb_value self)
-{
-  mrb_callinfo *ci = mrb->c->ci;
-  ci--;
-  if (ci->mid)
-    return mrb_symbol_value(ci->mid);
-  else
-    return mrb_nil_value();
-}
-
 /* 15.3.1.3.7  */
 /*
  *  call-seq:
@@ -298,21 +269,21 @@ static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
   switch (mrb_type(obj)) {
-      case MRB_TT_CLASS:
-      case MRB_TT_MODULE:
-        copy_class(mrb, dest, obj);
-        /* fall through */
-      case MRB_TT_OBJECT:
-      case MRB_TT_SCLASS:
-      case MRB_TT_HASH:
-      case MRB_TT_DATA:
-        mrb_iv_copy(mrb, dest, obj);
-        break;
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+      copy_class(mrb, dest, obj);
+      /* fall through */
+    case MRB_TT_OBJECT:
+    case MRB_TT_SCLASS:
+    case MRB_TT_HASH:
+    case MRB_TT_DATA:
+      mrb_iv_copy(mrb, dest, obj);
+      break;
 
-      default:
-        break;
-    }
-    mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
+    default:
+      break;
+  }
+  mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
 }
 
 /* 15.3.1.3.8  */
@@ -348,7 +319,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_value clone;
 
   if (mrb_special_const_p(self)) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %S", self);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %S", self);
   }
   p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
   p->c = mrb_singleton_class_clone(mrb, self);
@@ -380,17 +351,17 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 {
-    struct RBasic *p;
-    mrb_value dup;
+  struct RBasic *p;
+  mrb_value dup;
 
-    if (mrb_special_const_p(obj)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
-    }
-    p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
-    dup = mrb_obj_value(p);
-    init_copy(mrb, dup, obj);
+  if (mrb_special_const_p(obj)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
+  }
+  p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
+  dup = mrb_obj_value(p);
+  init_copy(mrb, dup, obj);
 
-    return dup;
+  return dup;
 }
 
 static mrb_value
@@ -926,7 +897,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
  */
-static mrb_value
+mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value a[2], exc;
@@ -1159,7 +1130,6 @@ mrb_init_kernel(mrb_state *mrb)
 
   mrb_define_method(mrb, krn, "__id__",                     mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.3  */
   mrb_define_method(mrb, krn, "__send__",                   mrb_f_send,                      MRB_ARGS_ANY());     /* 15.3.1.3.4  */
-  mrb_define_method(mrb, krn, "__method__",                 mrb_f_method,                    MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */

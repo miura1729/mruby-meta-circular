@@ -1,6 +1,37 @@
 assert('Kernel.eval') do
   assert_equal(10) { Kernel.eval '1 * 10' }
   assert_equal('aaa') { Kernel.eval "'a' * 3" }
+  assert_equal(10) {
+    a = 10
+    Kernel.eval "a"
+  }
+  assert_equal(20) {
+    a = 10
+    Kernel.eval "a = 20"
+    a
+  }
+  assert_equal(15) {
+    c = 5
+    lambda {
+      a = 10
+      Kernel.eval "c = a + c"
+    }.call
+    c
+  }
+  assert_equal(5) {
+    c = 5
+    lambda {
+      Kernel.eval 'lambda { c }.call'
+    }.call
+  }
+  assert_equal(15) {
+    c = 5
+    lambda {
+      a = 10
+      Kernel.eval 'lambda { c = a + c }.call'
+    }.call
+    c
+  }
 end
 
 assert('eval') do

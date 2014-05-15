@@ -58,7 +58,7 @@ class Array
     ary = self.dup
     if block
       ary.uniq!(&block)
-    else 
+    else
       ary.uniq!
     end
     ary
@@ -370,7 +370,7 @@ class Array
         self[i] = block.call(i)
         i += 1
       end
-    else 
+    else
       while i < len
         self[i] = arg0
         i += 1
@@ -617,7 +617,6 @@ class Array
     return to_enum :delete_if unless block_given?
 
     idx = 0
-    len = self.size
     while idx < self.size do
       if block.call(self[idx])
         self.delete_at(idx)
