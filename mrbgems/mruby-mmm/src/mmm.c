@@ -36,18 +36,28 @@ mrb_mmm_instance_new(mrb_state *mrb, mrb_value self)
   }
 }
 
+mrb_value
+mrb_mmm_included(mrb_state *mrb, mrb_value self)
+{
+  mrb_value klass;
+  struct RClass *clsptr;
+  
+  mrb_get_args(mrb, "o", &klass);
+  clsptr = mrb_class_ptr(klass);
+  mrb_define_class_method(mrb, clsptr, "new", mrb_mmm_instance_new, MRB_ARGS_ANY());
+
+  mrbjit_define_primitive(mrb, clsptr->c, "new", mrbjit_prim_mmm_instance_new);
+  return mrb_nil_value();
+}
+
 void
 mrb_mruby_mmm_gem_init(mrb_state *mrb)
 {
-  struct RClass *mmmi;
-  struct RClass *mmmc;
+  struct RClass *mmm;
 
-  mmmi = mrb_define_module(mrb, "MMMI");
-  mrb_define_method(mrb, mmmi, "move", mrb_mmm_move, MRB_ARGS_NONE());
-
-  mmmc = mrb_define_module(mrb, "MMMC");
-  mrb_define_method(mrb, mmmc, "new", mrb_mmm_instance_new, MRB_ARGS_ANY());
-  mrbjit_define_primitive(mrb, mmmc, "new", mrbjit_prim_mmm_instance_new);
+  mmm = mrb_define_module(mrb, "MMM");
+  mrb_define_method(mrb, mmm, "move", mrb_mmm_move, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, mmm, "included", mrb_mmm_included, MRB_ARGS_REQ(1));
 }
 
 void
