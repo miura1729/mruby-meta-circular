@@ -166,6 +166,12 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     while (b<e) {
       *b++ = *a++;
     }
+    if (a) {
+      *b = *a;
+    }
+    else {
+      *b = mrb_nil_value();
+    }
     c->cibase->argc = len;
     if (c->prev->fib)
       mrb_field_write_barrier(mrb, (struct RBasic*)c->fib, (struct RBasic*)c->prev->fib);
