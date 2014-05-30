@@ -830,54 +830,68 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_value self = mrb->c->stack[0];
     int ivoff = mrbjit_iv_off(mrb, self, id);
 
-    /* TODO || 1 must replace check for inclded MMM module. But to do this 
-       must make MMM module resident */
-    if (ivoff == -1 || 1) {
-      /* Normal instance variable set (not defined yet) */
-      push(ecx);
-      push(ebx);
-      mov(eax, ptr [ecx + srcoff + 4]);
-      push(eax);
-      mov(eax, ptr [ecx + srcoff]);
-      push(eax);
-      push((Xbyak::uint32)id);
-      push(esi);
-      call((void *)mrb_vm_iv_set);
-      add(esp, sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
-      pop(ebx);
-      pop(ecx);
+    inLocalLabel();
 
-      return code;
+    if (ivoff == -3) {
+      mov(eax, dword [ecx]);
+      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+      test(eax, eax);
+      jz(".nivset");
+      mov(eax, dword [eax]);
+      test(eax, eax);
+      jnz(".fastivset");
     }
 
-    movsd(xmm0, ptr [ecx + srcoff]);
-    mov(eax, dword [ecx]);
+    L(".nivset");
+    /* Normal instance variable set (not define iv yet) */
     push(ecx);
     push(ebx);
+    mov(eax, ptr [ecx + srcoff + 4]);
     push(eax);
+    mov(eax, ptr [ecx + srcoff]);
+    push(eax);
+    push((Xbyak::uint32)id);
     push(esi);
-    call((void *)mrb_write_barrier);
-    add(esp, 4);
-    pop(eax);
+    call((void *)mrb_vm_iv_set);
+    add(esp, sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
     pop(ebx);
     pop(ecx);
-    if (ivoff == -2) {
-      if (mrb_type(self) == MRB_TT_OBJECT) {
-	mov(edx, eax);
-      }
-      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
-      ivoff =  mrb_obj_ptr(self)->iv->last_len;
-      inc(dword [eax + OffsetOf(iv_tbl, last_len)]);
-      mov(eax, dword [eax]);
-      movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
-      mov(dword [eax + MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym)], (Xbyak::uint32)id);
-    }
-    else {
-      mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
-      mov(eax, dword [eax]);
-      movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
-    }
 
+    if (ivoff == -3) {
+      jmp(".ivsetend");
+
+      L(".fastivset");
+      movsd(xmm0, ptr [ecx + srcoff]);
+      mov(eax, dword [ecx]);
+      push(ecx);
+      push(ebx);
+      push(eax);
+      push(esi);
+      call((void *)mrb_write_barrier);
+      add(esp, 4);
+      pop(eax);
+      pop(ebx);
+      pop(ecx);
+      if (ivoff == -2) {
+	if (mrb_type(self) == MRB_TT_OBJECT) {
+	  mov(edx, eax);
+	}
+	mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+	ivoff =  mrb_obj_ptr(self)->iv->last_len;
+	inc(dword [eax + OffsetOf(iv_tbl, last_len)]);
+	mov(eax, dword [eax]);
+	movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
+	mov(dword [eax + MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym)], (Xbyak::uint32)id);
+      }
+      else {
+	mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+	mov(eax, dword [eax]);
+	movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
+      }
+
+      L(".ivsetend");
+    }
+    outLocalLabel();
     return code;
   }
 

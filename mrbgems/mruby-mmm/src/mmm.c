@@ -29,6 +29,7 @@ mrb_mmm_instance_new(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+    mrb_obj_ptr(ins)->iv->last_len = 0;
     mrb_funcall_with_block(mrb, ins, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
     mrb_obj_iv_set(mrb, obj, mrb_intern_lit(mrb, "__objcache__"), mrb_nil_value());
 

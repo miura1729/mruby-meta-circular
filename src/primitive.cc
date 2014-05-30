@@ -4,6 +4,7 @@ extern "C" {
 #include "mruby/primitive.h"
 #include "mruby/array.h"
 #include "mruby/irep.h"
+#include "mruby/variable.h"
 #include "opcode.h"
 
 mrb_value
@@ -510,6 +511,9 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   mov(ptr [ecx + a * sizeof(mrb_value)], eax);
   mov(ptr [ecx + a * sizeof(mrb_value) + 4], edx);
+  mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+  xor(edx, edx);
+  mov(dword [eax + OffsetOf(iv_tbl, last_len)], edx);
 
   if (civoff >= 0) {
     pop(eax);			/* POP __objcache__ */ 
