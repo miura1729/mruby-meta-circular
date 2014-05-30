@@ -1,6 +1,5 @@
 class Foo
-  include MMMI
-  extend MMMC
+  include MMM
 
   def initialize
     @a = 1
