@@ -832,7 +832,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     inLocalLabel();
 
-    if (ivoff == -3) {
+    if (ivoff != -1) {
       mov(eax, dword [ecx]);
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       test(eax, eax);
@@ -857,7 +857,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     pop(ebx);
     pop(ecx);
 
-    if (ivoff == -3) {
+    if (ivoff != -1) {
       jmp(".ivsetend");
 
       L(".fastivset");
