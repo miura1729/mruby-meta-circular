@@ -1,11 +1,6 @@
 ##
 # Array(Ext) Test
 
-assert("Array::try_convert") do
-  assert_equal [1], Array.try_convert([1])
-  assert_nil Array.try_convert("1")
-end
-
 assert("Array#assoc") do
   s1 = [ "colors", "red", "blue", "green" ]
   s2 = [ "letters", "a", "b", "c" ]
@@ -289,4 +284,12 @@ assert('Array#values_at') do
   assert_equal ['none', 'white', 'white', nil], a.values_at(-1, -2, -2, -7)
   assert_equal ['none', nil, nil, 'red', 'green', 'purple'], a.values_at(4..6, 0...3)
   assert_raise(TypeError) { a.values_at 'tt' }
+end
+
+assert('Array#to_h') do
+  assert_equal({}, [].to_h)
+  assert_equal({a: 1, b:2}, [[:a, 1], [:b, 2]].to_h)
+
+  assert_raise(TypeError)     { [1].to_h }
+  assert_raise(ArgumentError) { [[1]].to_h }
 end

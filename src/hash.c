@@ -678,7 +678,7 @@ mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
 {
-    return hash;
+  return hash;
 }
 
 /* 15.2.13.4.19 */
@@ -739,7 +739,7 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
   if (!h) return mrb_ary_new(mrb);
   ary = mrb_ary_new_capa(mrb, kh_size(h));
   for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)){
+    if (kh_exist(h, k)) {
       mrb_hash_value hv = kh_value(h,k);
 
       mrb_ary_set(mrb, ary, hv.n, hv.v);

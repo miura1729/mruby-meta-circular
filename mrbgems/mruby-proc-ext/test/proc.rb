@@ -10,7 +10,7 @@ end
 
 assert('Proc#inspect') do
   ins = Proc.new{}.inspect
-  assert_true ins.kind_of? String
+  assert_kind_of String, ins
 end
 
 assert('Proc#lambda?') do
@@ -73,18 +73,4 @@ assert('mrb_cfunc_env_get') do
   assert_raise(IndexError) { t.get_int(3) }
 
   assert_equal 1, t.get_int(1)
-end
-
-assert('Kernel.local_variables') do
-  a, b = 0, 1
-  a += b
-
-  vars = Kernel.local_variables.sort
-  assert_equal [:a, :b, :vars], vars
-
-  proc {
-    c = 2
-    vars = Kernel.local_variables.sort
-    assert_equal [:a, :b, :c, :vars], vars
-  }.call
 end

@@ -1,16 +1,11 @@
 #include "mruby.h"
 #include "mruby/array.h"
+#include "mruby/class.h"
 #include "mruby/string.h"
 #include "mruby/range.h"
 #include "mruby/re.h"
 #include <ctype.h>
 #include <string.h>
-
-#define STR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
-#define STR_EMBED_LEN(s)\
-  (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
-#define STR_PTR(s) ((STR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
-#define STR_LEN(s) ((STR_EMBED_P(s)) ? STR_EMBED_LEN(s) : (mrb_int)(s)->as.heap.len)
 
 static const char utf8len_codepage[256] =
 {
@@ -35,27 +30,6 @@ static char utf8len_codepage_zero[256] =
   2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,
 };
-
-static const char isspacetable[256] = {
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-
-#define ascii_isspace(c) isspacetable[(unsigned char)(c)]
 
 static mrb_int
 utf8code(unsigned char* p)
@@ -127,9 +101,7 @@ mrb_utf8_strlen(mrb_value str, mrb_int len)
 static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value str)
 {
-  mrb_int size = mrb_utf8_strlen(str, -1);
-
-  return mrb_fixnum_value(size);
+  return mrb_fixnum_value(mrb_utf8_strlen(str, -1));
 }
 
 #define RSTRING_LEN_UTF8(s) mrb_utf8_strlen(s, -1)
@@ -161,10 +133,10 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
     qstable[i] = m + 1;
   for (; x < xe; ++x)
     qstable[*x] = xe - x;
- /* Searching */
+  /* Searching */
   for (; y + m <= ys + n; y += *(qstable + y[m])) {
     if (*xs == *y && memcmp(xs, y, m) == 0)
-        return y - ys;
+      return y - ys;
   }
   return -1;
 }
@@ -272,17 +244,17 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   mrb_int len = RSTRING_LEN(sub);
 
   /* substring longer than string */
-  if (STR_LEN(ps) < len) return -1;
-  if (STR_LEN(ps) - pos < len) {
-    pos = STR_LEN(ps) - len;
+  if (RSTR_LEN(ps) < len) return -1;
+  if (RSTR_LEN(ps) - pos < len) {
+    pos = RSTR_LEN(ps) - len;
   }
-  sbeg = STR_PTR(ps);
-  s = STR_PTR(ps) + pos;
+  sbeg = RSTR_PTR(ps);
+  s = RSTR_PTR(ps) + pos;
   t = RSTRING_PTR(sub);
   if (len) {
     while (sbeg <= s) {
       if (memcmp(s, t, len) == 0) {
-        return s - STR_PTR(ps);
+        return s - RSTR_PTR(ps);
       }
       s--;
     }
@@ -572,7 +544,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     if (mrb_string_p(spat)) {
       split_type = string;
       if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' '){
-          split_type = awk;
+        split_type = awk;
       }
     }
     else {
@@ -594,7 +566,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       int ai = mrb_gc_arena_save(mrb);
       c = (unsigned char)*ptr++;
       if (skip) {
-        if (ascii_isspace(c)) {
+        if (ISSPACE(c)) {
           beg = ptr - bptr;
         }
         else {
@@ -603,7 +575,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
           if (lim_p && lim <= i) break;
         }
       }
-      else if (ascii_isspace(c)) {
+      else if (ISSPACE(c)) {
         mrb_ary_push(mrb, result, str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
         skip = 1;
@@ -667,6 +639,80 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
+static mrb_value
+mrb_str_chr(mrb_state *mrb, mrb_value self)
+{
+  return str_substr(mrb, self, 0, 1);
+}
+
+static mrb_value
+mrb_str_chars(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
+  char *p = RSTRING_PTR(self);
+  char *e = p + RSTRING_LEN(self);
+
+  mrb_get_args(mrb, "&", &blk);
+
+  result = mrb_ary_new(mrb);
+
+  if (!mrb_nil_p(blk)) {
+    while (p < e) {
+      len = utf8len((unsigned char*) p);
+      arg = mrb_str_new(mrb, p, len);
+      mrb_yield_argv(mrb, blk, 1, &arg);
+      p += len;
+    }
+    return self;
+  }
+  while (p < e) {
+    ai = mrb_gc_arena_save(mrb);
+    len = utf8len((unsigned char*) p);
+    mrb_ary_push(mrb, result, mrb_str_new(mrb, p, len));
+    mrb_gc_arena_restore(mrb, ai);
+    p += len;
+  }
+  return result;
+}
+
+static mrb_value
+mrb_str_codepoints(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  mrb_value blk;
+  int ai;
+  mrb_int len;
+  mrb_value arg;
+  char *p = RSTRING_PTR(self);
+  char *e = p + RSTRING_LEN(self);
+
+  mrb_get_args(mrb, "&", &blk);
+
+  result = mrb_ary_new(mrb);
+
+  if (!mrb_nil_p(blk)) {
+    while (p < e) {
+      len = utf8len((unsigned char*) p);
+      arg = mrb_fixnum_value(utf8code((unsigned char*) p));
+      mrb_yield_argv(mrb, blk, 1, &arg);
+      p += len;
+    }
+    return self;
+  }
+  while (p < e) {
+    ai = mrb_gc_arena_save(mrb);
+    len = utf8len((unsigned char*) p);
+    mrb_ary_push(mrb, result, mrb_fixnum_value(utf8code((unsigned char*) p)));
+    mrb_gc_arena_restore(mrb, ai);
+    p += len;
+  }
+  return result;
+}
+
 void
 mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
 {
@@ -682,6 +728,11 @@ mrb_mruby_string_utf8_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "reverse",  mrb_str_reverse, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "reverse!", mrb_str_reverse_bang, MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "rindex", mrb_str_rindex_m, MRB_ARGS_ANY());
+  mrb_define_method(mrb, s, "chr", mrb_str_chr, MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "chars", mrb_str_chars, MRB_ARGS_NONE());
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "each_char"), mrb_intern_lit(mrb, "chars"));
+  mrb_define_method(mrb, s, "codepoints", mrb_str_codepoints, MRB_ARGS_NONE());
+  mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "each_codepoint"), mrb_intern_lit(mrb, "codepoints"));
 
   mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
 }

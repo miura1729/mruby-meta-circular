@@ -34,6 +34,8 @@ module MRuby
       attr_accessor :requirements
       attr_reader :dependencies
 
+      attr_accessor :export_include_paths
+
       attr_block MRuby::Build::COMMANDS
 
       def initialize(name, &block)
@@ -44,27 +46,24 @@ module MRuby
       end
 
       def run_test_in_other_mrb_state?
-        not test_preload.nil? or not test_objs.empty?
+        not test_preload.nil? or not test_objs.empty? or not test_args.empty?
       end
 
       def setup
         MRuby::Gem.current = self
-        @build.compilers.each do |compiler|
-          compiler.include_paths << "#{dir}/include"
-        end if File.directory? "#{dir}/include"
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
         end
         @linker = LinkerConfig.new([], [], [], [])
 
         @rbfiles = Dir.glob("#{dir}/mrblib/*.rb").sort
-        @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,m,asm,S}").map do |f|
+        @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @objs << objfile("#{build_dir}/gem_init")
 
         @test_rbfiles = Dir.glob("#{dir}/test/*.rb")
-        @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,m,asm,S}").map do |f|
+        @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @test_preload = nil # 'test/assert.rb'
@@ -74,6 +73,8 @@ module MRuby
 
         @requirements = []
         @dependencies = []
+        @export_include_paths = []
+        @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
 
         instance_eval(&@initializer)
 
@@ -88,6 +89,7 @@ module MRuby
         compilers.each do |compiler|
           compiler.define_rules build_dir, "#{dir}"
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
+          compiler.include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
         end
 
         define_gem_init_builder
@@ -124,7 +126,7 @@ module MRuby
 
       def define_gem_init_builder
         file objfile("#{build_dir}/gem_init") => "#{build_dir}/gem_init.c"
-        file "#{build_dir}/gem_init.c" => [build.mrbcfile] + [rbfiles].flatten do |t|
+        file "#{build_dir}/gem_init.c" => [build.mrbcfile, __FILE__] + [rbfiles].flatten do |t|
           FileUtils.mkdir_p build_dir
           generate_gem_init("#{build_dir}/gem_init.c")
         end
@@ -182,6 +184,7 @@ module MRuby
         f.puts %Q[#include "mruby/irep.h"]
         f.puts %Q[#include "mruby/string.h"]
         f.puts %Q[#include "mruby/variable.h"]
+        f.puts %Q[#include "mruby/hash.h"] unless test_args.empty?
       end
 
       def version_ok?(req_versions)
@@ -336,6 +339,25 @@ module MRuby
           @ary = gem_table.tsort.map { |v| gem_table[v] }
         rescue TSort::Cyclic => e
           fail "Circular mrbgem dependency found: #{e.message}"
+        end
+
+        each do |g|
+          import_include_paths(g)
+        end
+      end
+
+      def import_include_paths(g)
+        gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
+        g.dependencies.each do |dep|
+          dep_g = gem_table[dep[:gem]]
+          # We can do recursive call safely
+          # as circular dependency has already detected in the caller.
+          import_include_paths(dep_g)
+
+          g.compilers.each do |compiler|
+            compiler.include_paths += dep_g.export_include_paths
+            g.export_include_paths += dep_g.export_include_paths
+          end
         end
       end
     end # List

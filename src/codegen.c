@@ -579,7 +579,8 @@ for_body(codegen_scope *s, node *tree)
   /* generate receiver */
   codegen(s, tree->cdr->car, VAL);
   /* generate loop-block */
-  s = scope_new(s->mrb, s, tree->car);
+  s = scope_new(s->mrb, s, NULL);
+  push();                       /* push for a block parameter */
 
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
@@ -2753,7 +2754,7 @@ print_r(mrb_state *mrb, mrb_irep *irep, size_t n, int pre)
 
   if (n == 0) return 0;
 
-  for (i=0; i<irep->nlocals; i++) {
+  for (i=0; i+1<irep->nlocals; i++) {
     if (irep->lv[i].r == n) {
       mrb_sym sym = irep->lv[i].name;
       if (pre) printf(" ");
@@ -3096,7 +3097,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       {
         mrb_value v = irep->pool[GETARG_Bx(c)];
         mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, RSTRING_PTR(v), RSTRING_LEN(v)));
-        printf("OP_STRING\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_B(c), RSTRING_PTR(s));
+        printf("OP_STRING\tR%d\tL(%d)\t; %s", GETARG_A(c), GETARG_Bx(c), RSTRING_PTR(s));
       }
       print_lv(mrb, irep, c, RA);
       break;

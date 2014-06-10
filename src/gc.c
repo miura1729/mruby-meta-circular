@@ -34,7 +34,7 @@
 
   == Two White Types
 
-  There're two white color types in a flip-flop fassion: White-A and White-B,
+  There're two white color types in a flip-flop fashion: White-A and White-B,
   which respectively represent the Current White color (the newly allocated
   objects in the current GC cycle) and the Sweep Target White color (the
   dead objects to be swept).
@@ -43,8 +43,8 @@
   that time, all the dead objects have been swept, while the newly created
   objects in the current GC cycle which finally remains White are now
   regarded as dead objects. Instead of traversing all the White-A objects and
-  paint them as White-B, just switch the meaning of White-A and White-B would
-  be much cheaper.
+  painting them as White-B, just switch the meaning of White-A and White-B as
+  this will be much cheaper.
 
   As a result, the objects we sweep in the current GC cycle are always
   left from the previous GC cycle. This allows us to sweep objects
@@ -73,8 +73,8 @@
 
   mruby's GC offers an Generational Mode while re-using the tri-color GC
   infrastructure. It will treat the Black objects as Old objects after each
-  sweep phase, instead of paint them to White. The key idea are still same as
-  the traditional generational GC:
+  sweep phase, instead of painting them White. The key ideas are still the same
+  as traditional generational GC:
 
     * Minor GC - just traverse the Young objects (Gray objects) in the mark
                  phase, then only sweep the newly created objects, and leave
@@ -82,7 +82,7 @@
 
     * Major GC - same as a full regular GC cycle.
 
-  The difference to a "traditional" generational GC is, that the major GC
+  The difference from "traditional" generational GC is, that the major GC
   in mruby is triggered incrementally in a tri-color manner.
 
 
@@ -189,7 +189,7 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
     }
     else {
       mrb->out_of_memory = TRUE;
-      mrb_raise(mrb, E_RUNTIME_ERROR, "Out of memory");
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
     }
   }
   else {
@@ -715,6 +715,8 @@ root_scan_phase(mrb_state *mrb)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
+  /* mark pre-allocated exception */
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->nomem_err);
 
   mark_context(mrb, mrb->root_c);
   if (mrb->root_c->fib) {

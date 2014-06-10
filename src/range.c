@@ -38,8 +38,8 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
 {
   struct RRange *r;
 
-  r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
   range_check(mrb, beg, end);
+  r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, RANGE_CLASS);
   r->edges = (mrb_range_edges *)mrb_malloc(mrb, sizeof(mrb_range_edges));
   r->edges->beg = beg;
   r->edges->end = end;
@@ -134,7 +134,7 @@ mrb_range_initialize(mrb_state *mrb, mrb_value range)
 
   n = mrb_get_args(mrb, "oo|b", &beg, &end, &exclusive);
   if (n != 3) {
-    exclusive = 0;
+    exclusive = FALSE;
   }
   /* Ranges are immutable, so that they should be initialized only once. */
   range_init(mrb, range, beg, end, exclusive);

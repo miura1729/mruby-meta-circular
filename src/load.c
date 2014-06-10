@@ -428,12 +428,18 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
   for (i = 0; i + 1< irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    if (sym_idx >= syms_len) {
-      return MRB_DUMP_GENERAL_FAILURE;
+    if (sym_idx == RITE_LV_NULL_MARK) {
+      irep->lv[i].name = 0;
+      irep->lv[i].r = 0;
     }
-    irep->lv[i].name = syms[sym_idx];
+    else {
+      if (sym_idx >= syms_len) {
+        return MRB_DUMP_GENERAL_FAILURE;
+      }
+      irep->lv[i].name = syms[sym_idx];
 
-    irep->lv[i].r = bin_to_uint16(bin);
+      irep->lv[i].r = bin_to_uint16(bin);
+    }
     bin += sizeof(uint16_t);
   }
 
@@ -734,7 +740,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   /* verify CRC */
   fpos = ftell(fp);
   /* You don't need use SIZE_ERROR as block_size is enough small. */
-  for (i = 0; i < block_fallback_count; i++,block_size >>= 1){
+  for (i = 0; i < block_fallback_count; i++,block_size >>= 1) {
     buf = (uint8_t*)mrb_malloc_simple(mrb, block_size);
     if (buf) break;
   }
@@ -825,7 +831,7 @@ mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
   }
   proc = mrb_proc_new(mrb, irep);
   mrb_irep_decref(mrb, irep);
-  if (c->dump_result) mrb_codedump_all(mrb, proc);
+  if (c && c->dump_result) mrb_codedump_all(mrb, proc);
   if (c && c->no_exec) return mrb_obj_value(proc);
   val = mrb_toplevel_run(mrb, proc);
   return val;
