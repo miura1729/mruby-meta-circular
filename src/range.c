@@ -81,6 +81,14 @@ mrb_range_end(mrb_state *mrb, mrb_value range)
   return r->edges->end;
 }
 
+mrb_value
+mrb_range_to_swift(mrb_state *mrb, mrb_value range)
+{
+  struct RRange *r = mrb_range_ptr(range);
+
+  return mrb_range_new(mrb, r->edges->beg, r->edges->end, !r->excl);
+}
+
 /*
  *  call-seq:
  *     range.exclude_end?    => true or false
@@ -425,6 +433,7 @@ mrb_init_range(mrb_state *mrb)
   mrb_define_method(mrb, r, "include?",        mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.8  */
   mrb_define_method(mrb, r, "initialize",      mrb_range_initialize,  MRB_ARGS_ANY());  /* 15.2.14.4.9  */
   mrb_define_method(mrb, r, "last",            mrb_range_end,         MRB_ARGS_NONE()); /* 15.2.14.4.10 */
+  mrb_define_method(mrb, r, "to_swift",            mrb_range_to_swift,         MRB_ARGS_NONE()); /*  */
   mrb_define_method(mrb, r, "member?",         mrb_range_include,     MRB_ARGS_REQ(1)); /* 15.2.14.4.11 */
 
   mrb_define_method(mrb, r, "to_s",            range_to_s,            MRB_ARGS_NONE()); /* 15.2.14.4.12(x) */
