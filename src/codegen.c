@@ -822,14 +822,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val)
   mrb_sym sym = name ? name : sym(tree->cdr->car);
   int idx;
   int n = 0, noop = 0, sendv = 0, blk = 0;
-  int old_shared = s->shared_lambda;
-  int callsym = mrb_intern(s->mrb, "call", 4);
 
   codegen(s, tree->car, VAL); /* receiver */
   idx = new_msym(s, sym);
-  if (sym == callsym && ((intptr_t)tree->car->car) == NODE_LVAR) {
-    s->shared_lambda = old_shared;
-  }
   tree = tree->cdr->cdr->car;
   if (tree) {
     n = gen_values(s, tree->car, VAL);
