@@ -1763,7 +1763,7 @@ do {								     \
 
 #define COMP_GEN(CMPINSTI, CMPINSTF)			             \
 do {                                                                 \
-    int regno = GETARG_A(**ppc);                                     \
+    int regno = GETARG_A(**ppc);	                             \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
                                                                      \
@@ -1771,52 +1771,14 @@ do {                                                                 \
     COMP_BOOL_SET;                                                   \
  } while(0)
 
-#define COMP_AND_JMP(CMPINSTI, CMPINSTF)                 	     \
+#define COMP_GEN_JMP(CMPINSTI, CMPINSTF)                 	     \
 do {                                                                 \
-    int regno = GETARG_A(**ppc);                                     \
+    int regno = GETARG_A(**ppc);	                             \
     const Xbyak::uint32 off0 = regno * sizeof(mrb_value);            \
     const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);             \
                                                                      \
     COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
  } while(0)
-
-#define COMP_JMPNOT(CMPINSTI, CMPINSTF, NCMPINSTI, NCMPINSTF)	     \
-do {                                                                 \
-  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);		     \
-  if (!b) {                                                          \
-    COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
-    gen_exit(*ppc + 3, 1, 0, status);                                \
-    dinfo->type = MRB_TT_FALSE;                                      \
-    dinfo->klass = mrb->false_class;                                 \
-  }                                                                  \
-  else {                                                             \
-    COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
-    gen_exit(*ppc + 2 + GETARG_sBx(jmpc), 1, 0, status);             \
-    dinfo->type = MRB_TT_TRUE;                                       \
-    dinfo->klass = mrb->true_class;                                  \
-  }                                                                  \
-  L("@@");                                                           \
-  dinfo->constp = 1;                                                 \
-} while(0)
-
-#define COMP_JMPIF(CMPINSTI, CMPINSTF, NCMPINSTI, NCMPINSTF)	     \
-do {                                                                 \
-  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);		     \
-  if (b) {                                                           \
-    COMP_AND_JMP(CMPINSTI, CMPINSTF);                                \
-    gen_exit(*ppc + 3, 1, 0, status);                                \
-    dinfo->type = MRB_TT_TRUE;                                       \
-    dinfo->klass = mrb->false_class;                                 \
-  }                                                                  \
-  else {                                                             \
-    COMP_AND_JMP(NCMPINSTI, NCMPINSTF);                              \
-    gen_exit(*ppc + 2 + GETARG_sBx(jmpc), 1, 0, status);             \
-    dinfo->type = MRB_TT_FALSE;                                      \
-    dinfo->klass = mrb->false_class;                                 \
-  }                                                                  \
-  L("@@");                                                           \
-  dinfo->constp = 1;                                                 \
-} while(0)
 
   const void *
     emit_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
@@ -1824,45 +1786,22 @@ do {                                                                 \
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     int regno = GETARG_A(**ppc);
-    enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+    mrb_code jmpc = *(*ppc + 2);
 
-    //    int b;
-    //mrb_code jmpc = *(*ppc + 2);
-
-    /* Import from class.h */
-    switch (tt) {
-    case MRB_TT_TRUE:
-    case MRB_TT_FALSE:
-    case MRB_TT_SYMBOL:
-    case MRB_TT_FIXNUM:
-    case MRB_TT_FLOAT:
-    case MRB_TT_STRING:
-#if 0
-      mrb->compile_info.disable_jit = 1;
-      b = mrb_test(mrb_funcall(mrb, regs[regno], "==", 1, regs[regno + 1]));
-      mrb->compile_info.disable_jit = 0;
-      switch (GET_OPCODE(jmpc)) {
-      case OP_JMPNOT:
-	COMP_JMPNOT(jz("@f"), jz("@f"), jnz("@f"), jnz("@f"));
-	return code;
-
-      case OP_JMPIF:
-	COMP_JMPIF(jz("@f"), jz("@f"), jnz("@f"), jnz("@f"));
-	return code;
-
-      default:
-	break;
-      }
-#endif
-      
-      COMP_GEN(setz(al), setz(al));
-      break;
+#if 1
+    switch (GET_OPCODE(jmpc)) {
+    case OP_JMPNOT:
+    case OP_JMPIF:
+      COMP_GEN_JMP(setz(al), setz(al));
+      return code;
 
     default:
-      gen_exit(*status->pc, 1, 1, status);
       break;
     }
+#endif
+      
+    COMP_GEN(setz(al), setz(al));
 
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
@@ -1875,23 +1814,15 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-
-#if 0
-    int b;
-    mrb_code jmpc = *(*ppc + 2);
     int regno = GETARG_A(**ppc);
+    mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+    mrb_code jmpc = *(*ppc + 2);
 
-    mrb->compile_info.disable_jit = 1;
-    b = mrb_test(mrb_funcall(mrb, regs[regno], "<", 1, regs[regno + 1]));
-    mrb->compile_info.disable_jit = 0;
+#if 1
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
-      COMP_JMPNOT(jl("@f"), jb("@f"), jge("@f"), jae("@f"));
-      return code;
-
     case OP_JMPIF:
-      COMP_JMPIF(jl("@f"), jb("@f"), jge("@f"), jae("@f"));
+      COMP_GEN_JMP(setl(al), setb(al));
       return code;
 
     default:
@@ -2116,6 +2047,33 @@ do {                                                                 \
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
+    int b;
+
+#if 1
+    switch (GET_OPCODE(*(*ppc - 2))) {
+    case OP_EQ:
+    case OP_LT:
+      xor(ah, ah);
+      cwde();
+      add(eax, eax);
+      or(eax, 0xfff00001);
+      mov(dword [ecx + coff + 4], eax);
+      cmp(eax, 0xfff00001);
+      if (mrb_test(regs[cond])) {
+	jnz("@f");
+	gen_exit(*ppc + 1, 1, 0, status);
+	L("@@");
+	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+      }
+      else {
+	jz("@f");
+	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status);
+	L("@@");
+      }
+
+      return code;
+    }
+#endif
     
     mov(eax, ptr [ecx + coff + 4]);
     if (mrb_test(regs[cond])) {
@@ -2137,7 +2095,34 @@ do {                                                                 \
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
+    int b;
 
+#if 1
+    switch (GET_OPCODE(*(*ppc - 2))) {
+    case OP_EQ:
+    case OP_LT:
+      xor(ah, ah);
+      cwde();
+      add(eax, eax);
+      or(eax, 0xfff00001);
+      mov(dword [ecx + coff + 4], eax);
+      cmp(eax, 0xfff00001);
+      if (!mrb_test(regs[cond])) {
+	jz("@f");
+	gen_exit(*ppc + 1, 1, 0, status);
+	L("@@");
+	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+      }
+      else {
+	jnz("@f");
+	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status);
+	L("@@");
+      }
+
+      return code;
+    }
+#endif
+    
     mov(eax, ptr [ecx + coff + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, *ppc + 1, status, rinfo);
