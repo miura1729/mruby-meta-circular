@@ -1789,7 +1789,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
     mrb_code jmpc = *(*ppc + 2);
 
-#if 1
+#if 0
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
     case OP_JMPIF:
@@ -1818,7 +1818,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
     mrb_code jmpc = *(*ppc + 2);
 
-#if 1
+#if 0
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
     case OP_JMPIF:
@@ -2045,28 +2045,25 @@ do {                                                                 \
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
-    const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
+    const Xbyak::uint32 off0 =  cond * sizeof(mrb_value);
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
     int b;
 
-#if 1
+#if 0
     switch (GET_OPCODE(*(*ppc - 2))) {
     case OP_EQ:
     case OP_LT:
-      xor(ah, ah);
-      cwde();
-      add(eax, eax);
-      or(eax, 0xfff00001);
-      mov(dword [ecx + coff + 4], eax);
-      cmp(eax, 0xfff00001);
+      test(al, al);
       if (mrb_test(regs[cond])) {
 	jnz("@f");
+	COMP_BOOL_SET;
 	gen_exit(*ppc + 1, 1, 0, status);
 	L("@@");
 	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
       }
       else {
 	jz("@f");
+	COMP_BOOL_SET;
 	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status);
 	L("@@");
       }
@@ -2075,7 +2072,7 @@ do {                                                                 \
     }
 #endif
     
-    mov(eax, ptr [ecx + coff + 4]);
+    mov(eax, ptr [ecx + off0 + 4]);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 1, *ppc + 1, status, rinfo);
       gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
@@ -2093,28 +2090,25 @@ do {                                                                 \
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
-    const Xbyak::uint32 coff =  cond * sizeof(mrb_value);
+    const Xbyak::uint32 off0 =  cond * sizeof(mrb_value);
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
     int b;
 
-#if 1
+#if 0
     switch (GET_OPCODE(*(*ppc - 2))) {
     case OP_EQ:
     case OP_LT:
-      xor(ah, ah);
-      cwde();
-      add(eax, eax);
-      or(eax, 0xfff00001);
-      mov(dword [ecx + coff + 4], eax);
-      cmp(eax, 0xfff00001);
+      test(al, al);
       if (!mrb_test(regs[cond])) {
 	jz("@f");
+	COMP_BOOL_SET;
 	gen_exit(*ppc + 1, 1, 0, status);
 	L("@@");
 	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
       }
       else {
 	jnz("@f");
+	COMP_BOOL_SET;
 	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status);
 	L("@@");
       }
@@ -2123,7 +2117,7 @@ do {                                                                 \
     }
 #endif
     
-    mov(eax, ptr [ecx + coff + 4]);
+    mov(eax, ptr [ecx + off0 + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, *ppc + 1, status, rinfo);
       gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
