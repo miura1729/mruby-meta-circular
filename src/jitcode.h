@@ -74,7 +74,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_exit(mrb_code *pc, int is_clr_rc, int is_clr_exitpos, mrbjit_vmstatus *status)
+    gen_exit(mrb_code *pc, int is_clr_rc, int is_clr_exitpos, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     inLocalLabel();
     L(".exitlab");
@@ -114,14 +114,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_exit_patch(void *dst, mrb_code *pc, mrbjit_vmstatus *status)
+    gen_exit_patch(void *dst, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     size_t cursize = getSize();
     const unsigned char *code = getCode();
     size_t dstsize = (unsigned char *)dst - code;
 
     setSize(dstsize);
-    gen_exit(pc, 1, 0, status);
+    gen_exit(pc, 1, 0, status, coi);
     setSize(cursize);
   }
 
@@ -188,7 +188,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc, 1, 0, status);
+    gen_exit(pc, 1, 0, status, coi);
 
     L("@@");
   }
@@ -197,9 +197,11 @@ class MRBJitCode: public Xbyak::CodeGenerator {
    input EAX Pointer to tested boolean
   */
   void
-    gen_bool_guard(mrb_state *mrb, int b, mrb_code *pc, 
-		   mrbjit_vmstatus *status, mrbjit_reginfo *rinfo)
+    gen_bool_guard(mrb_state *mrb, int b, int cond, mrb_code *pc, 
+		   mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
+    mrbjit_reginfo *rinfo = &coi->reginfo[cond];
+
     if (rinfo->constp) {
       if (b && rinfo->type != MRB_TT_FALSE) {
 	return;
@@ -218,7 +220,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(pc, 1, 0, status);
+    gen_exit(pc, 1, 0, status, coi);
 
     L("@@");
   }
@@ -252,7 +254,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       }
 
       /* Guard fail exit code */
-      gen_exit(pc, 1, 0, status);
+      gen_exit(pc, 1, 0, status, coi);
 
       L("@@");
     }
@@ -281,7 +283,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	cmp(eax, (int)c);
 	jz("@f");
 	/* Guard fail exit code */
-	gen_exit(pc, 1, 0, status);
+	gen_exit(pc, 1, 0, status, coi);
 
 	L("@@");
       }
@@ -1032,7 +1034,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 \
     test(eax, eax);					             \
     jz("@f");                                                        \
-    gen_exit(NULL, 0, 1, status); 		                     \
+    gen_exit(NULL, 0, 1, status, coi); 		                     \
     L("@@");                                                         \
   }while (0)
 
@@ -1213,7 +1215,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_call(mrb_state *mrb, mrbjit_vmstatus *status)
+    emit_call(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_value recv = mrb->c->stack[0];
@@ -1234,7 +1236,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     push(eax);
     jnz("@f");
     pop(eax);
-    gen_exit(*status->pc, 1, 1, status);
+    gen_exit(*status->pc, 1, 1, status, coi);
     L("@@");
 
     push(ecx);
@@ -1314,7 +1316,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     jnz("@f");
     L(".ret_vm");
     pop(eax);
-    gen_exit(*status->pc, 1, 0, status);
+    gen_exit(*status->pc, 1, 0, status, coi);
     L("@@");
     
     if (can_inline) {
@@ -1384,7 +1386,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       test(eax, eax);
       jz("@f");
       pop(edx);			/* pop return address from callinfo */
-      gen_exit(NULL, 0, 0, status);
+      gen_exit(NULL, 0, 0, status, coi);
       L("@@");
 
       ret();
@@ -1461,7 +1463,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     cvtsi2sd(xmm1, dword [ecx + reg1off]);				\
     AINSTF(xmm0, xmm1);                                                 \
     movsd(ptr [ecx + reg0off], xmm0);                                   \
-    gen_exit(*status->pc + 1, 1, 1, status);				\
+    gen_exit(*status->pc + 1, 1, 1, status, coi);			\
     L("@@");                                                            \
 
 
@@ -1590,7 +1592,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     cvtsi2sd(xmm1, eax);                                                \
     AINSTF(xmm0, xmm1);                                                 \
     movsd(ptr [ecx + off], xmm0);                                       \
-    gen_exit(*status->pc + 1, 1, 1, status);				\
+    gen_exit(*status->pc + 1, 1, 1, status, coi);			\
     L("@@");                                                            \
 
 #define ARTH_I_GEN(AINSTI, AINSTF)                                      \
@@ -1621,7 +1623,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->klass = mrb->float_class;  				\
     }                                                                   \
     else {                                                              \
-      gen_exit(*ppc, 1, 0, status);					\
+      gen_exit(*ppc, 1, 0, status, coi);				\
     }                                                                   \
 } while(0)
     
@@ -2057,14 +2059,14 @@ do {                                                                 \
       if (mrb_test(regs[cond])) {
 	jnz("@f");
 	COMP_BOOL_SET;
-	gen_exit(*ppc + 1, 1, 0, status);
+	gen_exit(*ppc + 1, 1, 0, status, coi);
 	L("@@");
 	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
       }
       else {
 	jz("@f");
 	COMP_BOOL_SET;
-	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status);
+	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
 	L("@@");
       }
 
@@ -2074,11 +2076,11 @@ do {                                                                 \
     
     mov(eax, ptr [ecx + off0 + 4]);
     if (mrb_test(regs[cond])) {
-      gen_bool_guard(mrb, 1, *ppc + 1, status, rinfo);
+      gen_bool_guard(mrb, 1, cond, *ppc + 1, status, coi);
       gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
-      gen_bool_guard(mrb, 0, *ppc + GETARG_sBx(**ppc), status, rinfo);
+      gen_bool_guard(mrb, 0, cond, *ppc + GETARG_sBx(**ppc), status, coi);
     }
 
     return code;
@@ -2102,14 +2104,14 @@ do {                                                                 \
       if (!mrb_test(regs[cond])) {
 	jz("@f");
 	COMP_BOOL_SET;
-	gen_exit(*ppc + 1, 1, 0, status);
+	gen_exit(*ppc + 1, 1, 0, status, coi);
 	L("@@");
 	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
       }
       else {
 	jnz("@f");
 	COMP_BOOL_SET;
-	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status);
+	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
 	L("@@");
       }
 
@@ -2119,11 +2121,11 @@ do {                                                                 \
     
     mov(eax, ptr [ecx + off0 + 4]);
     if (!mrb_test(regs[cond])) {
-      gen_bool_guard(mrb, 0, *ppc + 1, status, rinfo);
+      gen_bool_guard(mrb, 0, cond, *ppc + 1, status, coi);
       gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
     }
     else {
-      gen_bool_guard(mrb, 1, *ppc + GETARG_sBx(**ppc), status, rinfo);
+      gen_bool_guard(mrb, 1, cond, *ppc + GETARG_sBx(**ppc), status, coi);
     }
 
     return code;

@@ -3,10 +3,10 @@
 extern "C" {
 
 void
-mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_vmstatus *status)
+mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   MRBJitCode *code = (MRBJitCode *) coderaw;
-  code->gen_exit(*ppc, 1, 0, status);
+  code->gen_exit(*ppc, 1, 0, status, coi);
 }
 
 void
@@ -39,7 +39,7 @@ mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target)
 }
 
 void
-mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc, mrbjit_vmstatus *status)
+mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   MRBJitCode *code;
   if (coderaw == NULL) {
@@ -48,7 +48,7 @@ mrbjit_gen_exit_patch(mrbjit_code_area coderaw, void *dst, mrb_code *pc, mrbjit_
   else {
     code  = (MRBJitCode *) coderaw;
   }
-  code->gen_exit_patch(dst, pc, status);
+  code->gen_exit_patch(dst, pc, status, coi);
 }
 
 void

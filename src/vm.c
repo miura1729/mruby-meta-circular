@@ -913,10 +913,10 @@ mrbjit_argnum_error(mrb_state *mrb, int num)
 
 extern const void *mrbjit_get_curr(mrb_state *);
 extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
-extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *);
+extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
 extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *);
-extern void mrbjit_gen_exit_patch(mrbjit_code_area, void *, mrb_code *, mrbjit_vmstatus *);
+extern void mrbjit_gen_exit_patch(mrbjit_code_area, void *, mrb_code *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_align(mrbjit_code_area, unsigned);
 
 static inline mrbjit_code_info *
@@ -1160,7 +1160,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   if (cbase && 
       entry == NULL && irep->ilen > 1 && !mrb->compile_info.force_compile) {
     /* Finish compile */
-    mrbjit_gen_exit(cbase, mrb, irep, ppc, status);
+    mrbjit_gen_exit(cbase, mrb, irep, ppc, status, ci);
     //mrbjit_gen_align(cbase, 16);
     mrb->compile_info.code_base = NULL;
     mrb->compile_info.nest_level = 0;
@@ -2846,7 +2846,7 @@ RETRY_TRY_BLOCK:
 	      entry = tab->body + i;
 	      if (entry->used > 0) {
 		mrbjit_code_area cbase = mrb->compile_info.code_base;
-		mrbjit_gen_exit_patch(cbase, entry->entry, pc, &status);
+		mrbjit_gen_exit_patch(cbase, entry->entry, pc, &status, entry);
 	      }
 	    }
 	  }
