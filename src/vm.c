@@ -1126,6 +1126,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	ci->reginfo[i].type = MRB_TT_FREE;
 	ci->reginfo[i].klass = NULL;
 	ci->reginfo[i].constp = 0;
+	ci->reginfo[i].unboxedp = 0;
+	ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
       }
     }
 

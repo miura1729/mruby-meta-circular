@@ -92,10 +92,27 @@ enum mrb_fiber_state {
 
 typedef void * mrbjit_code_area;
 
+enum mrbjit_regplace {
+  MRBJIT_REG_MEMORY = 0,
+  MRBJIT_REG_AL,
+  MRBJIT_REG_EAX,
+  MRBJIT_REG_EDX,
+  MRBJIT_REG_XMM0,
+  MRBJIT_REG_XMM1,
+  MRBJIT_REG_XMM2,
+  MRBJIT_REG_XMM3,
+  MRBJIT_REG_XMM4,
+  MRBJIT_REG_XMM5,
+  MRBJIT_REG_XMM6,
+  MRBJIT_REG_XMM7,
+};
+
 typedef struct mrbjit_reginfo {
   enum mrb_vtype type;
   struct RClass *klass;
   int constp;
+  int unboxedp;
+  enum mrbjit_regplace regplace;
 } mrbjit_reginfo;
 
 typedef struct mrbjit_code_info {

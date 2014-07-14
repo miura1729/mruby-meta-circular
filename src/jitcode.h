@@ -73,11 +73,37 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     return func_ptr;
   }
 
+  void
+    gen_flush_regs(mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    mrb_code *ppc = *status->pc;
+    mrb_irep *irep = *status->irep;
+    int i;
+
+    if (!coi) {
+      return;
+    }
+
+    for (i = 0; i < irep->nregs; i++) {
+      switch(coi->reginfo[i].regplace) {
+      case MRBJIT_REG_MEMORY:
+	break;
+       
+      default:
+	printf("%d %d %d\n", irep->nregs, coi->reginfo[i].regplace, i);
+	assert(0);
+	break;
+      }
+    }
+  }
+
   void 
     gen_exit(mrb_code *pc, int is_clr_rc, int is_clr_exitpos, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     inLocalLabel();
     L(".exitlab");
+    gen_flush_regs(pc, status, coi);
+    
     if (pc) {
       mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)pc);
     }
