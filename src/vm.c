@@ -1104,15 +1104,31 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       ci->used = -1;
     }
 
+    if (prev_pc) {
+      ci->prev_coi = mrb->compile_info.prev_coi;
+    }
+    else {
+      ci->prev_coi = NULL;
+    }
+
     if (ci->reginfo == NULL) {
       ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
     }
-    for (i = 0; i < irep->nregs; i++) {
-      ci->reginfo[i].type = MRB_TT_FREE;
-      ci->reginfo[i].klass = NULL;
-      ci->reginfo[i].constp = 0;
-      ci->reginfo[i].unboxedp = 0;
-      ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
+    if (ci->prev_coi && ci->prev_coi->reginfo) {
+      mrbjit_reginfo *prev_rinfo;
+      prev_rinfo = ci->prev_coi->reginfo;
+      for (i = 0; i < irep->nregs; i++) {
+	ci->reginfo[i] = prev_rinfo[i];
+      }
+    }
+    else {
+      for (i = 0; i < irep->nregs; i++) {
+	ci->reginfo[i].type = MRB_TT_FREE;
+	ci->reginfo[i].klass = NULL;
+	ci->reginfo[i].constp = 0;
+	ci->reginfo[i].unboxedp = 0;
+	ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
+      }
     }
 
     if (ci->used < 0 && irep->ilen > 1) {
@@ -1155,6 +1171,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
  skip:
 
   mrb->compile_info.prev_pc = *ppc;
+  mrb->compile_info.prev_coi = ci;
 
   if (rc) {
     return rc;
