@@ -88,6 +88,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       switch(coi->reginfo[i].regplace) {
       case MRBJIT_REG_MEMORY:
 	break;
+
+      case MRBJIT_REG_AL:
+	xor(ah, ah);
+	cwde();
+	add(eax, eax);
+	or(eax, 0xfff00001);
+	mov(dword [ecx + i * sizeof(mrb_value) + 4], eax);
+	break;
        
       default:
 	printf("%d %d %d\n", irep->nregs, coi->reginfo[i].regplace, i);
@@ -101,8 +109,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_exit(mrb_code *pc, int is_clr_rc, int is_clr_exitpos, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     inLocalLabel();
-    L(".exitlab");
+
     gen_flush_regs(pc, status, coi);
+    L(".exitlab");
     
     if (pc) {
       mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)pc);
@@ -1817,11 +1826,13 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
     mrb_code jmpc = *(*ppc + 2);
 
-#if 0
+#if 1
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
     case OP_JMPIF:
       COMP_GEN_JMP(setz(al), setz(al));
+      dinfo->regplace = MRBJIT_REG_AL;
+      dinfo->unboxedp = 1;
       return code;
 
     default:
@@ -1846,11 +1857,13 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
     mrb_code jmpc = *(*ppc + 2);
 
-#if 0
+#if 1
     switch (GET_OPCODE(jmpc)) {
     case OP_JMPNOT:
     case OP_JMPIF:
       COMP_GEN_JMP(setl(al), setb(al));
+      dinfo->regplace = MRBJIT_REG_AL;
+      dinfo->unboxedp = 1;
       return code;
 
     default:
@@ -2077,24 +2090,24 @@ do {                                                                 \
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
     int b;
 
-#if 0
+#if 1
     switch (GET_OPCODE(*(*ppc - 2))) {
     case OP_EQ:
     case OP_LT:
       test(al, al);
       if (mrb_test(regs[cond])) {
 	jnz("@f");
-	COMP_BOOL_SET;
 	gen_exit(*ppc + 1, 1, 0, status, coi);
 	L("@@");
 	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
       }
       else {
 	jz("@f");
-	COMP_BOOL_SET;
 	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
 	L("@@");
       }
+      rinfo->regplace = MRBJIT_REG_MEMORY;
+      rinfo->unboxedp = 0;
 
       return code;
     }
@@ -2122,24 +2135,24 @@ do {                                                                 \
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
     int b;
 
-#if 0
+#if 1
     switch (GET_OPCODE(*(*ppc - 2))) {
     case OP_EQ:
     case OP_LT:
       test(al, al);
       if (!mrb_test(regs[cond])) {
 	jz("@f");
-	COMP_BOOL_SET;
 	gen_exit(*ppc + 1, 1, 0, status, coi);
 	L("@@");
 	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
       }
       else {
 	jnz("@f");
-	COMP_BOOL_SET;
 	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
 	L("@@");
       }
+      rinfo->regplace = MRBJIT_REG_MEMORY;
+      rinfo->unboxedp = 0;
 
       return code;
     }
