@@ -1172,6 +1172,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   mrb->compile_info.prev_pc = *ppc;
   mrb->compile_info.prev_coi = ci;
+  switch (GET_OPCODE(**ppc)) {
+  case OP_SEND:
+  case OP_SENDB:
+  case OP_RETURN:
+  case OP_CALL:
+    mrb->compile_info.prev_coi = NULL;
+    break;
+  }
 
   if (rc) {
     return rc;
@@ -1272,6 +1280,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   prev_jmp = mrb->jmp;
 
   mrb->compile_info.nest_level = 0;
+  mrb->compile_info.prev_coi = NULL;
 
 RETRY_TRY_BLOCK:
 
