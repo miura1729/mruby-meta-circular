@@ -43,7 +43,6 @@ mrb_open_allocf(mrb_allocf f, void *ud)
 
   mrb->compile_info.prev_pc = NULL;
   mrb->compile_info.code_base = NULL;
-  mrb->compile_info.prev_coi = NULL;
   mrb->compile_info.disable_jit = 0;
   mrb->compile_info.force_compile = 0;
   mrb->compile_info.nest_level = 0;
