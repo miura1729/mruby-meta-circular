@@ -1088,6 +1088,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
+      mrb->compile_info.prev_coi = NULL;
     }
   }
 
@@ -1166,6 +1167,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     //mrbjit_gen_align(cbase, 16);
     mrb->compile_info.code_base = NULL;
     mrb->compile_info.nest_level = 0;
+    ci = NULL;
   }
 
  skip:
@@ -1177,6 +1179,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   case OP_SENDB:
   case OP_RETURN:
   case OP_CALL:
+  case OP_EXEC:
     mrb->compile_info.prev_coi = NULL;
     break;
   }
@@ -1281,6 +1284,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
   mrb->compile_info.nest_level = 0;
   mrb->compile_info.prev_coi = NULL;
+  mrb->compile_info.prev_pc = NULL;
 
 RETRY_TRY_BLOCK:
 

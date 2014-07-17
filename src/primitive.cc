@@ -38,6 +38,8 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
   // not need guard for self because guard geneate already
   //mov(eax, dword [ecx + off0 + 4]);
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
@@ -127,6 +129,8 @@ MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
   add(dword [ecx + off0], 1);
   dinfo->type = MRB_TT_FIXNUM;
@@ -154,6 +158,8 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   const Xbyak::uint32 off1 = (regno + 1) * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
       mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
@@ -197,6 +203,8 @@ MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
   mov(eax, dword [ecx + off0]);
   cvtsi2sd(xmm0, eax);
@@ -224,6 +232,8 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   mrb_value *regs  = *status->regs;
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
   /* Import from class.h */
   switch (tt) {
@@ -401,6 +411,8 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
   m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
 
@@ -479,6 +491,8 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
   int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
 
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
   m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
 
   // TODO add guard of class
@@ -655,6 +669,8 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
   dinfo->type = MRB_TT_TRUE;
   dinfo->klass = mrb->true_class;
   dinfo->constp = 0;
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
 
   return mrb_obj_value(m);
@@ -680,6 +696,8 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   const int src = dst + 1;
   const int srcoff = src * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
+  dinfo->regplace = MRBJIT_REG_MEMORY;
+  dinfo->unboxedp = 0;
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);

@@ -76,7 +76,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   void
     gen_flush_regs(mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
-    mrb_code *ppc = *status->pc;
     mrb_irep *irep = *status->irep;
     int i;
 
@@ -642,6 +641,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(val);
     dinfo->klass = mrb_class(mrb, val);
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     mov(eax, (Xbyak::uint32)irep->pool + srcoff);
     movsd(xmm0, ptr [eax]);
@@ -681,6 +682,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->klass = mrb->fixnum_class;
     }
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     return code;
   }
@@ -698,6 +701,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = MRB_TT_SYMBOL;
     dinfo->klass = mrb->symbol_class;
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     mov(dword [ecx + dstoff], src);
     mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_SYMBOL);
@@ -718,6 +723,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(self);
     dinfo->klass = mrb->c->ci->target_class;
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     movsd(xmm0, ptr [ecx]);
     movsd(ptr [ecx + dstoff], xmm0);
@@ -742,6 +749,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->constp = 1;
     }
 
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -763,6 +772,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->constp = 1;
     }
 
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -779,6 +790,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     push(ecx);
     push(ebx);
@@ -835,6 +848,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     if (ivoff < 0) {
       return NULL;
@@ -947,6 +962,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     push(ecx);
     push(ebx);
@@ -1001,6 +1018,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(v);
     dinfo->klass = mrb_class(mrb, v);
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     mov(dword [ecx + dstoff], v.value.i);
     mov(dword [ecx + dstoff + 4], v.value.ttt);
@@ -1039,6 +1058,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->type = MRB_TT_FALSE;
     dinfo->klass = mrb->nil_class;
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     xor(eax, eax);
     mov(dword [ecx + dstoff], eax);
@@ -1137,7 +1158,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_value recv;
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
-    //    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     
     if (GETARG_C(i) == CALL_MAXARGS) {
       n = 1;
@@ -1150,6 +1173,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
+    gen_flush_regs(pc, status, coi);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
 
     //dinfo->type = MRB_TT_FREE;
@@ -1341,6 +1365,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     disp_type(mrb, rinfo);
 #endif
 
+    gen_flush_regs(pc, status, coi);
+
     inLocalLabel();
 
     /* Set return address from callinfo */
@@ -1436,10 +1462,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    mrb_code *pc = *status->pc;
 
 #if 0
     mrb_value *regs = *status->regs;
-    mrb_code *pc = *status->pc;
     mrb_code i = *pc;
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
     mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
@@ -1449,6 +1475,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     disp_type(mrb, rinfo);
 #endif
 
+    gen_flush_regs(pc, status, coi);
     CALL_CFUNC_BEGIN;
     CALL_CFUNC_STATUS(mrbjit_exec_return, 0);
 
@@ -1511,6 +1538,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];                     \
+    dinfo->regplace = MRBJIT_REG_MEMORY;                                \
+    dinfo->unboxedp = 0;                                                \
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
       gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
@@ -1827,17 +1856,10 @@ do {                                                                 \
     mrb_code jmpc = *(*ppc + 2);
 
 #if 1
-    switch (GET_OPCODE(jmpc)) {
-    case OP_JMPNOT:
-    case OP_JMPIF:
-      COMP_GEN_JMP(setz(al), setz(al));
-      dinfo->regplace = MRBJIT_REG_AL;
-      dinfo->unboxedp = 1;
-      return code;
-
-    default:
-      break;
-    }
+    COMP_GEN_JMP(setz(al), setz(al));
+    dinfo->regplace = MRBJIT_REG_AL;
+    dinfo->unboxedp = 1;
+    return code;
 #endif
       
     COMP_GEN(setz(al), setz(al));
@@ -1845,6 +1867,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -1858,17 +1882,10 @@ do {                                                                 \
     mrb_code jmpc = *(*ppc + 2);
 
 #if 1
-    switch (GET_OPCODE(jmpc)) {
-    case OP_JMPNOT:
-    case OP_JMPIF:
-      COMP_GEN_JMP(setl(al), setb(al));
-      dinfo->regplace = MRBJIT_REG_AL;
-      dinfo->unboxedp = 1;
-      return code;
-
-    default:
-      break;
-    }
+    COMP_GEN_JMP(setl(al), setb(al));
+    dinfo->regplace = MRBJIT_REG_AL;
+    dinfo->unboxedp = 1;
+    return code;
 #endif
 
     COMP_GEN(setl(al), setb(al));
@@ -1876,6 +1893,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -1891,6 +1910,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -1906,6 +1927,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -1921,6 +1944,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -1959,6 +1984,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -2016,6 +2043,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
     return code;
   }
 
@@ -2032,6 +2061,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
     mov(eax, dword [eax + OffsetOf(mrb_callinfo, proc)]);
@@ -2088,12 +2119,9 @@ do {                                                                 \
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 off0 =  cond * sizeof(mrb_value);
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
-    int b;
 
 #if 1
-    switch (GET_OPCODE(*(*ppc - 2))) {
-    case OP_EQ:
-    case OP_LT:
+    if (rinfo->regplace == MRBJIT_REG_AL) {
       test(al, al);
       if (mrb_test(regs[cond])) {
 	jnz("@f");
@@ -2106,8 +2134,6 @@ do {                                                                 \
 	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
 	L("@@");
       }
-      rinfo->regplace = MRBJIT_REG_MEMORY;
-      rinfo->unboxedp = 0;
 
       return code;
     }
@@ -2133,12 +2159,9 @@ do {                                                                 \
     const int cond = GETARG_A(**ppc);
     const Xbyak::uint32 off0 =  cond * sizeof(mrb_value);
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
-    int b;
 
 #if 1
-    switch (GET_OPCODE(*(*ppc - 2))) {
-    case OP_EQ:
-    case OP_LT:
+    if (rinfo->regplace == MRBJIT_REG_AL) {
       test(al, al);
       if (!mrb_test(regs[cond])) {
 	jz("@f");
@@ -2151,8 +2174,6 @@ do {                                                                 \
 	gen_exit(*ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
 	L("@@");
       }
-      rinfo->regplace = MRBJIT_REG_MEMORY;
-      rinfo->unboxedp = 0;
 
       return code;
     }
@@ -2186,6 +2207,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_PROC;
     dinfo->klass = mrb->proc_class;
     dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     if (mirep->simple_lambda && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
@@ -2259,6 +2282,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_RANGE;
     dinfo->klass = mrb_class(mrb, 
 			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "Range")));
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     push(ecx);
     push(ebx);
@@ -2297,6 +2322,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_RANGE;
     dinfo->klass = mrb_class(mrb, 
 			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "String")));
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     push(ecx);
     push(ebx);
@@ -2331,6 +2358,8 @@ do {                                                                 \
     dinfo->type = MRB_TT_RANGE;
     dinfo->klass = mrb_class(mrb, 
 			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "Hash")));
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
 
     push(ecx);
     push(ebx);
