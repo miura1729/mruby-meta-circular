@@ -74,6 +74,29 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void
+    gen_flush_one(mrbjit_vmstatus *status, mrbjit_code_info *coi, int pos)
+  {
+    mrb_irep *irep = *status->irep;
+
+    switch(coi->reginfo[pos].regplace) {
+    case MRBJIT_REG_MEMORY:
+      break;
+
+    case MRBJIT_REG_AL:
+      xor(ah, ah);
+      cwde();
+      add(eax, eax);
+      or(eax, 0xfff00001);
+      mov(dword [ecx + pos * sizeof(mrb_value) + 4], eax);
+      break;
+       
+    default:
+      printf("%d %d %d\n", irep->nregs, coi->reginfo[pos].regplace, pos);
+      assert(0);
+      break;
+    }
+  }
+  void
     gen_flush_regs(mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_irep *irep = *status->irep;
@@ -84,23 +107,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
 
     for (i = 0; i < irep->nregs; i++) {
-      switch(coi->reginfo[i].regplace) {
-      case MRBJIT_REG_MEMORY:
-	break;
-
-      case MRBJIT_REG_AL:
-	xor(ah, ah);
-	cwde();
-	add(eax, eax);
-	or(eax, 0xfff00001);
-	mov(dword [ecx + i * sizeof(mrb_value) + 4], eax);
-	break;
-       
-      default:
-	printf("%d %d %d\n", irep->nregs, coi->reginfo[i].regplace, i);
-	assert(0);
-	break;
-      }
+      gen_flush_one(status, coi, i);
     }
   }
 
@@ -136,7 +143,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_jmp_patch(void *dst, void *target) 
+    gen_jmp_patch(void *dst, void *target, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     size_t cursize = getSize();
     const unsigned char *code = getCode();
@@ -173,7 +180,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrb_code *curpc, mrb_code *newpc)
+    gen_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrb_code *curpc, mrb_code *newpc, mrbjit_code_info *coi)
   {
     mrbjit_code_info *newci;
     mrb_irep *irep = *status->irep;
@@ -187,14 +194,26 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mrb->compile_info.nest_level = 0;
     }
     if (newci) {
+#if 0
+      mrb_irep *irep = *status->irep;
+      int i;
+
+      printf("Irep %x Pc %x \n", irep, *status->pc);
+      for (i = 0; i < irep->nregs; i++) {
+	printf("%d -> %d, %d\n", i, newci->reginfo[i].regplace, coi->reginfo[i].regplace);
+	printf("  -> %d, %d\n", newci->reginfo[i].type, coi->reginfo[i].type);
+      }
+      printf("\n");
+#endif
+
       if (newci->used > 0) {
 	jmp((void *)newci->entry);
+	mrb->compile_info.code_base = NULL;
       }
-      /*      else {
+      /*else {
 	newci->entry = (void *(*)())getCurr();
-	gen_exit(newpc, 1, 0, status);
+	gen_exit(newpc, 1, 0, status, coi);
 	}*/
-      mrb->compile_info.code_base = NULL;
     }
   }
 
@@ -621,6 +640,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const Xbyak::uint32 srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
     mrbjit_reginfo *sinfo = &coi->reginfo[GETARG_B(**ppc)];
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
+    gen_flush_one(status, coi, GETARG_B(**ppc));
+    sinfo->regplace = MRBJIT_REG_MEMORY;
+    sinfo->unboxedp = 0;
     *dinfo = *sinfo;
 
     movsd(xmm0, ptr [ecx + srcoff]);
@@ -1857,6 +1880,9 @@ do {                                                                 \
 
 #if 1
     COMP_GEN_JMP(setz(al), setz(al));
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
     dinfo->regplace = MRBJIT_REG_AL;
     dinfo->unboxedp = 1;
     return code;
@@ -1883,6 +1909,9 @@ do {                                                                 \
 
 #if 1
     COMP_GEN_JMP(setl(al), setb(al));
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
     dinfo->regplace = MRBJIT_REG_AL;
     dinfo->unboxedp = 1;
     return code;
@@ -2107,7 +2136,7 @@ do {                                                                 \
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+    gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc), coi);
     return code;
   }
 
@@ -2127,7 +2156,7 @@ do {                                                                 \
 	jnz("@f");
 	gen_exit(*ppc + 1, 1, 0, status, coi);
 	L("@@");
-	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc), coi);
       }
       else {
 	jz("@f");
@@ -2142,7 +2171,7 @@ do {                                                                 \
     mov(eax, ptr [ecx + off0 + 4]);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 1, cond, *ppc + 1, status, coi);
-      gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+      gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc), coi);
     }
     else {
       gen_bool_guard(mrb, 0, cond, *ppc + GETARG_sBx(**ppc), status, coi);
@@ -2167,7 +2196,7 @@ do {                                                                 \
 	jz("@f");
 	gen_exit(*ppc + 1, 1, 0, status, coi);
 	L("@@");
-	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+	gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc), coi);
       }
       else {
 	jnz("@f");
@@ -2182,7 +2211,7 @@ do {                                                                 \
     mov(eax, ptr [ecx + off0 + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, cond, *ppc + 1, status, coi);
-      gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc));
+      gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc), coi);
     }
     else {
       gen_bool_guard(mrb, 1, cond, *ppc + GETARG_sBx(**ppc), status, coi);
