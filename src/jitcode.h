@@ -34,6 +34,7 @@ void *mrbjit_exec_return(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_return_fast(mrb_state *, mrbjit_vmstatus *);
 void *mrbjit_exec_call(mrb_state *, mrbjit_vmstatus *);
 void disasm_once(mrb_state *, mrb_irep *, mrb_code);
+void disasm_irep(mrb_state *, mrb_irep *);
 } /* extern "C" */
 
 #define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
