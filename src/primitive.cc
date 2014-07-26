@@ -457,7 +457,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     /* call info setup */
     gen_send_mruby(mrb, m, klass, status, pc, coi);
 
-    gen_exit(m->body.irep->iseq, 1, 0, status, coi);
+    gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }
 
   dinfo->type = MRB_TT_OBJECT;
@@ -558,7 +558,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     /* call info setup */
     gen_send_mruby(mrb, m, klass, status, pc, coi);
 
-    gen_exit(m->body.irep->iseq, 1, 0, status, coi);
+    gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }
 
   dinfo->type = MRB_TT_OBJECT;
@@ -582,7 +582,7 @@ MRBJitCode::mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
 {
   mrb_code *pc = *status->pc;
 
-  gen_exit(pc, 1, 1, status, coi);
+  gen_exit(mrb, pc, 1, 1, status, coi);
   return mrb_true_value();
 }
 
