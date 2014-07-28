@@ -1115,21 +1115,21 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
     if (ci->reginfo == NULL) {
       ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
-    }
-    if (ci->prev_coi && ci->prev_coi->reginfo) {
-      mrbjit_reginfo *prev_rinfo;
-      prev_rinfo = ci->prev_coi->reginfo;
-      for (i = 0; i < irep->nregs; i++) {
-	ci->reginfo[i] = prev_rinfo[i];
+      if (ci->prev_coi && ci->prev_coi->reginfo) {
+	mrbjit_reginfo *prev_rinfo;
+	prev_rinfo = ci->prev_coi->reginfo;
+	for (i = 0; i < irep->nregs; i++) {
+	  ci->reginfo[i] = prev_rinfo[i];
+	}
       }
-    }
-    else {
-      for (i = 0; i < irep->nregs; i++) {
-	ci->reginfo[i].type = MRB_TT_FREE;
-	ci->reginfo[i].klass = NULL;
-	ci->reginfo[i].constp = 0;
-	ci->reginfo[i].unboxedp = 0;
-	ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
+      else {
+	for (i = 0; i < irep->nregs; i++) {
+	  ci->reginfo[i].type = MRB_TT_FREE;
+	  ci->reginfo[i].klass = NULL;
+	  ci->reginfo[i].constp = 0;
+	  ci->reginfo[i].unboxedp = 0;
+	  ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
+	}
       }
     }
 
@@ -2862,7 +2862,7 @@ RETRY_TRY_BLOCK:
 	      entry = tab->body + i;
 	      if (entry->used > 0) {
 		mrbjit_code_area cbase = mrb->compile_info.code_base;
-		mrbjit_gen_exit_patch(cbase, mrb, entry->entry, pc, &status, entry);
+		mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, pc, &status, entry);
 	      }
 	    }
 	  }
