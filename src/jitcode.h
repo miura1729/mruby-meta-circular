@@ -1987,6 +1987,16 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
+#if 1
+    COMP_GEN_JMP(setle(al), setbe(al));
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_AL;
+    dinfo->unboxedp = 1;
+    return code;
+#endif
+
     COMP_GEN(setle(al), setbe(al));
 
     dinfo->type = MRB_TT_TRUE;
@@ -2004,6 +2014,16 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
+#if 1
+    COMP_GEN_JMP(setg(al), seta(al));
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_AL;
+    dinfo->unboxedp = 1;
+    return code;
+#endif
+
     COMP_GEN(setg(al), seta(al));
 
     dinfo->type = MRB_TT_TRUE;
@@ -2020,6 +2040,16 @@ do {                                                                 \
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
+#if 1
+    COMP_GEN_JMP(setge(al), setae(al));
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
+    dinfo->regplace = MRBJIT_REG_AL;
+    dinfo->unboxedp = 1;
+    return code;
+#endif
 
     COMP_GEN(setge(al), setae(al));
 
@@ -2257,7 +2287,7 @@ do {                                                                 \
       return code;
     }
 #endif
-    
+
     mov(eax, ptr [ecx + off0 + 4]);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, cond, *ppc + 1, status, coi);
