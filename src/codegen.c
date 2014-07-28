@@ -520,23 +520,15 @@ new_sym(codegen_scope *s, mrb_sym sym)
 static void
 genop_send(codegen_scope *s, mrb_code i)
 {
-  int off;
-
   genop(s, i);
-  off = new_lit(s, mrb_cache_value(0));
   new_lit(s, mrb_fixnum_value(1));
-  genop(s, MKOP_Bx(OP_NOP, off));
 }
 
 static void
 genop_send_peep(codegen_scope *s, mrb_code i, int val)
 {
-  int off;
-
   genop_peep(s, i, val);
-  off = new_lit(s, mrb_cache_value(0));
   new_lit(s, mrb_fixnum_value(1));
-  genop(s, MKOP_Bx(OP_NOP, off));
 }
 
 static int
