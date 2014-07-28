@@ -141,10 +141,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     outLocalLabel();
   }
   
-  void 
-    gen_jump_block(void *entry) 
+  const void *
+    gen_jump_block(mrb_state *mrb, void *entry, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
+    const void *code = getCurr();
+    gen_restore_regs(mrb, *status->pc, status, coi);
     jmp(entry);
+
+    return code;
   }
 
   void 

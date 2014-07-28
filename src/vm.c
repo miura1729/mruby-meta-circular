@@ -914,7 +914,7 @@ mrbjit_argnum_error(mrb_state *mrb, int num)
 extern const void *mrbjit_get_curr(mrb_state *);
 extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *, mrbjit_code_info *);
-extern void mrbjit_gen_jump_block(mrbjit_code_area, void *);
+extern const void *mrbjit_gen_jump_block(mrbjit_code_area, mrb_state *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_exit_patch(mrbjit_code_area, void *, mrb_state *, mrb_code *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_align(mrbjit_code_area, unsigned);
@@ -1014,9 +1014,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   n = ISEQ_OFFSET_OF(*ppc);
   ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
   if (ci) {
+    entry = ci->entry;
     if (cbase) {
       if (ci->used > 0) {
-	mrbjit_gen_jump_block(cbase, ci->entry);
+	entry = mrbjit_gen_jump_block(cbase, mrb, entry, status, ci);
 	cbase = mrb->compile_info.code_base = NULL;
       }
     }
@@ -1043,7 +1044,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
       asm volatile("call *%0\n\t"
 		   :
-		   : "g"(ci->entry)
+		   : "g"(entry)
 		   : );
 
       asm volatile("mov %%eax, %0\n\t"
@@ -1051,7 +1052,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       asm volatile("mov %%edx, %0\n\t"
 		   : "=c"(prev_entry));
 #else
-      rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, ci->entry, &prev_entry);
+      rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, entry, &prev_entry);
 
 #endif
 
