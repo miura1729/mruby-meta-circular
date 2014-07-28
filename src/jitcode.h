@@ -116,6 +116,50 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
   }
 
+  void
+    gen_restore_one(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, int pos)
+  {
+    mrb_irep *irep = *status->irep;
+
+    switch(coi->reginfo[pos].regplace) {
+    case MRBJIT_REG_MEMORY:
+      break;
+
+    case MRBJIT_REG_AL:
+      /*printf("%x %x \n", *status->pc, *status->irep);
+      disasm_irep(mrb, *status->irep);
+      disasm_once(mrb, *status->irep, **status->pc);*/
+    //printf("\n\n");
+      mov(eax, dword [ecx + pos * sizeof(mrb_value) + 4]);
+      cmp(eax, 0xfff00001);
+      setnz(al);
+      break;
+       
+    default:
+      printf("%d %d %d\n", irep->nregs, coi->reginfo[pos].regplace, pos);
+      assert(0);
+      break;
+    }
+  }
+  void
+    gen_restore_regs(mrb_state *mrb, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    mrb_irep *irep = *status->irep;
+    int i;
+
+    if (!coi) {
+      return;
+    }
+
+      printf("%x %x \n", *status->pc, *status->irep);
+      disasm_irep(mrb, *status->irep);
+      disasm_once(mrb, *status->irep, **status->pc);
+      mrb_p(mrb, (*status->regs)[5]);
+    for (i = 0; i < irep->nregs; i++) {
+      gen_restore_one(mrb, status, coi, i);
+    }
+  }
+
   void 
     gen_exit(mrb_state *mrb, mrb_code *pc, int is_clr_rc, int is_clr_exitpos, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
