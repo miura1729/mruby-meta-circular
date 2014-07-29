@@ -151,10 +151,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return;
     }
 
-      printf("%x %x \n", *status->pc, *status->irep);
-      disasm_irep(mrb, *status->irep);
-      disasm_once(mrb, *status->irep, **status->pc);
-      mrb_p(mrb, (*status->regs)[5]);
     for (i = 0; i < irep->nregs; i++) {
       gen_restore_one(mrb, status, coi, i);
     }
@@ -186,9 +182,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
   
   const void *
-    gen_jump_block(mrb_state *mrb, void *entry, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    gen_jump_block(mrb_state *mrb, void *entry, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_code_info *prevcoi)
   {
     const void *code = getCurr();
+    /*    printf("%x %x %x %x \n", *status->pc, *status->irep, entry, code);
+      disasm_irep(mrb, *status->irep);
+      disasm_once(mrb, *status->irep, **status->pc);
+      mrb_p(mrb, (*status->regs)[5]);*/
+    gen_flush_regs(mrb, *status->pc, status, prevcoi);
     gen_restore_regs(mrb, *status->pc, status, coi);
     jmp(entry);
 
