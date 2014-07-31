@@ -106,10 +106,10 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
  *   mrb
  *   t     the variable table to be searched.
  *   sym   the symbol to be used as the key.
- *   vp    the value pointer. Recieves the value if the specified symbol contains
- *         in the instance variable table.
+ *   vp    the value pointer. Receives the value if the specified symbol is
+ *         contained in the instance variable table.
  * Returns
- *   true if the specfiyed symbol contains in the instance variable table.
+ *   true if the specified symbol is contained in the instance variable table.
  */
 static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
@@ -141,10 +141,10 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
  * Parameters
  *   t    the variable table to be searched.
  *   sym  the symbol to be used as the key.
- *   vp   the value pointer. Recieve the deleted value if the symbol contans
- *        in the instance varible table.
+ *   vp   the value pointer. Receive the deleted value if the symbol is
+ *        contained in the instance variable table.
  * Returns
- *   true if the specfied symbol contains in the instance variable table.
+ *   true if the specified symbol is contained in the instance variable table.
  */
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
@@ -440,6 +440,7 @@ obj_iv_p(mrb_value obj)
     case MRB_TT_SCLASS:
     case MRB_TT_HASH:
     case MRB_TT_DATA:
+    case MRB_TT_EXCEPTION:
       return TRUE;
     default:
       return FALSE;
@@ -1103,7 +1104,7 @@ retry:
   return FALSE;
 }
 
-int
+mrb_bool
 mrb_const_defined_at(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   return mrb_const_defined_0(mrb, klass, id, TRUE, FALSE);

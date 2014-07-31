@@ -16,6 +16,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/gc.h"
+#include "mruby/error.h"
 
 /*
   = Tri-color Incremental Garbage Collection
@@ -107,6 +108,11 @@ typedef struct {
     struct RRange range;
     struct RData data;
     struct RProc proc;
+    struct RException exc;
+#ifdef MRB_WORD_BOXING
+    struct RFloat floatv;
+    struct RCptr cptr;
+#endif
   } as;
 } RVALUE;
 
@@ -167,10 +173,10 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 {
   void *p2;
 
-  p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
+  p2 = (mrb->allocf)(mrb, p, len, mrb->allocf_ud);
   if (!p2 && len > 0 && mrb->heaps) {
     mrb_full_gc(mrb);
-    p2 = (mrb->allocf)(mrb, p, len, mrb->ud);
+    p2 = (mrb->allocf)(mrb, p, len, mrb->allocf_ud);
   }
 
   return p2;
@@ -236,7 +242,7 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 void
 mrb_free(mrb_state *mrb, void *p)
 {
-  (mrb->allocf)(mrb, p, 0, mrb->ud);
+  (mrb->allocf)(mrb, p, 0, mrb->allocf_ud);
 }
 
 #ifndef MRB_HEAP_PAGE_SIZE
@@ -509,6 +515,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
+  case MRB_TT_EXCEPTION:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
     break;
 
@@ -618,6 +625,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 #endif
 
   case MRB_TT_OBJECT:
+  case MRB_TT_EXCEPTION:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
 
@@ -753,6 +761,7 @@ gc_gray_mark(mrb_state *mrb, struct RBasic *obj)
 
   case MRB_TT_OBJECT:
   case MRB_TT_DATA:
+  case MRB_TT_EXCEPTION:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     break;
 

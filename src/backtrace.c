@@ -71,7 +71,6 @@ output_backtrace(mrb_state *mrb, mrb_int ciidx, mrb_code *pc0, output_stream_fun
   for (i = ciidx; i >= 0; i--) {
     ci = &mrb->c->cibase[i];
     filename = NULL;
-    lineno = -1;
 
     if (!ci->proc) continue;
     if (MRB_PROC_CFUNC_P(ci->proc)) {
@@ -148,6 +147,9 @@ exc_output_backtrace(mrb_state *mrb, struct RObject *exc, output_stream_func fun
 void
 mrb_print_backtrace(mrb_state *mrb)
 {
+  if (!mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), E_SYSSTACK_ERROR)) {
+    return;
+  }
   exc_output_backtrace(mrb, mrb->exc, print_backtrace_i, (void*)stderr);
 }
 

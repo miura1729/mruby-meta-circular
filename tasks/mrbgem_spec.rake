@@ -32,7 +32,7 @@ module MRuby
       attr_accessor :bins
 
       attr_accessor :requirements
-      attr_reader :dependencies
+      attr_reader :dependencies, :conflicts
 
       attr_accessor :export_include_paths
 
@@ -43,10 +43,6 @@ module MRuby
         @initializer = block
         @version = "0.0.0"
         MRuby::Gem.current = self
-      end
-
-      def run_test_in_other_mrb_state?
-        not test_preload.nil? or not test_objs.empty? or not test_args.empty?
       end
 
       def setup
@@ -66,13 +62,14 @@ module MRuby
         @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
         end
+        @custom_test_init = !@test_objs.empty?
         @test_preload = nil # 'test/assert.rb'
         @test_args = {}
 
         @bins = []
 
         @requirements = []
-        @dependencies = []
+        @dependencies, @conflicts = [], []
         @export_include_paths = []
         @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
 
@@ -100,6 +97,10 @@ module MRuby
         requirements = ['>= 0.0.0'] if requirements.empty?
         requirements.flatten!
         @dependencies << {:gem => name, :requirements => requirements, :default => default_gem}
+      end
+
+      def add_conflict(name, *req)
+        @conflicts << {:gem => name, :requirements => req.empty? ? nil : req}
       end
 
       def self.bin=(bin)
@@ -180,11 +181,17 @@ module MRuby
         print_gem_comment(f)
         f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include "mruby.h"]
-        f.puts %Q[#include "mruby/array.h"]
         f.puts %Q[#include "mruby/irep.h"]
-        f.puts %Q[#include "mruby/string.h"]
         f.puts %Q[#include "mruby/variable.h"]
         f.puts %Q[#include "mruby/hash.h"] unless test_args.empty?
+      end
+
+      def test_dependencies
+        [@name]
+      end
+
+      def custom_test_init?
+        @custom_test_init
       end
 
       def version_ok?(req_versions)
@@ -286,7 +293,7 @@ module MRuby
         @ary.empty?
       end
 
-      def check(build)
+      def generate_gem_table
         gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
 
         default_gems = []
@@ -323,11 +330,37 @@ module MRuby
               fail "#{name} version should be #{req_versions.join(' and ')} but was '#{dep_g.version}'"
             end
           end
+
+          cfls = g.conflicts.select { |c|
+            cfl_g = gem_table[c[:gem]]
+            cfl_g and cfl_g.version_ok?(c[:requirements] || ['>= 0.0.0'])
+          }.map { |c| "#{c[:gem]}(#{gem_table[c[:gem]].version})" }
+          fail "Conflicts of gem `#{g.name}` found: #{cfls.join ', '}" unless cfls.empty?
         end
 
-        class << gem_table
+        gem_table
+      end
+
+      def tsort_dependencies ary, table, all_dependency_listed = false
+        unless all_dependency_listed
+          left = ary.dup
+          until left.empty?
+            v = left.pop
+            table[v].dependencies.each do |dep|
+              left.push dep[:gem]
+              ary.push dep[:gem]
+            end
+          end
+        end
+
+        ary.uniq!
+        table.instance_variable_set :@root_gems, ary
+        class << table
           include TSort
-          alias tsort_each_node each_key
+          def tsort_each_node &b
+            @root_gems.each &b
+          end
+
           def tsort_each_child(n, &b)
             fetch(n).dependencies.each do |v|
               b.call v[:gem]
@@ -336,10 +369,16 @@ module MRuby
         end
 
         begin
-          @ary = gem_table.tsort.map { |v| gem_table[v] }
+          table.tsort.map { |v| table[v] }
         rescue TSort::Cyclic => e
           fail "Circular mrbgem dependency found: #{e.message}"
         end
+      end
+
+      def check(build)
+        gem_table = generate_gem_table
+
+        @ary = tsort_dependencies gem_table.keys, gem_table, true
 
         each do |g|
           import_include_paths(g)

@@ -202,10 +202,6 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
   if (capa > a->aux.capa) {
     mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
 
-    if (!expanded_ptr) {
-      mrb_raise(mrb, E_RUNTIME_ERROR, "out of memory");
-    }
-
     a->aux.capa = capa;
     a->ptr = expanded_ptr;
   }
@@ -231,6 +227,28 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
     a->aux.capa = capa;
     a->ptr = (mrb_value *)mrb_realloc(mrb, a->ptr, sizeof(mrb_value)*capa);
   }
+}
+
+mrb_value
+mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len)
+{
+  mrb_int old_len;
+  struct RArray *a = mrb_ary_ptr(ary);
+
+  ary_modify(mrb, a);
+  old_len = RARRAY_LEN(ary);
+  if (old_len != new_len) {
+    a->len = new_len;
+    if (new_len < old_len) {
+      ary_shrink_capa(mrb, a);
+    }
+    else {
+      ary_expand_capa(mrb, a, new_len);
+      ary_fill_with_nil(a->ptr + old_len, new_len - old_len);
+    }
+  }
+
+  return ary;
 }
 
 static mrb_value
@@ -904,10 +922,15 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  ary_modify(mrb, a);
+  if (ARY_SHARED_P(a)) {
+    mrb_ary_decref(mrb, a->aux.shared);
+    ARY_UNSET_SHARED_FLAG(a);
+  }
+  else {
+    mrb_free(mrb, a->ptr);
+  }
   a->len = 0;
   a->aux.capa = 0;
-  mrb_free(mrb, a->ptr);
   a->ptr = 0;
 
   return self;

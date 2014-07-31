@@ -19,7 +19,7 @@ static const char utf8len_codepage[256] =
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
 };
 
-static char utf8len_codepage_zero[256] =
+static const char utf8len_codepage_zero[256] =
 {
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -608,7 +608,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 
       while (ptr < eptr &&
         (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-        //        mrb_ary_push(mrb, result, str_subseq(mrb, str, ptr - temp, end));
+        /*        mrb_ary_push(mrb, result, str_subseq(mrb, str, ptr - temp, end)); */
         mrb_ary_push(mrb, result, mrb_str_new(mrb, ptr, end));
         mrb_gc_arena_restore(mrb, ai);
         ptr += end + slen;

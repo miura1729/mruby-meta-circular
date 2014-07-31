@@ -40,17 +40,6 @@ extern "C" {
 #include "mruby/value.h"
 #include "mruby/version.h"
 
-static inline mrb_value
-mrb_cache_value(void *p)
-{
-  mrb_value v;
-
-  
-  MRB_SET_VALUE(v, MRB_TT_CACHE_VALUE, value.p, p);
-
-  return v;
-}
-
 typedef uint32_t mrb_code;
 typedef uint32_t mrb_aspec;
 
@@ -61,6 +50,10 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 #ifndef MRB_GC_ARENA_SIZE
 #define MRB_GC_ARENA_SIZE 100
+#endif
+
+#ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
+#define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
 #endif
 
 typedef struct {
@@ -171,6 +164,7 @@ typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
   mrb_allocf allocf;                      /* memory allocation function */
+  void *allocf_ud;                        /* auxiliary data of allocf */
 
   struct mrb_context *c;
   struct mrb_context *root_c;
@@ -238,7 +232,11 @@ typedef struct mrb_state {
   void *ud; /* auxiliary data */
   mrbjit_comp_info compile_info; /* JIT stuff */
 
+#ifdef MRB_FIXED_STATE_ATEXIT_STACK
+  mrb_atexit_func atexit_stack[MRB_FIXED_STATE_ATEXIT_STACK_SIZE];
+#else
   mrb_atexit_func *atexit_stack;
+#endif
   mrb_int atexit_stack_len;
 } mrb_state;
 
@@ -355,7 +353,10 @@ mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
 
 mrb_state* mrb_open(void);
 mrb_state* mrb_open_allocf(mrb_allocf, void *ud);
+mrb_state* mrb_open_core(mrb_allocf, void *ud);
 void mrb_close(mrb_state*);
+
+void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 mrb_value mrb_top_self(mrb_state *);
 mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
@@ -381,11 +382,11 @@ int mrb_gc_arena_save(mrb_state*);
 void mrb_gc_arena_restore(mrb_state*,int);
 void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
-  if (MRB_TT_HAS_BASIC_P(mrb_type(val))) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
+  if (!mrb_immediate_p(val)) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
 } while (0)
 void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
-  if (MRB_TT_HAS_BASIC_P(mrb_type(val))) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
+  if (!mrb_immediate_p(val)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
 } while (0)
 void mrb_write_barrier(mrb_state *, struct RBasic*);
 
@@ -441,6 +442,7 @@ void mrb_print_error(mrb_state *mrb);
 #define E_SYNTAX_ERROR              (mrb_class_get(mrb, "SyntaxError"))
 #define E_LOCALJUMP_ERROR           (mrb_class_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_class_get(mrb, "RegexpError"))
+#define E_SYSSTACK_ERROR            (mrb_class_get(mrb, "SystemStackError"))
 
 #define E_NOTIMP_ERROR              (mrb_class_get(mrb, "NotImplementedError"))
 #define E_FLOATDOMAIN_ERROR         (mrb_class_get(mrb, "FloatDomainError"))

@@ -5,10 +5,6 @@ assert('Module', '15.2.2') do
   assert_equal Class, Module.class
 end
 
-assert('Module superclass', '15.2.2.2') do
-  assert_equal Object, Module.superclass
-end
-
 # TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
@@ -526,3 +522,13 @@ assert('clone Module') do
 
   B.new.foo
 end
+
+assert('Module#module_function') do
+  module M
+    def modfunc; end
+    module_function :modfunc
+  end
+  
+  assert_true M.respond_to?(:modfunc)
+end
+

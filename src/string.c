@@ -106,7 +106,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     RSTR_UNSET_SHARED_FLAG(s);
     return;
   }
-  if (s->flags & MRB_STR_NOFREE) {
+  if (RSTR_NOFREE_P(s)) {
     char *p = s->as.heap.ptr;
 
     s->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)s->as.heap.len+1);
@@ -115,7 +115,7 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     }
     RSTR_PTR(s)[s->as.heap.len] = '\0';
     s->as.heap.aux.capa = s->as.heap.len;
-    s->flags &= ~MRB_STR_NOFREE;
+    RSTR_UNSET_NOFREE_FLAG(s);
     return;
   }
 }
@@ -302,7 +302,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     /* no code */;
   else if (RSTR_SHARED_P(str))
     str_decref(mrb, str->as.heap.aux.shared);
-  else if ((str->flags & MRB_STR_NOFREE) == 0)
+  else if (!RSTR_NOFREE_P(str))
     mrb_free(mrb, str->as.heap.ptr);
 }
 
@@ -340,10 +340,10 @@ str_make_shared(mrb_state *mrb, struct RString *s)
       shared->nofree = FALSE;
       shared->ptr = s->as.heap.ptr;
     }
-    else if (s->flags & MRB_STR_NOFREE) {
+    else if (RSTR_NOFREE_P(s)) {
       shared->nofree = TRUE;
       shared->ptr = s->as.heap.ptr;
-      s->flags &= ~MRB_STR_NOFREE;
+      RSTR_UNSET_NOFREE_FLAG(s);
     }
     else {
       shared->nofree = FALSE;
@@ -358,21 +358,6 @@ str_make_shared(mrb_state *mrb, struct RString *s)
     s->as.heap.aux.shared = shared;
     RSTR_SET_SHARED_FLAG(s);
   }
-}
-
-/*
- *  call-seq:
- *     char* str = String("abcd"), len=strlen("abcd")
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
-const char*
-mrb_str_body(mrb_value str, int *len_p)
-{
-  struct RString *s = mrb_str_ptr(str);
-
-  *len_p = RSTR_LEN(s);
-  return RSTR_PTR(s);
 }
 
 /*
@@ -814,8 +799,6 @@ num_index:
  *     str.slice(fixnum)           => fixnum or nil
  *     str.slice(fixnum, fixnum)   => new_str or nil
  *     str.slice(range)            => new_str or nil
- *     str.slice(regexp)           => new_str or nil
- *     str.slice(regexp, fixnum)   => new_str or nil
  *     str.slice(other_str)        => new_str or nil
  *
  *  Element Reference---If passed a single <code>Fixnum</code>, returns the code
@@ -827,10 +810,7 @@ num_index:
  *  <code>nil</code> if the initial offset falls outside the string, the length
  *  is negative, or the beginning of the range is greater than the end.
  *
- *  If a <code>Regexp</code> is supplied, the matching portion of <i>str</i> is
- *  returned. If a numeric parameter follows the regular expression, that
- *  component of the <code>MatchData</code> is returned instead. If a
- *  <code>String</code> is given, that string is returned if it occurs in
+ *  If a <code>String</code> is given, that string is returned if it occurs in
  *  <i>str</i>. In both cases, <code>nil</code> is returned if there is no
  *  match.
  *
@@ -842,10 +822,6 @@ num_index:
  *     a[-4..-2]              #=> "her"
  *     a[12..-1]              #=> nil
  *     a[-2..-4]              #=> ""
- *     a[/[aeiou](.)\1/]      #=> "ell"
- *     a[/[aeiou](.)\1/, 0]   #=> "ell"
- *     a[/[aeiou](.)\1/, 1]   #=> "l"
- *     a[/[aeiou](.)\1/, 2]   #=> nil
  *     a["lo"]                #=> "lo"
  *     a["bye"]               #=> nil
  */
@@ -1368,14 +1344,17 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   long len;
 
   len = RSTR_LEN(s2);
+  if (RSTR_SHARED_P(s1)) {
+    str_decref(mrb, s1->as.heap.aux.shared);
+  }
+  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1)) {
+    mrb_free(mrb, s1->as.heap.ptr);
+  }
+
+  RSTR_UNSET_NOFREE_FLAG(s1);
+
   if (RSTR_SHARED_P(s2)) {
-  L_SHARE:
-    if (RSTR_SHARED_P(s1)) {
-      str_decref(mrb, s1->as.heap.aux.shared);
-    }
-    else if (!RSTR_EMBED_P(s1) && !(s1->flags & MRB_STR_NOFREE)) {
-      mrb_free(mrb, s1->as.heap.ptr);
-    }
+L_SHARE:
     RSTR_UNSET_EMBED_FLAG(s1);
     s1->as.heap.ptr = s2->as.heap.ptr;
     s1->as.heap.len = len;
@@ -1385,6 +1364,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   }
   else {
     if (len <= RSTRING_EMBED_LEN_MAX) {
+      RSTR_UNSET_SHARED_FLAG(s1);
       RSTR_SET_EMBED_FLAG(s1);
       memcpy(s1->as.ary, RSTR_PTR(s2), len);
       RSTR_SET_EMBED_LEN(s1, len);
@@ -1819,7 +1799,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
     }
   }
   else if (split_type == string) {
-    char *ptr = RSTRING_PTR(str); // s->as.ary
+    char *ptr = RSTRING_PTR(str); /* s->as.ary */
     char *temp = ptr;
     char *eptr = RSTRING_END(str);
     mrb_int slen = RSTRING_LEN(spat);

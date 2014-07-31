@@ -44,3 +44,19 @@ assert('rest arguments of eval') do
     Kernel.eval('[\'test\', __FILE__, __LINE__]', nil, 'test.rb', 10)
   end
 end
+
+assert 'eval syntax error' do
+  assert_raise(SyntaxError) do
+    eval 'p "test'
+  end
+end
+
+assert('String instance_eval') do
+  obj = Object.new
+  obj.instance_variable_set :@test, 'test'
+  assert_raise(ArgumentError) { obj.instance_eval(0) { } }
+  assert_raise(ArgumentError) { obj.instance_eval('0', 'test', 0, 'test') }
+  assert_equal(['test.rb', 10]) { obj.instance_eval('[__FILE__, __LINE__]', 'test.rb', 10)}
+  assert_equal('test') { obj.instance_eval('@test') }
+  assert_equal('test') { obj.instance_eval { @test } }
+end

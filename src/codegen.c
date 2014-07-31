@@ -482,6 +482,8 @@ new_msym(codegen_scope *s, mrb_sym sym)
 {
   size_t i, len;
 
+  mrb_assert(s->irep);
+
   len = s->irep->slen;
   if (len > 256) len = 256;
   for (i=0; i<len; i++) {
@@ -1122,6 +1124,7 @@ readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_boo
   mrb_int result = 0;
   int n;
 
+  mrb_assert(base >= 2 && base <= 36);
   if (*p == '+') p++;
   while (p < e) {
     char c = *p;

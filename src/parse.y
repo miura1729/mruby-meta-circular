@@ -253,7 +253,7 @@ local_var_p(parser_state *p, mrb_sym sym)
 static void
 local_add_f(parser_state *p, mrb_sym sym)
 {
-  p->locals->car = push(p->locals->car, nsym(sym));
+  p->locals->car = push(p->locals->car, nsym(sym)); 
 }
 
 static void
@@ -2438,12 +2438,10 @@ opt_block_param : none
 
 block_param_def : '|' opt_bv_decl '|'
                     {
-                      local_add_f(p, 0);
                       $$ = 0;
                     }
                 | tOROP
                     {
-                      local_add_f(p, 0);
                       $$ = 0;
                     }
                 | '|' block_param opt_bv_decl '|'
@@ -4243,7 +4241,6 @@ parser_yylex(parser_state *p)
     return '=';
 
   case '<':
-    last_state = p->lstate;
     c = nextc(p);
     if (c == '<' &&
         p->lstate != EXPR_DOT &&
@@ -4374,7 +4371,7 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_VALUE;
       return '?';
     }
-    token_column = newtok(p);
+    newtok(p);
     /* need support UTF-8 if configured */
     if ((isalnum(c) || c == '_')) {
       int c2 = nextc(p);
@@ -4538,7 +4535,7 @@ parser_yylex(parser_state *p)
 
     is_float = seen_point = seen_e = nondigit = 0;
     p->lstate = EXPR_END;
-    token_column = newtok(p);
+    newtok(p);
     if (c == '-' || c == '+') {
       tokadd(p, c);
       c = nextc(p);
@@ -5160,7 +5157,6 @@ parser_yylex(parser_state *p)
   {
     int result = 0;
 
-    last_state = p->lstate;
     switch (tok(p)[0]) {
     case '$':
       p->lstate = EXPR_END;
@@ -5556,7 +5552,12 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
     if (c->target_class) {
       target = c->target_class;
     }
-    keep = c->slen + 1;
+    if (c->keep_lv) {
+      keep = c->slen + 1;
+    }
+    else {
+      c->keep_lv = TRUE;
+    }
   }
   proc->target_class = target;
   if (mrb->c->ci) {
@@ -5855,6 +5856,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     printf("NODE_SCOPE:\n");
     {
       node *n2 = tree->car;
+      mrb_bool first_lval = TRUE;
 
       if (n2 && (n2->car || n2->cdr)) {
         dump_prefix(offset+1);
@@ -5862,8 +5864,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         dump_prefix(offset+2);
         while (n2) {
           if (n2->car) {
-            if (n2 != tree->car) printf(", ");
+            if (!first_lval) printf(", ");
             printf("%s", mrb_sym2name(mrb, sym(n2->car)));
+            first_lval = FALSE;
           }
           n2 = n2->cdr;
         }
@@ -6240,6 +6243,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     tree = tree->cdr;
     {
       node *n2 = tree->car;
+      mrb_bool first_lval = TRUE;
 
       if (n2 && (n2->car || n2->cdr)) {
         dump_prefix(offset+1);
@@ -6247,8 +6251,9 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         dump_prefix(offset+2);
         while (n2) {
           if (n2->car) {
-            if (n2 != tree->car) printf(", ");
+            if (!first_lval) printf(", ");
             printf("%s", mrb_sym2name(mrb, sym(n2->car)));
+            first_lval = FALSE;
           }
           n2 = n2->cdr;
         }

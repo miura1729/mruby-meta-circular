@@ -14,6 +14,7 @@
 
 void mrb_init_heap(mrb_state*);
 void mrb_init_core(mrb_state*);
+void mrb_init_mrbgems(mrb_state*);
 
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
@@ -22,21 +23,17 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 }
 
 mrb_state*
-mrb_open_allocf(mrb_allocf f, void *ud)
+mrb_open_core(mrb_allocf f, void *ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
 
-#ifdef MRB_NAN_BOXING
-  mrb_static_assert(sizeof(void*) == 4, "when using NaN boxing sizeof pointer must be 4 byte");
-#endif
-
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
-  mrb->ud = ud;
+  mrb->allocf_ud = ud;
   mrb->allocf = f;
   mrb->current_white_part = MRB_GC_WHITE_A;
   mrb->atexit_stack_len = 0;
@@ -56,13 +53,14 @@ mrb_open_allocf(mrb_allocf f, void *ud)
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *mrb->c = mrb_context_zero;
   mrb->root_c = mrb->c;
+
   mrb_init_core(mrb);
 
   return mrb;
 }
 
-static void*
-allocf(mrb_state *mrb, void *p, size_t size, void *ud)
+void*
+mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
 {
   if (size == 0) {
     free(p);
@@ -108,8 +106,20 @@ mrb_alloca_free(mrb_state *mrb)
 mrb_state*
 mrb_open(void)
 {
-  mrb_state *mrb = mrb_open_allocf(allocf, NULL);
+  mrb_state *mrb = mrb_open_allocf(mrb_default_allocf, NULL);
 
+  return mrb;
+}
+
+mrb_state*
+mrb_open_allocf(mrb_allocf f, void *ud)
+{
+  mrb_state *mrb = mrb_open_core(f, ud);
+
+#ifndef DISABLE_GEMS
+  mrb_init_mrbgems(mrb);
+  mrb_gc_arena_restore(mrb, 0);
+#endif
   return mrb;
 }
 
@@ -190,7 +200,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   ns->c = mrb->string_class;
   ns->flags = 0;
 
-  if (s->flags & MRB_STR_NOFREE) {
+  if (RSTR_NOFREE_P(s)) {
     ns->flags = MRB_STR_NOFREE;
     ns->as.heap.ptr = s->as.heap.ptr;
     ns->as.heap.len = s->as.heap.len;
@@ -198,9 +208,9 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   }
   else {
     ns->flags = 0;
-    if (s->flags & MRB_STR_EMBED) {
+    if (RSTR_EMBED_P(s)) {
       ptr = s->as.ary;
-      len = (mrb_int)((s->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT);
+      len = RSTR_EMBED_LEN(s);
     }
     else {
       ptr = s->as.heap.ptr;
@@ -208,9 +218,8 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
     }
 
     if (len < RSTRING_EMBED_LEN_MAX) {
-      ns->flags |= MRB_STR_EMBED;
-      ns->flags &= ~MRB_STR_EMBED_LEN_MASK;
-      ns->flags |= (size_t)len << MRB_STR_EMBED_LEN_SHIFT;
+      RSTR_SET_EMBED_FLAG(ns);
+      RSTR_SET_EMBED_LEN(ns, len);
       if (ptr) {
         memcpy(ns->as.ary, ptr, len);
       }
@@ -248,7 +257,9 @@ mrb_close(mrb_state *mrb)
     for (i = mrb->atexit_stack_len; i > 0; --i) {
       mrb->atexit_stack[i - 1](mrb);
     }
+#ifndef MRB_FIXED_STATE_ATEXIT_STACK
     mrb_free(mrb, mrb->atexit_stack);
+#endif
   }
 
   /* free */
@@ -290,6 +301,11 @@ mrb_top_self(mrb_state *mrb)
 void
 mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {
+#ifdef MRB_FIXED_STATE_ATEXIT_STACK
+  if (mrb->atexit_stack_len + 1 > MRB_FIXED_STATE_ATEXIT_STACK_SIZE) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "exceeded fixed state atexit stack limit");
+  }
+#else
   size_t stack_size;
 
   stack_size = sizeof(mrb_atexit_func) * (mrb->atexit_stack_len + 1);
@@ -298,6 +314,7 @@ mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
   } else {
     mrb->atexit_stack = (mrb_atexit_func*)mrb_realloc(mrb, mrb->atexit_stack, stack_size);
   }
+#endif
 
   mrb->atexit_stack[mrb->atexit_stack_len++] = f;
 }

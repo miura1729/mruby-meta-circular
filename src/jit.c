@@ -24,8 +24,6 @@
 # define DEBUG(x)
 #endif
 
-#define SET_NIL_VALUE(r) MRB_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
-
 void *
 mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 		 struct RProc *m, struct RClass *c)
@@ -291,13 +289,13 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
   /* A      return R(A) */
   if (mrb->exc) {
-    mrb_callinfo *ci;
+    mrb_callinfo *ci = mrb->c->ci;
     int eidx;
 
   L_RAISE:
     ci = mrb->c->ci;
-    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc", 6), mrb_voidp_value(mrb, *status->pc));
-    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
+    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, *status->pc));
+    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
     eidx = ci->eidx;
     if (ci == mrb->c->cibase) {
       if (ci->ridx == 0) {
@@ -307,23 +305,39 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	return status->gototable[2]; /* L_RESCUE */
       }
     }
+    while (eidx > ci[-1].eidx) {
+      mrbjit_ecall(mrb, --eidx);
+    }
     while (ci[0].ridx == ci[-1].ridx) {
       mrbjit_cipop(mrb);
       ci = mrb->c->ci;
+      mrb->c->stack = ci[1].stackent;
       if (ci[1].acc < 0 && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
       }
-      while (eidx > mrb->c->ci->eidx) {
-        mrbjit_ecall(mrb, --eidx);
+      if (ci > mrb->c->cibase) {
+	while (eidx > mrb->c->ci->eidx) {
+	  mrbjit_ecall(mrb, --eidx);
+	}
       }
-      if (ci == mrb->c->cibase) {
+      else if (ci == mrb->c->cibase) {
 	if (ci->ridx == 0) {
 	  *status->regs = mrb->c->stack = mrb->c->stbase;
 	  return status->gototable[4]; /* L_STOP */
 	}
+	else {
+	  struct mrb_context *c = mrb->c;
+
+	  mrb->c = c->prev;
+	  c->prev = NULL;
+	  return status->gototable[0];	/* goto L_RAISE; */
+	}
 	break;
       }
+    }
+    if (ci->ridx == 0) {
+      return status->gototable[4]; /* L_STOP */
     }
     *status->proc = ci->proc;
     *status->irep = ci->proc->body.irep;
@@ -419,8 +433,8 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     int eidx;
 
     ci = mrb->c->ci;
-    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern(mrb, "lastpc", 6), mrb_voidp_value(mrb, *status->pc));
-    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern(mrb, "ciidx", 5), mrb_fixnum_value(ci - mrb->c->cibase));
+    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, *status->pc));
+    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
     eidx = ci->eidx;
     if (ci == mrb->c->cibase) {
       if (ci->ridx == 0) {
@@ -430,9 +444,13 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 	return status->gototable[2]; /* L_RESCUE */
       }
     }
+    while (eidx > ci[-1].eidx) {
+      mrbjit_ecall(mrb, --eidx);
+    }
     while (ci[0].ridx == ci[-1].ridx) {
       mrbjit_cipop(mrb);
       ci = mrb->c->ci;
+      mrb->c->stack = ci[1].stackent;
       if (ci[1].acc < 0 && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
@@ -447,8 +465,18 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 	  *status->regs = mrb->c->stack = mrb->c->stbase;
 	  return status->gototable[4]; /* L_STOP */
 	}
+	else {
+	  struct mrb_context *c = mrb->c;
+
+	  mrb->c = c->prev;
+	  c->prev = NULL;
+	  return status->gototable[0];	/* goto L_RAISE; */
+	}
 	break;
       }
+    }
+    if (ci->ridx == 0) {
+      return status->gototable[4]; /* L_STOP */
     }
     *status->proc = ci->proc;
     *status->irep = ci->proc->body.irep;
