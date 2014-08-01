@@ -79,6 +79,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     mrb_irep *irep = *status->irep;
 
+    if (coi->reginfo == NULL) {
+      return;
+    }
+
     switch(coi->reginfo[pos].regplace) {
     case MRBJIT_REG_MEMORY:
       break;
@@ -120,6 +124,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_restore_one(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, int pos)
   {
     mrb_irep *irep = *status->irep;
+
+    if (coi->reginfo == NULL) {
+      return;
+    }
 
     switch(coi->reginfo[pos].regplace) {
     case MRBJIT_REG_MEMORY:
@@ -188,10 +196,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     const void *code = getCurr();
     mrb_irep *irep = *status->irep;
     int i;
-    /*    printf("%x %x %x %x \n", *status->pc, *status->irep, entry, code);
-      disasm_irep(mrb, *status->irep);
-      disasm_once(mrb, *status->irep, **status->pc);
-      mrb_p(mrb, (*status->regs)[5]);*/
+
     if (coi && prevcoi) {
       for (i = 0; i < irep->nregs; i++) {
 	if (coi->reginfo[i].regplace != prevcoi->reginfo[i].regplace) {
@@ -1893,13 +1898,7 @@ do {                                                                 \
                                                                      \
           COMP_GEN_SS(CMPINSTI);                                     \
     }                                                                \
-    else if (mrb_type(regs[regno]) == mrb_type(regs[regno + 1])) {   \
-          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
-          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
-                                                                     \
-          COMP_GEN_II(CMPINSTI);                                     \
-    }                                                                \
-    else if (mrb_type(regs[regno]) == MRB_TT_FALSE ||                \
+    else if (mrb_type(regs[regno]) == MRB_TT_FALSE &&                \
              mrb_type(regs[regno + 1]) == MRB_TT_FALSE) {            \
           gen_type_guard(mrb, regno, status, *ppc, coi);	     \
           gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
@@ -1907,8 +1906,7 @@ do {                                                                 \
           COMP_GEN_II(CMPINSTI);                                     \
     }                                                                \
     else {                                                           \
-        /* never reach  */                                           \
-        assert(0);                                                   \
+      return emit_send(mrb, status, coi);				     \
     }                                                                \
  } while(0)
 
@@ -1929,7 +1927,7 @@ do {                                                                 \
                                                                      \
     COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
     COMP_BOOL_SET;                                                   \
- } while(0)
+} while(0)
 
 #define COMP_GEN_JMP(CMPINSTI, CMPINSTF)                 	     \
 do {                                                                 \
@@ -2234,8 +2232,6 @@ do {                                                                 \
     emit_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
-    mrb_code **ppc = status->pc;
-    //gen_jmp(mrb, status, *ppc, *ppc + GETARG_sBx(**ppc), coi);
     return code;
   }
 
@@ -2545,6 +2541,10 @@ do {                                                                 \
   mrb_value 
     mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  const void *
+    mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
+				  mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
   mrb_value 
     mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 				     mrbjit_vmstatus *status, mrbjit_code_info *coi);

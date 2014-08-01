@@ -223,6 +223,18 @@ mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_fix_to_f_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+const void *
+MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code **ppc = status->pc;
+  mrb_value *regs  = *status->regs;
+
+  COMP_GEN(setnz(al), setnz(al));
+
+  return NULL;
+}
+
 mrb_value
 MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 					     mrbjit_vmstatus *status, mrbjit_code_info *coi)
@@ -243,10 +255,11 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
   case MRB_TT_STRING:
-    COMP_GEN(setnz(al), setnz(al));
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
+    if (mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi) == NULL) {
+      dinfo->type = MRB_TT_TRUE;
+      dinfo->klass = mrb->true_class;
+      dinfo->constp = 0;
+    }
 
     return mrb_true_value();
 

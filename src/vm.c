@@ -970,6 +970,11 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       irep->method_kind != NORMAL) {
     return status->optable[GET_OPCODE(**ppc)];
   }
+  switch (GET_OPCODE(**ppc)) {
+  case OP_ENTER:
+    mrb->compile_info.prev_coi = NULL;
+    break;
+  }
   if (irep->jit_entry_tab == NULL) {
     mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
   }
@@ -991,12 +996,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     entry = ci->entry;
     if (cbase) {
       if (ci->used > 0) {
-	entry = mrbjit_gen_jump_block(cbase, mrb, entry, status, ci, mrb->compile_info.prev_coi);
+	mrbjit_code_info *prev_ci;
+
+	if (prev_pc) {
+	  prev_ci = mrb->compile_info.prev_coi;
+	}
+	else {
+	  prev_ci = NULL;
+	}
+	entry = mrbjit_gen_jump_block(cbase, mrb, entry, status, ci, prev_ci);
 	cbase = mrb->compile_info.code_base = NULL;
       }
     }
 
-    if (cbase == NULL && ci->used > 0) {
+    if (ci->used > 0) {
       prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
@@ -2538,6 +2551,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_EQ) {
       /* A B C  R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)*/
       int a = GETARG_A(i);
+
       if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
         SET_TRUE_VALUE(regs[a]);
       }
