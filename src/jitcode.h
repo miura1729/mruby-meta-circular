@@ -79,10 +79,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     mrb_irep *irep = *status->irep;
 
-    if (coi->reginfo == NULL) {
-      return;
-    }
-
     switch(coi->reginfo[pos].regplace) {
     case MRBJIT_REG_MEMORY:
       break;
@@ -106,17 +102,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     }
   }
   void
-    gen_flush_regs(mrb_state *mrb, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    gen_flush_regs(mrb_state *mrb, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi, int updateinfo)
   {
     mrb_irep *irep = *status->irep;
     int i;
 
-    if (!coi) {
+    if (!coi || !coi->reginfo) {
       return;
     }
 
     for (i = 0; i < irep->nregs; i++) {
       gen_flush_one(mrb, status, coi, i);
+      if (updateinfo) {
+	coi->reginfo[i].regplace = MRBJIT_REG_MEMORY;
+	coi->reginfo[i].unboxedp = 0;
+      }
     }
   }
 
@@ -156,7 +156,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_irep *irep = *status->irep;
     int i;
 
-    if (!coi) {
+    if (!coi || !coi->reginfo) {
       return;
     }
 
@@ -170,7 +170,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   {
     inLocalLabel();
 
-    gen_flush_regs(mrb, pc, status, coi);
+    gen_flush_regs(mrb, pc, status, coi, 0);
     L(".exitlab");
 
     if (pc) {
@@ -197,7 +197,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrb_irep *irep = *status->irep;
     int i;
 
-    if (coi && prevcoi) {
+    if (coi && prevcoi && coi->reginfo && prevcoi->reginfo) {
       for (i = 0; i < irep->nregs; i++) {
 	if (coi->reginfo[i].regplace != prevcoi->reginfo[i].regplace) {
 	  gen_flush_one(mrb, status, prevcoi, i);
@@ -205,7 +205,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	}
       }
     } else {
-      gen_flush_regs(mrb, *status->pc, status, prevcoi);
+      gen_flush_regs(mrb, *status->pc, status, prevcoi, 1);
       gen_restore_regs(mrb, *status->pc, status, coi);
     }
     jmp(entry);
@@ -712,7 +712,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *sinfo = &coi->reginfo[GETARG_B(**ppc)];
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    gen_flush_one(mrb, status, coi, GETARG_B(**ppc));
+    if (coi && coi->reginfo) {
+      gen_flush_one(mrb, status, coi, GETARG_B(**ppc));
+    }
     sinfo->regplace = MRBJIT_REG_MEMORY;
     sinfo->unboxedp = 0;
     *dinfo = *sinfo;
@@ -1270,7 +1272,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return NULL;
     }
 
-    gen_flush_regs(mrb, pc, status, coi);
+    gen_flush_regs(mrb, pc, status, coi, 1);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
 
     if ((ivid = is_reader(mrb, m))) {
@@ -1355,7 +1357,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       jz("@f");
       inLocalLabel();
 
-      gen_flush_regs(mrb, *status->pc, status, coi);
+      gen_flush_regs(mrb, *status->pc, status, coi, 1);
 
       L(".exitlab");
       mov(eax, dword [eax + OffsetOf(mrb_irep, iseq)]);
@@ -1463,7 +1465,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     disp_type(mrb, rinfo);
 #endif
 
-    gen_flush_regs(mrb, pc, status, coi);
+    gen_flush_regs(mrb, pc, status, coi, 1);
 
     inLocalLabel();
 
@@ -1573,7 +1575,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     disp_type(mrb, rinfo);
 #endif
 
-    gen_flush_regs(mrb, pc, status, coi);
+    gen_flush_regs(mrb, pc, status, coi, 1);
     CALL_CFUNC_BEGIN;
     CALL_CFUNC_STATUS(mrbjit_exec_return, 0);
 
