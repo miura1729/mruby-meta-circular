@@ -2474,9 +2474,8 @@ do {                                                                 \
     int num = GETARG_C(**ppc);
     int i;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_RANGE;
-    dinfo->klass = mrb_class(mrb, 
-			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "Hash")));
+    dinfo->type = MRB_TT_HASH;
+    dinfo->klass = mrb->hash_class;
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
@@ -2493,25 +2492,27 @@ do {                                                                 \
     mov(ptr [ecx + dstoff], eax);
     mov(ptr [ecx + dstoff + 4], edx);
 
-    for(i = 0; i < num; i+= 2) {
+    for(i = 0; i < num * 2; i+= 2) {
       push(ecx);
       push(ebx);
       push(edx);
       push(eax);
 
-      /* key */
+      /* val */
       mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value) + 4)]);
       push(ebx);
       mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value))]);
       push(ebx);
 
-      /* val */
+      /* key */
       mov(ebx, dword [ecx + (srcoff + i * sizeof(mrb_value) + 4)]);
       push(ebx);
       mov(ebx, dword [ecx + (srcoff + i * sizeof(mrb_value))]);
       push(ebx);
 
       /* hash */
+      mov(eax, ptr [ecx + dstoff]);
+      mov(edx, ptr [ecx + dstoff + 4]);
       push(edx);
       push(eax);
 
@@ -2522,9 +2523,9 @@ do {                                                                 \
       add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 3);
 
       pop(eax);
-      pop(eax);
-      pop(ecx);
+      pop(edx);
       pop(ebx);
+      pop(ecx);
     }
 
     return code;
