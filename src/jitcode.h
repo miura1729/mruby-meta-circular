@@ -1255,6 +1255,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
+    dinfo->constp = 0;
     
     if (GETARG_C(i) == CALL_MAXARGS) {
       n = 1;
@@ -1269,10 +1272,6 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     gen_flush_regs(mrb, pc, status, coi);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
-
-    //dinfo->type = MRB_TT_FREE;
-    //dinfo->klass = NULL;
-    //dinfo->constp = 0;
 
     if ((ivid = is_reader(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
