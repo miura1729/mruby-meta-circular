@@ -48,7 +48,7 @@ def assert(str = 'Assertion failed', iso = '')
   begin
     $mrbtest_assert = []
     $mrbtest_assert_idx = 0
-    10.times do
+    40.times do
       yield
     end
     if(!yield || $mrbtest_assert.size > 0)
