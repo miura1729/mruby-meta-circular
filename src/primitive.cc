@@ -424,10 +424,11 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+  mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
-  m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
+  m = mrb_method_search_vm(mrb, &c, mid);
 
   // TODO add guard of class
   
@@ -468,7 +469,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     }
     
     /* call info setup */
-    gen_send_mruby(mrb, m, klass, status, pc, coi);
+    gen_send_mruby(mrb, m, mid, klass, status, pc, coi);
 
     gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }
@@ -502,11 +503,12 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+  mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
   int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
 
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
-  m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "initialize"));
+  m = mrb_method_search_vm(mrb, &c, mid);
 
   // TODO add guard of class
   
@@ -569,7 +571,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     }
     
     /* call info setup */
-    gen_send_mruby(mrb, m, klass, status, pc, coi);
+    gen_send_mruby(mrb, m, mid, klass, status, pc, coi);
 
     gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }

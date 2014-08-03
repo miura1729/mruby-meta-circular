@@ -481,7 +481,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   void 
-    gen_send_mruby(mrb_state *mrb, struct RProc *m, mrb_value recv, 
+    gen_send_mruby(mrb_state *mrb, struct RProc *m, mrb_sym mid, mrb_value recv, 
 		   mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi)
   {
     int callee_nregs;
@@ -595,6 +595,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
     }
+
+    mov(eax, (Xbyak::uint32)mid);
+    mov(dword [edi + OffsetOf(mrb_callinfo, mid)], eax);
 
     mov(eax, (Xbyak::uint32)a);
     mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
@@ -1339,7 +1342,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
     }
     else {
-      gen_send_mruby(mrb, m, recv, status, pc, coi);
+      gen_send_mruby(mrb, m, mid, recv, status, pc, coi);
     }
 
     return code;
