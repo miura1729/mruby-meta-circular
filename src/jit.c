@@ -211,6 +211,9 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   int len = m1 + o + r + m2;
   mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
+  if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
+    *blk = mrb_convert_type(mrb, *blk, MRB_TT_PROC, "Proc", "to_proc");
+  }
   if (argc < 0) {
     struct RArray *ary = mrb_ary_ptr(regs[1]);
     argv = ary->ptr;
@@ -226,28 +229,32 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
   else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
+    mrb_gc_protect(mrb, argv[0]);
     argc = mrb_ary_ptr(argv[0])->len;
     argv = mrb_ary_ptr(argv[0])->ptr;
   }
   mrb->c->ci->argc = len;
   if (argc < len) {
-    regs[len+1] = *blk; /* move block */
-    if (argv0 != argv) {
-      value_move(&regs[1], argv, argc-m2); /* m1 + o */
-    }
-    if (m2) {
-      int mlen = m2;
-      if (argc-m2 <= m1) {
+    int mlen = m2;
+    if (argc < m1+m2) {
+      if (m1 < argc)
 	mlen = argc - m1;
-      }
+      else
+	mlen = 0;
+    }
+    regs[len+1] = *blk; /* move block */
+    SET_NIL_VALUE(regs[argc+1]);
+    if (argv0 != argv) {
+      value_move(&regs[1], argv, argc-mlen); /* m1 + o */
+    }
+    if (mlen) {
       value_move(&regs[len-m2+1], &argv[argc-mlen], m2); /* m2 */
     }
     if (r) {                  /* r */
       regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
     }
-    if (o == 0) {
+    if (o == 0 || argc < m1+m2) {
       *(status->pc) += 1;
-      return NULL;
     }
     else
       *(status->pc) += argc - m1 - m2 + 1;
