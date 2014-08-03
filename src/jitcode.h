@@ -2491,14 +2491,11 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
 
-    mov(ptr [ecx + dstoff], eax);
-    mov(ptr [ecx + dstoff + 4], edx);
-
     for(i = 0; i < num * 2; i+= 2) {
+      push(eax);
+      push(edx);
       push(ecx);
       push(ebx);
-      push(edx);
-      push(eax);
 
       /* val */
       mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value) + 4)]);
@@ -2513,8 +2510,6 @@ do {                                                                 \
       push(ebx);
 
       /* hash */
-      mov(eax, ptr [ecx + dstoff]);
-      mov(edx, ptr [ecx + dstoff + 4]);
       push(edx);
       push(eax);
 
@@ -2524,11 +2519,14 @@ do {                                                                 \
       call((void *)mrb_hash_set);
       add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 3);
 
-      pop(eax);
-      pop(edx);
       pop(ebx);
       pop(ecx);
+      pop(edx);
+      pop(eax);
     }
+
+    mov(ptr [ecx + dstoff], eax);
+    mov(ptr [ecx + dstoff + 4], edx);
 
     return code;
   }
