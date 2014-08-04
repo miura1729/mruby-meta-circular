@@ -469,7 +469,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     }
     
     /* call info setup */
-    gen_send_mruby(mrb, m, mid, klass, status, pc, coi);
+    gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
 
     gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }
@@ -571,7 +571,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     }
     
     /* call info setup */
-    gen_send_mruby(mrb, m, mid, klass, status, pc, coi);
+    gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
 
     gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }
