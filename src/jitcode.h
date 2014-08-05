@@ -699,14 +699,14 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     return code;
   }
 
   const void *
-    emit_move(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_move(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -728,7 +728,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadl(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_loadl(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_irep *irep = *status->irep;
@@ -751,7 +751,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
+    ent_loadi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -788,7 +788,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadsym(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
+    ent_loadsym(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -810,7 +810,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadself(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
+    ent_loadself(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -831,7 +831,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
+    ent_loadt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -854,7 +854,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadf(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
+    ent_loadf(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -877,7 +877,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getglobal(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_getglobal(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -907,7 +907,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_setglobal(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_setglobal(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -933,7 +933,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_getiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -972,7 +972,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_setiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_setiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1049,7 +1049,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getcv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_getcv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1079,7 +1079,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_setcv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_setcv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1105,7 +1105,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getconst(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_getconst(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1127,7 +1127,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_getmconst(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_getmconst(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1148,7 +1148,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_loadnil(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
+    ent_loadnil(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1242,7 +1242,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_code *pc = *status->pc;
     mrb_value *regs = *status->regs;
@@ -1349,7 +1349,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_block_guard(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_block_guard(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_irep *irep = *status->irep;
     const void *code = getCurr();
@@ -1377,7 +1377,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_call(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_call(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_value recv = mrb->c->stack[0];
@@ -1418,7 +1418,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_enter(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_enter(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
@@ -1447,7 +1447,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_return(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_return(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     struct mrb_context *c = mrb->c;
@@ -1562,7 +1562,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
@@ -1588,7 +1588,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_blkpush(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_blkpush(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
       /* A Bx   R(A) := block (16=6:1:5:4) */
@@ -1680,12 +1680,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
     else {                                                              \
-      return emit_send(mrb, status, coi);				\
+      return ent_send(mrb, status, coi);				\
     }                                                                   \
 } while(0)
 
   const void *
-    emit_add(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_add(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1694,7 +1694,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_sub(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_sub(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1703,7 +1703,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_mul(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_mul(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1712,7 +1712,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_div(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_div(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1795,7 +1795,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 } while(0)
     
   const void *
-    emit_addi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_addi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1804,7 +1804,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
   }
 
   const void *
-    emit_subi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_subi(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1910,7 +1910,7 @@ do {                                                                 \
           COMP_GEN_II(CMPINSTI);                                     \
     }                                                                \
     else {                                                           \
-      return emit_send(mrb, status, coi);				     \
+      return ent_send(mrb, status, coi);				     \
     }                                                                \
  } while(0)
 
@@ -1943,7 +1943,7 @@ do {                                                                 \
  } while(0)
 
   const void *
-    emit_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_eq(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1971,7 +1971,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_lt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_lt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -1999,7 +1999,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_le(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_le(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2026,7 +2026,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_gt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_gt(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2053,7 +2053,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_ge(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_ge(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2080,7 +2080,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_array(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_array(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2120,7 +2120,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_arycat(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_arycat(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2179,7 +2179,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_getupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_getupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2209,7 +2209,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_setupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_setupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2233,14 +2233,14 @@ do {                                                                 \
   }
 
   const void *
-    emit_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
     return code;
   }
 
   const void *
-    emit_jmpif(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
+    ent_jmpif(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2278,7 +2278,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_jmpnot(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
+    ent_jmpnot(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2316,7 +2316,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_lambda(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
+    ent_lambda(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2394,7 +2394,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_range(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_range(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2435,7 +2435,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_string(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_string(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
@@ -2470,7 +2470,7 @@ do {                                                                 \
   }
 
   const void *
-    emit_hash(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+    ent_hash(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;

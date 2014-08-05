@@ -86,82 +86,82 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
-    rc2 = code->emit_block_guard(mrb, status, coi);
+    rc2 = code->ent_block_guard(mrb, status, coi);
   }
 
   switch(GET_OPCODE(**ppc)) {
   case OP_NOP:
-    rc =code->emit_nop(mrb, status, coi);
+    rc =code->ent_nop(mrb, status, coi);
     break;
     
   case OP_MOVE:
-    rc =code->emit_move(mrb, status, coi);
+    rc =code->ent_move(mrb, status, coi);
     break;
 
   case OP_LOADL:
-    rc =code->emit_loadl(mrb, status, coi);
+    rc =code->ent_loadl(mrb, status, coi);
     break;
 
   case OP_LOADI:
-    rc =code->emit_loadi(mrb, status, coi);
+    rc =code->ent_loadi(mrb, status, coi);
     break;
 
   case OP_LOADSYM:
-    rc =code->emit_loadsym(mrb, status, coi);
+    rc =code->ent_loadsym(mrb, status, coi);
     break;
 
   case OP_LOADSELF:
-    rc =code->emit_loadself(mrb, status, coi);
+    rc =code->ent_loadself(mrb, status, coi);
     break;
 
   case OP_LOADNIL:
-    rc =code->emit_loadnil(mrb, status, coi);
+    rc =code->ent_loadnil(mrb, status, coi);
     break;
 
   case OP_LOADT:
-    rc =code->emit_loadt(mrb, status, coi);
+    rc =code->ent_loadt(mrb, status, coi);
     break;
 
   case OP_LOADF:
-    rc =code->emit_loadf(mrb, status, coi);
+    rc =code->ent_loadf(mrb, status, coi);
     break;
 
   case OP_GETGLOBAL:
-    rc =code->emit_getglobal(mrb, status, coi);
+    rc =code->ent_getglobal(mrb, status, coi);
     break;
 
   case OP_SETGLOBAL:
-    rc =code->emit_setglobal(mrb, status, coi);
+    rc =code->ent_setglobal(mrb, status, coi);
     break;
 
   case OP_GETIV:
-    rc =code->emit_getiv(mrb, status, coi);
+    rc =code->ent_getiv(mrb, status, coi);
     break;
 
   case OP_SETIV:
-    rc =code->emit_setiv(mrb, status, coi);
+    rc =code->ent_setiv(mrb, status, coi);
     break;
 
 
   case OP_GETCV:
-    rc =code->emit_getcv(mrb, status, coi);
+    rc =code->ent_getcv(mrb, status, coi);
     break;
 
   case OP_SETCV:
-    rc =code->emit_setcv(mrb, status, coi);
+    rc =code->ent_setcv(mrb, status, coi);
     break;
 
   case OP_GETCONST:
-    rc =code->emit_getconst(mrb, status, coi);
+    rc =code->ent_getconst(mrb, status, coi);
     break;
 
   case OP_GETMCNST:
-    rc =code->emit_getmconst(mrb, status, coi);
+    rc =code->ent_getmconst(mrb, status, coi);
     break;
 
   case OP_SENDB:
   case OP_SEND:
-    rc =code->emit_send(mrb, status, coi);
+    rc =code->ent_send(mrb, status, coi);
     break;
 
   case OP_CALL:
@@ -170,110 +170,110 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     
   case OP_ENTER:
     mrb->compile_info.nest_level++;
-    rc =code->emit_enter(mrb, status, coi);
+    rc =code->ent_enter(mrb, status, coi);
     break;
 
   case OP_RETURN:
     mrb->compile_info.nest_level--;
     if (mrb->c->ci->proc->env ||
 	mrb->compile_info.nest_level < 0) {
-      rc =code->emit_return(mrb, status, coi);
+      rc =code->ent_return(mrb, status, coi);
     }
     else {
-      rc =code->emit_return_inline(mrb, status, coi);
+      rc =code->ent_return_inline(mrb, status, coi);
     }
     break;
 
   case OP_ADD:
-    rc =code->emit_add(mrb, status, coi, regs);
+    rc =code->ent_add(mrb, status, coi, regs);
     break;
 
   case OP_SUB:
-    rc =code->emit_sub(mrb, status, coi, regs);
+    rc =code->ent_sub(mrb, status, coi, regs);
     break;
 
   case OP_MUL:
-    rc =code->emit_mul(mrb, status, coi, regs);
+    rc =code->ent_mul(mrb, status, coi, regs);
     break;
 
   case OP_DIV:
-    rc =code->emit_div(mrb, status, coi, regs);
+    rc =code->ent_div(mrb, status, coi, regs);
     break;
 
   case OP_ADDI:
-    rc =code->emit_addi(mrb, status, coi, regs);
+    rc =code->ent_addi(mrb, status, coi, regs);
     break;
 
   case OP_SUBI:
-    rc =code->emit_subi(mrb, status, coi, regs);
+    rc =code->ent_subi(mrb, status, coi, regs);
     break;
 
   case OP_EQ:
-    rc =code->emit_eq(mrb, status, coi, regs);
+    rc =code->ent_eq(mrb, status, coi, regs);
     break;
 
   case OP_LT:
-    rc =code->emit_lt(mrb, status, coi, regs);
+    rc =code->ent_lt(mrb, status, coi, regs);
     break;
 
   case OP_LE:
-    rc =code->emit_le(mrb, status, coi, regs);
+    rc =code->ent_le(mrb, status, coi, regs);
     break;
 
   case OP_GT:
-    rc =code->emit_gt(mrb, status, coi, regs);
+    rc =code->ent_gt(mrb, status, coi, regs);
     break;
 
   case OP_GE:
-    rc =code->emit_ge(mrb, status, coi, regs);
+    rc =code->ent_ge(mrb, status, coi, regs);
     break;
 
   case OP_ARRAY:
-    rc =code->emit_array(mrb, status, coi, regs);
+    rc =code->ent_array(mrb, status, coi, regs);
     break;
     
   case OP_ARYCAT:
-    rc =code->emit_arycat(mrb, status, coi, regs);
+    rc =code->ent_arycat(mrb, status, coi, regs);
     break;
     
   case OP_GETUPVAR:
-    rc =code->emit_getupvar(mrb, status, coi);
+    rc =code->ent_getupvar(mrb, status, coi);
     break;
 
   case OP_SETUPVAR:
-    rc =code->emit_setupvar(mrb, status, coi);
+    rc =code->ent_setupvar(mrb, status, coi);
     break;
 
   case OP_JMP:
-    rc =code->emit_jmp(mrb, status, coi);
+    rc =code->ent_jmp(mrb, status, coi);
     break;
 
   case OP_JMPIF:
-    rc =code->emit_jmpif(mrb, status, coi, regs);
+    rc =code->ent_jmpif(mrb, status, coi, regs);
     break;
 
   case OP_JMPNOT:
-    rc =code->emit_jmpnot(mrb, status, coi, regs);
+    rc =code->ent_jmpnot(mrb, status, coi, regs);
     break;
 
   case OP_LAMBDA:
-    rc =code->emit_lambda(mrb, status, coi, regs);
+    rc =code->ent_lambda(mrb, status, coi, regs);
     break;
 
   case OP_RANGE:
-    rc =code->emit_range(mrb, status, coi, regs);
+    rc =code->ent_range(mrb, status, coi, regs);
     break;
 
   case OP_STRING:
-    rc =code->emit_string(mrb, status, coi, regs);
+    rc =code->ent_string(mrb, status, coi, regs);
     break;
 
   case OP_HASH:
-    rc =code->emit_hash(mrb, status, coi, regs);
+    rc =code->ent_hash(mrb, status, coi, regs);
     break;
 
   case OP_BLKPUSH:
-    rc = code->emit_blkpush(mrb, status, coi, regs);
+    rc = code->ent_blkpush(mrb, status, coi, regs);
     break;
 
   default:
