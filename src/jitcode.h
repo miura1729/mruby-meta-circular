@@ -1612,7 +1612,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
       mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
       movsd(xmm0, ptr [eax + (m1 + r + m2 + 1) * sizeof(mrb_value)]);
-      movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+      emit_local_var_write(a * sizeof(mrb_value), reg_dtmp0);
     }
 
     return code;
@@ -1916,7 +1916,7 @@ do {								     \
     cwde();                                                          \
     add(eax, eax);                                                   \
     or(eax, 0xfff00001);                                             \
-    mov(dword [ecx + off0 + 4], eax);                                \
+    emit_local_var_type_write(off0, reg_tmp0);			     \
   } while(0)
 
 #define COMP_GEN(CMPINSTI, CMPINSTF)			             \
@@ -2101,8 +2101,8 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
 
-    mov(ptr [ecx + dstoff], eax);
-    mov(ptr [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
 
     pop(eax);
     mov(ptr [esi + OffsetOf(mrb_state, arena_idx)], eax);
@@ -2130,9 +2130,9 @@ do {                                                                 \
     push(ecx);
     push(ebx);
 
-    mov(eax, ptr [ecx + srcoff + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
-    mov(eax, ptr [ecx + srcoff]);
+    emit_local_var_value_read(reg_tmp0, srcoff);
     push(eax);
     push(esi);
     call((void *) mrb_ary_splat);
@@ -2148,9 +2148,9 @@ do {                                                                 \
     push(edx);
     push(eax);
     /* arg1 reg */
-    mov(eax, ptr [ecx + dstoff + 4]);
+    emit_local_var_type_read(reg_tmp0, dstoff);
     push(eax);
-    mov(eax, ptr [ecx + dstoff]);
+    emit_local_var_value_read(reg_tmp0, dstoff);
     push(eax);
     /* mrb */
     push(esi);
@@ -2160,8 +2160,8 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
 
-    mov(ptr [ecx + dstoff], eax);
-    mov(ptr [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
 
     pop(eax);
     mov(ptr [esi + OffsetOf(mrb_state, arena_idx)], eax);
@@ -2199,7 +2199,7 @@ do {                                                                 \
     mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
 
     movsd(xmm0, ptr [eax + idxpos * sizeof(mrb_value)]);
-    movsd(ptr [ecx + dstoff], xmm0);
+    emit_local_var_write(dstoff, reg_dtmp0);
 
     return code;
   }
@@ -2222,7 +2222,7 @@ do {                                                                 \
     }
     mov(eax, dword [eax + OffsetOf(struct REnv, stack)]);
 
-    movsd(xmm0, ptr [ecx + valoff]);
+    emit_local_var_read(reg_dtmp0, valoff);
     movsd(ptr [eax + idxpos * sizeof(mrb_value)], xmm0);
 
     return code;
@@ -2262,7 +2262,7 @@ do {                                                                 \
     }
 #endif
     
-    mov(eax, ptr [ecx + off0 + 4]);
+    emit_local_var_type_read(reg_tmp0, off0);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 1, cond, *ppc + 1, status, coi);
     }
@@ -2300,7 +2300,7 @@ do {                                                                 \
     }
 #endif
 
-    mov(eax, ptr [ecx + off0 + 4]);
+    emit_local_var_type_read(reg_tmp0, off0);
     if (!mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 0, cond, *ppc + 1, status, coi);
     }
@@ -2377,7 +2377,7 @@ do {                                                                 \
     add(esp, 2 * sizeof(void *));
     pop(ebx);
     pop(ecx);
-    mov(dword [ecx + dstoff], eax);
+    emit_local_var_value_write(dstoff, reg_tmp0);
     mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_PROC);
     if (flags & OP_L_STRICT) {
       mov(edx, (Xbyak::uint32)MRB_PROC_STRICT);
@@ -2410,13 +2410,13 @@ do {                                                                 \
 
     mov(eax, exelp);
     push(eax);
-    mov(eax, ptr [ecx + srcoff1 + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff1);
     push(eax);
-    mov(eax, ptr [ecx + srcoff1]);
+    emit_local_var_value_read(reg_tmp0, srcoff1);
     push(eax);
-    mov(eax, ptr [ecx + srcoff0 + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff0);
     push(eax);
-    mov(eax, ptr [ecx + srcoff0]);
+    emit_local_var_value_read(reg_tmp0, srcoff0);
     push(eax);
     push(esi);
     call((void *) mrb_range_new);
@@ -2425,8 +2425,8 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
 
-    mov(ptr [ecx + dstoff], eax);
-    mov(ptr [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
     return code;
   }
 
@@ -2460,8 +2460,9 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
 
-    mov(ptr [ecx + dstoff], eax);
-    mov(ptr [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
+
     return code;
   }
 
