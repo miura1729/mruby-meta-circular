@@ -7,7 +7,8 @@
 #ifndef MRUBY_JITCOD_H
 #define MRUBY_JITCODE_H
 
-#include <xbyak/xbyak.h>
+#include "jit_x86.h"
+
 extern "C" {
 #include "mruby.h"
 #include "opcode.h"
@@ -40,20 +41,14 @@ void disasm_irep(mrb_state *, mrb_irep *);
 #define OffsetOf(s_type, field) ((size_t) &((s_type *)0)->field) 
 #define VMSOffsetOf(field) (((intptr_t)status->field) - ((intptr_t)status->pc))
 
-/* Regs Map                               *
- * ecx   -- pointer to regs               *
- * ebx   -- pointer to status->pc         *
- * esi   -- pointer to mrb                *
- * edi   -- pointer to mrb->c             */
-class MRBJitCode: public Xbyak::CodeGenerator {
+class MRBJitCode: public MRBGenericCodeGenerator {
 
   void *addr_call_extend_callinfo;
   void *addr_call_stack_extend;
 
  public:
 
- MRBJitCode():
-  CodeGenerator(1024 * 1024)
+ MRBJitCode()
   {
     addr_call_extend_callinfo = NULL;
     addr_call_stack_extend = NULL;
@@ -92,7 +87,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       cwde();
       add(eax, eax);
       or(eax, 0xfff00001);
-      mov(dword [ecx + pos * sizeof(mrb_value) + 4], eax);
+      emit_local_var_type_write(pos * sizeof(mrb_value), reg_tmp0);
       break;
        
     default:
@@ -138,7 +133,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       disasm_irep(mrb, *status->irep);
       disasm_once(mrb, *status->irep, **status->pc);*/
     //printf("\n\n");
-      mov(eax, dword [ecx + pos * sizeof(mrb_value) + 4]);
+      emit_local_var_type_read(reg_tmp0, pos * sizeof(mrb_value));
       cmp(eax, 0xfff00001);
       setnz(al);
       break;
@@ -298,7 +293,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       return;
     }
 
-    mov(eax, dword [ecx + regpos * sizeof(mrb_value) + 4]); /* Get type tag */
+    /* Get type tag */
+    emit_local_var_type_read(reg_tmp0, regpos * sizeof(mrb_value));
     rinfo->type = tt;
     rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
     /* Input eax for type tag */
@@ -366,7 +362,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
       rinfo->type = tt;
 
-      mov(eax, ptr [ecx + regpos * sizeof(mrb_value) + 4]);
+      emit_local_var_type_read(reg_tmp0, regpos * sizeof(mrb_value));
 
       if (tt == MRB_TT_FLOAT) {
 	cmp(eax, 0xfff00000);
@@ -402,7 +398,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 	  return;
 	}
 	rinfo->klass = c;
-	mov(eax, dword [ecx + regpos * sizeof(mrb_value)]);
+	emit_local_var_value_read(reg_tmp0, regpos * sizeof(mrb_value));
 	mov(eax, dword [eax + OffsetOf(struct RBasic, c)]);
 	cmp(eax, (int)c);
 	jz("@f");
@@ -659,21 +655,21 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     if (is_block_call) {
       mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
-      mov(edx, dword [ecx]);
+      emit_local_var_value_read(reg_tmp1, 0); /* self */
       mov(dword [eax + OffsetOf(mrb_callinfo, proc)], edx);
       mov(dword [ebx + VMSOffsetOf(proc)], edx);
 
       mov(edx, dword [edx + OffsetOf(struct RProc, target_class)]);
       mov(dword [eax + OffsetOf(mrb_callinfo, target_class)], edx);
 
-      mov(edx, dword [ecx]);
+      emit_local_var_value_read(reg_tmp1, 0); /* self */
       mov(edx, dword [edx + OffsetOf(struct RProc, body.irep)]);
       mov(dword [ebx + VMSOffsetOf(irep)], edx);
 
       mov(edx, dword [edx + OffsetOf(mrb_irep, nregs)]);
       mov(dword [eax + OffsetOf(mrb_callinfo, nregs)], edx);
 
-      mov(edx, dword [ecx]);
+      emit_local_var_value_read(reg_tmp1, 0); /* self */
       mov(edx, dword [edx + OffsetOf(struct RProc, env)]);
       mov(edx, dword [edx + OffsetOf(struct REnv, mid)]);
       test(edx, edx);
@@ -683,7 +679,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       
       L("@@");
 
-      mov(eax, dword [ecx]);
+      emit_local_var_value_read(reg_tmp0, 0); /* self */
       mov(edx, dword [eax + OffsetOf(struct RProc, body.irep)]);
       mov(edx, dword [edx + OffsetOf(mrb_irep, iseq)]);
       mov(dword [ebx + VMSOffsetOf(pc)], edx);
@@ -722,8 +718,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     sinfo->unboxedp = 0;
     *dinfo = *sinfo;
 
-    movsd(xmm0, ptr [ecx + srcoff]);
-    movsd(ptr [ecx + dstoff], xmm0);
+    emit_local_var_read(reg_dtmp0, srcoff);
+    emit_local_var_write(dstoff, reg_dtmp0);
     return code;
   }
 
@@ -745,7 +741,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     mov(eax, (Xbyak::uint32)irep->pool + srcoff);
     movsd(xmm0, ptr [eax]);
-    movsd(ptr [ecx + dstoff], xmm0);
+    emit_local_var_write(dstoff, reg_dtmp0);
 
     return code;
   }
@@ -762,13 +758,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     switch(src) {
     case 0:
       xor(eax, eax);
-      mov(dword [ecx + dstoff], eax);
+      emit_local_var_value_write(dstoff, reg_tmp0);
       break;
 
     case 1:
       xor(eax, eax);
       inc(eax);
-      mov(dword [ecx + dstoff], eax);
+      emit_local_var_value_write(dstoff, reg_tmp0);
       break;
 
     default:
@@ -825,8 +821,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    movsd(xmm0, ptr [ecx]);
-    movsd(ptr [ecx + dstoff], xmm0);
+    emit_local_var_read(reg_dtmp0, 0); /* self */
+    emit_local_var_write(dstoff, reg_dtmp0);
     return code;
   }
 
@@ -841,7 +837,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (dinfo->type != MRB_TT_TRUE) {
       xor(eax, eax);
       inc(eax);
-      mov(dword [ecx + dstoff], eax);
+      emit_local_var_value_write(dstoff, reg_tmp0);
       mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_TRUE);
       dinfo->type = MRB_TT_TRUE;
       dinfo->klass = mrb->true_class;
@@ -864,7 +860,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     if (dinfo->type != MRB_TT_FALSE) {
       xor(eax, eax);
       inc(eax);
-      mov(dword [ecx + dstoff], eax);
+      emit_local_var_value_write(dstoff, reg_tmp0);
       mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
       dinfo->type = MRB_TT_FALSE;
       dinfo->klass = mrb->false_class;
@@ -900,8 +896,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     add(esp, argsize);
     pop(ebx);
     pop(ecx);
-    mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
 
     return code;
   }
@@ -918,9 +914,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     push(ecx);
     push(ebx);
-    mov(eax, dword [ecx + srcoff + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
-    mov(eax, dword [ecx + srcoff]);
+    emit_local_var_value_read(reg_tmp0, srcoff);
     push(eax);
     push((Xbyak::uint32)irep->syms[idpos]);
     push(esi);
@@ -956,17 +952,17 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     /* You can not change class of self in Ruby */
     if (mrb_type(self) == MRB_TT_OBJECT) {
-      mov(eax, dword [ecx]);
+      emit_local_var_value_read(reg_tmp0, 0); /* self */
       mov(eax, dword [eax + OffsetOf(struct RObject, ivent.rootseg)]);
       movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
     }
     else {
-      mov(eax, dword [ecx]);
+      emit_local_var_value_read(reg_tmp0, 0); /* self */
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       mov(eax, dword [eax]);
       movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
     }
-    movsd(ptr [ecx + dstoff], xmm0);
+    emit_local_var_write(dstoff, reg_dtmp0);
 
     return code;
   }
@@ -986,7 +982,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     inLocalLabel();
 
     if (ivoff != -1) {
-      mov(eax, dword [ecx]);
+      emit_local_var_value_read(reg_tmp0, 0); /* self */
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       test(eax, eax);
       jz(".nivset");
@@ -999,9 +995,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     /* Normal instance variable set (not define iv yet) */
     push(ecx);
     push(ebx);
-    mov(eax, ptr [ecx + srcoff + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
-    mov(eax, ptr [ecx + srcoff]);
+    emit_local_var_value_read(reg_tmp0, srcoff);
     push(eax);
     push((Xbyak::uint32)id);
     push(esi);
@@ -1014,8 +1010,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       jmp(".ivsetend");
 
       L(".fastivset");
-      movsd(xmm0, ptr [ecx + srcoff]);
-      mov(eax, dword [ecx]);
+      emit_local_var_read(reg_dtmp0, srcoff);
+      emit_local_var_value_read(reg_tmp0, 0); /* self */
       push(ecx);
       push(ebx);
       push(eax);
@@ -1072,8 +1068,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     add(esp, argsize);
     pop(ebx);
     pop(ecx);
-    mov(dword [ecx + dstoff], eax);
-    mov(dword [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
 
     return code;
   }
@@ -1090,9 +1086,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
     push(ecx);
     push(ebx);
-    mov(eax, dword [ecx + srcoff + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
-    mov(eax, dword [ecx + srcoff]);
+    emit_local_var_value_read(reg_tmp0, srcoff);
     push(eax);
     push((Xbyak::uint32)irep->syms[idpos]);
     push(esi);
@@ -1161,7 +1157,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     dinfo->unboxedp = 0;
 
     xor(eax, eax);
-    mov(dword [ecx + dstoff], eax);
+    emit_local_var_value_write(dstoff, reg_tmp0);
     mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
 
     return code;
@@ -1282,13 +1278,13 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
       /* Inline IV reader */
-      mov(eax, ptr [ecx + a * sizeof(mrb_value)]);
+      emit_local_var_value_read(reg_tmp0, a * sizeof(mrb_value));
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       mov(eax, dword [eax]);
       movsd(xmm0, ptr [eax + ivoff * sizeof(mrb_value)]);
 
       // regs[a] = obj;
-      movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+      emit_local_var_write(a * sizeof(mrb_value), reg_dtmp0);
 
       return code;
     }
@@ -1297,12 +1293,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
       /* Inline IV writer */
-      mov(eax, ptr [ecx + a * sizeof(mrb_value)]);
+      emit_local_var_value_read(reg_tmp0, a * sizeof(mrb_value));
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
       mov(eax, dword [eax]);
 
       // @iv = regs[a];
-      movsd(xmm0, ptr [ecx + (a + 1) * sizeof(mrb_value)]);
+      emit_local_var_read(reg_dtmp0, (a + 1) * sizeof(mrb_value));
       movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
 
       return code;
@@ -1312,7 +1308,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       //SET_NIL_VALUE(regs[a+n+1]);
       int dstoff = (a + n + 1) * sizeof(mrb_value);
       xor(eax, eax);
-      mov(dword [ecx + dstoff], eax);
+      emit_local_var_value_write(dstoff, reg_tmp0);
       mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
     }
 
@@ -1496,9 +1492,9 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 
       /* Save return value */
-      movsd(xmm0, ptr [ecx + GETARG_A(i) * sizeof(mrb_value)]);
+      emit_local_var_read(reg_dtmp0, GETARG_A(i) * sizeof(mrb_value));
       /* Store return value (bottom of stack always return space) */
-      movsd(ptr [ecx], xmm0);
+      emit_local_var_write(0, reg_dtmp0);
 
       /* Restore Regs */
       mov(ecx, dword [edi + OffsetOf(mrb_callinfo, stackent)]);
@@ -1602,8 +1598,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     int lv = (bx>>0)&0xf;
 
     if (lv == 0) {
-      movsd(xmm0, ptr [ecx + (m1 + r + m2 + 1) * sizeof(mrb_value)]);
-      movsd(ptr [ecx + a * sizeof(mrb_value)], xmm0);
+      emit_local_var_read(reg_dtmp0, (m1 + r + m2 + 1) * sizeof(mrb_value));
+      emit_local_var_write(a * sizeof(mrb_value), reg_dtmp0);
     }
     else {
       int i;
@@ -1627,7 +1623,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     cvtsi2sd(xmm0, dword [ecx + reg0off]);                              \
     cvtsi2sd(xmm1, dword [ecx + reg1off]);				\
     AINSTF(xmm0, xmm1);                                                 \
-    movsd(ptr [ecx + reg0off], xmm0);                                   \
+    emit_local_var_write(reg0off, reg_dtmp0);				\
     gen_exit(mrb, *status->pc + 1, 1, 1, status, coi);			\
     L("@@");                                                            \
 
@@ -1648,10 +1644,10 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
       gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
 \
-      mov(eax, dword [ecx + reg0off]);                                  \
+      emit_local_var_value_read(reg_tmp0, reg0off);			\
       AINSTI(eax, dword [ecx + reg1off]);			        \
       OVERFLOW_CHECK_GEN(AINSTF);                                       \
-      mov(dword [ecx + reg0off], eax);                                  \
+      emit_local_var_value_write(reg0off, reg_tmp0);			\
       dinfo->type = MRB_TT_FIXNUM;  					\
       dinfo->klass = mrb->fixnum_class; 				\
     }                                                                   \
@@ -1664,18 +1660,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
         cvtsi2sd(xmm0, dword [ecx + reg0off]);                          \
       }                                                                 \
       else {                                                            \
-        movsd(xmm0, dword [ecx + reg0off]);                             \
+	emit_local_var_read(reg_dtmp0, reg0off);			\
       }                                                                 \
 \
       if (r1type == MRB_TT_FIXNUM) {                                    \
         cvtsi2sd(xmm1, dword [ecx + reg1off]);                          \
       }                                                                 \
       else {                                                            \
-        movsd(xmm1, dword [ecx + reg1off]);                             \
+	emit_local_var_read(reg_dtmp1, reg1off);			\
       }                                                                 \
 \
       AINSTF(xmm0, xmm1);				                \
-      movsd(ptr [ecx + reg0off], xmm0);                                 \
+      emit_local_var_write(reg0off, reg_dtmp0);				\
       dinfo->type = MRB_TT_FLOAT;                                       \
       dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
@@ -1731,18 +1727,18 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       cvtsi2sd(xmm0, dword [ecx + reg0off]);
     }
     else {
-      movsd(xmm0, dword [ecx + reg0off]);
+      emit_local_var_read(reg_dtmp0, reg0off);
     }
 
     if (r1type == MRB_TT_FIXNUM) {
       cvtsi2sd(xmm1, dword [ecx + reg1off]);
     }
     else {
-      movsd(xmm1, dword [ecx + reg1off]);
+      emit_local_var_read(reg_dtmp1, reg1off);
     }
 
     divsd(xmm0, xmm1);
-    movsd(ptr [ecx + reg0off], xmm0);
+    emit_local_var_write(reg0off, reg_dtmp0);
 
     /* Div returns Float always */
     /* see http://qiita.com/monamour555/items/bcef9b41a5cc4670675a */
@@ -1758,7 +1754,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     mov(eax, y);                                                        \
     cvtsi2sd(xmm1, eax);                                                \
     AINSTF(xmm0, xmm1);                                                 \
-    movsd(ptr [ecx + off], xmm0);                                       \
+    emit_local_var_write(off, reg_dtmp0);				\
     gen_exit(mrb, *status->pc + 1, 1, 1, status, coi);			\
     L("@@");                                                            \
 
@@ -1773,19 +1769,19 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     gen_type_guard(mrb, regno, status, *ppc, coi);			\
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
-      mov(eax, dword [ecx + off]);                                      \
+      emit_local_var_value_read(reg_tmp0, off);				\
       AINSTI(eax, y);                                                   \
       OVERFLOW_CHECK_I_GEN(AINSTF);                                     \
-      mov(dword [ecx + off], eax);                                      \
+      emit_local_var_value_write(off, reg_tmp0);			\
       dinfo->type = MRB_TT_FIXNUM;       				\
       dinfo->klass = mrb->fixnum_class; 				\
     }                                                                   \
     else if (atype == MRB_TT_FLOAT) {					\
-      movsd(xmm0, ptr [ecx + off]);                                     \
+      emit_local_var_read(reg_dtmp0, off);				\
       mov(eax, y);                                                      \
       cvtsi2sd(xmm1, eax);                                              \
       AINSTF(xmm0, xmm1);                                               \
-      movsd(ptr [ecx + off], xmm0);                                     \
+      emit_local_var_write(off, reg_dtmp0);				\
       dinfo->type = MRB_TT_FLOAT;					\
       dinfo->klass = mrb->float_class;  				\
     }                                                                   \
@@ -1814,7 +1810,7 @@ class MRBJitCode: public Xbyak::CodeGenerator {
 
 #define COMP_GEN_II(CMPINST)                                         \
 do {                                                                 \
-    mov(eax, dword [ecx + off0]);                                    \
+    emit_local_var_value_read(reg_tmp0, off0);			     \
     cmp(eax, dword [ecx + off1]);                                    \
     CMPINST;     						     \
 } while(0)
@@ -1829,7 +1825,7 @@ do {                                                                 \
 
 #define COMP_GEN_FI(CMPINST)                                         \
 do {                                                                 \
-    movsd(xmm0, ptr [ecx + off0]);				     \
+    emit_local_var_read(reg_dtmp0, off0);			     \
     cvtsi2sd(xmm1, ptr [ecx + off1]);                                \
     xor(eax, eax);					             \
     comisd(xmm0, xmm1);     			                     \
@@ -1838,7 +1834,7 @@ do {                                                                 \
 
 #define COMP_GEN_FF(CMPINST)                                         \
 do {                                                                 \
-    movsd(xmm0, dword [ecx + off0]);                                 \
+    emit_local_var_read(reg_dtmp0, off0);			     \
     xor(eax, eax);					             \
     comisd(xmm0, ptr [ecx + off1]);				     \
     CMPINST;    						     \
@@ -1848,13 +1844,13 @@ do {                                                                 \
 do {                                                                 \
     push(ecx);                                                       \
     push(ebx);                                                       \
-    mov(eax, dword [ecx + off1 + 4]);                                \
+    emit_local_var_type_read(reg_tmp0, off1);			     \
     push(eax);                                                       \
-    mov(eax, dword [ecx + off1]);                                    \
+    emit_local_var_value_read(reg_tmp0, off1);			     \
     push(eax);                                                       \
-    mov(eax, dword [ecx + off0 + 4]);                                \
+    emit_local_var_type_read(reg_tmp0, off0);			     \
     push(eax);                                                       \
-    mov(eax, dword [ecx + off0]);                                    \
+    emit_local_var_value_read(reg_tmp0, off0);			     \
     push(eax);                                                       \
     push(esi);                                                       \
     call((void *)mrb_str_cmp);                                       \
@@ -2528,8 +2524,8 @@ do {                                                                 \
       pop(eax);
     }
 
-    mov(ptr [ecx + dstoff], eax);
-    mov(ptr [ecx + dstoff + 4], edx);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_local_var_type_write(dstoff, reg_tmp1);
 
     return code;
   }
