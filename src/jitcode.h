@@ -543,25 +543,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
     mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
 
-    switch(n) {
-    case 0:
-      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
-      break;
-
-    case 1:
-      inc(eax);
-      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
-      break;
-
-    case CALL_MAXARGS:
-      dec(eax);
-      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], eax);
-      break;
-
-    default:
-      mov(dword [edi + OffsetOf(mrb_callinfo, argc)], (Xbyak::uint32)n);
-      break;
+    if (n == CALL_MAXARGS) {
+      emit_load_literal(reg_tmp0, -1);
     }
+    else {
+      emit_load_literal(reg_tmp0, n);
+    }
+    mov(dword [edi + OffsetOf(mrb_callinfo, argc)], reg_tmp0);
 
     mov(edx, dword [esi + OffsetOf(mrb_state, c)]);
     mov(eax, dword [edx + OffsetOf(mrb_context, stack)]);
@@ -755,22 +743,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const Xbyak::uint32 src = GETARG_sBx(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    switch(src) {
-    case 0:
-      xor(eax, eax);
-      emit_local_var_value_write(dstoff, reg_tmp0);
-      break;
-
-    case 1:
-      xor(eax, eax);
-      inc(eax);
-      emit_local_var_value_write(dstoff, reg_tmp0);
-      break;
-
-    default:
-      mov(dword [ecx + dstoff], src);
-      break;
-    }
+    emit_load_literal(reg_tmp0, src);
+    emit_local_var_value_write(dstoff, reg_tmp0);
     if (dinfo->type != MRB_TT_FIXNUM) {
       mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FIXNUM);
       dinfo->type = MRB_TT_FIXNUM;
