@@ -461,8 +461,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   void
     gen_call_fetch_hook(mrb_state *mrb, mrbjit_vmstatus *status)
   {
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     push(ecx);
     //    mov(eax, dword [ebx + VMSOffsetOf(pc)]);
     mov(eax, (Xbyak::uint32)(*(status->pc)));
@@ -472,8 +471,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(esi);
     call((void *)mrb->code_fetch_hook);
     add(esp, sizeof(void *) * 4);
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
   }
 
   void 
@@ -517,8 +515,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       push(esi);
       call((void *) mrbjit_exec_extend_callinfo);
       add(esp, 3 * sizeof(void *));
-      pop(ebx);
-      pop(edx);
+      emit_restore_regs();
       mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
       ret();
     }
@@ -867,14 +864,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     push((Xbyak::uint32)irep->syms[idpos]);
     push(esi);
     call((void *)mrb_gv_get);
     add(esp, argsize);
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
 
@@ -891,8 +886,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const int argsize = 4 * sizeof(void *);
     mrb_irep *irep = *status->irep;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
     emit_local_var_value_read(reg_tmp0, srcoff);
@@ -901,8 +895,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(esi);
     call((void *)mrb_gv_set);
     add(esp, argsize);
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     return code;
   }
@@ -972,8 +965,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     L(".nivset");
     /* Normal instance variable set (not define iv yet) */
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
     emit_local_var_value_read(reg_tmp0, srcoff);
@@ -982,8 +974,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(esi);
     call((void *)mrb_vm_iv_set);
     add(esp, sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     if (ivoff != -1) {
       jmp(".ivsetend");
@@ -991,15 +982,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       L(".fastivset");
       emit_local_var_read(reg_dtmp0, srcoff);
       emit_local_var_value_read(reg_tmp0, 0); /* self */
-      push(ecx);
-      push(ebx);
+      emit_save_regs();
       push(eax);
       push(esi);
       call((void *)mrb_write_barrier);
       add(esp, 4);
       pop(eax);
-      pop(ebx);
-      pop(ecx);
+      emit_restore_regs();
       if (ivoff == -2) {
 	if (mrb_type(self) == MRB_TT_OBJECT) {
 	  mov(edx, eax);
@@ -1039,14 +1028,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     push((Xbyak::uint32)irep->syms[idpos]);
     push(esi);
     call((void *)mrb_vm_cv_get);
     add(esp, argsize);
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
 
@@ -1063,8 +1050,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const int argsize = 4 * sizeof(void *);
     mrb_irep *irep = *status->irep;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
     emit_local_var_value_read(reg_tmp0, srcoff);
@@ -1073,8 +1059,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(esi);
     call((void *)mrb_vm_cv_set);
     add(esp, argsize);
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     return code;
   }
@@ -1149,8 +1134,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #define CALL_CFUNC_BEGIN                                             \
   do {                                                               \
-    push(ecx);                                                       \
-    push(ebx);                                                       \
+    emit_save_regs();						     \
   } while (0)
 
 #define CALL_CFUNC_STATUS(func_name, auxargs)			     \
@@ -1164,8 +1148,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(esi);                                                       \
     call((void *)func_name);                                         \
     add(esp, (auxargs + 2) * 4);				     \
-    pop(ebx);                                                        \
-    pop(ecx);                                                        \
+    emit_restore_regs();					     \
 \
     test(eax, eax);					             \
     jz("@f");                                                        \
@@ -1382,8 +1365,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_exit(mrb, *status->pc, 1, 1, status, coi);
     L("@@");
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     lea(eax, dword [ebx + VMSOffsetOf(status)]);
     push(eax);
@@ -1391,8 +1373,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     call((void *)mrbjit_exec_call);
     add(esp, 2 * sizeof(void *));
 
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
     ret();
 
     return code;
@@ -1510,8 +1491,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       /* Update pc */
       mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)(*status->pc));
 
-      push(ecx);
-      push(ebx);
+      emit_save_regs();
 
       lea(eax, dword [ebx + VMSOffsetOf(status)]);
       push(eax);
@@ -1523,8 +1503,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	call((void *)mrbjit_exec_return);
       }
       add(esp, 2 * 4);
-      pop(ebx);
-      pop(ecx);
+      emit_restore_regs();
 
       mov(ecx, dword [ebx + VMSOffsetOf(regs)]);
 
@@ -1827,8 +1806,7 @@ do {                                                                 \
     
 #define COMP_GEN_SS(CMPINST)                                         \
 do {                                                                 \
-    push(ecx);                                                       \
-    push(ebx);                                                       \
+    emit_save_regs();						     \
     emit_local_var_type_read(reg_tmp0, off1);			     \
     push(eax);                                                       \
     emit_local_var_value_read(reg_tmp0, off1);			     \
@@ -1840,8 +1818,7 @@ do {                                                                 \
     push(esi);                                                       \
     call((void *)mrb_str_cmp);                                       \
     add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2);           \
-    pop(ebx);                                                        \
-    pop(ecx);                                                        \
+    emit_restore_regs();					     \
     test(eax, eax);                                                  \
     CMPINST;    						     \
 } while(0)
@@ -2072,8 +2049,7 @@ do {                                                                 \
 
     mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
     push(eax);
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     lea(eax, ptr [ecx + srcoff]);
     push(eax);
@@ -2083,8 +2059,7 @@ do {                                                                 \
     call((void *) mrb_ary_new_from_values);
     add(esp, sizeof(mrb_state *) + sizeof(int) + sizeof(mrb_value *));
     
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
@@ -2112,8 +2087,7 @@ do {                                                                 \
     mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
     push(eax);
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
@@ -2123,11 +2097,9 @@ do {                                                                 \
     call((void *) mrb_ary_splat);
     add(esp, sizeof(mrb_state *) + sizeof(mrb_value));
 
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     /* rc of splat */
     push(edx);
@@ -2142,8 +2114,7 @@ do {                                                                 \
     call((void *) mrb_ary_concat);
     add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
     
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
@@ -2331,8 +2302,7 @@ do {                                                                 \
 	     mov(eax, dword [eax + OffsetOf(struct RProc, env)]);
 	     mov(dword [edx + OffsetOf(struct REnv, c)], eax); */
 	  /*
-                  push(ecx);
-                  push(ebx);
+	          emit_save_regs();
                   mov(eax, dword [ecx + dstoff + 4]);
 		  push(eax);
 		  mov(eax, dword [ecx + dstoff]);
@@ -2340,8 +2310,7 @@ do {                                                                 \
 		  push(esi);
 		  call((void *)mrb_p);
 		  add(esp, 12);
-		  pop(ebx);
-		  pop(ecx);
+		  emit_restore_regs();
 	  */
 	  return code;
 	}
@@ -2350,8 +2319,7 @@ do {                                                                 \
 
     mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
     push(eax);
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
     mov(eax, (Xbyak::uint32)mirep);
     push(eax);
     push(esi);
@@ -2362,8 +2330,7 @@ do {                                                                 \
       call((void *) mrb_proc_new);
     }
     add(esp, 2 * sizeof(void *));
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_load_literal(reg_tmp1, 0xfff00000 | MRB_TT_PROC);
     emit_local_var_type_write(dstoff, reg_tmp1);
@@ -2393,8 +2360,7 @@ do {                                                                 \
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     mov(eax, exelp);
     push(eax);
@@ -2410,8 +2376,7 @@ do {                                                                 \
     call((void *) mrb_range_new);
     add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2 + sizeof(int));
     
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
@@ -2433,8 +2398,7 @@ do {                                                                 \
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     mov(eax, (Xbyak::uint32)str);
     mov(edx, dword [eax + 4]);
@@ -2445,8 +2409,7 @@ do {                                                                 \
     call((void *) mrb_str_dup);
     add(esp, sizeof(mrb_state *) + sizeof(mrb_value));
     
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
@@ -2469,21 +2432,18 @@ do {                                                                 \
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    push(ecx);
-    push(ebx);
+    emit_save_regs();
 
     push((Xbyak::uint32)num);
     push(esi);
     call((void *) mrb_hash_new_capa);
     add(esp, sizeof(mrb_state *) + sizeof(int));
-    pop(ebx);
-    pop(ecx);
+    emit_restore_regs();
 
     for(i = 0; i < num * 2; i+= 2) {
       push(eax);
       push(edx);
-      push(ecx);
-      push(ebx);
+      emit_save_regs();
 
       /* val */
       mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value) + 4)]);
@@ -2507,8 +2467,7 @@ do {                                                                 \
       call((void *)mrb_hash_set);
       add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 3);
 
-      pop(ebx);
-      pop(ecx);
+      emit_restore_regs();
       pop(edx);
       pop(eax);
     }
