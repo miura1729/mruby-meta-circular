@@ -746,7 +746,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(reg_tmp0, src);
     emit_local_var_value_write(dstoff, reg_tmp0);
     if (dinfo->type != MRB_TT_FIXNUM) {
-      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FIXNUM);
+      emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FIXNUM);
+      emit_local_var_type_write(dstoff, reg_tmp0);
       dinfo->type = MRB_TT_FIXNUM;
       dinfo->klass = mrb->fixnum_class;
     }
@@ -773,8 +774,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    mov(dword [ecx + dstoff], src);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_SYMBOL);
+    emit_load_literal(reg_tmp0, src);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_SYMBOL);
+    emit_local_var_type_write(dstoff, reg_tmp0);
 
     return code;
   }
@@ -812,7 +815,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       xor(eax, eax);
       inc(eax);
       emit_local_var_value_write(dstoff, reg_tmp0);
-      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_TRUE);
+      emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_TRUE);
+      emit_local_var_type_write(dstoff, reg_tmp0);
       dinfo->type = MRB_TT_TRUE;
       dinfo->klass = mrb->true_class;
       dinfo->constp = 1;
@@ -835,7 +839,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       xor(eax, eax);
       inc(eax);
       emit_local_var_value_write(dstoff, reg_tmp0);
-      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+      emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
+      emit_local_var_type_write(dstoff, reg_tmp0);
       dinfo->type = MRB_TT_FALSE;
       dinfo->klass = mrb->false_class;
       dinfo->constp = 1;
@@ -1090,8 +1095,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    mov(dword [ecx + dstoff], v.value.i);
-    mov(dword [ecx + dstoff + 4], v.value.ttt);
+    emit_load_literal(reg_tmp0, v.value.i);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_load_literal(reg_tmp0, v.value.ttt);
+    emit_local_var_type_write(dstoff, reg_tmp0);
     
     return code;
   }
@@ -1111,8 +1118,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = mrb_class(mrb, v);
     dinfo->constp = 1;
 
-    mov(dword [ecx + dstoff], v.value.i);
-    mov(dword [ecx + dstoff + 4], v.value.ttt);
+    emit_load_literal(reg_tmp0, v.value.i);
+    emit_local_var_value_write(dstoff, reg_tmp0);
+    emit_load_literal(reg_tmp0, v.value.ttt);
+    emit_local_var_type_write(dstoff, reg_tmp0);
     
     return code;
   }
@@ -1132,7 +1141,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     xor(eax, eax);
     emit_local_var_value_write(dstoff, reg_tmp0);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+    emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
+    emit_local_var_type_write(dstoff, reg_tmp0);
 
     return code;
   }
@@ -1283,7 +1293,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       int dstoff = (a + n + 1) * sizeof(mrb_value);
       xor(eax, eax);
       emit_local_var_value_write(dstoff, reg_tmp0);
-      mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_FALSE);
+      emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
+      emit_local_var_type_write(dstoff, reg_tmp0);
     }
 
     prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
@@ -2308,8 +2319,10 @@ do {                                                                 \
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;
-	  mov(dword [ecx + dstoff], (Xbyak::uint32)nproc);
-	  mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_PROC);
+	  emit_load_literal(reg_tmp0, (Xbyak::uint32)nproc);
+	  emit_local_var_value_write(dstoff, reg_tmp0);
+	  emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_PROC);
+	  emit_local_var_type_write(dstoff, reg_tmp0);
 	  /* mov(edx, (Xbyak::uint32)nproc->env);
 	     mov(dword [edx + OffsetOf(struct REnv, stack)], ecx);
 	     mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
@@ -2352,7 +2365,8 @@ do {                                                                 \
     pop(ebx);
     pop(ecx);
     emit_local_var_value_write(dstoff, reg_tmp0);
-    mov(dword [ecx + dstoff + 4], 0xfff00000 | MRB_TT_PROC);
+    emit_load_literal(reg_tmp1, 0xfff00000 | MRB_TT_PROC);
+    emit_local_var_type_write(dstoff, reg_tmp1);
     if (flags & OP_L_STRICT) {
       mov(edx, (Xbyak::uint32)MRB_PROC_STRICT);
       shl(edx, 11);
