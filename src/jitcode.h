@@ -2449,9 +2449,8 @@ do {                                                                 \
     int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrb_value *str = irep->pool + GETARG_Bx(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_RANGE;
-    dinfo->klass = mrb_class(mrb, 
-			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "String")));
+    dinfo->type = MRB_TT_STRING;
+    dinfo->klass = mrb->string_class;
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
