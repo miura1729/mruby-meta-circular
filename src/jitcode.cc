@@ -268,6 +268,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->emit_string(mrb, status, coi, regs);
     break;
 
+  case OP_STRCAT:
+    rc =code->emit_strcat(mrb, status, coi, regs);
+    break;
+
   case OP_HASH:
     rc =code->emit_hash(mrb, status, coi, regs);
     break;
