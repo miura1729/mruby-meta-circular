@@ -691,8 +691,8 @@ class MRBJitCode: public Xbyak::CodeGenerator {
       mov(edx, dword [eax + OffsetOf(struct RProc, env)]);
       mov(edx, dword [edx + OffsetOf(struct REnv, stack)]);
       movsd(xmm0, ptr [edx]);
-      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
-      movsd(ptr [eax], xmm0);
+      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+      movsd(ptr [ecx], xmm0);
 
       mrb->compile_info.force_compile = 1;
     }
@@ -1484,6 +1484,12 @@ class MRBJitCode: public Xbyak::CodeGenerator {
     L("@@");
     
     if (can_inline) {
+      /* Check must copy env */
+      mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
+      mov(eax, dword [eax + OffsetOf(mrb_callinfo, env)]);
+      test(eax, eax);
+      jnz(".ret_vm");
+
       /* Check exception happened? */
       mov(eax, dword [esi + OffsetOf(mrb_state, exc)]);
       test(eax, eax);
