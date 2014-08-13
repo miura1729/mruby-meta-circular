@@ -172,10 +172,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mov(dword [ebx + VMSOffsetOf(pc)], (Xbyak::uint32)pc);
     }
     if (is_clr_rc) {
-      xor(eax, eax);
+      emit_load_literal(reg_tmp0, 0);
     }
     if (is_clr_exitpos) {
-      xor(edx, edx);
+      emit_load_literal(reg_tmp1, 0);
     }
     else {
       //mov(edx, (Xbyak::uint32)exit_ptr);
@@ -443,7 +443,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     /* This is unused entry, but right.Because no other pathes */
-    mov(edx, (Xbyak::uint32)ctab);
+    emit_load_literal(reg_tmp1, (Xbyak::uint32)ctab);
     mov(edx, dword [edx + OffsetOf(mrbjit_codetab, body)]);
 
     //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
@@ -464,9 +464,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_cfunc_start();
     push(ecx);
     //    mov(eax, dword [ebx + VMSOffsetOf(pc)]);
-    mov(eax, (Xbyak::uint32)(*(status->pc)));
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)(*(status->pc)));
     push(eax);
-    mov(eax, (Xbyak::uint32)(*(status->irep)));
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)(*(status->irep)));
     push(eax);
     push(esi);
     call((void *)mrb->code_fetch_hook);
@@ -533,7 +533,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mov(eax, dword [edx + OffsetOf(mrb_callinfo, ridx)]);
     mov(dword [edi + OffsetOf(mrb_callinfo, ridx)], eax);
 
-    xor(eax, eax);
+    emit_load_literal(reg_tmp0, 0);
     mov(dword [edi + OffsetOf(mrb_callinfo, env)], eax);
     mov(dword [edi + OffsetOf(mrb_callinfo, jit_entry)], eax);
     mov(dword [edi + OffsetOf(mrb_callinfo, err)], eax);
@@ -575,10 +575,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mov(dword [ebx + VMSOffsetOf(irep)], (Xbyak::uint32)m->body.irep);
     }
 
-    mov(eax, (Xbyak::uint32)mid);
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)mid);
     mov(dword [edi + OffsetOf(mrb_callinfo, mid)], eax);
 
-    mov(eax, (Xbyak::uint32)a);
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)a);
     mov(dword [edi + OffsetOf(mrb_callinfo, acc)], eax);
 
     /*  mrb->c   edi  */
@@ -598,12 +598,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mov(eax, "@f");
       push(eax);
       if (n == CALL_MAXARGS) {
-	mov(edx, (Xbyak::uint32)((callee_nregs < 3) ? 3 : callee_nregs));
-	mov(eax, 3);
+	emit_load_literal(reg_tmp1, 
+			  (Xbyak::uint32)((callee_nregs < 3) ? 3 : 
+					  callee_nregs));
+	emit_load_literal(reg_tmp0, 3);
       }
       else {
-	mov(edx, (Xbyak::uint32)callee_nregs);
-	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+	emit_load_literal(reg_tmp1, (Xbyak::uint32)callee_nregs);
+	emit_load_literal(reg_tmp0, (Xbyak::uint32)(mrb->c->ci->argc + 2));
       }
 
       addr_call_stack_extend = (void *)getCurr();
@@ -620,12 +622,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
     else {
       if (n == CALL_MAXARGS) {
-	mov(edx, (Xbyak::uint32)((callee_nregs < 3) ? 3 : callee_nregs));
-	mov(eax, 3);
+	emit_load_literal(reg_tmp1, (Xbyak::uint32)((callee_nregs < 3) ? 3 : 
+						    callee_nregs));
+	emit_load_literal(reg_tmp0, 3);
       }
       else {
-	mov(edx, (Xbyak::uint32)callee_nregs);
-	mov(eax, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+	emit_load_literal(reg_tmp1, (Xbyak::uint32)callee_nregs);
+	emit_load_literal(reg_tmp0, (Xbyak::uint32)(mrb->c->ci->argc + 2));
       }
       call(addr_call_stack_extend);
     }
@@ -722,7 +725,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    mov(eax, (Xbyak::uint32)irep->pool + srcoff);
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)irep->pool + srcoff);
     movsd(xmm0, ptr [eax]);
     emit_local_var_write(dstoff, reg_dtmp0);
 
@@ -807,8 +810,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
     if (dinfo->type != MRB_TT_TRUE) {
-      xor(eax, eax);
-      inc(eax);
+      emit_load_literal(reg_tmp0, 1);
       emit_local_var_value_write(dstoff, reg_tmp0);
       emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_TRUE);
       emit_local_var_type_write(dstoff, reg_tmp0);
@@ -831,8 +833,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
     if (dinfo->type != MRB_TT_FALSE) {
-      xor(eax, eax);
-      inc(eax);
+      emit_load_literal(reg_tmp0, 1);
       emit_local_var_value_write(dstoff, reg_tmp0);
       emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
       emit_local_var_type_write(dstoff, reg_tmp0);
@@ -1117,7 +1118,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    xor(eax, eax);
+    emit_load_literal(reg_tmp0, 0);
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
     emit_local_var_type_write(dstoff, reg_tmp0);
@@ -1266,7 +1267,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (GET_OPCODE(i) != OP_SENDB) {
       //SET_NIL_VALUE(regs[a+n+1]);
       int dstoff = (a + n + 1) * sizeof(mrb_value);
-      xor(eax, eax);
+      emit_load_literal(reg_tmp0, 0);
       emit_local_var_value_write(dstoff, reg_tmp0);
       emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
       emit_local_var_type_write(dstoff, reg_tmp0);
@@ -1321,7 +1322,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       L(".exitlab");
       mov(eax, dword [eax + OffsetOf(mrb_irep, iseq)]);
       mov(dword [ebx + VMSOffsetOf(pc)], eax);
-      xor(eax, eax);
+      emit_load_literal(reg_tmp0, 0);
       mov(edx, ".exitlab");
       ret();
 
@@ -1711,7 +1712,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 #define OVERFLOW_CHECK_I_GEN(AINSTF)                                    \
     jno("@f");                                                          \
     cvtsi2sd(xmm0, dword [ecx + off]);                                  \
-    mov(eax, y);                                                        \
+    emit_load_literal(reg_tmp0, y);					\
     cvtsi2sd(xmm1, eax);                                                \
     AINSTF(xmm0, xmm1);                                                 \
     emit_local_var_write(off, reg_dtmp0);				\
@@ -1738,7 +1739,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }                                                                   \
     else if (atype == MRB_TT_FLOAT) {					\
       emit_local_var_read(reg_dtmp0, off);				\
-      mov(eax, y);                                                      \
+      emit_load_literal(reg_tmp0, y);					\
       cvtsi2sd(xmm1, eax);                                              \
       AINSTF(xmm0, xmm1);                                               \
       emit_local_var_write(off, reg_dtmp0);				\
@@ -1778,7 +1779,7 @@ do {                                                                 \
 #define COMP_GEN_IF(CMPINST)                                         \
 do {                                                                 \
     cvtsi2sd(xmm0, ptr [ecx + off0]);                                \
-    xor(eax, eax);					             \
+    emit_load_literal(reg_tmp0, 0);				     \
     comisd(xmm0, ptr [ecx + off1]);				     \
     CMPINST;    						     \
 } while(0)
@@ -1787,7 +1788,7 @@ do {                                                                 \
 do {                                                                 \
     emit_local_var_read(reg_dtmp0, off0);			     \
     cvtsi2sd(xmm1, ptr [ecx + off1]);                                \
-    xor(eax, eax);					             \
+    emit_load_literal(reg_tmp0, 0);				     \
     comisd(xmm0, xmm1);     			                     \
     CMPINST;     						     \
 } while(0)
@@ -1795,7 +1796,7 @@ do {                                                                 \
 #define COMP_GEN_FF(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_read(reg_dtmp0, off0);			     \
-    xor(eax, eax);					             \
+    emit_load_literal(reg_tmp0, 0);				     \
     comisd(xmm0, ptr [ecx + off1]);				     \
     CMPINST;    						     \
 } while(0)
@@ -2048,7 +2049,7 @@ do {                                                                 \
 
     lea(eax, ptr [ecx + srcoff]);
     push(eax);
-    mov(eax, siz);
+    emit_load_literal(reg_tmp0, siz);
     push(eax);
     push(esi);
     call((void *) mrb_ary_new_from_values);
@@ -2311,7 +2312,7 @@ do {                                                                 \
     mov(eax, ptr [esi + OffsetOf(mrb_state, arena_idx)]);
     push(eax);
     emit_cfunc_start();
-    mov(eax, (Xbyak::uint32)mirep);
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)mirep);
     push(eax);
     push(esi);
     if (flags & OP_L_CAPTURE) {
@@ -2325,7 +2326,7 @@ do {                                                                 \
     emit_load_literal(reg_tmp1, 0xfff00000 | MRB_TT_PROC);
     emit_local_var_type_write(dstoff, reg_tmp1);
     if (flags & OP_L_STRICT) {
-      mov(edx, (Xbyak::uint32)MRB_PROC_STRICT);
+      emit_load_literal(reg_tmp1, (Xbyak::uint32)MRB_PROC_STRICT);
       shl(edx, 11);
       or(ptr [eax], edx);
     }
@@ -2352,7 +2353,7 @@ do {                                                                 \
 
     emit_cfunc_start();
 
-    mov(eax, exelp);
+    emit_load_literal(reg_tmp0, exelp);
     push(eax);
     emit_local_var_type_read(reg_tmp0, srcoff1);
     push(eax);
@@ -2388,7 +2389,7 @@ do {                                                                 \
 
     emit_cfunc_start();
 
-    mov(eax, (Xbyak::uint32)str);
+    emit_load_literal(reg_tmp0, (Xbyak::uint32)str);
     mov(edx, dword [eax + 4]);
     push(edx);
     mov(edx, dword [eax]);
