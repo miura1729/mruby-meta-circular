@@ -672,8 +672,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mov(edx, dword [eax + OffsetOf(struct RProc, env)]);
       mov(edx, dword [edx + OffsetOf(struct REnv, stack)]);
       movsd(xmm0, ptr [edx]);
-      mov(eax, dword [edi + OffsetOf(mrb_context, stack)]);
-      movsd(ptr [eax], xmm0);
+      mov(ecx, dword [edi + OffsetOf(mrb_context, stack)]);
+      movsd(ptr [ecx], xmm0);
 
       mrb->compile_info.force_compile = 1;
     }
@@ -1446,6 +1446,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     L("@@");
     
     if (can_inline) {
+      /* Check must copy env */
+      mov(eax, dword [edi + OffsetOf(mrb_context, ci)]);
+      mov(eax, dword [eax + OffsetOf(mrb_callinfo, env)]);
+      test(eax, eax);
+      jnz(".ret_vm");
+
       /* Check exception happened? */
       mov(eax, dword [esi + OffsetOf(mrb_state, exc)]);
       test(eax, eax);
@@ -2392,9 +2398,8 @@ do {                                                                 \
     int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     mrb_value *str = irep->pool + GETARG_Bx(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-    dinfo->type = MRB_TT_RANGE;
-    dinfo->klass = mrb_class(mrb, 
-			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "String")));
+    dinfo->type = MRB_TT_STRING;
+    dinfo->klass = mrb->string_class;
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
@@ -2413,6 +2418,40 @@ do {                                                                 \
 
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
+
+    return code;
+  }
+
+  const void *
+    ent_strcat(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
+    int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_STRING;
+    dinfo->klass = mrb->string_class;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
+
+    push(ecx);
+    push(ebx);
+
+    mov(eax, dword [ecx + srcoff + 4]);
+    push(eax);
+    mov(eax, dword [ecx + srcoff]);
+    push(eax);
+    mov(eax, dword [ecx + dstoff + 4]);
+    push(eax);
+    mov(eax, dword [ecx + dstoff]);
+    push(eax);
+    push(esi);
+    call((void *) mrb_str_concat);
+    add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
+    
+    pop(ebx);
+    pop(ecx);
 
     return code;
   }

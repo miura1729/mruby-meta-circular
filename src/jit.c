@@ -497,8 +497,12 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     int acc;
     int eidx = mrb->c->ci->eidx;
     mrb_value v = (*status->regs)[GETARG_A(i)];
-
-    c->ci--;
+    if (mrb->c->ci->env) {
+      mrbjit_cipop(mrb);
+    }
+    else {
+      c->ci--;
+    }
     acc = ci->acc;
     *status->pc = ci->pc;
     *status->regs = c->stack = ci->stackent;

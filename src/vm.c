@@ -970,11 +970,13 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       irep->method_kind != NORMAL) {
     return status->optable[GET_OPCODE(**ppc)];
   }
-  switch (GET_OPCODE(**ppc)) {
-  case OP_ENTER:
+
+  /* Check first instruction of block. 
+     So clear compille infomation of previous VM instruction */
+  if (irep->iseq == *ppc) {
     mrb->compile_info.prev_coi = NULL;
-    break;
   }
+
   if (irep->jit_entry_tab == NULL) {
     mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
   }

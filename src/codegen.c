@@ -1805,6 +1805,8 @@ codegen(codegen_scope *s, node *tree, int val)
         if (!s2) break;
       }
       if (s2) ainfo = s2->ainfo;
+      s->simple_lambda = 0;
+      s->shared_lambda = 0;
       genop(s, MKOP_ABx(OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf)));
       push();
       if (tree) {
