@@ -2309,9 +2309,9 @@ do {                                                                 \
 	     mov(dword [edx + OffsetOf(struct REnv, c)], eax); */
 	  /*
 	          emit_save_regs();
-                  mov(eax, dword [ecx + dstoff + 4]);
+		  emit_local_var_type_read(reg_tmp0, dstoff);
 		  push(eax);
-		  mov(eax, dword [ecx + dstoff]);
+		  emit_local_var_value_read(reg_tmp0, dstoff);
 		  push(eax);
 		  push(esi);
 		  call((void *)mrb_p);
@@ -2438,13 +2438,13 @@ do {                                                                 \
     push(ecx);
     push(ebx);
 
-    mov(eax, dword [ecx + srcoff + 4]);
+    emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
-    mov(eax, dword [ecx + srcoff]);
+    emit_local_var_value_read(reg_tmp0, srcoff);
     push(eax);
-    mov(eax, dword [ecx + dstoff + 4]);
+    emit_local_var_type_read(reg_tmp0, dstoff);
     push(eax);
-    mov(eax, dword [ecx + dstoff]);
+    emit_local_var_value_read(reg_tmp0, dstoff);
     push(eax);
     push(esi);
     call((void *) mrb_str_concat);
@@ -2485,15 +2485,15 @@ do {                                                                 \
       emit_save_regs();
 
       /* val */
-      mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value) + 4)]);
+      emit_local_var_type_read(reg_vars, srcoff + (i + 1) * sizeof(mrb_value));
       push(ebx);
-      mov(ebx, dword [ecx + (srcoff + (i + 1) * sizeof(mrb_value))]);
+      emit_local_var_value_read(reg_vars, srcoff + (i + 1) * sizeof(mrb_value));
       push(ebx);
 
       /* key */
-      mov(ebx, dword [ecx + (srcoff + i * sizeof(mrb_value) + 4)]);
+      emit_local_var_type_read(reg_vars, srcoff + i * sizeof(mrb_value));
       push(ebx);
-      mov(ebx, dword [ecx + (srcoff + i * sizeof(mrb_value))]);
+      emit_local_var_value_read(reg_vars, srcoff + i * sizeof(mrb_value));
       push(ebx);
 
       /* hash */
