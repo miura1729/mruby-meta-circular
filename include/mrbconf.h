@@ -69,9 +69,6 @@
 //#define DISABLE_STDIO		/* use of stdio */
 //#define ENABLE_DEBUG    /* hooks for debugger */
 
-/* -DENABLE_XXXX to enable following features */
-#define ENABLE_DEBUG		/* hooks for debugger */
-
 /* end of configuration */
 
 /* define ENABLE_XXXX from DISABLE_XXX */

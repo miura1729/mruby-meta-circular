@@ -458,6 +458,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mov(dword [eax + OffsetOf(mrb_callinfo, jit_entry)], edx);
   }
 
+#ifdef ENABLE_DEBUG
   void
     gen_call_fetch_hook(mrb_state *mrb, mrbjit_vmstatus *status)
   {
@@ -472,6 +473,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     call((void *)mrb->code_fetch_hook);
     emit_cfunc_end(sizeof(void *) * 4);
   }
+#endif
 
   void 
     gen_send_mruby(mrb_state *mrb, struct RProc *m, mrb_sym mid, mrb_value recv, 
@@ -503,6 +505,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       /* extend cfunction */
       push(edx);
+      push(ecx);
       push(ebx);
       mov(eax, dword [edi + OffsetOf(mrb_context, cibase)]);
       sub(eax, edx);
@@ -514,6 +517,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       push(esi);
       call((void *) mrbjit_exec_extend_callinfo);
       emit_cfunc_end(3 * sizeof(void *));
+      pop(edx);
       mov(eax, dword [esi + OffsetOf(mrb_state, c)]);
       ret();
     }

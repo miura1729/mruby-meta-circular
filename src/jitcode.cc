@@ -80,9 +80,11 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   }
   const void *entry = code->gen_entry(mrb, status);
 
+#ifdef ENABLE_DEBUG
   if (mrb->code_fetch_hook) {
     code->gen_call_fetch_hook(mrb, status);
   }
+#endif
 
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
