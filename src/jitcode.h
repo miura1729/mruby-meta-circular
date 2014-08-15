@@ -462,6 +462,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   void
     gen_call_fetch_hook(mrb_state *mrb, mrbjit_vmstatus *status)
   {
+    push(edx);
+    push(eax);
     emit_cfunc_start();
     push(ecx);
     //    mov(eax, dword [ebx + VMSOffsetOf(pc)]);
@@ -472,6 +474,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(esi);
     call((void *)mrb->code_fetch_hook);
     emit_cfunc_end(sizeof(void *) * 4);
+    pop(eax);
+    pop(edx);
   }
 #endif
 
