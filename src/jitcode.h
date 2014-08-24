@@ -961,8 +961,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (ivoff != -1) {
       emit_local_var_value_read(reg_tmp0, 0); /* self */
       mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
-      test(eax, eax);
-      jz(".nivset");
+      if (mrb_type(self) != MRB_TT_OBJECT) {
+	test(eax, eax);
+	jz(".nivset");
+      }
       mov(eax, dword [eax]);
       test(eax, eax);
       jnz(".fastivset");
