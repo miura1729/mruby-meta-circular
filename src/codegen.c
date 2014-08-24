@@ -90,6 +90,7 @@ static void gen_assignment(codegen_scope *s, node *node, int sp, int val);
 static void gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
+static void raise_error(codegen_scope *s, const char *msg);
 
 static void
 codegen_error(codegen_scope *s, const char *message)
@@ -574,6 +575,10 @@ for_body(codegen_scope *s, node *tree)
   codegen(s, tree->cdr->car, VAL);
   /* generate loop-block */
   s = scope_new(s->mrb, s, NULL);
+  if (s == NULL) {
+    raise_error(prev, "unexpected scope");
+  }
+
   push();                       /* push for a block parameter */
 
   lp = loop_push(s, LOOP_FOR);
@@ -613,6 +618,10 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   mrb_code c;
   codegen_scope *parent = s;
   s = scope_new(s->mrb, s, tree->car);
+  if (s == NULL) {
+    raise_error(parent, "unexpected scope");
+  }
+
   s->mscope = !blk;
 
   if (blk) {
@@ -699,6 +708,9 @@ static int
 scope_body(codegen_scope *s, node *tree, int val)
 {
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
+  if (scope == NULL) {
+    raise_error(s, "unexpected scope");
+  }
 
   codegen(scope, tree->cdr, VAL);
   if (!s->iseq) {
@@ -771,10 +783,10 @@ gen_values(codegen_scope *s, node *t, int val)
         codegen(s, t->car, VAL);
         pop(); pop();
         if (is_splat) {
-            genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
+          genop(s, MKOP_AB(OP_ARYCAT, cursp(), cursp()+1));
         }
         else {
-            genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
+          genop(s, MKOP_AB(OP_ARYPUSH, cursp(), cursp()+1));
         }
         t = t->cdr;
         while (t) {
@@ -2532,7 +2544,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   mrb_pool *pool = mrb_pool_open(mrb);
   codegen_scope *p = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
 
-  if (!p) return 0;
+  if (!p) return NULL;
   *p = codegen_scope_zero;
   p->mrb = mrb;
   p->mpool = pool;

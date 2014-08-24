@@ -22,7 +22,7 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
-mrb_state*
+MRB_API mrb_state*
 mrb_open_core(mrb_allocf f, void *ud)
 {
   static const mrb_state mrb_state_zero = { 0 };
@@ -76,7 +76,7 @@ struct alloca_header {
   char buf[];
 };
 
-void*
+MRB_API void*
 mrb_alloca(mrb_state *mrb, size_t size)
 {
   struct alloca_header *p;
@@ -103,7 +103,7 @@ mrb_alloca_free(mrb_state *mrb)
   }
 }
 
-mrb_state*
+MRB_API mrb_state*
 mrb_open(void)
 {
   mrb_state *mrb = mrb_open_allocf(mrb_default_allocf, NULL);
@@ -111,10 +111,14 @@ mrb_open(void)
   return mrb;
 }
 
-mrb_state*
+MRB_API mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
 {
   mrb_state *mrb = mrb_open_core(f, ud);
+
+  if (mrb == NULL) {
+    return NULL;
+  }
 
 #ifndef DISABLE_GEMS
   mrb_init_mrbgems(mrb);
@@ -238,7 +242,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   return mrb_obj_value(ns);
 }
 
-void
+MRB_API void
 mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 {
   if (!c) return;
@@ -249,7 +253,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
   mrb_free(mrb, c);
 }
 
-void
+MRB_API void
 mrb_close(mrb_state *mrb)
 {
   if (mrb->atexit_stack_len > 0) {
@@ -287,7 +291,7 @@ mrb_add_irep(mrb_state *mrb)
   return irep;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_top_self(mrb_state *mrb)
 {
   if (!mrb->top_self) {
@@ -298,7 +302,7 @@ mrb_top_self(mrb_state *mrb)
   return mrb_obj_value(mrb->top_self);
 }
 
-void
+MRB_API void
 mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {
 #ifdef MRB_FIXED_STATE_ATEXIT_STACK

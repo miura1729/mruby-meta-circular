@@ -13,7 +13,7 @@ get_closure_irep(mrb_state *mrb, int level)
   if (level == 0) {
     return mrb->c->ci[-1].proc->body.irep;
   }
-    
+
   while (--level) {
     e = (struct REnv*)e->c;
     if (!e) return NULL;
@@ -132,6 +132,15 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
   }
 
   proc = mrb_generate_code(mrb, p);
+  if (proc == NULL) {
+    /* codegen error */
+    mrb_parser_free(p);
+    mrbc_context_free(mrb, cxt);
+    mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
+  }
+  if (mrb->c->ci[-1].proc->target_class) {
+    proc->target_class = mrb->c->ci[-1].proc->target_class;
+  }
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci[-1].proc->env);
   e->mid = mrb->c->ci[-1].mid;
   e->cioff = mrb->c->ci - mrb->c->cibase - 1;
@@ -142,11 +151,6 @@ create_proc_from_string(mrb_state *mrb, char *s, int len, mrb_value binding, cha
 
   mrb_parser_free(p);
   mrbc_context_free(mrb, cxt);
-
-  if (proc == NULL) {
-    /* codegen error */
-    mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
-  }
 
   return proc;
 }

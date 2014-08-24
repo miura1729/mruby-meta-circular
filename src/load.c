@@ -22,10 +22,6 @@
 # define SIZE_ERROR(x) (0)
 #endif
 
-#if CHAR_BIT != 8
-# error This code assumes CHAR_BIT == 8
-#endif
-
 #if UINT32_MAX > SIZE_MAX
 # error This code cannot be built on your environment.
 #endif
@@ -185,11 +181,18 @@ read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool alloc
   mrb_irep *irep = read_irep_record_1(mrb, bin, len, alloc);
   size_t i;
 
+  if (irep == NULL) {
+    return NULL;
+  }
+
   bin += *len;
   for (i=0; i<irep->rlen; i++) {
     size_t rlen;
 
     irep->reps[i] = read_irep_record(mrb, bin, &rlen, alloc);
+    if (irep->reps[i] == NULL) {
+      return NULL;
+    }
     bin += rlen;
     *len += rlen;
   }
@@ -358,7 +361,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
     size_t len;
     int ret;
 
-    ret =read_debug_record(mrb, bin, irep->reps[i], &len, filenames, filenames_len);
+    ret = read_debug_record(mrb, bin, irep->reps[i], &len, filenames, filenames_len);
     if (ret != MRB_DUMP_OK) return ret;
     bin += len;
   }
@@ -523,7 +526,7 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc)
   return MRB_DUMP_OK;
 }
 
-mrb_irep*
+MRB_API mrb_irep*
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
   int result;
@@ -587,11 +590,10 @@ irep_error(mrb_state *mrb)
   mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "irep load error"));
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep(mrb, bin);
-  mrb_value val;
   struct RProc *proc;
 
   if (!irep) {
@@ -601,11 +603,10 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
   proc = mrb_proc_new(mrb, irep);
   mrb_irep_decref(mrb, irep);
   if (c && c->no_exec) return mrb_obj_value(proc);
-  val = mrb_toplevel_run(mrb, proc);
-  return val;
+  return mrb_toplevel_run(mrb, proc);
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
   return mrb_load_irep_cxt(mrb, bin, NULL);
@@ -705,7 +706,7 @@ read_section_irep_file(mrb_state *mrb, FILE *fp)
   return read_irep_record_file(mrb, fp);
 }
 
-mrb_irep*
+MRB_API mrb_irep*
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 {
   mrb_irep *irep = NULL;
@@ -818,7 +819,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
 
 void mrb_codedump_all(mrb_state*, struct RProc*);
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
 {
   mrb_irep *irep = mrb_read_irep_file(mrb, fp);
@@ -837,7 +838,7 @@ mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
   return val;
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 {
   return mrb_load_irep_file_cxt(mrb, fp, NULL);

@@ -4,10 +4,11 @@ MRuby.each_target do
   gems.each do |g|
     test_rbobj = g.test_rbireps.ext(exts.object)
     g.test_objs << test_rbobj
-    dep_list = gems.tsort_dependencies g.test_dependencies, gem_table
+    dep_list = gems.tsort_dependencies(g.test_dependencies, gem_table).select(&:generate_functions)
 
     file test_rbobj => g.test_rbireps
     file g.test_rbireps => [g.test_rbfiles].flatten + [File.join(g.dir, 'mrbgem.rake'), g.build.mrbcfile, __FILE__, "#{MRUBY_ROOT}/tasks/mrbgem_spec.rake"] do |t|
+      FileUtils.mkdir_p File.dirname(t.name)
       open(t.name, 'w') do |f|
         g.print_gem_test_header(f)
         test_preload = g.test_preload and [g.dir, MRUBY_ROOT].map {|dir|
@@ -46,6 +47,10 @@ MRuby.each_target do
           g.test_rbfiles.count.times do |i|
             f.puts %Q[  ai = mrb_gc_arena_save(mrb);]
             f.puts %Q[  mrb2 = mrb_open_core(mrb_default_allocf, NULL);]
+            f.puts %Q[  if (mrb2 == NULL) {]
+            f.puts %Q[    fprintf(stderr, "Invalid mrb_state, exiting \%s", __FUNCTION__);]
+            f.puts %Q[    exit(EXIT_FAILURE);]
+            f.puts %Q[  }]
             dep_list.each do |d|
               f.puts %Q[  GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb2);]
               f.puts %Q[  mrb_state_atexit(mrb2, GENERATED_TMP_mrb_#{d.funcname}_gem_final);]
