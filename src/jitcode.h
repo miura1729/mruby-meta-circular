@@ -509,8 +509,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       /* extend cfunction */
       push(edx);
-      push(ecx);
-      push(ebx);
+      emit_cfunc_start();
       mov(eax, dword [edi + OffsetOf(mrb_context, cibase)]);
       sub(eax, edx);
       neg(eax);
@@ -2428,8 +2427,7 @@ do {                                                                 \
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    push(ecx);
-    push(ebx);
+    emit_cfunc_start();
 
     emit_local_var_type_read(reg_tmp0, srcoff);
     push(eax);
@@ -2441,10 +2439,7 @@ do {                                                                 \
     push(eax);
     push(esi);
     call((void *) mrb_str_concat);
-    add(esp, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
-    
-    pop(ebx);
-    pop(ecx);
+    emit_cfunc_end(sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
     return code;
   }
