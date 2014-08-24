@@ -106,7 +106,7 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   /* check if parser error are available */
   if (0 < parser->nerr) {
-    const char *unexpected_end = "syntax error, unexpected $end";
+    const char unexpected_end[] = "syntax error, unexpected $end";
     const char *message = parser->error_buffer[0].message;
 
     /* a parser error occur, we have to check if */
@@ -114,7 +114,7 @@ is_code_block_open(struct mrb_parser_state *parser)
     /* a different issue which we have to show to */
     /* the user */
 
-    if (strncmp(message, unexpected_end, strlen(unexpected_end)) == 0) {
+    if (strncmp(message, unexpected_end, sizeof(unexpected_end) - 1) == 0) {
       code_block_open = TRUE;
     }
     else if (strcmp(message, "syntax error, unexpected keyword_end") == 0) {
@@ -414,6 +414,10 @@ main(int argc, char **argv)
 
     /* parse code */
     parser = mrb_parser_new(mrb);
+    if (parser == NULL) {
+      fputs("create parser state error\n", stderr);
+      break;
+    }
     parser->s = ruby_code;
     parser->send = ruby_code + strlen(ruby_code);
     parser->lineno = cxt->lineno;
@@ -431,6 +435,11 @@ main(int argc, char **argv)
       else {
         /* generate bytecode */
         struct RProc *proc = mrb_generate_code(mrb, parser);
+        if (proc == NULL) {
+          fputs("codegen error\n", stderr);
+          mrb_parser_free(parser);
+          break;
+        }
 
         if (args.verbose) {
           mrb_codedump_all(mrb, proc);
