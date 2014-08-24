@@ -203,7 +203,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_flush_regs(mrb, *status->pc, status, prevcoi, 1);
       gen_restore_regs(mrb, *status->pc, status, coi);
     }
-    jmp(entry);
+    emit_jmp(entry);
 
     return code;
   }
@@ -216,7 +216,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     size_t dstsize = (unsigned char *)dst - code;
 
     setSize(dstsize);
-    jmp(target);
+    emit_jmp(target);
     setSize(cursize);
   }
 
@@ -273,7 +273,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 #endif
 
       if (newci->used > 0) {
-	jmp((void *)newci->entry);
+	emit_jmp((void *)newci->entry);
 	mrb->compile_info.code_base = NULL;
       }
       /*else {
@@ -981,7 +981,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_cfunc_end(sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
 
     if (ivoff != -1) {
-      jmp(".ivsetend");
+      emit_jmp(".ivsetend");
 
       L(".fastivset");
       emit_local_var_read(reg_dtmp0, srcoff);

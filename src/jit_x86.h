@@ -128,6 +128,16 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     pop(ebx);
     pop(ecx);
   }
+
+  void emit_jmp(const void *addr)
+  {
+    jmp(addr);
+  }
+
+  void emit_jmp(const char *label)
+  {
+    jmp(label);
+  }
 };
 
 
