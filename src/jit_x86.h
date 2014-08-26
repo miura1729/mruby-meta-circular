@@ -138,6 +138,16 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   {
     jmp(label);
   }
+
+  void emit_push(Xbyak::Reg32 reg)
+  {
+    push(reg);
+  }
+
+  void emit_pop(Xbyak::Reg32 reg)
+  {
+    pop(reg);
+  }
 };
 
 
