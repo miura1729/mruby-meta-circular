@@ -148,6 +148,18 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   {
     pop(reg);
   }
+
+  void emit_move(Xbyak::Reg32 dst, Xbyak::Reg32 base, Xbyak::uint32 offset) {
+    mov(dst, ptr [base + offset]);
+  }
+
+  void emit_move(Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::Reg32 src) {
+    mov(ptr [base + offset], src);
+  }
+
+  void emit_move(Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::uint32 src) {
+    mov(ptr [base + offset], src);
+  }
 };
 
 
