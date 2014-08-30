@@ -150,16 +150,50 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_move(Xbyak::Reg32 dst, Xbyak::Reg32 base, Xbyak::uint32 offset) {
-    mov(dst, ptr [base + offset]);
+    if (offset == 0) {
+      mov(dst, ptr [base]);
+    }
+    else {
+      mov(dst, ptr [base + offset]);
+    }
   }
 
   void emit_move(Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::Reg32 src) {
-    mov(ptr [base + offset], src);
+    if (offset == 0) {
+      mov(ptr [base], src);
+    }
+    else {
+      mov(ptr [base + offset], src);
+    }
   }
 
   void emit_move(Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::uint32 src) {
-    mov(ptr [base + offset], src);
+    if (offset == 0) {
+      mov(dword [base], src);
+    }
+    else {
+      mov(dword [base + offset], src);
+    }
   }
+
+  void emit_move(Xbyak::Xmm dst, Xbyak::Reg32 base, Xbyak::uint32 offset) {
+    if (offset == 0) {
+      movsd(dst, ptr [base]);
+    }
+    else {
+      movsd(dst, ptr [base + offset]);
+    }
+  }
+
+  void emit_move(Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::Xmm src) {
+    if (offset == 0) {
+      movsd(ptr [base], src);
+    }
+    else {
+      movsd(ptr [base + offset], src);
+    }
+  }
+
 };
 
 
