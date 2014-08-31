@@ -2052,8 +2052,6 @@ do {                                                                 \
     int siz = GETARG_C(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    emit_move(eax, esi, OffsetOf(mrb_state, arena_idx));
-    emit_push(reg_tmp0);
     emit_cfunc_start();
 
     lea(eax, ptr [ecx + srcoff]);
@@ -2068,8 +2066,8 @@ do {                                                                 \
     emit_local_var_value_write(dstoff, reg_tmp0);
     emit_local_var_type_write(dstoff, reg_tmp1);
     
-    emit_pop(reg_tmp0);
-    emit_move(esi, OffsetOf(mrb_state, arena_idx), eax);
+    emit_move(reg_tmp0, ebx, VMSOffsetOf(ai));
+    emit_move(esi, OffsetOf(mrb_state, arena_idx), reg_tmp0);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
@@ -2087,9 +2085,6 @@ do {                                                                 \
     int dstoff = GETARG_A(**ppc) * sizeof(mrb_value);
     int srcoff = GETARG_B(**ppc) * sizeof(mrb_value);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
-
-    emit_move(eax, esi, OffsetOf(mrb_state, arena_idx));
-    emit_push(reg_tmp0);
 
     emit_cfunc_start();
 
@@ -2118,11 +2113,8 @@ do {                                                                 \
     
     emit_cfunc_end(sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
-    emit_local_var_value_write(dstoff, reg_tmp0);
-    emit_local_var_type_write(dstoff, reg_tmp1);
-
-    emit_pop(reg_tmp0);
-    emit_move(esi, OffsetOf(mrb_state, arena_idx), eax);
+    emit_move(reg_tmp0, ebx, VMSOffsetOf(ai));
+    emit_move(esi, OffsetOf(mrb_state, arena_idx), reg_tmp0);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
@@ -2318,8 +2310,6 @@ do {                                                                 \
       }
     }
 
-    emit_move(eax, esi, OffsetOf(mrb_state, arena_idx));
-    emit_push(reg_tmp0);
     emit_cfunc_start();
     emit_load_literal(reg_tmp0, (Xbyak::uint32)mirep);
     push(eax);
@@ -2339,7 +2329,8 @@ do {                                                                 \
       shl(edx, 11);
       or(ptr [eax], edx);
     }
-    emit_pop(reg_tmp0);
+
+    emit_move(reg_tmp0, ebx, VMSOffsetOf(ai));
     emit_move(esi, OffsetOf(mrb_state, arena_idx), eax);
     return code;
   }
