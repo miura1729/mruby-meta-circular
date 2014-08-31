@@ -1382,20 +1382,25 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_code *pc = *status->pc;
     mrb_value *regs = *status->regs;
     mrb_code i = *pc;
-    /* Ax             arg setup according to flags (24=5:5:1:5:5:1:1) */
+    /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
     /* number of optional arguments times OP_JMP should follow */
-    int ax = GETARG_Ax(i);
-    /* int m1 = (ax>>18)&0x1f; */
-    int o  = (ax>>13)&0x1f;
-    int r  = (ax>>12)&0x1;
-    int m2 = (ax>>7)&0x1f;
+    mrb_aspec ax = GETARG_Ax(i);
+    int m1 = MRB_ASPEC_REQ(ax);
+    int o  = MRB_ASPEC_OPT(ax);
+    int r  = MRB_ASPEC_REST(ax);
+    int m2 = MRB_ASPEC_POST(ax);
+    /* unused
+       int k  = (ax>>2)&0x1f;
+       int kd = (ax>>1)&0x1;
+       int b  = (ax>>0)& 0x1;
+    */
     mrbjit_reginfo *selfinfo = &coi->reginfo[0];
 
     selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
 
-    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0) {
+    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0 || m1 != 0) {
       CALL_CFUNC_BEGIN;
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
     }
