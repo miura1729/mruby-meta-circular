@@ -59,6 +59,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
     ci->nregs = n + 2;
   }
 
+  ci->proc = m;
   if (c->tt == MRB_TT_ICLASS) {
     ci->target_class = c->c;
   }

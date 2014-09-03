@@ -56,9 +56,6 @@ The value below allows about 60000 recursive calls in the simplest case. */
 # define DEBUG(x)
 #endif
 
-#define TO_STR(x) TO_STR_(x)
-#define TO_STR_(x) #x
-
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
 static inline void
@@ -165,7 +162,7 @@ stack_extend_alloc(mrb_state *mrb, int room, int keep)
      to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
   if (size > MRB_STACK_MAX) {
     init_new_stack_space(mrb, room, keep);
-    mrb_raise(mrb, E_SYSSTACK_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
+    mrb_raise(mrb, E_SYSSTACK_ERROR, "stack level too deep. (limit=" MRB_STRINGIZE(MRB_STACK_MAX) ")");
   }
 }
 
@@ -181,45 +178,10 @@ stack_extend(mrb_state *mrb, int room, int keep)
 void
 mrbjit_stack_extend(mrb_state *mrb, int room, int keep)
 {
-  int size, off;
-  
-  mrb_value *oldbase = mrb->c->stbase;
-  
-  size = mrb->c->stend - mrb->c->stbase;
-  off = mrb->c->stack - mrb->c->stbase;
-
-  /* do not leave uninitialized malloc region */
-  if (keep > size) keep = size;
-
-  /* Use linear stack growth.
-     It is slightly slower than doubling thestack space,
-     but it saves memory on small devices. */
-  if (room <= size)
-    size += MRB_STACK_GROWTH;
-  else
-    size += room;
-
-  mrb->c->stbase = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
-  mrb->c->stack = mrb->c->stbase + off;
-  mrb->c->stend = mrb->c->stbase + size;
-  envadjust(mrb, oldbase, mrb->c->stbase);
-  /* Raise an exception if the new stack size will be too large,
-     to prevent infinite recursion. However, do this only after resizing the stack, so mrb_raise has stack space to work with. */
-  if (size > MRB_STACK_MAX) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "stack level too deep. (limit=" TO_STR(MRB_STACK_MAX) ")");
+  if (mrb->c->stack + room >= mrb->c->stend) {
+    stack_extend_alloc(mrb, room, keep);
   }
-
-  if (room > keep) {
-#ifndef MRB_NAN_BOXING
-    stack_clear(&(mrb->c->stack[keep]), room - keep);
-#else
-    struct mrb_context *c = mrb->c;
-    int i;
-    for (i=keep; i<room; i++) {
-      SET_NIL_VALUE(c->stack[i]);
-    }
-#endif
-  }
+  init_new_stack_space(mrb, room, keep);
 }
 
 static inline struct REnv*
@@ -407,7 +369,6 @@ cipush(mrb_state *mrb)
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
-  ci->nregs = 2;   /* protect method_missing arg and block */
   ci->eidx = eidx;
   ci->ridx = ridx;
   ci->env = 0;
@@ -440,6 +401,7 @@ cipop(mrb_state *mrb)
       stack_copy(p, e->stack, len);
     }
     e->stack = p;
+    mrb_write_barrier(mrb, (struct RBasic *)e);
   }
 
   c->ci--;
@@ -500,7 +462,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
   mrb_sym mid = mrb_intern_cstr(mrb, name);
 
   if (argc > MRB_FUNCALL_ARGC_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" TO_STR(MRB_FUNCALL_ARGC_MAX) ")");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Too long arguments. (limit=" MRB_STRINGIZE(MRB_FUNCALL_ARGC_MAX) ")");
   }
 
   va_start(ap, argc);
@@ -669,6 +631,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 
   ci->nregs = p->body.irep->nregs;
   ci = cipush(mrb);
+  ci->nregs = 0;
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
   ci->stackent = mrb->c->stack;
@@ -698,6 +661,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   }
   ci->nregs = p->body.irep->nregs;
   ci = cipush(mrb);
+  ci->nregs = 0;
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
   ci->stackent = mrb->c->stack;
@@ -1790,6 +1754,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_CFUNC_P(m)) {
 	int orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
+        ci->nregs = 0;
         mrb->c->stack[0] = m->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -2810,6 +2775,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_CFUNC_P(p)) {
         int orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
+        ci->nregs = 0;
         mrb->c->stack[0] = p->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -2972,6 +2938,7 @@ mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_kee
     return mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
   }
   ci = cipush(mrb);
+  ci->nregs = 1;   /* protect the receiver */
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
   v = mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);

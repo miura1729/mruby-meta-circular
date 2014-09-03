@@ -56,11 +56,12 @@ static mrb_value
 num_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_float d;
+  mrb_float d, yv;
 
   mrb_get_args(mrb, "o", &y);
-  d = pow(mrb_to_flo(mrb, x), mrb_to_flo(mrb, y));
-  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d))
+  yv = mrb_to_flo(mrb, y);
+  d = pow(mrb_to_flo(mrb, x), yv);
+  if (mrb_fixnum_p(x) && mrb_fixnum_p(y) && FIXABLE(d) && yv > 0)
     return mrb_fixnum_value((mrb_int)d);
   return mrb_float_value(mrb, d);
 }
@@ -76,7 +77,7 @@ num_pow(mrb_state *mrb, mrb_value x)
  * result.
  */
 
-MRB_API mrb_value
+mrb_value
 mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   return mrb_float_value(mrb, mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
@@ -400,7 +401,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
 
   switch (mrb_type(y)) {
   case MRB_TT_FIXNUM:
-    return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_fixnum(y));    
+    return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_fixnum(y));
   case MRB_TT_FLOAT:
     return mrb_bool_value(mrb_float(x) == mrb_float(y));
   default:

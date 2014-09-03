@@ -392,7 +392,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     default:
       {
 	if (c == NULL) {
-	  c = mrb_object(v)->c;
+	  c = mrb_obj_ptr(v)->c;
 	}
 	if (rinfo->klass == c) {
 	  return;
