@@ -1180,7 +1180,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrb_sym ivid;
 
-    ivid = method_check(mrb, m, OP_GETIV);
+    if (MRB_PROC_CFUNC_P(m) && m->body.func == mrbjit_attr_func[0]) {
+      return mrb_symbol(m->env->stack[0]);
+    }
+
+    ivid =method_check(mrb, m, OP_GETIV);
     if (ivid) {
       m->body.irep->method_kind = IV_READER;
     }
@@ -1192,6 +1196,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     is_writer(mrb_state *mrb, struct RProc *m)
   {
     mrb_sym ivid;
+
+    if (MRB_PROC_CFUNC_P(m) && m->body.func == mrbjit_attr_func[1]) {
+      return mrb_symbol(m->env->stack[0]);
+    }
 
     ivid = method_check(mrb, m, OP_SETIV);
     if (ivid) {
@@ -1241,31 +1249,42 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if ((ivid = is_reader(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
-      /* Inline IV reader */
-      emit_local_var_value_read(reg_tmp0, a * sizeof(mrb_value));
-      emit_move(eax, eax, OffsetOf(struct RObject, iv));
-      emit_move(eax, eax, 0);
-      emit_move(xmm0, eax, ivoff * sizeof(mrb_value));
+      if (ivoff >= 0) {
+	/* Inline IV reader */
+	emit_local_var_value_read(reg_tmp0, a * sizeof(mrb_value));
+	emit_move(eax, eax, OffsetOf(struct RObject, iv));
+	emit_move(eax, eax, 0);
+	emit_move(xmm0, eax, ivoff * sizeof(mrb_value));
 
-      // regs[a] = obj;
-      emit_local_var_write(a * sizeof(mrb_value), reg_dtmp0);
+	// regs[a] = obj;
+	emit_local_var_write(a * sizeof(mrb_value), reg_dtmp0);
 
-      return code;
+	return code;
+      }
     }
 
     if ((ivid = is_writer(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
-      /* Inline IV writer */
-      emit_local_var_value_read(reg_tmp0, a * sizeof(mrb_value));
-      emit_move(eax, eax, OffsetOf(struct RObject, iv));
-      emit_move(eax, eax, 0);
+      if (ivoff >= 0) {
+	/* Inline IV writer */
+	emit_local_var_value_read(reg_tmp1, a * sizeof(mrb_value));
+	emit_move(eax, reg_tmp1, OffsetOf(struct RObject, iv));
+	emit_move(eax, eax, 0);
 
-      // @iv = regs[a];
-      emit_local_var_read(reg_dtmp0, (a + 1) * sizeof(mrb_value));
-      movsd(ptr [eax + ivoff * sizeof(mrb_value)], xmm0);
+	// @iv = regs[a];
+	emit_local_var_read(reg_dtmp0, (a + 1) * sizeof(mrb_value));
+	emit_move(eax, ivoff * sizeof(mrb_value), xmm0);
 
-      return code;
+	// mrb_write_barrier(mrb, (struct RBasic*)obj);
+	emit_cfunc_start();
+	push(reg_tmp1);
+	push(esi);
+	call((void *)mrb_write_barrier);
+	emit_cfunc_end(sizeof(mrb_state *) + sizeof(struct RBasic *));
+
+	return code;
+      }
     }
 
     if (GET_OPCODE(i) != OP_SENDB) {

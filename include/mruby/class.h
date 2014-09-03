@@ -70,6 +70,8 @@ void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
+extern mrb_value ((*mrbjit_attr_func[])(mrb_state *, mrb_value));
+
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif

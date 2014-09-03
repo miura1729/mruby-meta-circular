@@ -1188,6 +1188,10 @@ mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
+mrb_value ((*mrbjit_attr_func[])(mrb_state *, mrb_value)) ={
+  attr_reader, attr_writer
+};
+
 static mrb_value
 mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
 {
