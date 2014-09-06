@@ -1274,7 +1274,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 	// @iv = regs[a];
 	emit_local_var_read(reg_dtmp0, (a + 1) * sizeof(mrb_value));
-	emit_move(eax, ivoff * sizeof(mrb_value), xmm0);
+	emit_move(reg_tmp0, ivoff * sizeof(mrb_value), reg_dtmp0);
+	emit_local_var_write(a * sizeof(mrb_value), reg_dtmp0);
 
 	// mrb_write_barrier(mrb, (struct RBasic*)obj);
 	emit_cfunc_start();
