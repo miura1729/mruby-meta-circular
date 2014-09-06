@@ -5,6 +5,7 @@ extern mrb_value mrbjit_prim_fix_to_f(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_obj_not_equal_m(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_ary_aget(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_ary_aset(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_ary_first(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_instance_new(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_mmm_instance_new(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_fiber_resume(mrb_state *, mrb_value, void *, void *);

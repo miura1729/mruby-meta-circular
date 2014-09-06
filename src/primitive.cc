@@ -411,6 +411,39 @@ mrbjit_prim_ary_aset(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 }
 
 mrb_value
+MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_code i = *pc;
+  int regno = GETARG_A(i);
+  int nargs = GETARG_C(i);
+  const Xbyak::uint32 offary = regno * sizeof(mrb_value);
+
+  // No support 1 args only no args.
+  if (nargs > 1) {
+    return mrb_nil_value();
+  }
+
+  gen_class_guard(mrb, regno, status, pc, coi, NULL);
+
+  mov(edx, ptr [ecx + offary]);
+  mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
+  movsd(xmm0, ptr [edx]);
+  movsd(ptr [ecx + offary], xmm0);
+  
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_ary_first(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_ary_first_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
 MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {

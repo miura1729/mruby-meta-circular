@@ -29,6 +29,7 @@ MRuby::Build.new do |conf|
   # include the default GEMs
   #conf.gem '../mruby-meta-circular'
   #conf.gem '../mruby-pjson'
+  #conf.gem '../mruby-profiler'
   conf.gem 'mrbgems/mruby-mmm'
   conf.gembox 'default'
 
