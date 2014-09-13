@@ -1097,10 +1097,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       if (entry) {
 	ci->entry = entry;
 	ci->used = 1;
-	if (n == 0) {
-	  /* This is for OP_CALL */
-	  irep->jit_top_entry = entry;
-	}
       }
       else {
 	/* record contination patch entry */

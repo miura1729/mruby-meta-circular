@@ -2639,7 +2639,6 @@ mrbjit_make_jit_entry_tab(mrb_state *mrb, mrb_irep *irep, int ilen)
   }
 
   irep->prof_info = (int *)mrb_calloc(mrb, ilen, sizeof(int));
-  irep->jit_top_entry = NULL;
 }
 
 static void

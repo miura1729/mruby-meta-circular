@@ -272,7 +272,6 @@ mrb_init_proc(mrb_state *mrb)
   }
   call_irep->prof_info = (int *)mrb_calloc(mrb, 2, sizeof(int));
   call_irep->method_kind = NORMAL;
-  call_irep->jit_top_entry = NULL;
   call_irep->simple_lambda = 1;
   call_irep->proc_obj = NULL;
 

@@ -167,7 +167,6 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, mrb_bool all
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
   irep->method_kind = NORMAL;
   irep->jit_inlinep = 0;
-  irep->jit_top_entry = NULL;
 
   irep->simple_lambda = 1;
   irep->proc_obj = NULL;

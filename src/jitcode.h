@@ -1359,44 +1359,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   const void *
-    ent_call(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
-  {
-    const void *code = getCurr();
-    mrb_value recv = mrb->c->stack[0];
-    struct RProc *m = mrb_proc_ptr(recv);
-    
-    if (MRB_PROC_CFUNC_P(m)) {
-      return NULL;
-    }
-
-    if (m->body.irep == NULL) {
-      return NULL;
-    }
-
-    emit_move(eax, ecx, OffsetOf(mrb_value, value.p));
-    emit_move(eax, eax, OffsetOf(struct RProc, body.irep));
-    emit_move(eax, eax, OffsetOf(mrb_irep, jit_top_entry));
-    test(eax, eax);
-    emit_push(reg_tmp0);
-    jnz("@f");
-    emit_pop(reg_tmp0);
-    gen_exit(mrb, *status->pc, 1, 1, status, coi);
-    L("@@");
-
-    emit_cfunc_start();
-
-    lea(eax, dword [ebx + VMSOffsetOf(status)]);
-    push(eax);
-    push(esi);
-    call((void *)mrbjit_exec_call);
-
-    emit_cfunc_end(2 * sizeof(void *));
-    ret();
-
-    return code;
-  }
-
-  const void *
     ent_enter(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
