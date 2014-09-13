@@ -487,7 +487,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
-    int is_block_call = (m->body.irep->ilen <= 1);
+    int is_block_call = (m->body.irep->ilen == 1 && 
+			 GET_OPCODE(m->body.irep->iseq[0]) == OP_CALL);
 
     callee_nregs = m->body.irep->nregs;
 
