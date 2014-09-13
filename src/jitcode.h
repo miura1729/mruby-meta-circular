@@ -2191,10 +2191,16 @@ do {                                                                 \
     for (i = 0; i < uppos; i++) {
       emit_move(eax, eax, OffsetOf(struct REnv, c));
     }
-    emit_move(eax, eax, OffsetOf(struct REnv, stack));
+    emit_move(edx, eax, OffsetOf(struct REnv, stack));
 
     emit_local_var_read(reg_dtmp0, valoff);
-    emit_move(eax, idxpos * sizeof(mrb_value), xmm0);
+    emit_move(edx, idxpos * sizeof(mrb_value), xmm0);
+
+    emit_cfunc_start();
+    push(eax);
+    push(esi);
+    call((void *)mrb_write_barrier);
+    emit_cfunc_end(sizeof(mrb_state *) + sizeof(struct RBasic *));
 
     return code;
   }
