@@ -1090,7 +1090,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->used < 0 && irep->ilen > 1) {
+      int ioff;
+      int toff;
+      mrbjit_codetab *ctab;
+
+      ioff = ISEQ_OFFSET_OF(*ppc);
+      toff = ci - (irep->jit_entry_tab + ioff)->body;
+
+
       entry = mrbjit_emit_code(mrb, status, ci);
+
+      /* Update ci for realloc in ent_send(gen_set_jit_entry) */
+      ctab = (irep->jit_entry_tab + ioff);
+      ci = ctab->body + toff;
+
       if (prev_entry && entry) {
 	//printf("patch %x %x \n", prev_entry, entry);
 	cbase = mrb->compile_info.code_base;
