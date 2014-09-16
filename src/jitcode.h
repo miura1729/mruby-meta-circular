@@ -221,6 +221,18 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   void 
+    gen_load_patch(void *dst, Xbyak::uint32 address, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    size_t cursize = getSize();
+    const unsigned char *code = getCode();
+    size_t dstsize = (unsigned char *)dst - code;
+
+    setSize(dstsize);
+    mov(edx, address);
+    setSize(cursize);
+  }
+
+  void 
     gen_exit_patch(mrb_state *mrb, void *dst, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     size_t cursize = getSize();
@@ -442,15 +454,18 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
-    /* This is unused entry, but right.Because no other pathes */
-    emit_load_literal(reg_tmp1, (Xbyak::uint32)ctab);
-    emit_move(edx, edx, OffsetOf(mrbjit_codetab, body));
+    /* This code is patched when compiled continaution code */
+    if (ctab->body[toff].entry) {
+      mov(edx, (Xbyak::uint32)ctab->body[toff].entry);
+    }
+    else {
+      ctab->body[toff].patch_pos = getCurr();
+      mov(edx, 0);
+    }
 
     //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
     /* edi must point current context  */
     emit_move(eax, edi,  OffsetOf(mrb_context, ci));
-
-    emit_move(edx, edx, toff * sizeof(mrbjit_code_info) + OffsetOf(mrbjit_code_info, entry));
 
     //printf("%d ", toff);
     emit_move(eax, OffsetOf(mrb_callinfo, jit_entry), edx);

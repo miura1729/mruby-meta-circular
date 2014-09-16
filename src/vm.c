@@ -855,6 +855,7 @@ extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code 
 extern const void *mrbjit_gen_jump_block(mrbjit_code_area, mrb_state *, void *, mrbjit_vmstatus *, mrbjit_code_info *, mrbjit_code_info *);
 extern void mrbjit_gen_jmp_patch(mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_exit_patch(mrbjit_code_area, void *, mrb_state *, mrb_code *, mrbjit_vmstatus *, mrbjit_code_info *);
+extern void mrbjit_gen_load_patch(mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_align(mrbjit_code_area, unsigned);
 
 static inline mrbjit_code_info *
@@ -895,6 +896,8 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
     for (i = oldsize; i < tab->size; i++) {
       tab->body[i].used = 0;
       tab->body[i].reginfo = NULL;
+      tab->body[i].patch_pos = NULL;
+      tab->body[i].entry = NULL;
     }
   }
 
@@ -1106,6 +1109,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	//	printf("set %x %x \n", ci->entry, entry);
 	ci->used = -1;
 	// printf("%x %x %x\n", ci->entry, *ppc, ci);
+      }
+      if (ci->patch_pos) {
+	mrbjit_gen_load_patch(cbase, ci->patch_pos, ci->entry, status, ci);	
+	ci->patch_pos = NULL;
       }
     }
   }
