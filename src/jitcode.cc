@@ -102,6 +102,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
     rc2 = code->ent_block_guard(mrb, status, coi);
+    mrb->compile_info.force_compile = 0;
   }
 
   switch(GET_OPCODE(**ppc)) {

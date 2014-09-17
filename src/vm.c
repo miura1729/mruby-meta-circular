@@ -1030,7 +1030,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       case OP_SENDB:
       case OP_RETURN:
 	ci = NULL;
-	goto skip;
+	//goto skip;
       }
 
       n = ISEQ_OFFSET_OF(*ppc);

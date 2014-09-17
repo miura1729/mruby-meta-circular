@@ -1403,7 +1403,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
     }
 
-    mrb->compile_info.force_compile = 0;
     return code;
   }
 
