@@ -102,6 +102,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
     rc2 = code->ent_block_guard(mrb, status, coi);
+    mrb->compile_info.nest_level++;
     mrb->compile_info.force_compile = 0;
   }
 
@@ -185,7 +186,6 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     break;
     
   case OP_ENTER:
-    mrb->compile_info.nest_level++;
     rc =code->ent_enter(mrb, status, coi);
     break;
 
@@ -303,6 +303,9 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   }
 
   if (rc2) {
+    if (rc == NULL) {
+      code->gen_exit(mrb, *ppc, 1, 0, status, coi);
+    }
     return rc2;
   }
 

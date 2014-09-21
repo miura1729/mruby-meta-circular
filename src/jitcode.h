@@ -450,7 +450,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       ctab->body = (mrbjit_code_info *)mrb_realloc(mrb, ctab->body, 
 						   sizeof(mrbjit_code_info) * ctab->size);
       for (j = oldsize; j < ctab->size; j++) {
-	ctab->body[j].used = 0;
+        ctab->body[j].used = 0;
+        ctab->body[j].reginfo = NULL;
+        ctab->body[j].patch_pos = NULL;
+        ctab->body[j].entry = NULL;
       }
     }
 
@@ -535,7 +538,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       call((void *) mrbjit_exec_extend_callinfo);
       emit_cfunc_end(3 * sizeof(void *));
       emit_pop(reg_tmp1);
-      emit_move(eax, esi, OffsetOf(mrb_state, c));
+      //emit_move(edi, esi, OffsetOf(mrb_state, c));
       ret();
     }
     else {
@@ -609,46 +612,46 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (m->body.irep->nregs != 0) {
       sub(edx, (Xbyak::uint32)callee_nregs * sizeof(mrb_value));
     }
-    cmp(ecx, edx);
-    jb("@f");
 
-    if (addr_call_stack_extend == NULL) {
-      mov(eax, "@f");
-      emit_push(reg_tmp0);
+    {
+      Xbyak::uint32 room;
+      Xbyak::uint32 keep;
+      
       if (n == CALL_MAXARGS) {
-	emit_load_literal(reg_tmp1, 
-			  (Xbyak::uint32)((callee_nregs < 3) ? 3 : 
-					  callee_nregs));
-	emit_load_literal(reg_tmp0, 3);
+	room = (callee_nregs < 3) ? 3 : callee_nregs;
+	keep = 3;
       }
       else {
-	emit_load_literal(reg_tmp1, (Xbyak::uint32)callee_nregs);
-	emit_load_literal(reg_tmp0, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+	room = callee_nregs;
+	keep = n + 2;
       }
+      sub(edx, room * sizeof(mrb_value));
+      cmp(ecx, edx);
+      jb("@f");
 
-      addr_call_stack_extend = (void *)getCurr();
+      if (addr_call_stack_extend == NULL) {
+	mov(eax, "@f");
+	emit_push(reg_tmp0);
+	emit_load_literal(reg_tmp1, room);
+	emit_load_literal(reg_tmp0, keep);
 
-      emit_cfunc_start();
-      push(eax);
-      push(edx);
-      push(esi);
-      call((void *) mrbjit_stack_extend);
-      emit_cfunc_end(3 * sizeof(void *));
+	addr_call_stack_extend = (void *)getCurr();
 
-      emit_move(ecx, edi, OffsetOf(mrb_context, stack));
-      ret();
-    }
-    else {
-      if (n == CALL_MAXARGS) {
-	emit_load_literal(reg_tmp1, (Xbyak::uint32)((callee_nregs < 3) ? 3 : 
-						    callee_nregs));
-	emit_load_literal(reg_tmp0, 3);
+	emit_cfunc_start();
+	push(eax);
+	push(edx);
+	push(esi);
+	call((void *) mrbjit_stack_extend);
+	emit_cfunc_end(3 * sizeof(void *));
+
+	emit_move(ecx, edi, OffsetOf(mrb_context, stack));
+	ret();
       }
       else {
-	emit_load_literal(reg_tmp1, (Xbyak::uint32)callee_nregs);
-	emit_load_literal(reg_tmp0, (Xbyak::uint32)(mrb->c->ci->argc + 2));
+	emit_load_literal(reg_tmp1, room);
+	emit_load_literal(reg_tmp0, keep);
+	call(addr_call_stack_extend);
       }
-      call(addr_call_stack_extend);
     }
       
     L("@@");
@@ -1258,7 +1261,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (!m) {
       return NULL;
     }
-
     gen_flush_regs(mrb, pc, status, coi, 1);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
 
@@ -1368,9 +1370,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       outLocalLabel();
       L("@@");
+
+      return code;
     }
 
-    return code;
+    return NULL;
   }
 
   const void *
