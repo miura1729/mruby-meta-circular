@@ -514,9 +514,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /*    old ci  edx */
     /*    tmp  eax */
     emit_move(edx, edi, OffsetOf(mrb_context, ci));
-
-    cmp(edx, dword [edi + OffsetOf(mrb_context, ciend)]);
-    jb("@f");
+    mov(eax, edx);
+    add(eax, sizeof(mrb_callinfo));
+    cmp(eax, dword [edi + OffsetOf(mrb_context, ciend)]);
+    jne("@f");
 
     if (addr_call_extend_callinfo == NULL) {
       mov(eax, "@f");
