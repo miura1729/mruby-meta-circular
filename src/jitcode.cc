@@ -103,7 +103,6 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     /* Top of iseq */
     rc2 = code->ent_block_guard(mrb, status, coi);
     mrb->compile_info.nest_level++;
-    mrb->compile_info.force_compile = 0;
   }
 
   switch(GET_OPCODE(**ppc)) {
@@ -187,6 +186,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     
   case OP_ENTER:
     rc =code->ent_enter(mrb, status, coi);
+    mrb->compile_info.force_compile = 0;
     break;
 
   case OP_RETURN:
