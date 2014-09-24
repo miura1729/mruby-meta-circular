@@ -62,7 +62,12 @@ typedef unsigned int stack_type;
 #define CMDARG_P()      BITSTACK_SET_P(p->cmdarg_stack)
 
 #define SET_LINENO(c,n) ((c)->lineno = (n))
-#define NODE_LINENO(c,n) do {if (n) ((c)->lineno = (n)->lineno);} while (0)
+#define NODE_LINENO(c,n) do {\
+  if (n) {\
+     (c)->filename_index = (n)->filename_index;\
+     (c)->lineno = (n)->lineno;\
+  }\
+} while (0)
 
 #define sym(x) ((mrb_sym)(intptr_t)(x))
 #define nsym(x) ((node*)(intptr_t)(x))
@@ -3967,22 +3972,22 @@ parse_string(parser_state *p)
 
   if (type & STR_FUNC_REGEXP) {
     int f = 0;
-    int c;
+    int re_opt;
     char *s = strndup(tok(p), toklen(p));
     char flags[3];
     char *flag = flags;
     char *dup;
 
     newtok(p);
-    while (c = nextc(p), c >= 0 && ISALPHA(c)) {
-      switch (c) {
+    while (re_opt = nextc(p), re_opt >= 0 && ISALPHA(re_opt)) {
+      switch (re_opt) {
       case 'i': f |= 1; break;
       case 'x': f |= 2; break;
       case 'm': f |= 4; break;
-      default: tokadd(p, c); break;
+      default: tokadd(p, re_opt); break;
       }
     }
-    pushback(p, c);
+    pushback(p, re_opt);
     if (toklen(p)) {
       char msg[128];
       tokfix(p);
@@ -5439,7 +5444,7 @@ mrb_parser_free(parser_state *p) {
   mrb_pool_close(p->pool);
 }
 
-mrbc_context*
+MRB_API mrbc_context*
 mrbc_context_new(mrb_state *mrb)
 {
   mrbc_context *c;
@@ -5448,14 +5453,14 @@ mrbc_context_new(mrb_state *mrb)
   return c;
 }
 
-void
+MRB_API void
 mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 {
   mrb_free(mrb, cxt->syms);
   mrb_free(mrb, cxt);
 }
 
-const char*
+MRB_API const char*
 mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
@@ -5468,7 +5473,7 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
   return c->filename;
 }
 
-void
+MRB_API void
 mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser_state*), void *data)
 {
   c->partial_hook = func;
@@ -5668,14 +5673,14 @@ void
 mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 {
 #ifdef ENABLE_STDIO
-  int n;
+  int nodetype;
 
   if (!tree) return;
   again:
   dump_prefix(tree, offset);
-  n = (int)(intptr_t)tree->car;
+  nodetype = (int)(intptr_t)tree->car;
   tree = tree->cdr;
-  switch (n) {
+  switch (nodetype) {
   case NODE_BEGIN:
     printf("NODE_BEGIN:\n");
     dump_recur(mrb, tree, offset+1);
@@ -6402,7 +6407,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   default:
-    printf("node type: %d (0x%x)\n", n, (unsigned)n);
+    printf("node type: %d (0x%x)\n", nodetype, (unsigned)nodetype);
     break;
   }
 #endif

@@ -5,6 +5,7 @@
 */
 
 #include <ctype.h>
+#include <limits.h>
 #include <string.h>
 #include "mruby.h"
 #include "mruby/khash.h"
