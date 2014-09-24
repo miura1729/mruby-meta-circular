@@ -1030,6 +1030,13 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       case OP_SENDB:
       case OP_RETURN:
 	ci = NULL;
+	if (mrb->compile_info.force_compile) {
+	  goto skip;
+	}
+	break;
+      }
+      if (rc) {
+	ci = NULL;
 	goto skip;
       }
 
