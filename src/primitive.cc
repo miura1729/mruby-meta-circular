@@ -495,6 +495,21 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     mrb_irep *pirep = m->body.irep;
     mrb_code *piseq = pirep->iseq;
     for (unsigned int i = 0; i < pirep->ilen; i++) {
+      if (GET_OPCODE(piseq[i]) == OP_RETURN && 
+	  (piseq[i] & ((1 << 23) - 1)) != piseq[i]) {
+	pirep->iseq = (mrb_code *)mrb_malloc(mrb, pirep->ilen *  sizeof(mrb_code));
+	for (unsigned int j = 0; j < pirep->ilen; j++) {
+	  pirep->iseq[j] = piseq[j];
+	}
+	if (!(pirep->flags & MRB_ISEQ_NO_FREE)) {
+	  mrb_free(mrb, piseq);
+	}
+	piseq = pirep->iseq;
+	break;
+      }
+    }
+
+    for (unsigned int i = 0; i < pirep->ilen; i++) {
       if (GET_OPCODE(piseq[i]) == OP_RETURN) {
 	/* clear A argument (return self always) */
 	piseq[i] &= ((1 << 23) - 1);
