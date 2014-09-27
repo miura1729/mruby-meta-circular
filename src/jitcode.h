@@ -1309,7 +1309,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (GET_OPCODE(i) != OP_SENDB) {
       //SET_NIL_VALUE(regs[a+n+1]);
-      int dstoff = (a + n + 1) * sizeof(mrb_value);
+      int dstoff;
+      if (n == CALL_MAXARGS) {
+	dstoff = (a + 2) * sizeof(mrb_value);
+      }
+      else {
+	dstoff = (a + n + 1) * sizeof(mrb_value);
+      }
       emit_load_literal(reg_tmp0, 0);
       emit_local_var_value_write(dstoff, reg_tmp0);
       emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
