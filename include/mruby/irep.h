@@ -35,9 +35,9 @@ struct mrb_locals {
 
 /* Program data array struct */
 typedef struct mrb_irep {
-  uint16_t nlocals;        /* Number of local variables */
-  uint16_t nregs;          /* Number of register variables */
-  uint8_t flags;
+  uint32_t nlocals;        /* Number of local variables */
+  uint32_t nregs;          /* Number of register variables */
+  uint32_t flags;
 
   mrb_code *iseq;
   mrb_value *pool;
