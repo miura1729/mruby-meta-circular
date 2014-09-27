@@ -1346,6 +1346,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       push((Xbyak::uint32)c);
       push((Xbyak::uint32)m);
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
+
+      /* Restore c->stack */
+      emit_move(eax, esi, OffsetOf(mrb_state, c));
+      emit_move(eax, OffsetOf(mrb_context, stack), ecx);
     }
     else {
       gen_send_mruby(mrb, m, mid, recv, mrb_class(mrb, recv), status, pc, coi);
