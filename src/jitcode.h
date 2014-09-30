@@ -1474,8 +1474,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       /* Inline else part of mrbjit_exec_return_fast (but not ensure call) */
       emit_push(edi);
 
-      mov(edi, edx);
-
 
       /* Save return value */
       emit_local_var_read(reg_dtmp0, GETARG_A(i) * sizeof(mrb_value));
@@ -1483,7 +1481,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_write(0, reg_dtmp0);
 
       /* Restore Regs */
-      emit_move(ecx, edi, OffsetOf(mrb_callinfo, stackent));
+      emit_move(ecx, edx, OffsetOf(mrb_callinfo, stackent));
       emit_vm_var_write(VMSOffsetOf(regs), reg_regs);
 
       /* Restore c->stack */
@@ -1492,11 +1490,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       /* pop ci */
       emit_move(eax, esi, OffsetOf(mrb_state, c));
-      sub(edi, (Xbyak::uint32)sizeof(mrb_callinfo));
-      emit_move(eax, OffsetOf(mrb_context, ci), edi);
+      sub(edx, (Xbyak::uint32)sizeof(mrb_callinfo));
+      emit_move(eax, OffsetOf(mrb_context, ci), edx);
 
       /* restore proc */
-      emit_move(edx, edi, OffsetOf(mrb_callinfo, proc));
+      emit_move(edx, edx, OffsetOf(mrb_callinfo, proc));
       emit_vm_var_write(VMSOffsetOf(proc), reg_tmp1);
 
       /* restore irep */
