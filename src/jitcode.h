@@ -1430,7 +1430,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_code i = *pc;
     int can_use_fast = (c->ci != c->cibase &&
 			GETARG_B(i) == OP_R_NORMAL &&
-			(c->ci->env == 0 || c->ci->proc->body.irep->shared_lambda));
+			(c->ci->env == 0 || 
+			 c->ci->proc->body.irep->shared_lambda) == 1);
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
@@ -2298,7 +2299,7 @@ do {                                                                 \
     dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
-    if (mirep->simple_lambda && c->proc_pool) {
+    if (mirep->simple_lambda == 1 && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;

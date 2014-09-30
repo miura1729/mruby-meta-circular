@@ -187,7 +187,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   irep->method_kind = NORMAL;
   irep->jit_inlinep = 0;
 
-  irep->simple_lambda = 1;
+  irep->simple_lambda = 0;
+  irep->shared_lambda = 0;
   irep->proc_obj = NULL;
 
   return irep;

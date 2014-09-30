@@ -391,7 +391,7 @@ cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
 
-  if (c->ci->env && !c->ci->proc->body.irep->shared_lambda) {
+  if (c->ci->env && c->ci->proc->body.irep->shared_lambda != 1) {
     struct REnv *e = c->ci->env;
     size_t len = (size_t)MRB_ENV_STACK_LEN(e);
     mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
@@ -2703,7 +2703,7 @@ RETRY_TRY_BLOCK:
       int c = GETARG_c(i);
       mrb_irep *mirep = irep->reps[GETARG_b(i)];
 
-      if (mirep->shared_lambda) {
+      if (mirep->shared_lambda == 1) {
 	p = get_local_proc(mrb, mirep);
 	p->env->stack = mrb->c->stack;
 	p->env->c = (struct RClass*)mrb->c->ci->proc->env;
