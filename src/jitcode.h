@@ -1431,7 +1431,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int can_use_fast = (c->ci != c->cibase &&
 			GETARG_B(i) == OP_R_NORMAL &&
 			(c->ci->env == 0 || 
-			 c->ci->proc->body.irep->shared_lambda) == 1);
+			 c->ci->proc->body.irep->shared_lambda == 1));
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
