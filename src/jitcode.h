@@ -1537,6 +1537,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
+    mrb_code i = *pc;
 
 #if 0
     mrb_value *regs = *status->regs;
@@ -1550,10 +1551,50 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 #endif
 
     gen_flush_regs(mrb, pc, status, coi, 1);
-    CALL_CFUNC_BEGIN;
-    CALL_CFUNC_STATUS(mrbjit_exec_return, 0);
+
+    inLocalLabel();
+
+    /* Set return address from callinfo */
+    
+    /* Check exception happened? */
+    emit_move(eax, esi, OffsetOf(mrb_state, exc));
+    test(eax, eax);
+    jz(".skip_ret_vm");
+
+    gen_exit(mrb, *status->pc, 1, 0, status, coi);
+
+    L(".skip_ret_vm");
+
+    /* Inline else part of mrbjit_exec_return_fast (but not ensure call) */
+
+    /* Save return value */
+    emit_local_var_read(reg_dtmp0, GETARG_A(i) * sizeof(mrb_value));
+
+    /* Store return value (bottom of stack always return space) */
+    emit_local_var_write(0, reg_dtmp0);
+
+    /* Restore Regs */
+    emit_move(edx, edi, OffsetOf(mrb_context, ci));
+    emit_move(ecx, edx, OffsetOf(mrb_callinfo, stackent));
+    emit_vm_var_write(VMSOffsetOf(regs), reg_regs);
+
+    /* Restore c->stack */
+    emit_move(edi, OffsetOf(mrb_context, stack), ecx);
+
+    /* pop ci */
+    sub(edx, (Xbyak::uint32)sizeof(mrb_callinfo));
+    emit_move(edi, OffsetOf(mrb_context, ci), edx);
+
+    /* restore proc */
+    emit_move(edx, edx, OffsetOf(mrb_callinfo, proc));
+    emit_vm_var_write(VMSOffsetOf(proc), reg_tmp1);
+
+    /* restore irep */
+    emit_move(edx, edx, OffsetOf(struct RProc, body.irep));
+    emit_vm_var_write(VMSOffsetOf(irep), reg_tmp1);
 
     emit_vm_var_read(reg_regs, VMSOffsetOf(regs));
+    outLocalLabel();
 
     return code;
   }
