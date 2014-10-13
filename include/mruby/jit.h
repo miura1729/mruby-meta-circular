@@ -21,6 +21,8 @@ typedef enum {
   LOCALJUMP_ERROR_YIELD = 2
 } localjump_error_kind;
 
+int mrbjit_check_inlineble(mrb_state *, struct mrb_irep *);
+
 mrb_value mrb_uvget(mrb_state *, int, int);
 void mrb_uvset(mrb_state *, int, int, mrb_value);
 mrb_callinfo* mrbjit_cipush(mrb_state *);

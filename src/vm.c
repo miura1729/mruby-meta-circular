@@ -950,7 +950,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   prev_pc = mrb->compile_info.prev_pc;
 
-  if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+  if (irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
   }
   else {
@@ -1041,7 +1041,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
 
       n = ISEQ_OFFSET_OF(*ppc);
-      if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+      if (irep->jit_inlinep) {
 	caller_pc = mrb->c->ci->pc;
       }
       else {
@@ -2850,7 +2850,7 @@ RETRY_TRY_BLOCK:
 	}
       }
 
-      mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = 0;
+      mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, mrb_proc_ptr(regs[a+1])->body.irep);
       mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
       ARENA_RESTORE(mrb, ai);
       NEXT;

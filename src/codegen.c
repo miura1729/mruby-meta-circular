@@ -706,7 +706,6 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   if (blk) {
     loop_pop(s, NOVAL);
   }
-  //s->irep->jit_inlinep = 1;
   scope_finish(s);
   return parent->irep->rlen - 1;
 }
@@ -2603,7 +2602,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
     p->lines = (uint16_t*)mrb_malloc(mrb, sizeof(short)*p->icapa);
   }
   p->lineno = prev->lineno;
-  p->irep->jit_inlinep = 0;
+  p->irep->jit_inlinep = mrbjit_check_inlineble(mrb, p->irep);
 
   p->simple_lambda = 1;
   p->shared_lambda = 1;
@@ -2660,7 +2659,6 @@ scope_finish(codegen_scope *s)
   }
   mrbjit_make_jit_entry_tab(mrb, irep, s->pc);
   irep->method_kind = NORMAL;
-  //irep->jit_inlinep = s->irep->jit_inlinep;
   irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);

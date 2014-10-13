@@ -185,7 +185,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   }
   irep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
   irep->method_kind = NORMAL;
-  irep->jit_inlinep = 0;
+  irep->jit_inlinep = mrbjit_check_inlineble(mrb, irep);
 
   irep->simple_lambda = 0;
   irep->shared_lambda = 0;

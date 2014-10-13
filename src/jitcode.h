@@ -263,7 +263,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_code_info *newci;
     mrb_irep *irep = *status->irep;
     int n = ISEQ_OFFSET_OF(newpc);
-    if (irep->ilen < NO_INLINE_METHOD_LEN || irep->jit_inlinep) {
+    if (irep->jit_inlinep) {
       newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
 					  curpc, mrb->c->ci->pc);
     }
@@ -659,7 +659,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     emit_vm_var_write(VMSOffsetOf(regs), reg_regs);
 
-    gen_set_jit_entry(mrb, pc, coi, irep);
+    if (irep->jit_inlinep == 0) {
+      gen_set_jit_entry(mrb, pc, coi, irep);
+    }
 
     if (is_block_call) {
       emit_move(eax, edi, OffsetOf(mrb_context, ci));
@@ -1593,7 +1595,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(edx, edx, OffsetOf(struct RProc, body.irep));
     emit_vm_var_write(VMSOffsetOf(irep), reg_tmp1);
 
-    emit_vm_var_read(reg_regs, VMSOffsetOf(regs));
     outLocalLabel();
 
     return code;

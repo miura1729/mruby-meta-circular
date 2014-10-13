@@ -24,6 +24,73 @@
 # define DEBUG(x)
 #endif
 
+int
+mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
+{
+  int i;
+
+  if (irep->ilen >= NO_INLINE_METHOD_LEN) {
+    return 0;
+  }
+
+  for (i = 0; i < irep->ilen; i++) {
+    switch(GET_OPCODE(irep->iseq[i])) {
+    case OP_NOP:
+    case OP_MOVE:
+    case OP_LOADL:
+    case OP_LOADI:
+    case OP_LOADSYM:
+    case OP_LOADSELF:
+    case OP_LOADNIL:
+    case OP_LOADT:
+    case OP_LOADF:
+    case OP_GETGLOBAL:
+    case OP_SETGLOBAL:
+    case OP_GETIV:
+    case OP_SETIV:
+    case OP_GETCV:
+    case OP_SETCV:
+    case OP_GETCONST:
+    case OP_GETMCNST:
+      //case OP_SENDB:
+      //    case OP_SEND:
+    case OP_CALL:
+    case OP_ENTER:
+    case OP_RETURN:
+    case OP_ADD:
+    case OP_SUB:
+    case OP_MUL:
+    case OP_DIV:
+    case OP_ADDI:
+    case OP_SUBI:
+    case OP_EQ:
+    case OP_LT:
+    case OP_LE:
+    case OP_GT:
+    case OP_GE:
+    case OP_ARRAY:
+    case OP_ARYCAT:
+    case OP_GETUPVAR:
+    case OP_SETUPVAR:
+    case OP_JMP:
+    case OP_JMPIF:
+    case OP_JMPNOT:
+      //case OP_LAMBDA:
+    case OP_RANGE:
+    case OP_STRING:
+    case OP_STRCAT:
+    case OP_HASH:
+    case OP_BLKPUSH:
+      break;
+
+    default:
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 void *
 mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 		 struct RProc *m, struct RClass *c)
