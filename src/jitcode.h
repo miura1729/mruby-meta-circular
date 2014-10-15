@@ -553,15 +553,18 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     add(dword [edi + OffsetOf(mrb_context, ci)], (Xbyak::uint32)sizeof(mrb_callinfo));
     emit_move(edi, edi, OffsetOf(mrb_context, ci));
 
+    emit_load_literal(reg_tmp0, 0);
+    emit_move(edi, OffsetOf(mrb_callinfo, env), eax);
+    emit_move(edi, OffsetOf(mrb_callinfo, err), eax);
+    if (irep->jit_inlinep == 0 || 1) {
+      emit_move(edi, OffsetOf(mrb_callinfo, jit_entry), eax);
+    }
+
+    /* Inherit eidx/ridx */
     emit_move(eax, edx, OffsetOf(mrb_callinfo, eidx));
     emit_move(edi, OffsetOf(mrb_callinfo, eidx), eax);
     emit_move(eax, edx, OffsetOf(mrb_callinfo, ridx));
     emit_move(edi, OffsetOf(mrb_callinfo, ridx), eax);
-
-    emit_load_literal(reg_tmp0, 0);
-    emit_move(edi, OffsetOf(mrb_callinfo, env), eax);
-    emit_move(edi, OffsetOf(mrb_callinfo, jit_entry), eax);
-    emit_move(edi, OffsetOf(mrb_callinfo, err), eax);
 
     if (n == CALL_MAXARGS) {
       emit_load_literal(reg_tmp0, -1);
@@ -659,7 +662,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     emit_vm_var_write(VMSOffsetOf(regs), reg_regs);
 
-    if (irep->jit_inlinep == 0) {
+    if (irep->jit_inlinep == 0 || 1) {
       gen_set_jit_entry(mrb, pc, coi, irep);
     }
 
@@ -1206,7 +1209,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       return mrb_symbol(m->env->stack[0]);
     }
 
-    ivid =method_check(mrb, m, OP_GETIV);
+    ivid = method_check(mrb, m, OP_GETIV);
     if (ivid) {
       m->body.irep->method_kind = IV_READER;
     }
@@ -1225,7 +1228,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     ivid = method_check(mrb, m, OP_SETIV);
     if (ivid) {
-      m->body.irep->method_kind = IV_READER;
+      m->body.irep->method_kind = IV_WRITER;
     }
 
     return ivid;

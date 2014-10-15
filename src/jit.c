@@ -52,8 +52,8 @@ mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
     case OP_SETCV:
     case OP_GETCONST:
     case OP_GETMCNST:
-      //case OP_SENDB:
-      //    case OP_SEND:
+    case OP_SENDB:
+    case OP_SEND:
     case OP_CALL:
     case OP_ENTER:
     case OP_RETURN:
@@ -70,8 +70,8 @@ mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
     case OP_GE:
     case OP_ARRAY:
     case OP_ARYCAT:
-    case OP_GETUPVAR:
-    case OP_SETUPVAR:
+      //case OP_GETUPVAR:
+      //case OP_SETUPVAR:
     case OP_JMP:
     case OP_JMPIF:
     case OP_JMPNOT:
@@ -80,7 +80,7 @@ mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
     case OP_STRING:
     case OP_STRCAT:
     case OP_HASH:
-    case OP_BLKPUSH:
+      //case OP_BLKPUSH:
       break;
 
     default:
