@@ -323,6 +323,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     if (o == 0 || argc < m1+m2) {
       *(status->pc) += 1;
+      return NULL;
     }
     else
       *(status->pc) += argc - m1 - m2 + 1;
