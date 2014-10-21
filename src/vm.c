@@ -1016,7 +1016,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       regs = *status->regs;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
-      //disasm_once(mrb, irep, **ppc);
+      disasm_once(mrb, irep, **ppc);
       //mrb_irep *search_irep(mrb_state *mrb, mrb_code *pc);
       //if (search_irep(mrb, *ppc) != irep) {
       //printf("%x %x %x \n", irep, *ppc, prev_entry);

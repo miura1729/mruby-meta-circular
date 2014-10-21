@@ -441,7 +441,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
 	}
-	rc = status->optable[GET_OPCODE(*ci->pc)];
+	//rc = status->optable[GET_OPCODE(*ci->pc)];
 	mrb->c->ci = ci;
 	break;
       }
@@ -468,7 +468,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	goto L_RAISE;
       }
       ci = mrb->c->ci = mrb->c->cibase + (*status->proc)->env->cioff + 1;
-      rc = status->optable[GET_OPCODE(*ci->pc)];
+      //rc = status->optable[GET_OPCODE(*ci->pc)];
       break;
     default:
       /* cannot happen */

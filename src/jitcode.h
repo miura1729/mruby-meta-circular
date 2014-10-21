@@ -471,7 +471,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(eax, edi,  OffsetOf(mrb_context, ci));
 
     //printf("%d ", toff);
-    emit_move(eax, OffsetOf(mrb_callinfo, jit_entry), edx);
+    emit_move(eax, OffsetOf(mrb_callinfo, jit_entry) - sizeof(mrb_callinfo), edx);
   }
 
 #ifdef ENABLE_DEBUG
@@ -557,7 +557,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(edi, OffsetOf(mrb_callinfo, env), eax);
     emit_move(edi, OffsetOf(mrb_callinfo, err), eax);
     if (irep->jit_inlinep == 0 || 1) {
-      emit_move(edi, OffsetOf(mrb_callinfo, jit_entry), eax);
+      emit_move(edx, OffsetOf(mrb_callinfo, jit_entry), eax);
     }
 
     /* Inherit eidx/ridx */
@@ -1453,21 +1453,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     inLocalLabel();
 
-    /* Set return address from callinfo */
-    emit_move(edx, edi, OffsetOf(mrb_context, ci));
-    emit_move(eax, edx, OffsetOf(mrb_callinfo, jit_entry));
-    test(eax, eax);
-    emit_push(reg_tmp0);
-    jnz("@f");
-    L(".ret_vm");
-    pop(eax);
-    gen_exit(mrb, *status->pc, 1, 0, status, coi);
-    L("@@");
-    
     if (can_inline) {
       /* Check must copy env */
-      emit_move(eax, edi, OffsetOf(mrb_context, ci));
-      emit_move(eax, eax, OffsetOf(mrb_callinfo, env));
+      emit_move(edx, edi, OffsetOf(mrb_context, ci));
+      emit_move(eax, edx, OffsetOf(mrb_callinfo, env));
       test(eax, eax);
       jnz(".ret_vm");
 
@@ -1495,14 +1484,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(edi, OffsetOf(mrb_context, ci), edx);
 
       /* restore proc */
-      emit_move(edx, edx, OffsetOf(mrb_callinfo, proc));
-      emit_vm_var_write(VMSOffsetOf(proc), reg_tmp1);
+      emit_move(eax, edx, OffsetOf(mrb_callinfo, proc));
+      emit_vm_var_write(VMSOffsetOf(proc), reg_tmp0);
 
       /* restore irep */
-      emit_move(edx, edx, OffsetOf(struct RProc, body.irep));
-      emit_vm_var_write(VMSOffsetOf(irep), reg_tmp1);
-
-      ret();
+      emit_move(eax, eax, OffsetOf(struct RProc, body.irep));
+      emit_vm_var_write(VMSOffsetOf(irep), reg_tmp0);
     }
     else {
       /* Update pc */
@@ -1521,16 +1508,29 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
       emit_cfunc_end(2 * 4);
 
-      emit_vm_var_read(reg_regs, VMSOffsetOf(regs));
-
       test(eax, eax);
       jz("@f");
-      pop(edx);			/* pop return address from callinfo */
       gen_exit(mrb, NULL, 0, 0, status, coi);
       L("@@");
 
-      ret();
+      emit_vm_var_read(reg_regs, VMSOffsetOf(regs));
+      emit_move(edx, edi, OffsetOf(mrb_context, ci));
     }
+
+    /* Set return address from callinfo */
+    emit_move(eax, edx, OffsetOf(mrb_callinfo, jit_entry));
+    test(eax, eax);
+    jnz("@f");
+    if (can_inline) {
+      emit_move(eax, edx, OffsetOf(mrb_callinfo, pc) + sizeof(mrb_callinfo));
+      emit_vm_var_write(VMSOffsetOf(pc), reg_tmp0);
+      L(".ret_vm");
+    }
+
+    gen_exit(mrb, NULL, 1, 1, status, coi);
+
+    L("@@");
+    jmp(eax);
 
     outLocalLabel();
 
