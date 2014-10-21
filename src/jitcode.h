@@ -557,7 +557,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(edi, OffsetOf(mrb_callinfo, env), eax);
     emit_move(edi, OffsetOf(mrb_callinfo, err), eax);
     if (irep->jit_inlinep == 0 || 1) {
-      emit_move(edx, OffsetOf(mrb_callinfo, jit_entry), eax);
+      //emit_move(edx, OffsetOf(mrb_callinfo, jit_entry), eax);
     }
 
     /* Inherit eidx/ridx */

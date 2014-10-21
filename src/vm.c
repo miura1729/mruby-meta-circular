@@ -368,11 +368,11 @@ cipush(mrb_state *mrb)
     c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
   }
+  c->ci->jit_entry = NULL;
   ci = ++c->ci;
   ci->eidx = eidx;
   ci->ridx = ridx;
   ci->env = 0;
-  ci->jit_entry = NULL;
   ci->pc = 0;
   ci->err = 0;
   ci->proc = 0;
@@ -1016,7 +1016,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       regs = *status->regs;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
-      disasm_once(mrb, irep, **ppc);
+      //disasm_once(mrb, irep, **ppc);
       //mrb_irep *search_irep(mrb_state *mrb, mrb_code *pc);
       //if (search_irep(mrb, *ppc) != irep) {
       //printf("%x %x %x \n", irep, *ppc, prev_entry);
