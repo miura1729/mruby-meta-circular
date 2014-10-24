@@ -104,7 +104,7 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   outLocalLabel();
 
   mov(dword [ecx + off0], eax);
-  mov(dword [ecx + off0 + 4], 0xfff80000 | MRB_TT_FIXNUM);
+  mov(dword [ecx + off0 + 4], 0xfff00000 | MRB_TT_FIXNUM);
   dinfo->type = MRB_TT_FIXNUM;
   dinfo->klass = mrb->fixnum_class;
 

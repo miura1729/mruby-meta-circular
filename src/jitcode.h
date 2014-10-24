@@ -1453,6 +1453,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     inLocalLabel();
 
+    /* Update pc */
+    emit_vm_var_write(VMSOffsetOf(pc), (Xbyak::uint32)(*status->pc));
+
     if (can_inline) {
       /* Check must copy env */
       emit_move(edx, edi, OffsetOf(mrb_context, ci));
@@ -1479,6 +1482,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       /* Restore c->stack */
       emit_move(edi, OffsetOf(mrb_context, stack), ecx);
 
+      /* Restore PC */
+      emit_move(eax, edx, OffsetOf(mrb_callinfo, pc));
+      emit_vm_var_write(VMSOffsetOf(pc), reg_tmp0);
+
       /* pop ci */
       sub(edx, (Xbyak::uint32)sizeof(mrb_callinfo));
       emit_move(edi, OffsetOf(mrb_context, ci), edx);
@@ -1492,9 +1499,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_vm_var_write(VMSOffsetOf(irep), reg_tmp0);
     }
     else {
-      /* Update pc */
-      emit_vm_var_write(VMSOffsetOf(pc), (Xbyak::uint32)(*status->pc));
-
       emit_cfunc_start();
 
       lea(eax, dword [ebx + VMSOffsetOf(status)]);
@@ -1521,12 +1525,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(eax, edx, OffsetOf(mrb_callinfo, jit_entry));
     test(eax, eax);
     jnz("@f");
-    if (can_inline) {
-      emit_move(eax, edx, OffsetOf(mrb_callinfo, pc) + sizeof(mrb_callinfo));
-      emit_vm_var_write(VMSOffsetOf(pc), reg_tmp0);
-      L(".ret_vm");
-    }
 
+    L(".ret_vm");
     gen_exit(mrb, NULL, 1, 1, status, coi);
 
     L("@@");
