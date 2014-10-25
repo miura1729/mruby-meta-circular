@@ -55,9 +55,10 @@ typedef struct mrb_irep {
   mrb_int is_method_cache_used;
 
   /* Lambda optimize */
-  int simple_lambda;
-  int shared_lambda;
-  int block_lambda;
+  signed char simple_lambda;
+  signed char shared_lambda;
+  signed char block_lambda;
+  signed char disable_jit;
   struct RProc *proc_obj;
 
   /* JIT stuff */

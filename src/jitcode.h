@@ -1336,6 +1336,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	break;
 	
       case MRB_TT_TRUE:
+	if (!MRB_PROC_CFUNC_P(m)) {
+	  m->body.irep->disable_jit = 1;
+	}
 	return code;
 
       default:
@@ -1559,6 +1562,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     inLocalLabel();
 
+    /* Update pc */
+    emit_vm_var_write(VMSOffsetOf(pc), (Xbyak::uint32)(*status->pc));
+
     /* Set return address from callinfo */
     
     /* Check exception happened? */
@@ -1585,6 +1591,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     /* Restore c->stack */
     emit_move(edi, OffsetOf(mrb_context, stack), ecx);
+
+    /* Restore PC */
+    emit_move(eax, edx, OffsetOf(mrb_callinfo, pc));
+    emit_vm_var_write(VMSOffsetOf(pc), reg_tmp0);
 
     /* pop ci */
     sub(edx, (Xbyak::uint32)sizeof(mrb_callinfo));
@@ -2599,6 +2609,10 @@ do {                                                                 \
 
   mrb_value
     mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
+			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
+  mrb_value
+    mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 };
 

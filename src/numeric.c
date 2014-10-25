@@ -1291,6 +1291,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, "<=>",      num_cmp,        MRB_ARGS_REQ(1));  /* 15.2.9.3.6  */
   mrbjit_define_primitive(mrb, numeric, "<=>", mrbjit_prim_num_cmp);
 
+  mrbjit_define_primitive(mrb, numeric, "-@", mrbjit_prim_numeric_minus_at);
+
   /* Integer Class */
   integer = mrb_define_class(mrb, "Integer",  numeric);                          /* 15.2.8 */
   mrb_undef_class_method(mrb, integer, "new");

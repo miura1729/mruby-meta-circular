@@ -2678,6 +2678,7 @@ scope_finish(codegen_scope *s)
 
   irep->simple_lambda = s->simple_lambda;
   irep->shared_lambda = s->shared_lambda;
+  irep->disable_jit = 0;
   irep->block_lambda = 0;
   irep->proc_obj = NULL;
 
