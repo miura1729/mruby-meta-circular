@@ -42,6 +42,11 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     movsd(dst, ptr [reg_regs + regno]);
   }
 
+  void emit_local_var_int_value_read(Xbyak::Xmm dst, int regno)
+  {
+    cvtsi2sd(dst, ptr [reg_regs + regno]);
+  }
+
   void emit_local_var_write(int regno, Xbyak::Xmm src)
   {
     movsd(ptr [reg_regs + regno], src);
@@ -191,6 +196,26 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
     else {
       movsd(ptr [base + offset], src);
+    }
+  }
+
+  void emit_bool_boxing(Xbyak::Reg32 dst) {
+    xor(ah, ah);
+    cwde();
+    add(eax, eax);
+    or(eax, 0xfff00001);
+    if (dst != eax) {
+      mov(dst, eax);
+    }
+  }
+
+  void emit_cmp(Xbyak::Reg32 dst) {
+    xor(ah, ah);
+    cwde();
+    add(eax, eax);
+    or(eax, 0xfff00001);
+    if (dst != eax) {
+      mov(dst, eax);
     }
   }
 
