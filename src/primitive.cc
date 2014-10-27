@@ -429,7 +429,7 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_value_read(reg_tmp1, offary);
   mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
-  emit_local_var_read(xmm0, 0);
+  emit_move(xmm0, reg_tmp1, 0);
   emit_local_var_write(offary, xmm0);
   
   return mrb_true_value();
