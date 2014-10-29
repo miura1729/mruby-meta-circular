@@ -209,16 +209,43 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
-  void emit_cmp(Xbyak::Reg32 dst) {
-    xor(ah, ah);
-    cwde();
-    add(eax, eax);
-    or(eax, 0xfff00001);
-    if (dst != eax) {
-      mov(dst, eax);
+  void emit_vm_var_cmp(Xbyak::Reg32 src, int regno) {
+    cmp(src, ptr [reg_regs + regno]);
+  }
+
+  void emit_vm_var_cmp(Xbyak::Xmm src, int regno) {
+    comisd(src, ptr [reg_regs + regno]);
+  }
+
+  void emit_cmp(Xbyak::Reg32 src, Xbyak::Reg32 base, Xbyak::uint32 offset) {
+    if (offset == 0) {
+      cmp(src, ptr [base]);
+    }
+    else {
+      cmp(src, ptr [base + offset]);
     }
   }
 
+  void emit_cmp(Xbyak::Reg32 srcr, Xbyak::uint32 src) {
+    cmp(srcr, src);
+  }
+
+  void emit_cmp(Xbyak::Reg32 src0, Xbyak::Reg32 src1) {
+    cmp(src0, src1);
+  }
+
+  void emit_cmp(Xbyak::Xmm src0, Xbyak::Xmm src1) {
+    cmp(src0, src1);
+  }
+
+  void emit_cmp(Xbyak::Xmm src, Xbyak::Reg32 base, Xbyak::uint32 offset) {
+    if (offset == 0) {
+      comisd(src, ptr [base]);
+    }
+    else {
+      comisd(src, ptr [base + offset]);
+    }
+  }
 };
 
 

@@ -51,7 +51,7 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
 
     emit_local_var_read(xmm0, off0);
     emit_local_var_int_value_read(xmm1, off1);
-    comisd(xmm0, xmm1);
+    emit_cmp(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&
 	   mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {
@@ -60,7 +60,7 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
 
     emit_local_var_int_value_read(xmm0, off0);
     emit_local_var_read(xmm1, off1);
-    comisd(xmm0, xmm1);
+    emit_cmp(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
 	   mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {
@@ -69,15 +69,15 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
 
     emit_local_var_read(xmm0, off0);
     emit_local_var_read(xmm1, off1);
-    comisd(xmm0, xmm1);
+    emit_cmp(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&
 	   mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {
     emit_local_var_int_value_read(xmm0, off0);
     emit_local_var_int_value_read(xmm1, off1);
-    comisd(xmm0, xmm1);
+    emit_cmp(xmm0, xmm1);
     /*	  emit_local_var_value_read(reg_tmp0, off0);
-	  cmp(eax, dword [ecx + off1]);*/
+	  emit_cmp(eax, ecx, off1);*/
   }
   else {
     return mrb_nil_value();
@@ -310,7 +310,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   add(eax, dword [edx + OffsetOf(struct RArray, len)]);
   jl(".retnil");
   L(".normal");
-  cmp(eax, dword [edx + OffsetOf(struct RArray, len)]);
+  emit_cmp(eax, edx, OffsetOf(struct RArray, len));
   jge(".retnil");
   mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
   test(edx, edx);
@@ -371,7 +371,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   add(eax, dword [edx + OffsetOf(struct RArray, len)]);
   jl(".retnil");
   L(".normal");
-  cmp(eax, dword [edx + OffsetOf(struct RArray, len)]);
+  emit_cmp(eax, edx, OffsetOf(struct RArray, len));
   jg(".retnil");
   push(eax);
 

@@ -131,7 +131,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       disasm_once(mrb, *status->irep, **status->pc);*/
     //printf("\n\n");
       emit_local_var_type_read(reg_tmp0, pos * sizeof(mrb_value));
-      cmp(eax, 0xfff00001);
+      emit_cmp(eax, 0xfff00001);
       setnz(al);
       break;
        
@@ -308,11 +308,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
-      cmp(eax, 0xfff00000);
+      emit_cmp(eax, 0xfff00000);
       jb("@f");
     } 
     else {
-      cmp(eax, 0xfff00000 | tt);
+      emit_cmp(eax, 0xfff00000 | tt);
       jz("@f");
     }
 
@@ -340,7 +340,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
-    cmp(eax, 0xfff00001);
+    emit_cmp(eax, 0xfff00001);
     if (b) {
       jnz("@f");
     } 
@@ -374,11 +374,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_type_read(reg_tmp0, regpos * sizeof(mrb_value));
 
       if (tt == MRB_TT_FLOAT) {
-	cmp(eax, 0xfff00000);
+	emit_cmp(eax, 0xfff00000);
 	jb("@f");
       }
       else {
-	cmp(eax, 0xfff00000 | tt);
+	emit_cmp(eax, 0xfff00000 | tt);
 	jz("@f");
       }
 
@@ -409,7 +409,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	rinfo->klass = c;
 	emit_local_var_value_read(reg_tmp0, regpos * sizeof(mrb_value));
 	emit_move(eax, eax, OffsetOf(struct RBasic, c));
-	cmp(eax, (int)c);
+	emit_cmp(eax, (int)c);
 	jz("@f");
 	/* Guard fail exit code */
 	gen_exit(mrb, pc, 1, 0, status, coi);
@@ -513,7 +513,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(edx, edi, OffsetOf(mrb_context, ci));
     mov(eax, edx);
     add(eax, sizeof(mrb_callinfo));
-    cmp(eax, dword [edi + OffsetOf(mrb_context, ciend)]);
+    emit_cmp(eax, edi, OffsetOf(mrb_context, ciend));
     jne("@f");
 
     if (addr_call_extend_callinfo == NULL) {
@@ -627,7 +627,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	keep = n + 2;
       }
       sub(edx, room * sizeof(mrb_value));
-      cmp(ecx, edx);
+      emit_cmp(ecx, edx);
       jb("@f");
 
       if (addr_call_stack_extend == NULL) {
@@ -1371,7 +1371,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (irep->block_lambda) {
       emit_vm_var_read(reg_tmp0, VMSOffsetOf(irep));
-      cmp(eax, (Xbyak::uint32)irep);
+      emit_cmp(eax, (Xbyak::uint32)irep);
       jz("@f");
       inLocalLabel();
 
@@ -1838,7 +1838,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 #define COMP_GEN_II(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_value_read(reg_tmp0, off0);			     \
-    cmp(eax, dword [ecx + off1]);                                    \
+    emit_vm_var_cmp(reg_tmp0, off1);				     \
     CMPINST;     						     \
 } while(0)
 
@@ -1846,7 +1846,7 @@ do {                                                                 \
 do {                                                                 \
     emit_local_var_int_value_read(xmm0, off0);	                     \
     emit_load_literal(reg_tmp0, 0);				     \
-    comisd(xmm0, ptr [ecx + off1]);				     \
+    emit_vm_var_cmp(xmm0, off1);				     \
     CMPINST;    						     \
 } while(0)
 
@@ -1863,7 +1863,7 @@ do {                                                                 \
 do {                                                                 \
     emit_local_var_read(reg_dtmp0, off0);			     \
     emit_load_literal(reg_tmp0, 0);				     \
-    comisd(xmm0, ptr [ecx + off1]);				     \
+    emit_vm_var_cmp(xmm0, off1);				     \
     CMPINST;    						     \
 } while(0)
     
