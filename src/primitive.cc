@@ -35,13 +35,11 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   mrb_value *regs = *status->regs;
   int i = *pc;
   int regno = GETARG_A(i);
-  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
-  const Xbyak::uint32 off1 = off0 + sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
   // not need guard for self because guard geneate already
-  //local_var_type_read(reg_tmp0, off0);
+  //local_var_type_read(reg_tmp0, regno);
   //gen_type_guard(mrb, (enum mrb_vtype)mrb_type(regs[regno]), pc);
 
   if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
@@ -49,8 +47,8 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
     gen_type_guard(mrb, regno, status, pc, coi);
     gen_type_guard(mrb, regno + 1, status, pc, coi);
 
-    emit_local_var_read(xmm0, off0);
-    emit_local_var_int_value_read(xmm1, off1);
+    emit_local_var_read(xmm0, regno);
+    emit_local_var_int_value_read(xmm1, regno + 1);
     emit_cmp(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&
@@ -58,8 +56,8 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
     gen_type_guard(mrb, regno, status, pc, coi);
     gen_type_guard(mrb, regno + 1, status, pc, coi);
 
-    emit_local_var_int_value_read(xmm0, off0);
-    emit_local_var_read(xmm1, off1);
+    emit_local_var_int_value_read(xmm0, regno);
+    emit_local_var_read(xmm1, regno + 1);
     emit_cmp(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FLOAT &&
@@ -67,16 +65,16 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
     gen_type_guard(mrb, regno, status, pc, coi);
     gen_type_guard(mrb, regno + 1, status, pc, coi);
 
-    emit_local_var_read(xmm0, off0);
-    emit_local_var_read(xmm1, off1);
+    emit_local_var_read(xmm0, regno);
+    emit_local_var_read(xmm1, regno + 1);
     emit_cmp(xmm0, xmm1);
   }
   else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&
 	   mrb_type(regs[regno + 1]) == MRB_TT_FIXNUM) {
-    emit_local_var_int_value_read(xmm0, off0);
-    emit_local_var_int_value_read(xmm1, off1);
+    emit_local_var_int_value_read(xmm0, regno);
+    emit_local_var_int_value_read(xmm1, regno + 1);
     emit_cmp(xmm0, xmm1);
-    /*	  emit_local_var_value_read(reg_tmp0, off0);
+    /*	  emit_local_var_value_read(reg_tmp0, regno);
 	  emit_cmp(eax, ecx, off1);*/
   }
   else {
@@ -101,9 +99,9 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   L(".cmpend");
   outLocalLabel();
 
-  emit_local_var_value_write(off0, reg_tmp0);
+  emit_local_var_value_write(regno, reg_tmp0);
   emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FIXNUM);
-  emit_local_var_type_write(off0, reg_tmp0);
+  emit_local_var_type_write(regno, reg_tmp0);
   dinfo->type = MRB_TT_FIXNUM;
   dinfo->klass = mrb->fixnum_class;
 
@@ -154,8 +152,6 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   mrb_value *regs = *status->regs;
   int i = *pc;
   int regno = GETARG_A(i);
-  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
-  const Xbyak::uint32 off1 = (regno + 1) * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
@@ -168,17 +164,17 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
 
   gen_type_guard(mrb, regno + 1, status, pc, coi);
 
-  emit_local_var_value_read(reg_tmp0, off0);
+  emit_local_var_value_read(reg_tmp0, regno);
   mov(edx, eax);
   sar(edx, (sizeof(void *) * 8) - 1);
-  idiv(ptr [ecx + off1]);
+  idiv(ptr [ecx + (regno + 1) * sizeof(mrb_value)]);
   test(eax, eax);
   setl(al);
   and(eax, 1);
   neg(eax);
   emit_load_literal(reg_tmp0, 0);
   sub(edx, eax);
-  emit_local_var_value_write(off0, reg_tmp1);
+  emit_local_var_value_write(regno, reg_tmp1);
 
   dinfo->type = MRB_TT_FIXNUM;
   dinfo->klass = mrb->fixnum_class;
@@ -200,13 +196,12 @@ MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   int i = *pc;
   int regno = GETARG_A(i);
-  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
-  emit_local_var_int_value_read(xmm0, off0);
-  emit_local_var_write(off0, xmm0);
+  emit_local_var_int_value_read(xmm0, regno);
+  emit_local_var_write(regno, xmm0);
   dinfo->type = MRB_TT_FLOAT;
   dinfo->klass = mrb->float_class;
 
@@ -291,8 +286,8 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
-  const Xbyak::uint32 offary = regno * sizeof(mrb_value);
-  const Xbyak::uint32 offidx = offary + sizeof(mrb_value);
+  const Xbyak::uint32 aryno = regno;
+  const Xbyak::uint32 idxno = aryno + 1;
 
   // No support 2 args or Index is not Fixnum
   if ((nargs > 1) ||
@@ -303,8 +298,8 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   inLocalLabel();
   gen_class_guard(mrb, regno, status, pc, coi, NULL);
 
-  emit_local_var_value_read(reg_tmp1, offary);
-  emit_local_var_value_read(reg_tmp0, offidx);
+  emit_local_var_value_read(reg_tmp1, aryno);
+  emit_local_var_value_read(reg_tmp0, idxno);
   test(eax, eax);
   jge(".normal");
   add(eax, dword [edx + OffsetOf(struct RArray, len)]);
@@ -316,14 +311,14 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   test(edx, edx);
   jz(".retnil");
   movsd(xmm0, ptr [edx + eax * sizeof(mrb_value)]);
-  emit_local_var_write(offary, xmm0);
+  emit_local_var_write(aryno, xmm0);
   jmp(".exit");
 
   L(".retnil");
   emit_load_literal(reg_tmp0, 0);
-  emit_local_var_value_write(offary, reg_tmp0);
+  emit_local_var_value_write(aryno, reg_tmp0);
   emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
-  emit_local_var_type_write(offary, reg_tmp0);
+  emit_local_var_type_write(aryno, reg_tmp0);
 
   L(".exit");
   outLocalLabel();
@@ -347,9 +342,9 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
-  const Xbyak::uint32 offary = regno * sizeof(mrb_value);
-  const Xbyak::uint32 offidx = offary + sizeof(mrb_value);
-  const Xbyak::uint32 offval = offidx + sizeof(mrb_value);
+  const Xbyak::uint32 aryno = regno;
+  const Xbyak::uint32 idxno = aryno + 1;
+  const Xbyak::uint32 valno = idxno + 1;
 
   if (nargs != 2) {
     return mrb_nil_value();    	// Support only 2 args(index, value)
@@ -359,13 +354,13 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   push(ecx);
 
-  emit_local_var_type_read(reg_tmp0, offval);
+  emit_local_var_type_read(reg_tmp0, valno);
   push(eax);
-  emit_local_var_value_read(reg_tmp0, offval);
+  emit_local_var_value_read(reg_tmp0, valno);
   push(eax);
 
-  emit_local_var_value_read(reg_tmp1, offary);
-  emit_local_var_value_read(reg_tmp0, offidx);
+  emit_local_var_value_read(reg_tmp1, aryno);
+  emit_local_var_value_read(reg_tmp0, idxno);
   test(eax, eax);
   jge(".normal");
   add(eax, dword [edx + OffsetOf(struct RArray, len)]);
@@ -375,9 +370,9 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   jg(".retnil");
   push(eax);
 
-  emit_local_var_type_read(reg_tmp0, offary);
+  emit_local_var_type_read(reg_tmp0, aryno);
   push(eax);
-  emit_local_var_value_read(reg_tmp0, offary);
+  emit_local_var_value_read(reg_tmp0, aryno);
   push(eax);
 
   push(esi);
@@ -385,16 +380,16 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   call((void *)mrb_ary_set);
   add(esp, 2 * sizeof(void *) + 2 * sizeof(mrb_value));
   pop(ecx);
-  emit_local_var_read(xmm0, offval);
-  emit_local_var_write(offary, xmm0);
+  emit_local_var_read(xmm0, valno);
+  emit_local_var_write(aryno, xmm0);
   jmp(".exit");
 
   L(".retnil");
   add(esp, sizeof(void *) + sizeof(mrb_value)); // ecx, val
   emit_load_literal(reg_tmp0, 0);
-  emit_local_var_value_write(offary, reg_tmp0);
+  emit_local_var_value_write(aryno, reg_tmp0);
   emit_load_literal(reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
-  emit_local_var_type_write(offary, reg_tmp0);
+  emit_local_var_type_write(aryno, reg_tmp0);
 
   L(".exit");
   outLocalLabel();
@@ -418,7 +413,6 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
-  const Xbyak::uint32 offary = regno * sizeof(mrb_value);
 
   // No support 1 args only no args.
   if (nargs > 1) {
@@ -427,10 +421,10 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
 
   gen_class_guard(mrb, regno, status, pc, coi, NULL);
 
-  emit_local_var_value_read(reg_tmp1, offary);
+  emit_local_var_value_read(reg_tmp1, regno);
   mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
   emit_move(xmm0, reg_tmp1, 0);
-  emit_local_var_write(offary, xmm0);
+  emit_local_var_write(regno, xmm0);
   
   return mrb_true_value();
 }
@@ -479,8 +473,8 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   pop(ecx);
 
   // regs[a] = obj;
-  emit_local_var_value_write(a * sizeof(mrb_value), reg_tmp0);
-  emit_local_var_type_write(a * sizeof(mrb_value), reg_tmp1);
+  emit_local_var_value_write(a, reg_tmp0);
+  emit_local_var_type_write(a, reg_tmp1);
 
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
@@ -562,7 +556,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
-    emit_local_var_value_read(reg_tmp0, a * sizeof(mrb_value));
+    emit_local_var_value_read(reg_tmp0, a);
     mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
     mov(eax, dword [eax]);
     push(eax);			/* PUSH __objcache__ */
@@ -586,8 +580,8 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
 
   L("@@");
   // regs[a] = obj;
-  emit_local_var_value_write(a * sizeof(mrb_value), reg_tmp0);
-  emit_local_var_type_write(a * sizeof(mrb_value), reg_tmp1);
+  emit_local_var_value_write(a, reg_tmp0);
+  emit_local_var_type_write(a, reg_tmp1);
   mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
   emit_load_literal(reg_tmp1, 0);
   mov(dword [eax + OffsetOf(iv_tbl, last_len)], edx);
@@ -755,18 +749,16 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   int i = *pc;
   const int dst = GETARG_A(i);
-  const int dstoff = dst * sizeof(mrb_value);
   const int src = dst + 1;
-  const int srcoff = src * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_read(xmm0, srcoff);
+    emit_local_var_read(xmm0, src);
     sqrtsd(xmm0, xmm0);
-    emit_local_var_write(dstoff, xmm0);
+    emit_local_var_write(dst, xmm0);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
 
@@ -774,9 +766,9 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   }
   else if (mrb_type(regs[src]) == MRB_TT_FIXNUM) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_int_value_read(xmm0, srcoff);
+    emit_local_var_int_value_read(xmm0, src);
     sqrtsd(xmm0, xmm0);
-    emit_local_var_write(dstoff, xmm0);
+    emit_local_var_write(dst, xmm0);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
 
@@ -802,19 +794,17 @@ MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   int i = *pc;
   const int dst = GETARG_A(i);
-  const int dstoff = dst * sizeof(mrb_value);
   const int src = dst;
-  const int srcoff = src * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_read(xmm0, srcoff);
+    emit_local_var_read(xmm0, src);
     subsd(xmm1, xmm1);
     subsd(xmm1, xmm0);
-    emit_local_var_write(dstoff, xmm1);
+    emit_local_var_write(dst, xmm1);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
 
@@ -822,9 +812,9 @@ MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
   }
   else if (mrb_type(regs[src]) == MRB_TT_FIXNUM) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_value_read(eax, srcoff);
+    emit_local_var_value_read(eax, src);
     neg(eax);
-    emit_local_var_value_write(dstoff, eax);
+    emit_local_var_value_write(dst, eax);
     dinfo->type = MRB_TT_FIXNUM;
     dinfo->klass = mrb->fixnum_class;
 

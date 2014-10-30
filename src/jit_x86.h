@@ -2,6 +2,11 @@
 #define MRUBY_JIT_X86_H
 
 #include <xbyak/xbyak.h>
+extern "C" {
+#include "mruby.h"
+#include "mruby/irep.h"
+#include "mruby/value.h"
+}
 
 /* Regs Map                               *
  * ecx   -- pointer to regs               *
@@ -39,37 +44,37 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_local_var_read(Xbyak::Xmm dst, int regno)
   {
-    movsd(dst, ptr [reg_regs + regno]);
+    movsd(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_int_value_read(Xbyak::Xmm dst, int regno)
   {
-    cvtsi2sd(dst, ptr [reg_regs + regno]);
+    cvtsi2sd(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_write(int regno, Xbyak::Xmm src)
   {
-    movsd(ptr [reg_regs + regno], src);
+    movsd(ptr [reg_regs + regno * sizeof(mrb_value)], src);
   }
 
   void emit_local_var_value_read(Xbyak::Reg32 dst, int regno)
   {
-    mov(dst, ptr [reg_regs + regno]);
+    mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_value_write(int regno, Xbyak::Reg32 src)
   {
-    mov(ptr [reg_regs + regno], src);
+    mov(ptr [reg_regs + regno * sizeof(mrb_value)], src);
   }
 
   void emit_local_var_type_read(Xbyak::Reg32 dst, int regno)
   {
-    mov(dst, ptr [reg_regs + regno + 4]);
+    mov(dst, ptr [reg_regs + regno * sizeof(mrb_value) + 4]);
   }
 
   void emit_local_var_type_write(int regno, Xbyak::Reg32 src)
   {
-    mov(ptr [reg_regs + regno + 4], src);
+    mov(ptr [reg_regs + regno * sizeof(mrb_value) + 4], src);
   }
 
   void emit_vm_var_read(Xbyak::Reg32 dst, int regno)
@@ -209,12 +214,12 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
-  void emit_vm_var_cmp(Xbyak::Reg32 src, int regno) {
-    cmp(src, ptr [reg_regs + regno]);
+  void emit_local_var_cmp(Xbyak::Reg32 src, int regno) {
+    cmp(src, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
-  void emit_vm_var_cmp(Xbyak::Xmm src, int regno) {
-    comisd(src, ptr [reg_regs + regno]);
+  void emit_local_var_cmp(Xbyak::Xmm src, int regno) {
+    comisd(src, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_cmp(Xbyak::Reg32 src, Xbyak::Reg32 base, Xbyak::uint32 offset) {
