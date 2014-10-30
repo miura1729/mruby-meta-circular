@@ -26,7 +26,7 @@ mrbjit_get_curr(mrbjit_code_area coderaw)
 static MRBJitCode *the_code = new MRBJitCode();
 
 void
-mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+mrbjit_gen_jmp_patch(mrb_state *mrb, mrbjit_code_area coderaw, void *dst, void *target, mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   MRBJitCode *code;
   if (coderaw == NULL) {
@@ -35,7 +35,7 @@ mrbjit_gen_jmp_patch(mrbjit_code_area coderaw, void *dst, void *target, mrbjit_v
   else {
     code  = (MRBJitCode *) coderaw;
   }
-  code->gen_jmp_patch(dst, target, status, coi);
+  code->gen_jmp_patch(mrb, dst, target, status, coi);
 }
 
 void
