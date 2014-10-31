@@ -251,6 +251,53 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       comisd(src, ptr [base + offset]);
     }
   }
+
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::uint32 src) {
+    add(dst, src);
+  }
+
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 src) {
+    add(dst, src);
+  }
+
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 base, Xbyak::uint32 offset) {
+    if (offset == 0) {
+      add(dst, ptr [base]);
+    }
+    else {
+      add(dst, ptr [base + offset]);
+    }
+  }
+
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::Reg32 src) {
+    if (offset == 0) {
+      add(ptr [base], src);
+    }
+    else {
+      add(ptr [base + offset], src);
+    }
+  }
+
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::uint32 src) {
+    if (offset == 0) {
+      add(ptr [base], src);
+    }
+    else {
+      add(ptr [base + offset], src);
+    }
+  }
+
+  void emit_sub(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::uint32 src) {
+    sub(dst, src);
+  }
+
+  void emit_sub(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 src) {
+    sub(dst, src);
+  }
+
+  void emit_sub(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Xmm src) {
+    subsd(dst, src);
+  }
 };
 
 

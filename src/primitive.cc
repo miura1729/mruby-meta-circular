@@ -129,7 +129,7 @@ MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
   dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
-  add(dword [ecx + off0], 1);
+  emit_add(mrb, coi, ecx, off0, 1);
   dinfo->type = MRB_TT_FIXNUM;
   dinfo->klass = mrb->fixnum_class;
 
@@ -173,7 +173,7 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   and(eax, 1);
   neg(eax);
   emit_load_literal(mrb, coi, reg_tmp0, 0);
-  sub(edx, eax);
+  emit_sub(mrb, coi, edx, eax);
   emit_local_var_value_write(mrb, coi, regno, reg_tmp1);
 
   dinfo->type = MRB_TT_FIXNUM;
@@ -802,8 +802,8 @@ MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
     emit_local_var_read(mrb, coi, xmm0, src);
-    subsd(xmm1, xmm1);
-    subsd(xmm1, xmm0);
+    emit_sub(mrb, coi, xmm1, xmm1);
+    emit_sub(mrb, coi, xmm1, xmm0);
     emit_local_var_write(mrb, coi, dst, xmm1);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
