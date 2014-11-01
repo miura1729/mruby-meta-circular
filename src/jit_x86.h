@@ -280,10 +280,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::uint32 src) {
     if (offset == 0) {
-      add(ptr [base], src);
+      add(dword [base], src);
     }
     else {
-      add(ptr [base + offset], src);
+      add(dword [base + offset], src);
     }
   }
 
