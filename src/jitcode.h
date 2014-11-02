@@ -1645,17 +1645,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     return code;
   }
 
-#define OVERFLOW_CHECK_GEN(AINSTF)                                      \
+#define OVERFLOW_CHECK_GEN(AINST)                                       \
     jno("@f");                                                          \
-    emit_local_var_int_value_read(mrb, coi, xmm0, reg0pos);	                \
-    emit_local_var_int_value_read(mrb, coi, xmm1, reg1pos);	                \
-    AINSTF(xmm0, xmm1);                                                 \
-    emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);				\
+    emit_local_var_int_value_read(mrb, coi, xmm0, reg0pos);	        \
+    emit_local_var_int_value_read(mrb, coi, xmm1, reg1pos);	        \
+    AINST(mrb, coi, xmm0, xmm1);					\
+    emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);			\
     gen_exit(mrb, *status->pc + 1, 1, 1, status, coi);			\
     L("@@");                                                            \
 
 
-#define ARTH_GEN(AINSTI, AINSTF)                                        \
+#define ARTH_GEN(AINST)                                                 \
   do {                                                                  \
     int reg0pos = GETARG_A(**ppc);                                      \
     int reg1pos = reg0pos + 1;                                          \
@@ -1669,10 +1669,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_type_guard(mrb, reg0pos, status, *ppc, coi);			\
       gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
 \
-      emit_local_var_value_read(mrb, coi, reg_tmp0, reg0pos);			\
-      AINSTI(eax, dword [ecx + reg1pos * sizeof(mrb_value)]);		\
-      OVERFLOW_CHECK_GEN(AINSTF);                                       \
-      emit_local_var_value_write(mrb, coi, reg0pos, reg_tmp0);			\
+      emit_local_var_value_read(mrb, coi, reg_tmp0, reg0pos);		\
+      emit_local_var_value_read(mrb, coi, reg_tmp1, reg1pos);		\
+      AINST(mrb, coi, reg_tmp0, reg_tmp1);				\
+      OVERFLOW_CHECK_GEN(AINST);                                        \
+      emit_local_var_value_write(mrb, coi, reg0pos, reg_tmp0);		\
       dinfo->type = MRB_TT_FIXNUM;  					\
       dinfo->klass = mrb->fixnum_class; 				\
     }                                                                   \
@@ -1695,8 +1696,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_local_var_read(mrb, coi, reg_dtmp1, reg1pos);			\
       }                                                                 \
 \
-      AINSTF(xmm0, xmm1);				                \
-      emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);				\
+      AINST(mrb, coi, xmm0, xmm1);				        \
+      emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);		\
       dinfo->type = MRB_TT_FLOAT;                                       \
       dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
@@ -1710,7 +1711,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    ARTH_GEN(add, addsd);
+    ARTH_GEN(emit_add);
     return code;
   }
 
@@ -1719,7 +1720,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    ARTH_GEN(sub, subsd);
+    ARTH_GEN(emit_sub);
     return code;
   }
 
@@ -1728,7 +1729,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    ARTH_GEN(imul, mulsd);
+    ARTH_GEN(emit_mul);
     return code;
   }
 
@@ -1771,17 +1772,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     return code;
   }
 
-#define OVERFLOW_CHECK_I_GEN(AINSTF)                                    \
+#define OVERFLOW_CHECK_I_GEN(AINST)                                     \
     jno("@f");                                                          \
-    emit_local_var_int_value_read(mrb, coi, xmm0, regno);	                        \
-    emit_load_literal(mrb, coi, reg_tmp0, y);					\
+    emit_local_var_int_value_read(mrb, coi, xmm0, regno);	        \
+    emit_load_literal(mrb, coi, reg_tmp0, y);				\
     cvtsi2sd(xmm1, eax);                                                \
-    AINSTF(xmm0, xmm1);                                                 \
+    AINST(mrb, coi, xmm0, xmm1);					\
     emit_local_var_write(mrb, coi, regno, reg_dtmp0);				\
     gen_exit(mrb, *status->pc + 1, 1, 1, status, coi);			\
     L("@@");                                                            \
 
-#define ARTH_I_GEN(AINSTI, AINSTF)                                      \
+#define ARTH_I_GEN(AINST)                                               \
   do {                                                                  \
     const Xbyak::uint32 y = GETARG_C(**ppc);                            \
     int regno = GETARG_A(**ppc);                                        \
@@ -1791,19 +1792,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_type_guard(mrb, regno, status, *ppc, coi);			\
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
-      emit_local_var_value_read(mrb, coi, reg_tmp0, regno);			\
-      AINSTI(eax, y);                                                   \
-      OVERFLOW_CHECK_I_GEN(AINSTF);                                     \
+      emit_local_var_value_read(mrb, coi, reg_tmp0, regno);		\
+      emit_load_literal(mrb, coi, reg_tmp1, y);		                \
+      AINST(mrb, coi, reg_tmp0, reg_tmp1);				\
+      OVERFLOW_CHECK_I_GEN(AINST);                                      \
       emit_local_var_value_write(mrb, coi, regno, reg_tmp0);			\
       dinfo->type = MRB_TT_FIXNUM;       				\
       dinfo->klass = mrb->fixnum_class; 				\
     }                                                                   \
     else if (atype == MRB_TT_FLOAT) {					\
-      emit_local_var_read(mrb, coi, reg_dtmp0, regno);				\
-      emit_load_literal(mrb, coi, reg_tmp0, y);					\
+      emit_local_var_read(mrb, coi, reg_dtmp0, regno);			\
+      emit_load_literal(mrb, coi, reg_tmp0, y);				\
       cvtsi2sd(xmm1, eax);                                              \
-      AINSTF(xmm0, xmm1);                                               \
-      emit_local_var_write(mrb, coi, regno, reg_dtmp0);				\
+      AINST(mrb, coi, xmm0, xmm1);				        \
+      emit_local_var_write(mrb, coi, regno, reg_dtmp0);			\
       dinfo->type = MRB_TT_FLOAT;					\
       dinfo->klass = mrb->float_class;  				\
     }                                                                   \
@@ -1817,7 +1819,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    ARTH_I_GEN(add, addsd);
+    ARTH_I_GEN(emit_add);
     return code;
   }
 
@@ -1826,7 +1828,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    ARTH_I_GEN(sub, subsd);
+    ARTH_I_GEN(emit_sub);
     return code;
   }
 

@@ -260,6 +260,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     add(dst, src);
   }
 
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Xmm src) {
+    addsd(dst, src);
+  }
+
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 base, Xbyak::uint32 offset) {
     if (offset == 0) {
       add(dst, ptr [base]);
@@ -297,6 +301,14 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_sub(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Xmm src) {
     subsd(dst, src);
+  }
+
+  void emit_mul(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 src) {
+    imul(dst, src);
+  }
+
+  void emit_mul(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Xmm src) {
+    mulsd(dst, src);
   }
 };
 
