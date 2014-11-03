@@ -310,6 +310,16 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   void emit_mul(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Xmm src) {
     mulsd(dst, src);
   }
+
+  void emit_div(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Xmm src) {
+    divsd(dst, src);
+  }
+
+  /* eax / (VM regs regno) -> edx, eax */
+  void emit_local_var_div(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::uint32 regno) {
+    cdq();
+    idiv(ptr [ecx + regno * sizeof(mrb_value)]);
+  }
 };
 
 

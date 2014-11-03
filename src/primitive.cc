@@ -165,9 +165,7 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   gen_type_guard(mrb, regno + 1, status, pc, coi);
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, regno);
-  mov(edx, eax);
-  sar(edx, (sizeof(void *) * 8) - 1);
-  idiv(ptr [ecx + (regno + 1) * sizeof(mrb_value)]);
+  emit_local_var_div(mrb, coi, regno + 1);
   test(eax, eax);
   setl(al);
   and(eax, 1);
@@ -460,17 +458,14 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // TODO add guard of class
   
   // obj = mrbjit_instance_alloc(mrb, klass);
-  push(ecx);
-  push(ebx);
+  emit_cfunc_start(mrb, coi);
   mov(eax, *((Xbyak::uint32 *)(&klass) + 1));
   push(eax);
   mov(eax, *((Xbyak::uint32 *)(&klass)));
   push(eax);
   push(esi);
   call((void *)mrbjit_instance_alloc);
-  add(esp, 3 * sizeof(void *));
-  pop(ebx);
-  pop(ecx);
+  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
   // regs[a] = obj;
   emit_local_var_value_write(mrb, coi, a, reg_tmp0);
@@ -566,17 +561,14 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     jnz("@f");
   }    
 
-  push(ecx);
-  push(ebx);
+  emit_cfunc_start(mrb, coi);
   mov(eax, *((Xbyak::uint32 *)(&klass) + 1));
   push(eax);
   mov(eax, *((Xbyak::uint32 *)(&klass)));
   push(eax);
   push(esi);
   call((void *)mrbjit_instance_alloc);
-  add(esp, 3 * sizeof(void *));
-  pop(ebx);
-  pop(ecx);
+  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
   L("@@");
   // regs[a] = obj;

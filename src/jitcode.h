@@ -1761,7 +1761,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_read(mrb, coi, reg_dtmp1, reg1pos);
     }
 
-    divsd(xmm0, xmm1);
+    emit_div(mrb, coi, xmm0, xmm1);
     emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);
 
     /* Div returns Float always */
