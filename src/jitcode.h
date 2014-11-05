@@ -473,7 +473,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #ifdef ENABLE_DEBUG
   void
-    gen_call_fetch_hook(mrb_state *mrb, mrbjit_vmstatus *status)
+    gen_call_fetch_hook(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     emit_push(mrb, coi, reg_tmp1);
     emit_push(mrb, coi, reg_tmp0);
