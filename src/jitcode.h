@@ -913,7 +913,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(eax);
     emit_local_var_value_read(mrb, coi, reg_tmp0, srcno);
     push(eax);
-    push((Xbyak::uint32)irep->syms[idpos]);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)irep->syms[idpos]);
+    push(eax);
     push(esi);
     call((void *)mrb_gv_set);
     emit_cfunc_end(mrb, coi, argsize);
@@ -993,7 +994,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(eax);
     emit_local_var_value_read(mrb, coi, reg_tmp0, srcno);
     push(eax);
-    push((Xbyak::uint32)id);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)id);
+    push(eax);
     push(esi);
     call((void *)mrb_vm_iv_set);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(Xbyak::uint32) + sizeof(mrb_value));
@@ -1051,7 +1053,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);
-    push((Xbyak::uint32)irep->syms[idpos]);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)irep->syms[idpos]);
     push(esi);
     call((void *)mrb_vm_cv_get);
     emit_cfunc_end(mrb, coi, argsize);
@@ -1076,7 +1078,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     push(eax);
     emit_local_var_value_read(mrb, coi, reg_tmp0, srcno);
     push(eax);
-    push((Xbyak::uint32)irep->syms[idpos]);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)irep->syms[idpos]);
+    push(eax);
     push(esi);
     call((void *)mrb_vm_cv_set);
     emit_cfunc_end(mrb, coi, argsize);
@@ -1348,8 +1351,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       //puts(mrb_sym2name(mrb, mid)); // for tuning
       //printf("%x \n", irep);
       CALL_CFUNC_BEGIN;
-      push((Xbyak::uint32)c);
-      push((Xbyak::uint32)m);
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)c);
+      push(reg_tmp0);
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
+      push(reg_tmp0);
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
 
       /* Restore c->stack */
@@ -2503,7 +2508,8 @@ do {                                                                 \
 
     emit_cfunc_start(mrb, coi);
 
-    push((Xbyak::uint32)num);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)num);
+    push(eax);
     push(esi);
     call((void *) mrb_hash_new_capa);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(int));

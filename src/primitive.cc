@@ -305,7 +305,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   L(".normal");
   emit_cmp(mrb, coi, eax, edx, OffsetOf(struct RArray, len));
   jge(".retnil");
-  mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
   test(edx, edx);
   jz(".retnil");
   movsd(xmm0, ptr [edx + eax * sizeof(mrb_value)]);
@@ -420,7 +420,7 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
   gen_class_guard(mrb, regno, status, pc, coi, NULL);
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, regno);
-  mov(edx, dword [edx + OffsetOf(struct RArray, ptr)]);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
   emit_move(mrb, coi, xmm0, reg_tmp1, 0);
   emit_local_var_write(mrb, coi, regno, xmm0);
   
@@ -459,9 +459,9 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   
   // obj = mrbjit_instance_alloc(mrb, klass);
   emit_cfunc_start(mrb, coi);
-  mov(eax, *((Xbyak::uint32 *)(&klass) + 1));
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
   push(eax);
-  mov(eax, *((Xbyak::uint32 *)(&klass)));
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
   push(eax);
   push(esi);
   call((void *)mrbjit_instance_alloc);
@@ -473,9 +473,9 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
-    mov(eax, (Xbyak::uint32)c);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)c);
     push(eax);
-    mov(eax, (Xbyak::uint32)m);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
     push(eax);
     CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
   }
@@ -552,19 +552,19 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
     emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-    mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
-    mov(eax, dword [eax]);
+    emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
+    emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
     push(eax);			/* PUSH __objcache__ */
-    mov(edx, ptr [eax + civoff * sizeof(mrb_value) + 4]);
-    mov(eax, ptr [eax + civoff * sizeof(mrb_value)]);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value) + 4);
+    emit_move(mrb, coi, reg_tmp0, reg_tmp0, civoff * sizeof(mrb_value));
     test(eax, eax);
     jnz("@f");
   }    
 
   emit_cfunc_start(mrb, coi);
-  mov(eax, *((Xbyak::uint32 *)(&klass) + 1));
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
   push(eax);
-  mov(eax, *((Xbyak::uint32 *)(&klass)));
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
   push(eax);
   push(esi);
   call((void *)mrbjit_instance_alloc);
@@ -574,22 +574,23 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   emit_local_var_value_write(mrb, coi, a, reg_tmp0);
   emit_local_var_type_write(mrb, coi, a, reg_tmp1);
-  mov(eax, dword [eax + OffsetOf(struct RObject, iv)]);
+  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
   emit_load_literal(mrb, coi, reg_tmp1, 0);
-  mov(dword [eax + OffsetOf(iv_tbl, last_len)], edx);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
 
   if (civoff >= 0) {
     pop(eax);			/* POP __objcache__ */ 
     emit_load_literal(mrb, coi, reg_tmp1, 0);
-    mov(dword [eax + civoff * sizeof(mrb_value)], edx);
-    mov(dword [eax + civoff * sizeof(mrb_value) + 4], 0xfff00000 | MRB_TT_FALSE);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
   }    
 
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
-    mov(eax, (Xbyak::uint32)c);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)c);
     push(eax);
-    mov(eax, (Xbyak::uint32)m);
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
     push(eax);
     CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
   }
