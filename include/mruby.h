@@ -98,6 +98,17 @@ enum mrbjit_regplace {
   MRBJIT_REG_XMM5,
   MRBJIT_REG_XMM6,
   MRBJIT_REG_XMM7,
+  
+  MRBJIT_REG_VMREG0,
+  MRBJIT_REG_VMREG1,
+  MRBJIT_REG_VMREG2,
+  MRBJIT_REG_VMREG3,
+  MRBJIT_REG_VMREG4,
+  MRBJIT_REG_VMREG5,
+  MRBJIT_REG_VMREG6,
+  MRBJIT_REG_VMREG7,
+  MRBJIT_REG_VMREGMAX,
+  /* Don't add REG type except VMREG */
 };
 
 typedef struct mrbjit_reginfo {

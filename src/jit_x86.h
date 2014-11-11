@@ -41,39 +41,56 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     reg_dtmp0 = xmm0;
     reg_dtmp1 = xmm1;
   }
+  
+#define DEREF_REGNO(regno)                                           \
+  ({								     \
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];                    \
+    (rinfo->regplace > MRBJIT_REG_VMREG0) ? rinfo->regplace : regno; \
+  })
+
 
   void emit_local_var_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, int regno)
   {
+    regno = DEREF_REGNO(regno);
     movsd(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_int_value_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, int regno)
   {
+    regno = DEREF_REGNO(regno);
     cvtsi2sd(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Xmm src)
   {
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    rinfo->regplace = MRBJIT_REG_MEMORY;
     movsd(ptr [reg_regs + regno * sizeof(mrb_value)], src);
   }
 
   void emit_local_var_value_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
   {
+    regno = DEREF_REGNO(regno);
     mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_value_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Reg32 src)
   {
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    rinfo->regplace = MRBJIT_REG_MEMORY;
     mov(ptr [reg_regs + regno * sizeof(mrb_value)], src);
   }
 
   void emit_local_var_type_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
   {
+    regno = DEREF_REGNO(regno);
     mov(dst, ptr [reg_regs + regno * sizeof(mrb_value) + 4]);
   }
 
   void emit_local_var_type_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Reg32 src)
   {
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    rinfo->regplace = MRBJIT_REG_MEMORY;
     mov(ptr [reg_regs + regno * sizeof(mrb_value) + 4], src);
   }
 
@@ -215,10 +232,12 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_local_var_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 src, int regno) {
+    regno = DEREF_REGNO(regno);
     cmp(src, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm src, int regno) {
+    regno = DEREF_REGNO(regno);
     comisd(src, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
@@ -317,6 +336,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   /* eax / (VM regs regno) -> edx, eax */
   void emit_local_var_div(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::uint32 regno) {
+    regno = DEREF_REGNO(regno);
     cdq();
     idiv(ptr [ecx + regno * sizeof(mrb_value)]);
   }

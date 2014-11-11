@@ -87,6 +87,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_type_write(mrb, coi, pos, reg_tmp0);
       break;
        
+    case MRBJIT_REG_VMREG0:
+    case MRBJIT_REG_VMREG1:
+    case MRBJIT_REG_VMREG2:
+    case MRBJIT_REG_VMREG3:
+    case MRBJIT_REG_VMREG4:
+    case MRBJIT_REG_VMREG5:
+    case MRBJIT_REG_VMREG6:
+    case MRBJIT_REG_VMREG7:
+      emit_local_var_read(mrb, coi, reg_dtmp0, 
+			  coi->reginfo[pos].regplace - MRBJIT_REG_VMREG0);
+      emit_local_var_write(mrb, coi, pos, reg_dtmp0);
+      break;
+
     default:
       printf("%d %d %d\n", irep->nregs, coi->reginfo[pos].regplace, pos);
       assert(0);
@@ -135,6 +148,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       setnz(al);
       break;
        
+    case MRBJIT_REG_VMREG0:
+    case MRBJIT_REG_VMREG1:
+    case MRBJIT_REG_VMREG2:
+    case MRBJIT_REG_VMREG3:
+    case MRBJIT_REG_VMREG4:
+    case MRBJIT_REG_VMREG5:
+    case MRBJIT_REG_VMREG6:
+    case MRBJIT_REG_VMREG7:
+      break;
+
     default:
       printf("%d %d %d\n", irep->nregs, coi->reginfo[pos].regplace, pos);
       assert(0);
@@ -728,8 +751,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     sinfo->unboxedp = 0;
     *dinfo = *sinfo;
 
-    emit_local_var_read(mrb, coi, reg_dtmp0, srcno);
-    emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+    if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 && 0){
+      dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
+    }
+    else {
+      emit_local_var_read(mrb, coi, reg_dtmp0, srcno);
+      emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+    }
     return code;
   }
 
@@ -1251,12 +1279,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
-    dinfo->regplace = MRBJIT_REG_MEMORY;
-    dinfo->unboxedp = 0;
-    dinfo->type = MRB_TT_FREE;
-    dinfo->klass = NULL;
-    dinfo->constp = 0;
-    
+
     if (GETARG_C(i) == CALL_MAXARGS) {
       n = 1;
     }
@@ -1270,6 +1293,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_flush_regs(mrb, pc, status, coi, 1);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
 
+    dinfo->regplace = MRBJIT_REG_MEMORY;
+    dinfo->unboxedp = 0;
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
+    dinfo->constp = 0;
+    
     if ((ivid = is_reader(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
@@ -1896,7 +1925,7 @@ do {                                                                 \
                                                                      \
           COMP_GEN_FI(CMPINSTF);                                     \
     }                                                                \
-    Else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&               \
+    else if (mrb_type(regs[regno]) == MRB_TT_FIXNUM &&               \
              mrb_type(regs[regno + 1]) == MRB_TT_FLOAT) {            \
           gen_type_guard(mrb, regno, status, *ppc, coi);	     \
           gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
