@@ -45,7 +45,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 #define DEREF_REGNO(regno)                                           \
   ({								     \
     mrbjit_reginfo *rinfo = &coi->reginfo[regno];                    \
-    (rinfo->regplace > MRBJIT_REG_VMREG0) ? rinfo->regplace : regno; \
+    (rinfo->regplace > MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
   })
 
 

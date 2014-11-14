@@ -95,9 +95,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     case MRBJIT_REG_VMREG5:
     case MRBJIT_REG_VMREG6:
     case MRBJIT_REG_VMREG7:
-      emit_local_var_read(mrb, coi, reg_dtmp0, 
-			  coi->reginfo[pos].regplace - MRBJIT_REG_VMREG0);
-      emit_local_var_write(mrb, coi, pos, reg_dtmp0);
+      {
+	enum mrbjit_regplace regp;
+	regp = coi->reginfo[pos].regplace;
+	emit_local_var_read(mrb, coi, reg_dtmp0, regp - MRBJIT_REG_VMREG0);
+	emit_local_var_write(mrb, coi, pos, reg_dtmp0);
+	coi->reginfo[pos].regplace = regp;
+      }
       break;
 
     default:
@@ -774,7 +778,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(val);
     dinfo->klass = mrb_class(mrb, val);
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)irep->pool + srcoff);
@@ -802,7 +805,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo->klass = mrb->fixnum_class;
     }
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     return code;
@@ -821,7 +823,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = MRB_TT_SYMBOL;
     dinfo->klass = mrb->symbol_class;
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_load_literal(mrb, coi, reg_tmp0, src);
@@ -845,7 +846,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(self);
     dinfo->klass = mrb->c->ci->target_class;
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_local_var_read(mrb, coi, reg_dtmp0, 0); /* self */
@@ -871,7 +871,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo->constp = 1;
     }
 
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -894,7 +893,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo->constp = 1;
     }
 
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -912,7 +910,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);
@@ -965,7 +962,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     if (ivoff < 0) {
@@ -1077,7 +1073,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);
@@ -1128,7 +1123,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(v);
     dinfo->klass = mrb_class(mrb, v);
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_load_literal(mrb, coi, reg_tmp0, v.value.i);
@@ -1172,7 +1166,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = MRB_TT_FALSE;
     dinfo->klass = mrb->nil_class;
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_load_literal(mrb, coi, reg_tmp0, 0);
@@ -1293,7 +1286,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_flush_regs(mrb, pc, status, coi, 1);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
 
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
@@ -1696,7 +1688,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];                     \
-    dinfo->regplace = MRBJIT_REG_MEMORY;                                \
     dinfo->unboxedp = 0;                                                \
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
@@ -2009,7 +2000,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2037,7 +2027,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2064,7 +2053,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2091,7 +2079,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2118,7 +2105,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2153,7 +2139,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2200,7 +2185,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -2218,7 +2202,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_FREE;
     dinfo->klass = NULL;
     dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_move(mrb, coi, eax, edi, OffsetOf(mrb_context, ci));
@@ -2362,7 +2345,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_PROC;
     dinfo->klass = mrb->proc_class;
     dinfo->constp = 1;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     if (mirep->simple_lambda == 1 && c->proc_pool) {
@@ -2433,7 +2415,6 @@ do {                                                                 \
     dinfo->type = MRB_TT_RANGE;
     dinfo->klass = mrb_class(mrb, 
 			     mrb_vm_const_get(mrb, mrb_intern_cstr(mrb, "Range")));
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);
@@ -2469,7 +2450,6 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_STRING;
     dinfo->klass = mrb->string_class;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);
@@ -2500,7 +2480,6 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_STRING;
     dinfo->klass = mrb->string_class;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);
@@ -2532,7 +2511,6 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = MRB_TT_HASH;
     dinfo->klass = mrb->hash_class;
-    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
 
     emit_cfunc_start(mrb, coi);

@@ -36,7 +36,6 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
   // not need guard for self because guard geneate already
   //local_var_type_read(reg_tmp0, regno);
@@ -126,7 +125,6 @@ MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(i);
   const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   emit_add(mrb, coi, ecx, off0, 1);
@@ -153,7 +151,6 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -195,7 +192,6 @@ MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   emit_local_var_int_value_read(mrb, coi, xmm0, regno);
@@ -235,7 +231,6 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   mrb_value *regs  = *status->regs;
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   /* Import from class.h */
@@ -450,7 +445,6 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
   mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   m = mrb_method_search_vm(mrb, &c, mid);
@@ -543,7 +537,6 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
   int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
 
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
   m = mrb_method_search_vm(mrb, &c, mid);
 
@@ -719,7 +712,6 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
   dinfo->type = MRB_TT_TRUE;
   dinfo->klass = mrb->true_class;
   dinfo->constp = 0;
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
 
@@ -744,7 +736,6 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   const int dst = GETARG_A(i);
   const int src = dst + 1;
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
@@ -789,7 +780,6 @@ MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
   const int dst = GETARG_A(i);
   const int src = dst;
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
-  dinfo->regplace = MRBJIT_REG_MEMORY;
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
