@@ -1688,6 +1688,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);   \
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];                     \
+    enum mrbjit_regplace drp = dinfo->regplace;                         \
     dinfo->unboxedp = 0;                                                \
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
@@ -1698,6 +1699,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_value_read(mrb, coi, reg_tmp1, reg1pos);		\
       AINST(mrb, coi, reg_tmp0, reg_tmp1);				\
       OVERFLOW_CHECK_GEN(AINST);                                        \
+      if (drp != MRBJIT_REG_MEMORY) {                                   \
+        emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FIXNUM);\
+        emit_local_var_type_write(mrb, coi, reg0pos, reg_tmp1);         \
+      }                                                                 \
       emit_local_var_value_write(mrb, coi, reg0pos, reg_tmp0);		\
       dinfo->type = MRB_TT_FIXNUM;  					\
       dinfo->klass = mrb->fixnum_class; 				\
@@ -1813,6 +1818,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int regno = GETARG_A(**ppc);                                        \
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];                       \
+    enum mrbjit_regplace drp = dinfo->regplace;                         \
 \
     gen_type_guard(mrb, regno, status, *ppc, coi);			\
 \
@@ -1821,6 +1827,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_load_literal(mrb, coi, reg_tmp1, y);		                \
       AINST(mrb, coi, reg_tmp0, reg_tmp1);				\
       OVERFLOW_CHECK_I_GEN(AINST);                                      \
+      if (drp != MRBJIT_REG_MEMORY) {                                   \
+        emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FIXNUM);\
+        emit_local_var_type_write(mrb, coi, regno, reg_tmp1);           \
+      }                                                                 \
       emit_local_var_value_write(mrb, coi, regno, reg_tmp0);		\
       dinfo->type = MRB_TT_FIXNUM;       				\
       dinfo->klass = mrb->fixnum_class; 				\
