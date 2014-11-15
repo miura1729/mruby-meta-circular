@@ -756,7 +756,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     *dinfo = *sinfo;
 
     if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
-	srcno < dstno){
+	srcno < dstno) {
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
     else {
@@ -2130,6 +2130,7 @@ do {                                                                 \
     int siz = GETARG_C(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
+    gen_flush_regs(mrb, *status->pc, status, coi, 1);
     emit_cfunc_start(mrb, coi);
 
     lea(eax, ptr [ecx + srcoff]);
