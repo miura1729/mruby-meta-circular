@@ -310,6 +310,11 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
+  void emit_local_var_add(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::uint32 src) {
+    regno = DEREF_REGNO(regno);
+    add(dword [reg_regs + regno * sizeof(mrb_value)], src);
+  }
+
   void emit_sub(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::uint32 src) {
     sub(dst, src);
   }

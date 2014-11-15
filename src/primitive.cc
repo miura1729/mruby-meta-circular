@@ -123,11 +123,10 @@ MRBJitCode::mrbjit_prim_fix_succ_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   int i = *pc;
   int regno = GETARG_A(i);
-  const Xbyak::uint32 off0 = regno * sizeof(mrb_value);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   dinfo->unboxedp = 0;
 
-  emit_add(mrb, coi, ecx, off0, 1);
+  emit_local_var_add(mrb, coi, regno, 1);
   dinfo->type = MRB_TT_FIXNUM;
   dinfo->klass = mrb->fixnum_class;
 
