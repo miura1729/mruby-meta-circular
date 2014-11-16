@@ -872,6 +872,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo->constp = 1;
     }
 
+    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -894,6 +895,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo->constp = 1;
     }
 
+    dinfo->regplace = MRBJIT_REG_MEMORY;
     dinfo->unboxedp = 0;
     return code;
   }
@@ -1445,7 +1447,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
 
-    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0) {
+    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0 ||
+	m1 > mrb->c->ci->argc) {
       CALL_CFUNC_BEGIN;
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
     }
