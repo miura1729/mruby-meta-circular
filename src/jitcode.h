@@ -1445,7 +1445,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
 
-    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0 || m1 != 0) {
+    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0) {
       CALL_CFUNC_BEGIN;
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
     }
