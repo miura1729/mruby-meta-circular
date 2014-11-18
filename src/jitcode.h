@@ -333,6 +333,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_local_var_type_read(mrb, coi, reg_tmp0, regpos);
     rinfo->type = tt;
     rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
+    if (rinfo->regplace > MRBJIT_REG_VMREG0) {
+      int orgno = rinfo->regplace - MRBJIT_REG_VMREG0;
+      mrbjit_reginfo *oinfo = &coi->reginfo[orgno];
+      oinfo->type = tt;
+      oinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
+    }
     /* Input eax for type tag */
     if (tt == MRB_TT_FLOAT) {
       emit_cmp(mrb, coi, eax, 0xfff00000);
