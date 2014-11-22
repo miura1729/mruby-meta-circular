@@ -1012,11 +1012,41 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, entry, &prev_entry);
 
 #endif
-
       irep = *status->irep;
       regs = *status->regs;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
+
+      if (prev_entry == (void *(*)())1) {
+	mrbjit_codetab *tab = irep->jit_entry_tab;
+	mrbjit_code_info *entry;
+	int i, j;
+
+	/* Overflow happened */
+	//puts("overflow");
+	prev_entry = NULL;
+
+	if (irep->may_overflow == 0) {
+	  irep->may_overflow = 1;
+	  for (i = 0; i < tab->size; i++) {
+	    entry = tab->body + i;
+	    if (entry->used > 0) {
+	      mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry,
+				    irep->iseq, status, entry);
+	    }
+	  }
+	  for (j = 0; j < irep->ilen; j++) {
+	    for (i = 0; i < tab->size; i++) {
+	      entry = tab[j].body + i;
+	      if (entry->used > 0) {
+		entry->used = 0;
+		entry->entry = NULL;
+	      }
+	    }
+	  }
+	}
+      }
+
       //disasm_once(mrb, irep, **ppc);
       //mrb_irep *search_irep(mrb_state *mrb, mrb_code *pc);
       //if (search_irep(mrb, *ppc) != irep) {

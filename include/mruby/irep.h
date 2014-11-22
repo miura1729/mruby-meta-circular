@@ -58,6 +58,7 @@ typedef struct mrb_irep {
   signed char simple_lambda;
   signed char shared_lambda;
   signed char block_lambda;
+  signed char may_overflow;
   signed char disable_jit;
   struct RProc *proc_obj;
 

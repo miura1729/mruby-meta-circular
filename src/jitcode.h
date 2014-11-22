@@ -198,8 +198,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (is_clr_rc) {
       emit_load_literal(mrb, coi, reg_tmp0, 0);
     }
-    if (is_clr_exitpos) {
+    if (is_clr_exitpos == 1) {
       emit_load_literal(mrb, coi, reg_tmp1, 0);
+    }
+    else if (is_clr_exitpos == 2) {
+      emit_load_literal(mrb, coi, reg_tmp1, 1); /* Arthmetic overflow */
     }
     else {
       //mov(edx, (Xbyak::uint32)exit_ptr);
@@ -324,8 +327,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regpos]);
     mrbjit_reginfo *rinfo = &coi->reginfo[regpos];
+    mrb_irep *irep = *status->irep;
 
-    if (rinfo->type == tt) {
+    if (rinfo->type == tt && irep->may_overflow == 0) {
       return;
     }
 
@@ -1693,7 +1697,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_local_var_int_value_read(mrb, coi, xmm1, reg1pos);	        \
     AINST(mrb, coi, xmm0, xmm1);					\
     emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);			\
-    gen_exit(mrb, *status->pc + 1, 1, 1, status, coi);			\
+    gen_exit(mrb, *status->pc + 1, 1, 2, status, coi);			\
     L("@@");                                                            \
 
 
@@ -1825,7 +1829,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     cvtsi2sd(xmm1, eax);                                                \
     AINST(mrb, coi, xmm0, xmm1);					\
     emit_local_var_write(mrb, coi, regno, reg_dtmp0);			\
-    gen_exit(mrb, *status->pc + 1, 1, 1, status, coi);			\
+    gen_exit(mrb, *status->pc + 1, 1, 2, status, coi);			\
     L("@@");                                                            \
 
 #define ARTH_I_GEN(AINST)                                               \

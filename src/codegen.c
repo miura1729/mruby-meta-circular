@@ -2679,6 +2679,7 @@ scope_finish(codegen_scope *s)
   irep->shared_lambda = s->shared_lambda;
   irep->disable_jit = 0;
   irep->block_lambda = 0;
+  irep->may_overflow = 0;
   irep->proc_obj = NULL;
 
   mrb_gc_arena_restore(mrb, s->ai);
