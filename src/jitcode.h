@@ -403,6 +403,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (rinfo->type != tt) {
 
       rinfo->type = tt;
+      if (rinfo->regplace > MRBJIT_REG_VMREG0) {
+	int orgno = rinfo->regplace - MRBJIT_REG_VMREG0;
+	mrbjit_reginfo *oinfo = &coi->reginfo[orgno];
+	oinfo->type = tt;
+	oinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
+      }
 
       emit_local_var_type_read(mrb, coi, reg_tmp0, regpos);
 
