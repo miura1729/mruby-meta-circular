@@ -1026,22 +1026,29 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	//puts("overflow");
 	prev_entry = NULL;
 
-	if (irep->may_overflow == 0) {
-	  irep->may_overflow = 1;
-	  for (i = 0; i < tab->size; i++) {
-	    entry = tab->body + i;
-	    if (entry->used > 0) {
-	      mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry,
-				    irep->iseq, status, entry);
-	    }
+	/* irep->may_overflow == 0  always true */
+
+	ci = NULL;
+	irep->may_overflow = 1;
+	for (i = 0; i < tab->size; i++) {
+	  entry = tab->body + i;
+	  if (entry->used > 0) {
+	    mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry,
+				  irep->iseq, status, entry);
 	  }
-	  for (j = 0; j < irep->ilen; j++) {
-	    for (i = 0; i < tab->size; i++) {
-	      entry = tab[j].body + i;
-	      if (entry->used > 0) {
-		entry->used = 0;
-		entry->entry = NULL;
+	}
+	for (j = 0; j < irep->ilen; j++) {
+	  for (i = 0; i < tab->size; i++) {
+	    entry = tab[j].body + i;
+	    if (entry->used > 0) {
+	      int k;
+	      entry->used = -1;
+	      entry->entry = 0;
+	      entry->prev_coi = NULL;
+	      if (entry->reginfo) {
+		mrb_free(mrb, entry->reginfo);
 	      }
+	      entry->reginfo = NULL;
 	    }
 	  }
 	}

@@ -201,7 +201,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (is_clr_exitpos == 1) {
       emit_load_literal(mrb, coi, reg_tmp1, 0);
     }
-    else if (is_clr_exitpos == 2) {
+    else if (is_clr_exitpos == 2 && (*status->irep)->may_overflow == 0) {
       emit_load_literal(mrb, coi, reg_tmp1, 1); /* Arthmetic overflow */
     }
     else {
@@ -1724,8 +1724,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
         emit_local_var_type_write(mrb, coi, reg0pos, reg_tmp1);         \
       }                                                                 \
       emit_local_var_value_write(mrb, coi, reg0pos, reg_tmp0);		\
-      dinfo->type = MRB_TT_FIXNUM;  					\
-      dinfo->klass = mrb->fixnum_class; 				\
+      if ((*status->irep)->may_overflow == 0) {                         \
+        dinfo->type = MRB_TT_FIXNUM;					\
+        dinfo->klass = mrb->fixnum_class; 				\
+      }                                                                 \
     }                                                                   \
     else if ((r0type == MRB_TT_FLOAT || r0type == MRB_TT_FIXNUM) &&     \
              (r1type == MRB_TT_FLOAT || r1type == MRB_TT_FIXNUM)) {	\
@@ -1852,8 +1854,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
         emit_local_var_type_write(mrb, coi, regno, reg_tmp1);           \
       }                                                                 \
       emit_local_var_value_write(mrb, coi, regno, reg_tmp0);		\
-      dinfo->type = MRB_TT_FIXNUM;       				\
-      dinfo->klass = mrb->fixnum_class; 				\
+      if ((*status->irep)->may_overflow == 0) {                         \
+        dinfo->type = MRB_TT_FIXNUM;					\
+        dinfo->klass = mrb->fixnum_class; 				\
+      }                                                                 \
     }                                                                   \
     else if (atype == MRB_TT_FLOAT) {					\
       emit_local_var_read(mrb, coi, reg_dtmp0, regno);			\
