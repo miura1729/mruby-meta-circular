@@ -2673,7 +2673,7 @@ scope_finish(codegen_scope *s)
   }
 
   irep->nlocals = s->nlocals;
-  irep->nregs = s->nregs;
+  irep->nregs = s->nregs + 1;
 
   irep->simple_lambda = s->simple_lambda;
   irep->shared_lambda = s->shared_lambda;
