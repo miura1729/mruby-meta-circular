@@ -57,18 +57,18 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 #endif
 
 typedef struct {
-  mrb_sym mid;
+  void *jit_entry;
+  mrb_code *pc;                 /* return address */
   struct RProc *proc;
   mrb_value *stackent;
   int nregs;
   int ridx;
   int eidx;
   struct REnv *env;
-  mrb_code *pc;                 /* return address */
-  void *jit_entry;
   mrb_code *err;                /* error position */
   int argc;
   int acc;
+  mrb_sym mid;
   struct RClass *target_class;
 
   void *dummy[3];
