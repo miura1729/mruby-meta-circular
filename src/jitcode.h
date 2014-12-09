@@ -506,7 +506,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mov(edx, 0);
     }
 
-    //ci->jit_entry = (irep->jit_entry_tab + ioff)->body[0].entry;
+    //ci->jit_entry = (irep->jit_entry_tab[-1] + ioff)->body[0].entry;
     /* edi must point current context  */
     emit_move(mrb, coi, eax, edi,  OffsetOf(mrb_context, ci));
 
