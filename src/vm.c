@@ -1637,12 +1637,7 @@ RETRY_TRY_BLOCK:
       ci->mid = mid;
       ci->proc = m;
       ci->stackent = mrb->c->stack;
-      if (c->tt == MRB_TT_ICLASS) {
-        ci->target_class = c->c;
-      }
-      else {
-        ci->target_class = c;
-      }
+      ci->target_class = c;
 
       ci->pc = pc + 1;
       ci->acc = a;
@@ -1816,6 +1811,12 @@ RETRY_TRY_BLOCK:
 	int orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
         ci->nregs = 0;
+        if (n == CALL_MAXARGS) {
+          ci->nregs = 3;
+        }
+        else {
+          ci->nregs = n + 2;
+        }
         mrb->c->stack[0] = m->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
