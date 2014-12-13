@@ -118,6 +118,7 @@ MRuby::Build.new('host-debug') do |conf|
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
+  conf.cxx.defines = %w(ENABLE_DEBUG)
   # bintest
   # conf.enable_bintest
 end
