@@ -339,3 +339,9 @@ mrbjit_emit_code(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
 }
 } /* extern "C" */
 
+struct CodeDeleter {
+ ~CodeDeleter()
+  {
+    delete the_code;
+  }
+} codeDeleter;
