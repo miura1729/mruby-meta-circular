@@ -115,10 +115,13 @@ MRuby::Build.new('host-debug') do |conf|
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"
 
+  conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32))
+  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
   conf.cxx.defines = %w(ENABLE_DEBUG)
+  enable_debug
   # bintest
   # conf.enable_bintest
 end
