@@ -377,7 +377,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   emit_jmp(mrb, coi, ".exit");
 
   L(".retnil");
-  add(esp, sizeof(void *) + sizeof(mrb_value)); // ecx, val
+  add(esp, sizeof(void *) * 2 + sizeof(mrb_value)); // ecx, ebx , val
   emit_load_literal(mrb, coi, reg_tmp0, 0);
   emit_local_var_value_write(mrb, coi, aryno, reg_tmp0);
   emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
