@@ -11,8 +11,9 @@ end
 
 def bar
   k = 3
-  a = Proc.new { b = -1;p Env.get_proc_env(a).to_a}
+  a = Proc.new { b = -1}
   a.call
+  p Env.get_proc_env(a).to_a
 end
 
 y = -1

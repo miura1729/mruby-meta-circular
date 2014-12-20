@@ -4,7 +4,7 @@
 #include "mruby/array.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
-#include "opcode.h"
+#include "mruby/opcode.h"
 #include "mruby/irep.h"
 #include <stdio.h>
 
@@ -181,7 +181,7 @@ mrb_env_get_current_env(mrb_state *mrb, mrb_value self)
 
   if (!ci->env) {
     e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)ci->proc->env);
-    MRB_ENV_STACK_LEN(e)= (unsigned int)ci->proc->body.irep->nlocals;
+    MRB_SET_ENV_STACK_LEN(e, ci->proc->body.irep->nregs);
     e->mid = ci->mid;
     e->cioff = ci - mrb->c->cibase;
     e->stack = mrb->c->ci[-level].stackent;
