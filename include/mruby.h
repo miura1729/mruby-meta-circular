@@ -48,6 +48,8 @@ struct mrb_state;
 
 typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
+#define MRBJIT
+
 #ifndef MRB_GC_ARENA_SIZE
 #define MRB_GC_ARENA_SIZE 100
 #endif
