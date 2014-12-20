@@ -6,6 +6,9 @@
 #include "mruby/string.h"
 #include "mruby/opcode.h"
 #include "mruby/irep.h"
+#if defined MRBJIT
+#include "mruby/jit.h"
+#endif
 #include <stdio.h>
 
 static char *optable[] = {
@@ -366,6 +369,42 @@ mrb_irep_set_nlocals(mrb_state *mrb, mrb_value self)
   return src;
 }
 
+#if defined MRBJIT
+static mrb_value
+mrb_irep_regklass(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrbjit_codetab *ctab;
+  mrb_value paths;
+  mrb_value pc;
+  int i;
+
+  mrb_get_args(mrb, "o", &pc);
+  ctab = &irep->jit_entry_tab[mrb_fixnum(pc)];
+  paths = mrb_ary_new_capa(mrb, ctab->size);
+  for (i = 0; i < ctab->size; i++) {
+    mrb_value regs = mrb_ary_new_capa(mrb, irep->nregs);
+    mrbjit_code_info *pent = &ctab->body[i];
+    int j;
+
+    for (j = 0; j < irep->nregs; j++) {
+      mrb_value cvalue;
+      if (pent->reginfo && pent->reginfo[j].klass) {
+	cvalue = mrb_obj_value(pent->reginfo[j].klass);
+      }
+      else {
+	cvalue = mrb_nil_value();
+      }
+      mrb_ary_push(mrb, regs, cvalue);
+    }
+
+    mrb_ary_push(mrb, paths, regs);
+  }
+
+  return paths;
+}
+#endif
+
 static mrb_value
 mrb_irep_to_proc(mrb_state *mrb, mrb_value self)
 {
@@ -426,6 +465,9 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "nregs=", mrb_irep_set_nregs, ARGS_REQ(1));
   mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, ARGS_NONE());
   mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, ARGS_REQ(1));
+#if defined MRBJIT
+  mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, ARGS_REQ(1));
+#endif
   mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, ARGS_NONE());
 
   a = mrb_define_class(mrb, "Env", mrb->object_class);
