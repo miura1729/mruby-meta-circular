@@ -165,6 +165,11 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     push(val);
   }
 
+  void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 reg)
+  {
+    jmp(reg);
+  }
+
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, const void *addr)
   {
     jmp(addr);

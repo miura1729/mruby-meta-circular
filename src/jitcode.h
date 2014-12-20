@@ -1576,7 +1576,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_exit(mrb, NULL, 1, 1, status, coi);
 
     L("@@");
-    jmp(eax);
+    emit_jmp(mrb, coi, eax);
 
     outLocalLabel();
 

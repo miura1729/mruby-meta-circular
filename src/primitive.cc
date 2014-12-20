@@ -84,13 +84,13 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   jnz(".cmpneq");
 
   emit_load_literal(mrb, coi, reg_tmp0, 0);
-  jmp(".cmpend");
+  emit_jmp(mrb, coi, ".cmpend");
 
   L(".cmpneq");
   jb(".cmplt");
 
   emit_load_literal(mrb, coi, reg_tmp0, 1);
-  jmp(".cmpend");
+  emit_jmp(mrb, coi, ".cmpend");
 
   L(".cmplt");
   emit_load_literal(mrb, coi, reg_tmp0, -1);
@@ -304,7 +304,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   jz(".retnil");
   movsd(xmm0, ptr [edx + eax * sizeof(mrb_value)]);
   emit_local_var_write(mrb, coi, aryno, xmm0);
-  jmp(".exit");
+  emit_jmp(mrb, coi, ".exit");
 
   L(".retnil");
   emit_load_literal(mrb, coi, reg_tmp0, 0);
@@ -374,7 +374,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_read(mrb, coi, xmm0, valno);
   emit_local_var_write(mrb, coi, aryno, xmm0);
-  jmp(".exit");
+  emit_jmp(mrb, coi, ".exit");
 
   L(".retnil");
   add(esp, sizeof(void *) + sizeof(mrb_value)); // ecx, val
