@@ -58,33 +58,6 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 #define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
 #endif
 
-typedef struct {
-  void *jit_entry;
-  mrb_code *pc;                 /* return address */
-  struct RProc *proc;
-  mrb_value *stackent;
-  int nregs;
-  int ridx;
-  int eidx;
-  struct REnv *env;
-  mrb_code *err;                /* error position */
-  int argc;
-  int acc;
-  mrb_sym mid;
-  struct RClass *target_class;
-
-  void *dummy[3];
-} mrb_callinfo;
-
-enum mrb_fiber_state {
-  MRB_FIBER_CREATED = 0,
-  MRB_FIBER_RUNNING,
-  MRB_FIBER_RESUMING,
-  MRB_FIBER_SUSPENDED,
-  MRB_FIBER_TRANSFERRED,
-  MRB_FIBER_TERMINATED,
-};
-
 typedef void * mrbjit_code_area;
 
 enum mrbjit_regplace {
@@ -127,19 +100,47 @@ typedef struct mrbjit_code_info {
   struct mrbjit_code_info *prev_coi;
   mrb_code *caller_pc;
   void *(*entry)();
-  const unsigned char *patch_pos;
+  const void *patch_pos;
   mrbjit_reginfo *reginfo;	/* For Local assignment */
   int used;
 } mrbjit_code_info;
 
 typedef struct mrbjit_comp_info {
-  mrb_code *prev_pc;
-  mrbjit_code_info *prev_coi;
   mrbjit_code_area code_base;
   int disable_jit;
   int force_compile;
   int nest_level;
 } mrbjit_comp_info;
+
+typedef struct {
+  void *jit_entry;
+  mrb_code *pc;                 /* return address */
+  struct RProc *proc;
+  mrb_value *stackent;
+  int nregs;
+  int ridx;
+  int eidx;
+  struct REnv *env;
+  mrb_code *err;                /* error position */
+  int argc;
+  int acc;
+  mrb_sym mid;
+  struct RClass *target_class;
+
+  mrb_code *prev_pc;
+  mrbjit_code_info *prev_coi;
+
+  void *dummy[1];
+} mrb_callinfo;
+
+enum mrb_fiber_state {
+  MRB_FIBER_CREATED = 0,
+  MRB_FIBER_RUNNING,
+  MRB_FIBER_RESUMING,
+  MRB_FIBER_SUSPENDED,
+  MRB_FIBER_TRANSFERRED,
+  MRB_FIBER_TERMINATED,
+};
 
 struct mrb_context {
   struct mrb_context *prev;

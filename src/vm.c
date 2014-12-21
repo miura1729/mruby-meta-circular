@@ -568,7 +568,13 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
 MRB_API mrb_value
 mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv)
 {
-  return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
+  int orgdisflg = mrb->compile_info.disable_jit;
+  mrb_value rc;
+  mrb->compile_info.disable_jit = 1;
+  rc = mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
+  mrb->compile_info.disable_jit = orgdisflg;
+
+  return rc;
 }
 
 /* 15.3.1.3.4  */
@@ -942,14 +948,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   /* Check first instruction of block. 
      So clear compille infomation of previous VM instruction */
   if (irep->iseq == *ppc) {
-    mrb->compile_info.prev_coi = NULL;
+    mrb->c->ci->prev_coi = NULL;
   }
 
   if (irep->jit_entry_tab == NULL) {
     mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
   }
 
-  prev_pc = mrb->compile_info.prev_pc;
+  prev_pc = mrb->c->ci->prev_pc;
 
   if (irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
@@ -969,7 +975,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_code_info *prev_ci;
 
 	if (prev_pc) {
-	  prev_ci = mrb->compile_info.prev_coi;
+	  prev_ci = mrb->c->ci->prev_coi;
 	}
 	else {
 	  prev_ci = NULL;
@@ -1041,7 +1047,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	  for (i = 0; i < tab->size; i++) {
 	    entry = tab[j].body + i;
 	    if (entry->used > 0) {
-	      int k;
 	      entry->used = -1;
 	      entry->entry = 0;
 	      entry->prev_coi = NULL;
@@ -1090,7 +1095,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
-      mrb->compile_info.prev_coi = NULL;
+      mrb->c->ci->prev_coi = NULL;
     }
   }
 
@@ -1108,7 +1113,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (prev_pc) {
-      ci->prev_coi = mrb->compile_info.prev_coi;
+      ci->prev_coi = mrb->c->ci->prev_coi;
     }
     else {
       ci->prev_coi = NULL;
@@ -1116,21 +1121,19 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
     if (ci->reginfo == NULL) {
       ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
-      if (ci->prev_coi && ci->prev_coi->reginfo) {
-	mrbjit_reginfo *prev_rinfo;
-	prev_rinfo = ci->prev_coi->reginfo;
-	for (i = 0; i < irep->nregs; i++) {
-	  ci->reginfo[i] = prev_rinfo[i];
-	}
+      for (i = 0; i < irep->nregs; i++) {
+	ci->reginfo[i].type = MRB_TT_FREE;
+	ci->reginfo[i].klass = NULL;
+	ci->reginfo[i].constp = 0;
+	ci->reginfo[i].unboxedp = 0;
+	ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
       }
-      else {
-	for (i = 0; i < irep->nregs; i++) {
-	  ci->reginfo[i].type = MRB_TT_FREE;
-	  ci->reginfo[i].klass = NULL;
-	  ci->reginfo[i].constp = 0;
-	  ci->reginfo[i].unboxedp = 0;
-	  ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
-	}
+    }
+    if (ci->prev_coi && ci->prev_coi->reginfo) {
+      mrbjit_reginfo *prev_rinfo;
+      prev_rinfo = ci->prev_coi->reginfo;
+      for (i = 0; i < irep->nregs; i++) {
+	ci->reginfo[i] = prev_rinfo[i];
       }
     }
 
@@ -1187,15 +1190,16 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
  skip:
 
-  mrb->compile_info.prev_pc = *ppc;
-  mrb->compile_info.prev_coi = ci;
+  mrb->c->ci->prev_pc = *ppc;
+  mrb->c->ci->prev_coi = ci;
   switch (GET_OPCODE(**ppc)) {
   case OP_SEND:
   case OP_SENDB:
+    
   case OP_RETURN:
   case OP_CALL:
   case OP_EXEC:
-    mrb->compile_info.prev_coi = NULL;
+    //    mrb->c->ci->prev_coi = NULL;
     break;
   }
 
@@ -1300,8 +1304,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   prev_jmp = mrb->jmp;
 
   mrb->compile_info.nest_level = 0;
-  mrb->compile_info.prev_coi = NULL;
-  mrb->compile_info.prev_pc = NULL;
+  mrb->c->ci->prev_coi = NULL;
+  mrb->c->ci->prev_pc = NULL;
 
 RETRY_TRY_BLOCK:
 

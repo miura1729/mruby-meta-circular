@@ -1444,10 +1444,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
     mrb_value *regs = *status->regs;
-    mrb_code i = *pc;
+    mrb_code ins = *pc;
+    int i;
     /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
     /* number of optional arguments times OP_JMP should follow */
-    mrb_aspec ax = GETARG_Ax(i);
+    mrb_aspec ax = GETARG_Ax(ins);
     int m1 = MRB_ASPEC_REQ(ax);
     int o  = MRB_ASPEC_OPT(ax);
     int r  = MRB_ASPEC_REST(ax);
@@ -1462,6 +1463,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
+    /* + 1 means block */
+#if 1
+    for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
+      gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]));
+      coi->reginfo[i].type = (mrb_vtype)mrb_type(regs[i]);
+      coi->reginfo[i].klass = mrb_class(mrb, regs[i]);
+    }
+#endif
 
     if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0 ||
 	m1 > mrb->c->ci->argc) {
