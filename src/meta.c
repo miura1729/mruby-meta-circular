@@ -33,20 +33,62 @@ static char *optable[] = {
   "METHOD", "SCLASS", "TCLASS",
   "DEBUG", "STOP", "ERR",
 };
+enum inst_type {
+  N,
+  A,
+  Ax,
+  Bx,
+  AB,
+  AC,
+  ABx,
+  AsBx,
+  sBx,
+  ABC,
+  ASC,
+  ABzCz,
+};
+
+static enum inst_type opkindtable[] = {
+  N, AB,                //"NOP", "MOVE",
+  ABx, AsBx, ABx,       //"LOADL", "LOADI", "LOADSYM", "LOADNIL",
+  A, A, A,              //"LOADSELF", "LOADT", "LOADF",
+  ABx, ABx, ABx, ABx,   //"GETGLOBAL", "SETGLOBAL", "GETSPECIAL", "SETSPECIAL",
+  ABx, ABx, ABx, ABx,   //"GETIV", "SETIV", "GETCV", "SETCV",
+  ABx, ABx, ABx, ABx,   //"GETCONST", "SETCONST", "GETMCNST", "SETMCNST",
+  ABx, ABx,             //"GETUPVAR", "SETUPVAR",
+  sBx, AsBx, AsBx,      //"JMP", "JMPIF", "JMPNOT",
+  sBx, A, A, A, Bx, A,  //"ONERR", "RESCUE", "POPERR", "RAISE", "EPUSH", "EPOP",
+  ASC, ASC, ASC,        //"SEND", "SENDB", "FSEND",
+  A, AC, ABx, Ax,       //"CALL", "SUPER", "ARGARY", "ENTER",
+  ASC, AC, AB, ASC, ABx,//"KARG", "KDICT", "RETURN", "TAILCALL", "BLKPUSH",
+  ASC, ASC, ASC, ASC, ASC, ASC, //"ADD", "ADDI", "SUB", "SUBI", "MUL", "DIV",
+  ASC, ASC, ASC, ASC, ASC, //"EQ", "LT", "LE", "GT", "GE",
+  ABC, AB, AB, ABC, ABC, ABC, //"ARRAY", "ARYCAT", "ARYPUSH", "AREF", "ASET", "APOST",
+  ABx, AB, ABC,         //"STRING", "STRCAT", "HASH",
+  ABzCz, ABC, A,        //"LAMBDA", "RANGE", "OCLASS",
+  AB, AB, ABx,          //"CLASS", "MODULE", "EXEC",
+  AB, AB, A,            //"METHOD", "SCLASS", "TCLASS",
+  ABC, N, Bx,           //"DEBUG", "STOP", "ERR",
+};
 
 static mrb_value
 mrb_irep_make_optab(mrb_state *mrb)
 {
   int i;
   int siz = sizeof(optable) / sizeof(optable[0]);
-  mrb_value ary = mrb_ary_new_capa(mrb, siz);
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+  mrb_value opttab = mrb_ary_new_capa(mrb, siz);
+  mrb_value optktab = mrb_ary_new_capa(mrb, siz);
 
   for (i = 0; i < siz; i++) {
-    int ai = mrb_gc_arena_save(mrb);
-    mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, optable[i]));
-    mrb_gc_arena_restore(mrb, ai);
+    mrb_ary_push(mrb, opttab, mrb_str_new_cstr(mrb, optable[i]));
+    mrb_ary_push(mrb, optktab, mrb_fixnum_value(opkindtable[i]));
   }
-
+  
+  mrb_ary_push(mrb, ary, opttab);
+  mrb_ary_push(mrb, ary, optktab);
+  mrb_gc_arena_restore(mrb, ai);
   return ary;
 }
 
@@ -378,6 +420,7 @@ mrb_irep_regklass(mrb_state *mrb, mrb_value self)
   mrb_value paths;
   mrb_value pc;
   int i;
+  int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "o", &pc);
   ctab = &irep->jit_entry_tab[mrb_fixnum(pc)];
@@ -401,6 +444,7 @@ mrb_irep_regklass(mrb_state *mrb, mrb_value self)
     mrb_ary_push(mrb, paths, regs);
   }
 
+  mrb_gc_arena_restore(mrb, ai);
   return paths;
 }
 #endif

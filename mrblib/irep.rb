@@ -261,13 +261,42 @@ end
 
 class Irep
   OPTABLE_SYM = []
+  OPTABLE_KIND = []
   OPTABLE_CODE = {}
-  OPTABLE.each do |ent|
+  OPTABLE[0].each do |ent|
     OPTABLE_SYM.push ent.to_sym
+  end
+  OPTABLE[1].each do |ent|
+    OPTABLE_KIND.push ent
   end
   op = 0
   OPTABLE_SYM.each do |sym|
     OPTABLE_CODE[sym] = op
     op = op + 1
+  end
+
+  def self.disasm(code, irep)
+    res = OPTABLE_SYM[get_opcode(code)].to_s
+    res += " "
+    case OPTABLE_KIND[get_opcode(code)]
+    when 4                      # AB
+      res += "R#{getarg_a(code)}"
+      res += ", "
+      res += "R#{getarg_b(code)}"
+
+    when 6                     # ABx
+      res += "R#{getarg_a(code)}"
+      res += ", "
+      res += "#{getarg_bx(code)}"
+
+    when 10                     # ASC
+      res += "R#{getarg_a(code)}"
+      res += ","
+      res += ":#{irep.syms[getarg_b(code)]}"
+      res += ","
+      res += "#{getarg_c(code)}"
+    end
+
+    res
   end
 end
