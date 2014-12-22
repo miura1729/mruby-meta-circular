@@ -1291,6 +1291,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+    mrbjit_reginfo *sinfo;
 
     if (GETARG_C(i) == CALL_MAXARGS) {
       n = 1;
@@ -1402,6 +1403,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, eax, OffsetOf(mrb_context, stack), ecx);
     }
     else {
+      mrb_irep *sirep = m->body.irep;
+      sinfo = (sirep->jit_entry_tab + (sirep->ilen - 1))->body->reginfo;
+      if (sinfo) {
+	*dinfo = *sinfo;
+      }
       gen_send_mruby(mrb, m, mid, recv, mrb_class(mrb, recv), status, pc, coi);
     }
 
@@ -1495,8 +1501,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int can_inline = (can_use_fast && 
 		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
-#if 0
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
+    mrbjit_reginfo *dinfo = &coi->reginfo[0];
+
+#if 0
     mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
     printf("%s#%s -> ", 
 	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
@@ -1505,6 +1513,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 #endif
 
     gen_flush_regs(mrb, pc, status, coi, 1);
+    *dinfo = *rinfo;
 
     inLocalLabel();
 
