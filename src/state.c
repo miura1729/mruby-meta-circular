@@ -178,7 +178,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     for (i = 0; i < irep->ilen; i++) {
       for (j = 0; j < irep->jit_entry_tab[i].size; j++) {
 	if (irep->jit_entry_tab[i].body[j].reginfo) {
-	  mrb_free(mrb, irep->jit_entry_tab[i].body[j].reginfo);
+	  //	  mrb_free(mrb, irep->jit_entry_tab[i].body[j].reginfo);
 	}
       }
     }

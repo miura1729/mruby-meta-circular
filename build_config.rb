@@ -27,7 +27,7 @@ MRuby::Build.new do |conf|
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
 
   # include the default GEMs
-  #conf.gem '../mruby-meta-circular'
+  conf.gem '../mruby-meta-circular'
   #conf.gem '../mruby-pjson'
   #conf.gem '../mruby-profiler'
   conf.gem 'mrbgems/mruby-mmm'

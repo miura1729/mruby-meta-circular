@@ -1072,6 +1072,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       case OP_SEND:
       case OP_SENDB:
       case OP_RETURN:
+	mrb->c->ci->prev_coi = NULL;
 	ci = NULL;
 	if (mrb->compile_info.force_compile) {
 	  goto skip;
@@ -1195,11 +1196,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   switch (GET_OPCODE(**ppc)) {
   case OP_SEND:
   case OP_SENDB:
-    
   case OP_RETURN:
   case OP_CALL:
   case OP_EXEC:
-    //    mrb->c->ci->prev_coi = NULL;
+    mrb->c->ci->prev_coi = NULL;
     break;
   }
 
