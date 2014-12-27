@@ -15,6 +15,10 @@ module RiteOpcodeUtil
     (op >> 7) & 0x7f
   end
 
+  def getarg_ax(op)
+    (op >> 7) & 0x1ffffff
+  end
+
   def getarg_bx(op)
     (op >> 7) & 0xffff
   end
@@ -279,10 +283,24 @@ class Irep
     res = OPTABLE_SYM[get_opcode(code)].to_s
     res += " "
     case OPTABLE_KIND[get_opcode(code)]
+    when 1                      # A
+      res += "R#{getarg_a(code)}"
+
+    when 2                      # Ax
+      res += "#{getarg_ax(code)}"
+
+    when 3                      # Bx
+      res += "#{getarg_bx(code)}"
+      
     when 4                      # AB
       res += "R#{getarg_a(code)}"
       res += ", "
       res += "R#{getarg_b(code)}"
+
+    when 5                      # AC
+      res += "R#{getarg_a(code)}"
+      res += ", "
+      res += "R#{getarg_c(code)}"
 
     when 6                     # ABx
       res += "R#{getarg_a(code)}"

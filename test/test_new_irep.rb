@@ -15,4 +15,6 @@ while i < 100
   p.call
   i = i + 1
 end
+p irep.reg_class(0)
+p irep.reg_class(1)
 

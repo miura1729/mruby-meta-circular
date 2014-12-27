@@ -50,7 +50,7 @@ enum inst_type {
 
 static enum inst_type opkindtable[] = {
   N, AB,                //"NOP", "MOVE",
-  ABx, AsBx, ABx,       //"LOADL", "LOADI", "LOADSYM", "LOADNIL",
+  ABx, AsBx, ABx, A,    //"LOADL", "LOADI", "LOADSYM", "LOADNIL",
   A, A, A,              //"LOADSELF", "LOADT", "LOADF",
   ABx, ABx, ABx, ABx,   //"GETGLOBAL", "SETGLOBAL", "GETSPECIAL", "SETSPECIAL",
   ABx, ABx, ABx, ABx,   //"GETIV", "SETIV", "GETCV", "SETCV",
