@@ -343,13 +343,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
-
-  emit_cfunc_start(mrb, coi);
-
-  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
-  emit_arg_push(mrb, coi, 5, eax);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, valno);
-  emit_arg_push(mrb, coi, 4, eax);
+#if 0
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
@@ -359,8 +353,37 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   jl(".retnil");
   L(".normal");
   emit_cmp(mrb, coi, eax, edx, OffsetOf(struct RArray, len));
-  jg(".retnil");
-  emit_arg_push(mrb, coi, 3, eax);
+  jge(".retnil");
+
+  emit_local_var_read(mrb, coi, xmm0, valno);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+  movsd(ptr [edx + eax * sizeof(mrb_value)], xmm0);
+
+  emit_cfunc_start(mrb, coi);
+
+  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
+  emit_arg_push(mrb, coi, 3, reg_tmp0);
+  emit_local_var_value_read(mrb, coi, reg_tmp0, valno);
+  emit_arg_push(mrb, coi, 2, reg_tmp0);
+  emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+  emit_arg_push(mrb, coi, 1, reg_tmp1);
+  emit_arg_push(mrb, coi, 0, esi);
+  call((void *)mrb_field_write_barrier);
+  emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + sizeof(mrb_value));
+
+  emit_jmp(mrb, coi, ".exit");
+
+  L(".retnil");
+#endif
+  emit_cfunc_start(mrb, coi);
+
+  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
+  emit_arg_push(mrb, coi, 5, eax);
+  emit_local_var_value_read(mrb, coi, reg_tmp0, valno);
+  emit_arg_push(mrb, coi, 4, eax);
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
+  emit_arg_push(mrb, coi, 3, reg_tmp0);
 
   emit_local_var_type_read(mrb, coi, reg_tmp0, aryno);
   emit_arg_push(mrb, coi, 2, eax);
@@ -372,18 +395,8 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   call((void *)mrb_ary_set);
   emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + 2 * sizeof(mrb_value));
 
-  emit_local_var_read(mrb, coi, xmm0, valno);
-  emit_local_var_write(mrb, coi, aryno, xmm0);
-  emit_jmp(mrb, coi, ".exit");
-
-  L(".retnil");
-  add(esp, sizeof(void *) * 2 + sizeof(mrb_value)); // ecx, ebx , val
-  emit_load_literal(mrb, coi, reg_tmp0, 0);
-  emit_local_var_value_write(mrb, coi, aryno, reg_tmp0);
-  emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
-  emit_local_var_type_write(mrb, coi, aryno, reg_tmp0);
-
   L(".exit");
+
   outLocalLabel();
   
   return mrb_true_value();
