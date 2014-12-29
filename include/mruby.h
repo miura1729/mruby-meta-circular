@@ -97,7 +97,6 @@ typedef struct mrbjit_reginfo {
 typedef struct mrbjit_code_info {
   mrbjit_code_area code_base;
   mrb_code *prev_pc;
-  struct mrbjit_code_info *prev_coi;
   mrb_code *caller_pc;
   void *(*entry)();
   const void *patch_pos;

@@ -1049,7 +1049,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	    if (entry->used > 0) {
 	      entry->used = -1;
 	      entry->entry = 0;
-	      entry->prev_coi = NULL;
 	      if (entry->reginfo) {
 		mrb_free(mrb, entry->reginfo);
 	      }
@@ -1102,6 +1101,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   if (irep->prof_info[n]++ > COMPILE_THRESHOLD ||
       mrb->compile_info.force_compile) {
+    struct mrbjit_code_info *prev_coi;
     //      printf("size %x %x %x\n", irep->jit_entry_tab[n].size, *ppc, prev_pc);
     if (ci == NULL) {
       //printf("p %x %x\n", *ppc, prev_pc);
@@ -1111,13 +1111,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       ci->code_base = mrb->compile_info.code_base;
       ci->entry = NULL;
       ci->used = -1;
-    }
-
-    if (prev_pc) {
-      ci->prev_coi = mrb->c->ci->prev_coi;
-    }
-    else {
-      ci->prev_coi = NULL;
     }
 
     if (ci->reginfo == NULL) {
@@ -1130,9 +1123,16 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
       }
     }
-    if (ci->prev_coi && ci->prev_coi->reginfo) {
-      mrbjit_reginfo *prev_rinfo;
-      prev_rinfo = ci->prev_coi->reginfo;
+    if (prev_pc) {
+      prev_coi = mrb->c->ci->prev_coi;
+    }
+    else {
+      prev_coi = NULL;
+    }
+
+    if (prev_coi && prev_coi->reginfo) {
+      mrbjit_reginfo *prev_rinfo = prev_coi->reginfo;
+
       for (i = 0; i < irep->nregs; i++) {
 	ci->reginfo[i] = prev_rinfo[i];
       }
