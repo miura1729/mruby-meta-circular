@@ -643,6 +643,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)mid);
     emit_move(mrb, coi, edi, OffsetOf(mrb_callinfo, mid), eax);
 
+    emit_load_literal(mrb, coi, reg_tmp0, 0);
+    emit_move(mrb, coi, edi, OffsetOf(mrb_callinfo, prev_coi), eax);
+
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)a);
     emit_move(mrb, coi, edi, OffsetOf(mrb_callinfo, acc), eax);
 
