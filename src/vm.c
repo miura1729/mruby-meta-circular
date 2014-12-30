@@ -1066,18 +1066,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //}
 
       /* Skip Internal guard fail */
-      switch(GET_OPCODE(**ppc)) {
+      /*      switch(GET_OPCODE(**ppc)) {
       case OP_CALL:
       case OP_SEND:
       case OP_SENDB:
       case OP_RETURN:
-	mrb->c->ci->prev_coi = NULL;
+	//	mrb->c->ci->prev_coi = NULL;
 	ci = NULL;
 	if (mrb->compile_info.force_compile) {
 	  goto skip;
 	}
 	break;
-      }
+	}*/
       if (rc) {
 	ci = NULL;
 	goto skip;
@@ -1193,15 +1193,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   mrb->c->ci->prev_pc = *ppc;
   mrb->c->ci->prev_coi = ci;
-  switch (GET_OPCODE(**ppc)) {
-  case OP_SEND:
-  case OP_SENDB:
-  case OP_RETURN:
-  case OP_CALL:
-  case OP_EXEC:
-    mrb->c->ci->prev_coi = NULL;
-    break;
-  }
 
   if (rc) {
     return rc;
