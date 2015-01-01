@@ -100,6 +100,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	regp = coi->reginfo[pos].regplace;
 	emit_local_var_read(mrb, coi, reg_dtmp0, regp - MRBJIT_REG_VMREG0);
 	emit_local_var_write(mrb, coi, pos, reg_dtmp0);
+        /* regplace is changed in emit_local_var_write */
 	coi->reginfo[pos].regplace = regp;
       }
       break;
@@ -1301,13 +1302,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     recv = regs[a];
+    gen_flush_regs(mrb, pc, status, coi, 1);
+    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
+
     c = mrb_class(mrb, recv);
     m = mrb_method_search_vm(mrb, &c, mid);
     if (!m) {
       return NULL;
     }
-    gen_flush_regs(mrb, pc, status, coi, 1);
-    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
 
     dinfo->unboxedp = 0;
     dinfo->type = MRB_TT_FREE;
