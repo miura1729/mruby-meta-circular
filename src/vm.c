@@ -970,6 +970,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
   if (ci) {
     entry = ci->entry;
+    //printf("%x %x\n", ci, entry);
     if (cbase) {
       if (ci->used > 0) {
 	mrbjit_code_info *prev_ci;
@@ -1173,7 +1174,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	// printf("%x %x %x\n", ci->entry, *ppc, ci);
       }
       if (ci->patch_pos) {
-	mrbjit_gen_load_patch(cbase, ci->patch_pos, ci->entry, status, ci);	
+	mrbjit_gen_load_patch(cbase, (void *)ci->patch_pos, ci->entry, status, ci);	
 	ci->patch_pos = NULL;
       }
     }

@@ -115,7 +115,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_flush_regs(mrb_state *mrb, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi, int updateinfo)
   {
     mrb_irep *irep = *status->irep;
-    int i;
+    unsigned int i;
 
     if (!coi || !coi->reginfo) {
       return;
@@ -174,7 +174,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_restore_regs(mrb_state *mrb, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_irep *irep = *status->irep;
-    int i;
+    unsigned int i;
 
     if (!coi || !coi->reginfo) {
       return;
@@ -210,6 +210,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mov(edx, ".exitlab");
     }
     ret();
+    mrb->compile_info.nest_level = 0;
     outLocalLabel();
   }
   
@@ -218,8 +219,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_irep *irep = *status->irep;
-    int i;
-
+    unsigned int i;
+    /*
     if (coi && prevcoi && coi->reginfo && prevcoi->reginfo) {
       for (i = 0; i < irep->nregs; i++) {
 	if (coi->reginfo[i].regplace != prevcoi->reginfo[i].regplace) {
@@ -231,6 +232,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_flush_regs(mrb, *status->pc, status, prevcoi, 1);
       gen_restore_regs(mrb, *status->pc, status, coi);
     }
+    */
+
     emit_jmp(mrb, coi, entry);
 
     return code;
@@ -282,44 +285,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     padsize = (align - padsize) & (align - 1);
     for (i = 0; i < padsize; i++) {
       nop();
-    }
-  }
-
-  void 
-    gen_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrb_code *curpc, mrb_code *newpc, mrbjit_code_info *coi)
-  {
-    mrbjit_code_info *newci;
-    mrb_irep *irep = *status->irep;
-    int n = ISEQ_OFFSET_OF(newpc);
-    if (irep->jit_inlinep) {
-      newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, 
-					  curpc, mrb->c->ci->pc);
-    }
-    else {
-      newci = mrbjit_search_codeinfo_prev(irep->jit_entry_tab + n, curpc, NULL);
-      mrb->compile_info.nest_level = 0;
-    }
-    if (newci) {
-#if 0
-      mrb_irep *irep = *status->irep;
-      int i;
-
-      printf("Irep %x Pc %x \n", irep, *status->pc);
-      for (i = 0; i < irep->nregs; i++) {
-	printf("%d -> %d, %d\n", i, newci->reginfo[i].regplace, coi->reginfo[i].regplace);
-	printf("  -> %d, %d\n", newci->reginfo[i].type, coi->reginfo[i].type);
-      }
-      printf("\n");
-#endif
-
-      if (newci->used > 0) {
-	emit_jmp(mrb, coi, (void *)newci->entry);
-	mrb->compile_info.code_base = NULL;
-      }
-      /*else {
-	newci->entry = (void *(*)())getCurr();
-	gen_exit(newpc, 1, 0, status, coi);
-	}*/
     }
   }
 
