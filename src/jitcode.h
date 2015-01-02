@@ -220,7 +220,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const void *code = getCurr();
     mrb_irep *irep = *status->irep;
     unsigned int i;
-    /*
+
     if (coi && prevcoi && coi->reginfo && prevcoi->reginfo) {
       for (i = 0; i < irep->nregs; i++) {
 	if (coi->reginfo[i].regplace != prevcoi->reginfo[i].regplace) {
@@ -232,7 +232,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_flush_regs(mrb, *status->pc, status, prevcoi, 1);
       gen_restore_regs(mrb, *status->pc, status, coi);
     }
-    */
 
     emit_jmp(mrb, coi, entry);
 
