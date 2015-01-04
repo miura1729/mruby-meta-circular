@@ -264,6 +264,8 @@ class RiteVM
 end
 
 class Irep
+  extend  RiteOpcodeUtil
+
   OPTABLE_SYM = []
   OPTABLE_KIND = []
   OPTABLE_CODE = {}
@@ -306,6 +308,18 @@ class Irep
       res += "R#{getarg_a(code)}"
       res += ", "
       res += "#{getarg_bx(code)}"
+
+    when 7                     # AsBx
+      res += "R#{getarg_a(code)}"
+      res += ", "
+      res += "#{getarg_sbx(code)}"
+
+    when 9                     # ABC
+      res += "R#{getarg_a(code)}"
+      res += ","
+      res += "#{getarg_b(code)}"
+      res += ","
+      res += "#{getarg_c(code)}"
 
     when 10                     # ASC
       res += "R#{getarg_a(code)}"

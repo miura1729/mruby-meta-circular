@@ -7,15 +7,21 @@ class RiteDAGNode
     @exit_link = []
   end
 
+  attr :pos
   attr :iseq
   attr :enter_link
   attr :exit_link
 
   def inspect
     res = ""
-    @iseq.each_with_index {|ele, i|
+    res << "enter: "
+    @enter_link.each do |ele|
+      res << "#{ele.pos}, "
+    end
+    res << "\n"
+    @iseq.each_with_index do |ele, i|
       res << "#{Irep::disasm(ele, @irep)}\n"
-    }
+    end
     res
   end
 end
