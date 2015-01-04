@@ -183,6 +183,16 @@ mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
 
   irep->nregs = mrb_fixnum(nregs);
   irep->nlocals = mrb_fixnum(nlocals);
+#if defined(MRBJIT)
+  irep->jit_entry_tab = NULL;
+  irep->method_kind = NORMAL;
+  irep->simple_lambda = 0;
+  irep->shared_lambda = 0;
+  irep->disable_jit = 0;
+  irep->block_lambda = 1;
+  irep->may_overflow = 0;
+  irep->proc_obj = NULL;
+#endif
   return mrb_irep_wrap(mrb, mrb_class_ptr(self), irep);
 }
 
@@ -205,6 +215,19 @@ mrb_env_get_proc_env(mrb_state *mrb, mrb_value self)
     if (!e) return mrb_nil_value();
   }
   return mrb_env_wrap(mrb, mrb_class_ptr(self), e);
+}
+
+static mrb_value
+mrb_env_get_proc_irep(mrb_state *mrb, mrb_value self)
+{
+  mrb_value proc;
+  mrb_irep *irep;
+
+  mrb_get_args(mrb, "o", &proc);
+
+  irep = mrb_proc_ptr(proc)->body.irep;
+
+  return mrb_irep_wrap(mrb, mrb_class_ptr(self), irep);
 }
 
 static mrb_value
@@ -513,6 +536,8 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, ARGS_REQ(1));
 #endif
   mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, ARGS_NONE());
+
+  mrb_define_class_method(mrb, a, "get_proc_irep", mrb_env_get_proc_irep, ARGS_REQ(1));
 
   a = mrb_define_class(mrb, "Env", mrb->object_class);
   MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);

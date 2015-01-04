@@ -210,7 +210,8 @@ class FibVM
             @code += gen_get_reg(tmp0, getarg_a(cop))
             @code += gen_get_reg(tmp1, getarg_a(cop) + 1)
             @code.push mkop_ABC(OPTABLE_CODE[:EQ], tmp0, EQ_SYM, 1)
-            @code += gen_set_reg(getarg_a(cop), tmp0)
+            @code.push mkop_AB(OPTABLE_CODE[:MOVE], tmp1, tmp0)
+            @code += gen_set_reg(getarg_a(cop), tmp1)
             @max_using_reg -= 2
 
           when :ENTER
