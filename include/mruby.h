@@ -127,7 +127,7 @@ typedef struct {
   struct RClass *target_class;
 
   mrb_code *prev_pc;
-  mrbjit_code_info *prev_coi;
+  int prev_tentry_offset;
 
   void *dummy[1];
 } mrb_callinfo;

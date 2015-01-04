@@ -919,10 +919,48 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
   goto retry;
 }
 
+static void
+mrbjit_arth_overflow(mrb_state *mrb, mrb_irep *irep, mrbjit_code_area cbase, mrbjit_vmstatus *status)
+{
+  mrbjit_codetab *tab = irep->jit_entry_tab;
+  mrbjit_code_info *entry;
+  int i, j;
+
+  /* irep->may_overflow == 0  always true */
+
+  irep->may_overflow = 1;
+  for (i = 0; i < tab->size; i++) {
+    entry = tab->body + i;
+    if (entry->used > 0) {
+      mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry,
+			    irep->iseq, status, entry);
+    }
+  }
+  for (j = 0; j < irep->ilen; j++) {
+    for (i = 0; i < tab->size; i++) {
+      entry = tab[j].body + i;
+      if (entry->used > 0) {
+	entry->used = -1;
+	entry->entry = 0;
+	if (entry->reginfo) {
+	  mrb_free(mrb, entry->reginfo);
+	}
+	entry->reginfo = NULL;
+      }
+    }
+  }
+}
+
 extern void disasm_once(mrb_state *, mrb_irep *, mrb_code);
 extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *, 
 			   struct mrb_context *, void *, 
 			   void *(**)());
+#define GET_CODE_INFO(pc, toff) ({                        \
+      mrbjit_codetab *ctab = irep->jit_entry_tab + ISEQ_OFFSET_OF((pc)); \
+      ctab->body + toff;			                         \
+})
+
+
 static inline void *
 mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 {
@@ -948,7 +986,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   /* Check first instruction of block. 
      So clear compille infomation of previous VM instruction */
   if (irep->iseq == *ppc) {
-    mrb->c->ci->prev_coi = NULL;
+    mrb->c->ci->prev_tentry_offset = -1;
   }
 
   if (irep->jit_entry_tab == NULL) {
@@ -975,8 +1013,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       if (ci->used > 0) {
 	mrbjit_code_info *prev_ci;
 
-	if (prev_pc) {
-	  prev_ci = mrb->c->ci->prev_coi;
+	if (prev_pc && mrb->c->ci->prev_tentry_offset != -1) {
+	  prev_ci = GET_CODE_INFO(prev_pc, mrb->c->ci->prev_tentry_offset);
 	}
 	else {
 	  prev_ci = NULL;
@@ -1025,38 +1063,11 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       *(status->syms) = irep->syms;
 
       if (prev_entry == (void *(*)())1) {
-	mrbjit_codetab *tab = irep->jit_entry_tab;
-	mrbjit_code_info *entry;
-	int i, j;
-
 	/* Overflow happened */
 	//puts("overflow");
 	prev_entry = NULL;
-
-	/* irep->may_overflow == 0  always true */
-
 	ci = NULL;
-	irep->may_overflow = 1;
-	for (i = 0; i < tab->size; i++) {
-	  entry = tab->body + i;
-	  if (entry->used > 0) {
-	    mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry,
-				  irep->iseq, status, entry);
-	  }
-	}
-	for (j = 0; j < irep->ilen; j++) {
-	  for (i = 0; i < tab->size; i++) {
-	    entry = tab[j].body + i;
-	    if (entry->used > 0) {
-	      entry->used = -1;
-	      entry->entry = 0;
-	      if (entry->reginfo) {
-		mrb_free(mrb, entry->reginfo);
-	      }
-	      entry->reginfo = NULL;
-	    }
-	  }
-	}
+	mrbjit_arth_overflow(mrb, irep, cbase, status);
       }
 
       //disasm_once(mrb, irep, **ppc);
@@ -1072,7 +1083,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       case OP_SEND:
       case OP_SENDB:
       case OP_RETURN:
-	//	mrb->c->ci->prev_coi = NULL;
+	//	mrb->c->ci->prev_tentry_offset = -1;
 	ci = NULL;
 	if (mrb->compile_info.force_compile) {
 	  goto skip;
@@ -1096,7 +1107,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
-      mrb->c->ci->prev_coi = NULL;
+      mrb->c->ci->prev_tentry_offset = -1;
     }
   }
 
@@ -1124,8 +1135,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	ci->reginfo[i].regplace = MRBJIT_REG_MEMORY;
       }
     }
-    if (prev_pc) {
-      prev_coi = mrb->c->ci->prev_coi;
+    if (prev_pc && mrb->c->ci->prev_tentry_offset != -1) {
+      prev_coi = GET_CODE_INFO(prev_pc, mrb->c->ci->prev_tentry_offset);
     }
     else {
       prev_coi = NULL;
@@ -1193,7 +1204,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
  skip:
 
   mrb->c->ci->prev_pc = *ppc;
-  mrb->c->ci->prev_coi = ci;
+  if (ci) {
+    mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
+  }
+  else {
+    mrb->c->ci->prev_tentry_offset = -1;
+  }
 
   if (rc) {
     return rc;
@@ -1296,8 +1312,8 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
   prev_jmp = mrb->jmp;
 
   mrb->compile_info.nest_level = 0;
-  mrb->c->ci->prev_coi = NULL;
   mrb->c->ci->prev_pc = NULL;
+  mrb->c->ci->prev_tentry_offset = -1;
 
 RETRY_TRY_BLOCK:
 
