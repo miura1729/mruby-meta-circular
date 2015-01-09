@@ -1025,6 +1025,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->used > 0) {
+      int toff = ci - (irep->jit_entry_tab + n)->body;
       prev_pc = *ppc;
 
       //printf("%x %x \n", ci->entry, *ppc);
@@ -1106,8 +1107,20 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       if (irep->jit_entry_tab == NULL) {
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
+      if (*ppc == prev_pc + 1) {
+	/* Here is send already compiled method. Native code call happen in
+	  compiling callee method. */
+	mrb->c->ci->prev_tentry_offset = toff;
+      }
+      else if (*ppc == mrb->c->ci->prev_pc + 1) {
+	/* Here is send already compiled method. Native code call happen in
+	  compiling callee method and exit in the method. */
+	prev_pc = mrb->c->ci->prev_pc;
+      }
+      else {
+	mrb->c->ci->prev_tentry_offset = -1;
+      }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
-      mrb->c->ci->prev_tentry_offset = -1;
     }
   }
 
