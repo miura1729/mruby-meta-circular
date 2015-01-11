@@ -1023,8 +1023,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	cbase = mrb->compile_info.code_base = NULL;
       }
     }
-
-    if (ci->used > 0) {
+    else if (ci->used > 0) {
       int toff = ci - (irep->jit_entry_tab + n)->body;
       prev_pc = *ppc;
 
@@ -1078,19 +1077,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //puts("foo");
       //}
 
-      /* Skip Internal guard fail */
-      /*      switch(GET_OPCODE(**ppc)) {
-      case OP_CALL:
-      case OP_SEND:
-      case OP_SENDB:
-      case OP_RETURN:
-	//	mrb->c->ci->prev_tentry_offset = -1;
-	ci = NULL;
-	if (mrb->compile_info.force_compile) {
-	  goto skip;
-	}
-	break;
-	}*/
       if (rc) {
 	ci = NULL;
 	goto skip;
