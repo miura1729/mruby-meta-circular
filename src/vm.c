@@ -1120,6 +1120,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       else {
 	mrb->c->ci->prev_tentry_offset = -1;
       }
+
+      switch (GET_OPCODE(*(*ppc - 1))) {
+      case OP_SEND:
+      case OP_SENDB:
+	prev_pc = *ppc - 1;
+	break;
+      }
+
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
     }
   }
