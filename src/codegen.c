@@ -960,6 +960,8 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     genop_peep(s, MKOP_ABx(OP_SETCV, sp, idx), val);
     break;
   case NODE_CONST:
+    s->simple_lambda = -1;
+    s->shared_lambda = -1;
     idx = new_sym(s, sym(tree));
     genop_peep(s, MKOP_ABx(OP_SETCONST, sp, idx), val);
     break;
@@ -1988,6 +1990,9 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int sym = new_sym(s, sym(tree));
 
+      /* for avoding to set target_class */
+      s->simple_lambda = -1;
+      s->shared_lambda = -1;
       genop(s, MKOP_ABx(OP_GETCONST, cursp(), sym));
       push();
     }
