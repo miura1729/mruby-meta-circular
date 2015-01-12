@@ -1023,7 +1023,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	cbase = mrb->compile_info.code_base = NULL;
       }
     }
-    else if (ci->used > 0) {
+    if (ci->used > 0) {
       int toff = ci - (irep->jit_entry_tab + n)->body;
       prev_pc = *ppc;
 
