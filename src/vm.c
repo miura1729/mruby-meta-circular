@@ -1093,6 +1093,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       if (irep->jit_entry_tab == NULL) {
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
+
       if (*ppc == prev_pc + 1) {
 	/* Here is send already compiled method. Native code call happen in
 	  compiling callee method. */
@@ -1111,6 +1112,17 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       case OP_SEND:
       case OP_SENDB:
 	prev_pc = *ppc - 1;
+	{
+	  mrbjit_codetab *ctab = irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc - 1);
+	  int i;
+
+	  for (i = ctab->size - 1; i <= 0; i--) {
+	    if (ctab->body[i].used == 1) {
+	      break;
+	    }
+	  }
+	  mrb->c->ci->prev_tentry_offset = i;
+	}
 	break;
       }
 
