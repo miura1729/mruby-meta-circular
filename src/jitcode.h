@@ -1324,6 +1324,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (GET_OPCODE(i) != OP_SENDB) {
       //SET_NIL_VALUE(regs[a+n+1]);
+      mrbjit_reginfo *binfo;
       int dstno;
       if (n == CALL_MAXARGS) {
 	dstno = (a + 2);
@@ -1335,6 +1336,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
       emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
       emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
+      binfo = &coi->reginfo[dstno];
+      binfo->unboxedp = 0;
+      binfo->type = MRB_TT_FREE;
+      binfo->klass = NULL;
+      binfo->constp = 0;
     }
 
     prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
