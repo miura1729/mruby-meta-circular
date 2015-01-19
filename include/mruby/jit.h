@@ -33,7 +33,7 @@ void mrbjit_ecall(mrb_state *, int);
 struct REnv* mrbjit_top_env(mrb_state *, struct RProc *);
 void mrbjit_localjump_error(mrb_state *, localjump_error_kind);
 
-mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *);
+mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *, uint16_t);
 
 void disp_type(mrb_state *, mrbjit_reginfo *rinfo);
 

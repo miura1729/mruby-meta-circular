@@ -98,6 +98,7 @@ typedef struct mrbjit_code_info {
   mrbjit_code_area code_base;
   mrb_code *prev_pc;
   mrb_code *caller_pc;
+  uint16_t method_arg_ver;
   void *(*entry)();
   const void *patch_pos;
   mrbjit_reginfo *reginfo;	/* For Local assignment */
@@ -127,7 +128,8 @@ typedef struct {
   struct RClass *target_class;
 
   mrb_code *prev_pc;
-  int prev_tentry_offset;
+  int16_t prev_tentry_offset;
+  uint16_t method_arg_ver;
 
   void *dummy[1];
 } mrb_callinfo;

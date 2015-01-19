@@ -288,7 +288,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
-  gen_class_guard(mrb, regno, status, pc, coi, NULL);
+  gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
@@ -424,7 +424,7 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
     return mrb_nil_value();
   }
 
-  gen_class_guard(mrb, regno, status, pc, coi, NULL);
+  gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, regno);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));

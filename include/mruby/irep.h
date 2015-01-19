@@ -64,7 +64,8 @@ typedef struct mrb_irep {
 
   /* JIT stuff */
   int *prof_info;
-  int jit_inlinep;
+  uint32_t jit_inlinep;
+  uint16_t arg_ver_num;
   mrbjit_codetab *jit_entry_tab;
   enum method_kind method_kind;
 } mrb_irep;

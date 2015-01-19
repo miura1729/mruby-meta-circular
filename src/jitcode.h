@@ -196,9 +196,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (pc) {
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (Xbyak::uint32)pc);
     }
-    if (is_clr_rc) {
+    if (is_clr_rc == 2) {
+      emit_load_literal(mrb, coi, reg_tmp0, 1); /* Top method type guard fail */
+    }
+    else if (is_clr_rc) {
       emit_load_literal(mrb, coi, reg_tmp0, 0);
     }
+
     if (is_clr_exitpos == 1) {
       emit_load_literal(mrb, coi, reg_tmp1, 0);
     }
@@ -361,7 +365,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
      destroy EAX
   */
   void 
-    gen_class_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi, struct RClass *c)
+    gen_class_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi, struct RClass *c, int rc)
   {
     enum mrb_vtype tt;
     mrb_value v = (*status->regs)[regpos];
@@ -391,7 +395,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
 
       /* Guard fail exit code */
-      gen_exit(mrb, pc, 1, 0, status, coi);
+      gen_exit(mrb, pc, rc, 0, status, coi);
 
       L("@@");
     }
@@ -420,7 +424,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_cmp(mrb, coi, eax, (int)c);
 	jz("@f");
 	/* Guard fail exit code */
-	gen_exit(mrb, pc, 1, 0, status, coi);
+	gen_exit(mrb, pc, rc, 0, status, coi);
 
 	L("@@");
       }
@@ -1267,7 +1271,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     recv = regs[a];
     gen_flush_regs(mrb, pc, status, coi, 1);
-    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv));
+    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 1);
 
     c = mrb_class(mrb, recv);
     m = mrb_method_search_vm(mrb, &c, mid);
@@ -1447,7 +1451,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* + 1 means block */
 #if 1
     for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
-      gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]));
+      gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
       coi->reginfo[i].type = (mrb_vtype)mrb_type(regs[i]);
       coi->reginfo[i].klass = mrb_class(mrb, regs[i]);
     }

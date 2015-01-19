@@ -865,14 +865,16 @@ extern void mrbjit_gen_load_patch(mrbjit_code_area, void *, void *, mrbjit_vmsta
 extern void mrbjit_gen_align(mrbjit_code_area, unsigned);
 
 static inline mrbjit_code_info *
-mrbjit_search_codeinfo_prev_inline(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
+mrbjit_search_codeinfo_prev_inline(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc, uint16_t arg_ver)
 {
   volatile int i;		/* volatile avoid bug (maybe gcc?) */
   mrbjit_code_info *entry;
 
   for (i = 0; i < tab->size; i++) {
     entry = tab->body + i;
-    if (entry->prev_pc == prev_pc && entry->caller_pc == caller_pc) {
+    if (entry->prev_pc == prev_pc && 
+	entry->caller_pc == caller_pc && 
+	entry->method_arg_ver == arg_ver) {
       return entry;
     }
   }
@@ -881,9 +883,9 @@ mrbjit_search_codeinfo_prev_inline(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_c
 }
 
 mrbjit_code_info *
-mrbjit_search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc)
+mrbjit_search_codeinfo_prev(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_code *caller_pc, uint16_t arg_ver)
 {
-  return mrbjit_search_codeinfo_prev_inline(tab, prev_pc, caller_pc);
+  return mrbjit_search_codeinfo_prev_inline(tab, prev_pc, caller_pc, arg_ver);
 }
 
 static inline mrbjit_code_info *
@@ -971,6 +973,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
   mrb_code *prev_pc;
+  uint16_t method_arg_ver;
   mrb_code *caller_pc;
   void *(*entry)() = NULL;
   void *(*prev_entry)() = NULL;
@@ -994,6 +997,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->c->ci->prev_pc;
+  method_arg_ver = mrb->c->ci->method_arg_ver;
 
   if (irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
@@ -1005,7 +1009,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   cbase = mrb->compile_info.code_base;
   n = ISEQ_OFFSET_OF(*ppc);
-  ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
+  ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc, method_arg_ver);
   if (ci) {
     entry = ci->entry;
     //printf("%x %x\n", ci, entry);
@@ -1061,6 +1065,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       regs = *status->regs;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
+      n = ISEQ_OFFSET_OF(*ppc);
 
       if (prev_entry == (void *(*)())1) {
 	/* Overflow happened */
@@ -1068,6 +1073,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	prev_entry = NULL;
 	ci = NULL;
 	mrbjit_arth_overflow(mrb, irep, cbase, status);
+      }
+
+      if (rc == (void *(*)())1) {
+	/* Maybe arg guard fail */
+	irep->arg_ver_num++;
+	method_arg_ver = irep->arg_ver_num;
+	printf("new version %d \n", method_arg_ver);
+	rc = NULL;
       }
 
       //disasm_once(mrb, irep, **ppc);
@@ -1082,7 +1095,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	goto skip;
       }
 
-      n = ISEQ_OFFSET_OF(*ppc);
       if (irep->jit_inlinep) {
 	caller_pc = mrb->c->ci->pc;
       }
@@ -1126,7 +1138,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	break;
       }
 
-      ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc);
+      ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc, method_arg_ver);
     }
   }
 
@@ -1138,6 +1150,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("p %x %x\n", *ppc, prev_pc);
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n, irep);
       ci->prev_pc = prev_pc;
+      ci->method_arg_ver = method_arg_ver;
       ci->caller_pc = caller_pc;
       ci->code_base = mrb->compile_info.code_base;
       ci->entry = NULL;
@@ -1223,6 +1236,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
  skip:
 
   mrb->c->ci->prev_pc = *ppc;
+  mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {
     mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
   }
@@ -1332,6 +1346,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
   mrb->compile_info.nest_level = 0;
   mrb->c->ci->prev_pc = NULL;
+  mrb->c->ci->method_arg_ver = 0;
   mrb->c->ci->prev_tentry_offset = -1;
 
 RETRY_TRY_BLOCK:
