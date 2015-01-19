@@ -79,7 +79,6 @@ typedef struct scope {
   /* For OP_LAMBDA optimize */
   int simple_lambda;
   int shared_lambda;
-  uint16_t arg_ver_num;
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -2620,7 +2619,6 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   }
   p->lineno = prev->lineno;
   p->irep->jit_inlinep = mrbjit_check_inlineble(mrb, p->irep);
-  p->arg_ver_num = 0;
 
   p->simple_lambda = 1;
   p->shared_lambda = 1;
@@ -2696,6 +2694,7 @@ scope_finish(codegen_scope *s)
 
   irep->simple_lambda = s->simple_lambda;
   irep->shared_lambda = s->shared_lambda;
+  irep->arg_ver_num = 0;
   irep->disable_jit = 0;
   irep->block_lambda = 0;
   irep->may_overflow = 0;

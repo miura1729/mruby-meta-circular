@@ -376,6 +376,7 @@ cipush(mrb_state *mrb)
   ci->pc = 0;
   ci->err = 0;
   ci->proc = 0;
+  ci->method_arg_ver = 0;
 
   return ci;
 }
@@ -1079,7 +1080,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	/* Maybe arg guard fail */
 	irep->arg_ver_num++;
 	method_arg_ver = irep->arg_ver_num;
-	printf("new version %d \n", method_arg_ver);
+	//printf("new version %d \n", method_arg_ver);
 	rc = NULL;
       }
 
