@@ -320,6 +320,7 @@ end
 include RiteOpcodeUtil
 irep = Irep::get_irep(Sphere.new(Vec.new(-2.0, 0.0, -3.5), 0.5), :intersect)
 #irep = Irep::get_irep(Vec.new(-2.0, 0.0, -3.5), :vdot)
+#irep = Irep::get_irep(Object, :otherBasis)
 irep.iseq.each_with_index {|ele, i|
   print "#{Irep::disasm(ele, irep)} \t #{irep.reg_class(i)[0]}\n"
 }
