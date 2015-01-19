@@ -194,7 +194,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     if (mrb->c->ci->proc->env ||
 	mrb->compile_info.nest_level != 0 ||
 	(mrb->c->ci != mrb->c->cibase &&
-	 mrb->c->ci[0].proc->body.irep == mrb->c->ci[-1].proc->body.irep)) {
+	 mrb->c->ci[0].proc->body.irep == mrb->c->ci[-1].proc->body.irep) || 1) {
       rc =code->ent_return(mrb, status, coi);
     }
     else {

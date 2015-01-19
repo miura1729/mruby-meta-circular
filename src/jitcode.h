@@ -1975,13 +1975,6 @@ do {                                                                 \
                                                                      \
           COMP_GEN_SS(CMPINSTI);                                     \
     }                                                                \
-    else if (mrb_type(regs[regno]) == MRB_TT_FALSE &&                \
-             mrb_type(regs[regno + 1]) == MRB_TT_FALSE) {            \
-          gen_type_guard(mrb, regno, status, *ppc, coi);	     \
-          gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
-                                                                     \
-          COMP_GEN_II(CMPINSTI);                                     \
-    }                                                                \
     else {                                                           \
       return ent_send(mrb, status, coi);			     \
     }                                                                \
