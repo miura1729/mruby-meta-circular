@@ -193,6 +193,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_flush_regs(mrb, pc, status, coi, 0);
     L(".exitlab");
 
+    if (coi) {
+      push(eax);
+      push(edx);
+      emit_move(mrb, coi, edx, edi, OffsetOf(mrb_context, ci));
+      emit_load_literal(mrb, coi, eax, coi->method_arg_ver);
+      emit_move(mrb, coi, edx, OffsetOf(mrb_callinfo, method_arg_ver), eax);
+      pop(edx);
+      pop(eax);
+    }
+
     if (pc) {
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (Xbyak::uint32)pc);
     }
