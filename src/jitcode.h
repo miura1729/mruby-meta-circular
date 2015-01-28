@@ -2009,6 +2009,14 @@ do {                                                                 \
     int regno = GETARG_A(**ppc);	                             \
                                                                      \
     COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
+    switch (GET_OPCODE(*(*ppc + 1))) {                               \
+    case OP_JMPIF:                                                   \
+    case OP_JMPNOT:                                                  \
+      break;                                                         \
+    default:							     \
+      COMP_BOOL_SET;                                                 \
+      return code;                                                   \
+    }                                                                \
  } while(0)
 
   const void *
