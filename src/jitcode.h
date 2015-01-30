@@ -1408,6 +1408,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrb_irep *irep = *status->irep;
     const void *code = getCurr();
+    mrbjit_reginfo *selfinfo = &coi->reginfo[0];
+    mrb_code *pc = *status->pc;
+    mrb_value *regs = *status->regs;
+    int i;
 
     if (irep->block_lambda) {
       emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
@@ -1426,11 +1430,23 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       outLocalLabel();
       L("@@");
-
-      return code;
     }
 
-    return NULL;
+    selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
+    selfinfo->klass = mrb_class(mrb, regs[0]);
+    selfinfo->constp = 1;
+#if 0
+    /* + 1 means block */
+    for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
+      gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
+    }
+#endif
+
+    if (code == getCurr()) {
+      return NULL;
+    }
+
+    return code;
   }
 
   const void *
@@ -1438,9 +1454,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
-    mrb_value *regs = *status->regs;
     mrb_code ins = *pc;
-    int i;
     /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
     /* number of optional arguments times OP_JMP should follow */
     mrb_aspec ax = GETARG_Ax(ins);
@@ -1453,19 +1467,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
        int kd = (ax>>1)&0x1;
        int b  = (ax>>0)& 0x1;
     */
-    mrbjit_reginfo *selfinfo = &coi->reginfo[0];
-
-    selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
-    selfinfo->klass = mrb_class(mrb, regs[0]);
-    selfinfo->constp = 1;
-    /* + 1 means block */
-#if 1
-    for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
-      gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
-      coi->reginfo[i].type = (mrb_vtype)mrb_type(regs[i]);
-      coi->reginfo[i].klass = mrb_class(mrb, regs[i]);
-    }
-#endif
 
     if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0 ||
 	m1 > mrb->c->ci->argc) {
