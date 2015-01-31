@@ -304,16 +304,14 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     break;
   }
 
-  if (rc2) {
-    if (rc == NULL) {
-      code->gen_exit(mrb, *ppc, 1, 0, status, coi);
-    }
-    return rc2;
-  }
-
   if (rc == NULL) {
     /* delete fetch hook */
     code->set_entry(entry);
+    rc2 = NULL;
+  }
+
+  if (rc2) {
+    return rc2;
   }
 
   return rc;
