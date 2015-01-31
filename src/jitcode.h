@@ -194,13 +194,22 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     L(".exitlab");
 
     if (coi) {
-      push(eax);
-      push(edx);
+      assert(coi->method_arg_ver < 0x8000);
+      if (!is_clr_rc) {
+	push(eax);
+      }
+      if (!is_clr_exitpos) {
+	push(edx);
+      }
       emit_move(mrb, coi, edx, edi, OffsetOf(mrb_context, ci));
       emit_load_literal(mrb, coi, eax, coi->method_arg_ver);
       emit_move(mrb, coi, edx, OffsetOf(mrb_callinfo, method_arg_ver), eax);
-      pop(edx);
-      pop(eax);
+      if (!is_clr_exitpos) {
+	pop(edx);
+      }
+      if (!is_clr_rc) {
+	pop(eax);
+      }
     }
 
     if (pc) {
