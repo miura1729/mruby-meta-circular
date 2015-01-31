@@ -213,6 +213,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
+  void emit_movew(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::Reg16 src) {
+    mov(word [base + offset], src);
+  }
+
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, Xbyak::uint32 offset, Xbyak::uint32 src) {
     if (offset == 0) {
       mov(dword [base], src);
