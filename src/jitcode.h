@@ -2004,6 +2004,8 @@ do {                                                                 \
 do {								     \
     emit_bool_boxing(mrb, coi, reg_tmp0);                            \
     emit_local_var_type_write(mrb, coi, regno, reg_tmp0);	     \
+    emit_load_literal(mrb, coi, reg_tmp0, 1);			     \
+    emit_local_var_value_write(mrb, coi, regno, reg_tmp0);	     \
   } while(0)
 
 #define COMP_GEN(CMPINSTI, CMPINSTF)			             \
