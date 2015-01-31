@@ -317,7 +317,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *rinfo = &coi->reginfo[regpos];
     mrb_irep *irep = *status->irep;
 
-    if (rinfo->type == tt && irep->may_overflow == 0) {
+    if (rinfo->type == tt && rinfo->constp && irep->may_overflow == 0) {
       return;
     }
 
@@ -392,7 +392,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     tt = (enum mrb_vtype)mrb_type(v);
 
-    if (rinfo->type != tt) {
+    if (rinfo->type != tt || !rinfo->constp || rc == 2) {
 
       rinfo->type = tt;
       if (rinfo->regplace > MRBJIT_REG_VMREG0) {
@@ -434,7 +434,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	if (c == NULL) {
 	  c = mrb_obj_ptr(v)->c;
 	}
-	if (rinfo->klass == c) {
+	if (rinfo->klass == c && rinfo->constp && rc != 2) {
 	  return;
 	}
 	rinfo->klass = c;
@@ -1444,9 +1444,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
-#if 0
+#if 1
     /* + 1 means block */
-    for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
+    for (i = 0; i <= mrb->c->ci->argc; i++) {
       gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
     }
 #endif
