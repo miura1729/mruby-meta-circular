@@ -277,6 +277,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   int nargs = GETARG_C(i);
   const Xbyak::uint32 aryno = regno;
   const Xbyak::uint32 idxno = aryno + 1;
+  mrbjit_reginfo *ainfo = &coi->reginfo[regno];
 
   // No support 2 args or Index is not Fixnum
   if ((nargs > 1) ||
@@ -286,6 +287,12 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
   inLocalLabel();
   gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
+
+  ainfo->unboxedp = 0;
+  ainfo->regplace = MRBJIT_REG_MEMORY;
+  ainfo->type = MRB_TT_FREE;
+  ainfo->klass = NULL;
+  ainfo->constp = 0;
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
