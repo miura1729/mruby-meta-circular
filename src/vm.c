@@ -377,6 +377,7 @@ cipush(mrb_state *mrb)
   ci->err = 0;
   ci->proc = 0;
   ci->method_arg_ver = 0;
+  ci->prev_pc = NULL;
 
   return ci;
 }

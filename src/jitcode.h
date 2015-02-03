@@ -1918,7 +1918,6 @@ do {                                                                 \
 #define COMP_GEN_IF(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_int_value_read(mrb, coi, xmm0, regno);	     \
-    emit_load_literal(mrb, coi, reg_tmp0, 0);			     \
     emit_local_var_cmp(mrb, coi, xmm0, regno + 1);		     \
     CMPINST;    						     \
 } while(0)
@@ -1927,7 +1926,6 @@ do {                                                                 \
 do {                                                                 \
     emit_local_var_read(mrb, coi, reg_dtmp0, regno);		     \
     emit_local_var_int_value_read(mrb, coi, xmm1, regno + 1);        \
-    emit_load_literal(mrb, coi, reg_tmp0, 0);			     \
     comisd(xmm0, xmm1);     			                     \
     CMPINST;     						     \
 } while(0)
@@ -1935,7 +1933,6 @@ do {                                                                 \
 #define COMP_GEN_FF(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_read(mrb, coi, reg_dtmp0, regno);		     \
-    emit_load_literal(mrb, coi, reg_tmp0, 0);			     \
     emit_local_var_cmp(mrb, coi, xmm0, regno + 1);		     \
     CMPINST;    						     \
 } while(0)
