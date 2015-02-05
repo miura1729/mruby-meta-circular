@@ -2934,7 +2934,7 @@ RETRY_TRY_BLOCK:
 	      entry = tab->body + i;
 	      if (entry->used > 0) {
 		mrbjit_code_area cbase = mrb->compile_info.code_base;
-		mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, pc, &status, entry);
+		mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, &status, entry);
 	      }
 	    }
 	  }
