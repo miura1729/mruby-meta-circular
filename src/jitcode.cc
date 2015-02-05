@@ -102,6 +102,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
     rc2 = code->ent_block_guard(mrb, status, coi);
+    mrb->compile_info.force_compile = 0;
     mrb->compile_info.nest_level++;
   }
 
@@ -186,7 +187,6 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     
   case OP_ENTER:
     rc =code->ent_enter(mrb, status, coi);
-    mrb->compile_info.force_compile = 0;
     break;
 
   case OP_RETURN:
@@ -194,7 +194,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     if (mrb->c->ci->proc->env ||
 	mrb->compile_info.nest_level != 0 ||
 	(mrb->c->ci != mrb->c->cibase &&
-	 mrb->c->ci[0].proc->body.irep == mrb->c->ci[-1].proc->body.irep) || 1) {
+	 mrb->c->ci[0].proc->body.irep == mrb->c->ci[-1].proc->body.irep)) {
       rc =code->ent_return(mrb, status, coi);
     }
     else {
