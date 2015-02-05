@@ -1446,7 +1446,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     selfinfo->constp = 1;
 #if 1
     /* + 1 means block */
-    for (i = 0; i <= mrb->c->ci->argc; i++) {
+    for (i = 0; i <= mrb->c->ci->argc + 1; i++) {
       gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
     }
 #endif
