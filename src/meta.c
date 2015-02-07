@@ -470,6 +470,42 @@ mrb_irep_regklass(mrb_state *mrb, mrb_value self)
   mrb_gc_arena_restore(mrb, ai);
   return paths;
 }
+
+static mrb_value
+mrb_irep_regtype(mrb_state *mrb, mrb_value self)
+{
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrbjit_codetab *ctab;
+  mrb_value paths;
+  mrb_value pc;
+  int i;
+  int ai = mrb_gc_arena_save(mrb);
+
+  mrb_get_args(mrb, "o", &pc);
+  ctab = &irep->jit_entry_tab[mrb_fixnum(pc)];
+  paths = mrb_ary_new_capa(mrb, ctab->size);
+  for (i = 0; i < ctab->size; i++) {
+    mrb_value regs = mrb_ary_new_capa(mrb, irep->nregs);
+    mrbjit_code_info *pent = &ctab->body[i];
+    int j;
+
+    for (j = 0; j < irep->nregs; j++) {
+      mrb_value cvalue;
+      if (pent->reginfo && pent->reginfo[j].type) {
+	cvalue = mrb_fixnum_value(pent->reginfo[j].type);
+      }
+      else {
+	cvalue = mrb_nil_value();
+      }
+      mrb_ary_push(mrb, regs, cvalue);
+    }
+
+    mrb_ary_push(mrb, paths, regs);
+  }
+
+  mrb_gc_arena_restore(mrb, ai);
+  return paths;
+}
 #endif
 
 static mrb_value
@@ -534,6 +570,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, ARGS_REQ(1));
 #if defined MRBJIT
   mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, ARGS_REQ(1));
+  mrb_define_method(mrb, a, "reg_type", mrb_irep_regtype, ARGS_REQ(1));
 #endif
   mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, ARGS_NONE());
 
