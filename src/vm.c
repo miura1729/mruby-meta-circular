@@ -876,7 +876,7 @@ mrbjit_search_codeinfo_prev_inline(mrbjit_codetab *tab, mrb_code *prev_pc, mrb_c
     entry = tab->body + i;
     if (entry->prev_pc == prev_pc && 
 	entry->caller_pc == caller_pc && 
-	entry->method_arg_ver == arg_ver) {
+	entry->method_arg_ver == arg_ver && entry->used) {
       return entry;
     }
   }
@@ -990,8 +990,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   /* Check first instruction of block. 
      So clear compille infomation of previous VM instruction */
-  if (irep->iseq == *ppc) {
+  if (irep->iseq == *ppc /*&& mrb->compile_info.force_compile == 0*/) {
     mrb->c->ci->prev_tentry_offset = -1;
+    mrb->c->ci->prev_pc = NULL;
   }
 
   if (irep->jit_entry_tab == NULL) {
@@ -1144,6 +1145,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	break;
       }
 
+      if (irep->iseq == *ppc && mrb->compile_info.force_compile == 0) {
+	mrb->c->ci->prev_tentry_offset = -1;
+	prev_pc = mrb->c->ci->prev_pc = NULL;
+      }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc, method_arg_ver);
     }
   }
