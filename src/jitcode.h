@@ -200,7 +200,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
       emit_move(mrb, coi, edx, edi, OffsetOf(mrb_context, ci));
       emit_load_literal(mrb, coi, eax, coi->method_arg_ver);
-      emit_move(mrb, coi, edx, OffsetOf(mrb_callinfo, method_arg_ver), eax);
+      emit_movew(mrb, coi, edx, OffsetOf(mrb_callinfo, method_arg_ver), ax);
       if (!is_clr_rc) {
 	pop(eax);
       }
