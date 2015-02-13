@@ -1439,9 +1439,15 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     selfinfo->klass = mrb_class(mrb, regs[0]);
     selfinfo->constp = 1;
 #if 1
-    /* + 1 means block */
-    for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
-      gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
+    if (GET_OPCODE(*pc) != OP_ENTER ||
+	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
+	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
+      /* + 1 means block */
+      if (mrb->c->ci->argc != 127) {
+	for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
+	  gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
+	}
+      }
     }
 #endif
 
