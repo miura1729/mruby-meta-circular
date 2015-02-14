@@ -800,7 +800,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     emit_load_literal(mrb, coi, reg_tmp0, src);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
-    if (dinfo->type != MRB_TT_FIXNUM) {
+    if (1 || dinfo->type != MRB_TT_FIXNUM) {
       emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FIXNUM);
       emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
       dinfo->type = MRB_TT_FIXNUM;
