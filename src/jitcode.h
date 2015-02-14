@@ -800,7 +800,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     emit_load_literal(mrb, coi, reg_tmp0, src);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
-    if (1 || dinfo->type != MRB_TT_FIXNUM) {
+    if (dinfo->type != MRB_TT_FIXNUM) {
       emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FIXNUM);
       emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
       dinfo->type = MRB_TT_FIXNUM;
@@ -1396,9 +1396,18 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
     else {
       mrb_irep *sirep = m->body.irep;
+      int j;
       sinfo = (sirep->jit_entry_tab + (sirep->ilen - 1))->body->reginfo;
       if (sinfo) {
 	*dinfo = *sinfo;
+      }
+      for (j = 1; j <= n + 1; j++) {
+	mrbjit_reginfo *rinfo = &coi->reginfo[a + j];
+
+	rinfo->unboxedp = 0;
+	rinfo->type = MRB_TT_FREE;
+	rinfo->klass = NULL;
+	rinfo->constp = 0;
       }
       gen_send_mruby(mrb, m, mid, recv, mrb_class(mrb, recv), status, pc, coi);
     }
@@ -1481,6 +1490,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	m1 > mrb->c->ci->argc) {
       CALL_CFUNC_BEGIN;
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
+      if (r) {
+	mrbjit_reginfo *ainfo = &coi->reginfo[m1 + o + 1];
+	
+	ainfo->type = MRB_TT_ARRAY;
+	ainfo->klass = mrb->array_class;
+	ainfo->constp = 0;
+	ainfo->unboxedp = 0;
+      }
     }
 
     return code;
