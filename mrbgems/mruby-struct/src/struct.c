@@ -412,68 +412,6 @@ mrb_struct_initialize_m(mrb_state *mrb, /*int argc, mrb_value *argv,*/ mrb_value
   return mrb_struct_initialize_withArg(mrb, argc, argv, self);
 }
 
-static mrb_value
-inspect_struct(mrb_state *mrb, mrb_value s, mrb_bool recur)
-{
-  const char *cn = mrb_class_name(mrb, mrb_obj_class(mrb, s));
-  mrb_value members, str = mrb_str_new_lit(mrb, "#<struct ");
-  mrb_value *ptr;
-  const mrb_value *ptr_members;
-  mrb_int i, len;
-
-  if (cn) {
-    mrb_str_append(mrb, str, mrb_str_new_cstr(mrb, cn));
-  }
-  if (recur) {
-    return mrb_str_cat_lit(mrb, str, ":...>");
-  }
-
-  members = mrb_struct_members(mrb, s);
-  ptr_members = RARRAY_PTR(members);
-  ptr = RSTRUCT_PTR(s);
-  len = RSTRUCT_LEN(s);
-  for (i=0; i<len; i++) {
-    mrb_value slot;
-    mrb_sym id;
-    const char *name;
-    mrb_int namelen;
-
-    if (i > 0) {
-      mrb_str_cat_lit(mrb, str, ", ");
-    }
-    else if (cn) {
-      mrb_str_cat_lit(mrb, str, " ");
-    }
-    slot = ptr_members[i];
-    id = mrb_symbol(slot);
-    name = mrb_sym2name_len(mrb, id, &namelen);
-    if (is_local_id(mrb, name) || is_const_id(mrb, name)) {
-      mrb_str_append(mrb, str, mrb_str_new(mrb, name, namelen));
-    }
-    else {
-      mrb_str_append(mrb, str, mrb_inspect(mrb, slot));
-    }
-    mrb_str_cat_lit(mrb, str, "=");
-    mrb_str_append(mrb, str, mrb_inspect(mrb, ptr[i]));
-  }
-  mrb_str_cat_lit(mrb, str, ">");
-
-  return str;
-}
-
-/*
- * call-seq:
- *   struct.to_s      -> string
- *   struct.inspect   -> string
- *
- * Describe the contents of this struct in a string.
- */
-static mrb_value
-mrb_struct_inspect(mrb_state *mrb, mrb_value s)
-{
-  return inspect_struct(mrb, s, FALSE);
-}
-
 /* 15.2.18.4.9  */
 /* :nodoc: */
 static mrb_value
@@ -683,34 +621,28 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
   mrb_value s2;
   mrb_value *ptr, *ptr2;
   mrb_int i, len;
-  mrb_bool equal_p;
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) {
-    equal_p = 1;
+    return mrb_true_value();
   }
-  else if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct") ||
-           mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
-    equal_p = 0;
+  if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct") ||
+      mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
+    return mrb_false_value();
   }
-  else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
+  if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
     mrb_bug(mrb, "inconsistent struct"); /* should never happen */
-    equal_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
-  else {
-    ptr = RSTRUCT_PTR(s);
-    ptr2 = RSTRUCT_PTR(s2);
-    len = RSTRUCT_LEN(s);
-    equal_p = 1;
-    for (i=0; i<len; i++) {
-      if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
-        equal_p = 0;
-        break;
-      }
+  ptr = RSTRUCT_PTR(s);
+  ptr2 = RSTRUCT_PTR(s2);
+  len = RSTRUCT_LEN(s);
+  for (i=0; i<len; i++) {
+    if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
+      return mrb_false_value();
     }
   }
 
-  return mrb_bool_value(equal_p);
+  return mrb_true_value();
 }
 
 /* 15.2.18.4.12(x)  */
@@ -727,34 +659,28 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
   mrb_value s2;
   mrb_value *ptr, *ptr2;
   mrb_int i, len;
-  mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &s2);
   if (mrb_obj_equal(mrb, s, s2)) {
-    eql_p = 1;
+    return mrb_true_value();
   }
-  else if (strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s2)), "Struct") ||
-           mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
-    eql_p = 0;
+  if (strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s2)), "Struct") ||
+      mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
+    return mrb_false_value();
   }
-  else if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
+  if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
     mrb_bug(mrb, "inconsistent struct"); /* should never happen */
-    eql_p = 0; /* This substuture is just to suppress warnings. never called. */
   }
-  else {
-    ptr = RSTRUCT_PTR(s);
-    ptr2 = RSTRUCT_PTR(s2);
-    len = RSTRUCT_LEN(s);
-    eql_p = 1;
-    for (i=0; i<len; i++) {
-      if (!mrb_eql(mrb, ptr[i], ptr2[i])) {
-        eql_p = 0;
-        break;
-      }
+  ptr = RSTRUCT_PTR(s);
+  ptr2 = RSTRUCT_PTR(s2);
+  len = RSTRUCT_LEN(s);
+  for (i=0; i<len; i++) {
+    if (!mrb_eql(mrb, ptr[i], ptr2[i])) {
+      return mrb_false_value();
     }
   }
 
-  return mrb_bool_value(eql_p);
+  return mrb_true_value();
 }
 
 /*
@@ -845,8 +771,6 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,       "members",         mrb_struct_members_m,   MRB_ARGS_NONE()); /* 15.2.18.4.6  */
   mrb_define_method(mrb, st,       "initialize",      mrb_struct_initialize_m,MRB_ARGS_ANY());  /* 15.2.18.4.8  */
   mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
-  mrb_define_method(mrb, st,       "inspect",         mrb_struct_inspect,     MRB_ARGS_NONE()); /* 15.2.18.4.10(x)  */
-  mrb_define_alias(mrb, st,        "to_s", "inspect");                                      /* 15.2.18.4.11(x)  */
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 
   mrb_define_method(mrb, st,        "size",           mrb_struct_len,         MRB_ARGS_NONE());

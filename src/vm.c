@@ -2138,6 +2138,7 @@ RETRY_TRY_BLOCK:
               localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
               goto L_RAISE;
             }
+            mrb->c->stack = mrb->c->ci->stackent;
             mrb->c->ci = ci;
             break;
           }
@@ -2172,6 +2173,7 @@ RETRY_TRY_BLOCK:
             c->prev = NULL;
           }
           ci = mrb->c->ci;
+          mrb->c->stack = ci->stackent;
           mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
           while (ci > mrb->c->ci) {
             if (ci[-1].acc == CI_ACC_SKIP) {
@@ -2547,7 +2549,7 @@ RETRY_TRY_BLOCK:
             SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x + (mrb_float)y);
             break;
           }
-          mrb_fixnum(regs[a]) = z;
+          SET_INT_VALUE(regs[a], z);
         }
         break;
       case MRB_TT_FLOAT:
@@ -2585,7 +2587,7 @@ RETRY_TRY_BLOCK:
             SET_FLOAT_VALUE(mrb, regs_a[0], (mrb_float)x - (mrb_float)y);
           }
           else {
-            mrb_fixnum(regs_a[0]) = z;
+            SET_INT_VALUE(regs_a[0], z);
           }
         }
         break;

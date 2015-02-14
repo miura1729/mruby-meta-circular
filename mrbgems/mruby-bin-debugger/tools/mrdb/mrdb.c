@@ -19,8 +19,6 @@
 #include "apibreak.h"
 #include "apilist.h"
 
-void mrb_show_version(mrb_state *);
-void mrb_show_copyright(mrb_state *);
 void mrdb_state_free(mrb_state *);
 
 static mrb_debug_context *_debug_context = NULL;
@@ -275,7 +273,7 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
   if (i == 0 && feof(stdin)) {
     clearerr(stdin);
     strcpy(mrdb->command, "quit");
-    i += strlen("quit");
+    i += sizeof("quit") - 1;
   }
 
   if (i == MAX_COMMAND_LINE) {
@@ -480,6 +478,7 @@ get_and_parse_command(mrb_state *mrb, mrdb_state *mrdb)
   while (!cmd) {
     for (p=NULL; !p || *p=='\0'; ) {
       printf("(%s:%d) ", mrdb->dbg->prvfile, mrdb->dbg->prvline);
+      fflush(stdout);
       p = get_command(mrb, mrdb);
     }
 
@@ -571,7 +570,7 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
   switch (dbg->xm) {
   case DBG_STEP:
   case DBG_NEXT:  // temporary
-    if (dbg->prvfile == file && dbg->prvline == line) {
+    if (!file || (dbg->prvfile == file && dbg->prvline == line)) {
       return;
     }
     dbg->method_bpno = 0;
@@ -651,12 +650,12 @@ main(int argc, char **argv)
   mrb_debug_context* dbg_backup;
   debug_command *cmd;
 
+ l_restart:
+
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby\n", stderr);
     return EXIT_FAILURE;
   }
-
- l_restart:
 
   /* parse command parameters */
   n = parse_args(mrb, argc, argv, &args);

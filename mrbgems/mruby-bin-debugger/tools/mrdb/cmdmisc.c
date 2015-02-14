@@ -255,11 +255,11 @@ replace_ext(mrb_state *mrb, const char *filename, const char *ext)
     len = strlen(filename);
   }
 
-  if ((s = mrb_malloc(mrb, len + strlen(ext) + 1)) != NULL) {
-    memset(s, '\0', len + strlen(ext) + 1);
-    strncpy(s, filename, len);
-    strcat(s, ext);
-  }
+  s = mrb_malloc(mrb, len + strlen(ext) + 1);
+  memset(s, '\0', len + strlen(ext) + 1);
+  strncpy(s, filename, len);
+  strcat(s, ext);
+
   return s;
 }
 
@@ -466,6 +466,7 @@ dbgcmd_quit(mrb_state *mrb, mrdb_state *mrdb)
       int buf;
 
       printf("The program is running.  Exit anyway? (y or n) ");
+      fflush(stdout);
 
       if ((buf = getchar()) == EOF) {
         mrdb->dbg->xm = DBG_QUIT;
