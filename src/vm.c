@@ -1113,7 +1113,11 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
 
-      if (*ppc == prev_pc + 1) {
+      if (irep->iseq == *ppc && mrb->compile_info.force_compile == 0) {
+	mrb->c->ci->prev_tentry_offset = -1;
+	prev_pc = mrb->c->ci->prev_pc = NULL;
+      }
+      else if (*ppc == prev_pc + 1) {
 	/* Here is send already compiled method. Native code call happen in
 	  compiling callee method. */
 	mrb->c->ci->prev_tentry_offset = toff;
@@ -1131,12 +1135,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       case OP_SEND:
       case OP_SENDB:
 	prev_pc = *ppc - 1;
-	{
+	if (mrb->c->ci->prev_tentry_offset == -1) {
 	  mrbjit_codetab *ctab = irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc - 1);
 	  int i;
 
 	  for (i = ctab->size - 1; i <= 0; i--) {
-	    if (ctab->body[i].used == 1) {
+	    if (ctab->body[i].used == -1) {
 	      break;
 	    }
 	  }
@@ -1145,10 +1149,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	break;
       }
 
-      if (irep->iseq == *ppc && mrb->compile_info.force_compile == 0) {
-	mrb->c->ci->prev_tentry_offset = -1;
-	prev_pc = mrb->c->ci->prev_pc = NULL;
-      }
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc, method_arg_ver);
     }
   }
