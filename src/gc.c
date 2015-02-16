@@ -524,7 +524,7 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 
       mrb_gc_mark(mrb, (struct RBasic*)p->env);
       mrb_gc_mark(mrb, (struct RBasic*)p->target_class);
-      if (!MRB_PROC_CFUNC_P(p)) {
+      if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
 	int i;
 	mrb_irep *irep = p->body.irep;
 	for (i = 0; i < irep->plen; i++) {

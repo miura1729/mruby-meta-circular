@@ -15,7 +15,7 @@ MRuby::Build.new do |conf|
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
-  enable_debug
+  #enable_debug
 
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'

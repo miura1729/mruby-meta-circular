@@ -90,6 +90,8 @@ fmt_u(uint32_t x, char *s)
 typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)];
 #endif
 
+extern long double frexpl(long double value, int *);
+
 static int
 fmt_fp(struct fmt_args *f, long double y, int w, int p, int fl, int t)
 {
