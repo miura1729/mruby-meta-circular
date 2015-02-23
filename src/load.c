@@ -146,6 +146,10 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         irep->pool[i] = mrb_str_pool(mrb, s);
         break;
 
+      case IREP_TT_FALSE:
+        irep->pool[i] = mrb_str_to_inum(mrb, s, 10, FALSE);
+        break;
+
       default:
         /* should not happen */
         irep->pool[i] = mrb_nil_value();

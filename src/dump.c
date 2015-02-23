@@ -190,6 +190,19 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
       }
       break;
 
+    case MRB_TT_FALSE:
+      cur += uint8_to_bin(IREP_TT_FALSE, cur); /* data type */
+      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
+      char_ptr = RSTRING_PTR(str);
+      {
+        mrb_int tlen;
+
+        tlen = RSTRING_LEN(str);
+        mrb_assert_int_fit(mrb_int, tlen, uint16_t, UINT16_MAX);
+        len = (uint16_t)tlen;
+      }
+      break;
+
     case MRB_TT_FLOAT:
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
       str = mrb_float_to_str(mrb, irep->pool[pool_no], MRB_FLOAT_FMT);

@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <math.h>
+#include <assert.h>
 #include "mruby.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"
@@ -956,6 +957,7 @@ mrbjit_arth_overflow(mrb_state *mrb, mrb_irep *irep, mrbjit_code_area cbase, mrb
 }
 
 extern void disasm_once(mrb_state *, mrb_irep *, mrb_code);
+extern void disasm_irep(mrb_state *, mrb_irep *);
 extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *, 
 			   struct mrb_context *, void *, 
 			   void *(**)());
@@ -964,6 +966,51 @@ extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *,
       ctab->body + toff;			                         \
 })
 
+void
+mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
+{
+  int i;
+  mrb_code *oiseq = irep->iseq;
+  mrb_code *pc;
+  mrb_code ins;
+  irep->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*irep->ilen);
+
+  for (i = 0, pc = oiseq; i < irep->ilen; i++, pc++) {
+    ins = *pc;
+    irep->iseq[i] = ins;
+    if (GET_OPCODE(ins) == OP_ARRAY &&
+	GET_OPCODE(*(pc + 1)) == OP_MOVE &&
+	GET_OPCODE(*(pc + 2)) == OP_ARYCAT &&
+	GET_OPCODE(*(pc + 3)) == OP_SEND &&
+	GETARG_C(*(pc + 3)) == 127) {
+
+      irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+      pc++;
+      ins = *pc;
+      irep->iseq[i++] = MKOP_AB(OP_MOVE, GETARG_A(ins) - 1, GETARG_B(ins));
+      pc++;
+      irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+      pc++;
+      ins = *pc;
+      irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+    }
+
+    if (GET_OPCODE(ins) == OP_MOVE &&
+	GETARG_B(ins) == drno &&
+	GET_OPCODE(*(pc + 1)) == OP_SEND &&
+	GETARG_C(*(pc + 1)) == 127) {
+      i++;
+      pc++;
+      ins = *pc;
+      irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+    }
+	
+    if (GET_OPCODE(ins) == OP_SEND &&
+	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0) {
+      irep->iseq[i] = MKOP_A(OP_NOP, 0);
+    }
+  }
+}
 
 static inline void *
 mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
@@ -2031,7 +2078,37 @@ RETRY_TRY_BLOCK:
         }
         if (r) {
           rnum = argc-m1-o-m2;
-          regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
+	  //printf("%d %x\n", rnum, irep);
+	  //disasm_irep(mrb, irep);
+	  if (rnum == 1) {
+	    int ipos = GETARG_A(*(pc + 1));
+	    struct RProc *p = mrb_proc_ptr(irep->pool[ipos]);
+	    assert(GET_OPCODE(*(pc + 1)) == OP_NOP);
+
+	    if (p == NULL) {
+	      mrb_irep *cirep = mrb_add_irep(mrb);
+	      *cirep = *irep;
+	      mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1);
+	      irep = cirep;
+	      pc = irep->iseq;
+	      p = mrb_proc_new(mrb, irep);
+	      *p = *mrb->c->ci->proc;
+	      proc = mrb->c->ci->proc = p;
+	      p->body.irep = irep;
+	      irep->pool[ipos] = mrb_obj_value(p);
+	    }
+	    else {
+	      mrb_irep *nirep = p->body.irep;
+	      *p = *mrb->c->ci->proc;
+	      p->body.irep = nirep;
+	      proc = mrb->c->ci->proc = (struct RProc *)mrb_obj_ptr(irep->pool[ipos]);
+	      irep = nirep;
+	      pc = irep->iseq;
+	    }
+	  }
+	  else {
+	    regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
+	  }
         }
         if (m2) {
           if (argc-m2 > m1) {

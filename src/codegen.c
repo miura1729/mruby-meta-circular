@@ -664,6 +664,12 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       | ((ra & 1) << 5)
       | (pa & 0x1f);
     genop(s, MKOP_Ax(OP_ENTER, a));
+    if (ra) {
+      size_t ppos = s->irep->plen;
+      genop(s, MKOP_A(OP_NOP, ppos)); /* Patched irep no */
+      BOXNAN_SET_VALUE(s->irep->pool[ppos], MRB_TT_FALSE, value.p, NULL);
+      s->irep->plen++;
+    }
     pos = new_label(s);
     for (i=0; i<oa; i++) {
       new_label(s);

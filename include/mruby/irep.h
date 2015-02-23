@@ -26,6 +26,7 @@ enum irep_pool_type {
   IREP_TT_STRING,
   IREP_TT_FIXNUM,
   IREP_TT_FLOAT,
+  IREP_TT_FALSE,
 };
 
 struct mrb_locals {
