@@ -531,6 +531,9 @@ gc_mark_children(mrb_state *mrb, struct RBasic *obj)
 	  if (mrb_type(irep->pool[i]) == MRB_TT_STRING) {
 	    mrb_gc_mark(mrb, mrb_basic_ptr(irep->pool[i]));
 	  }
+	  if (mrb_type(irep->pool[i]) == MRB_TT_PROC) {
+	    mrb_gc_mark(mrb, mrb_basic_ptr(irep->pool[i]));
+	  }
 	}
       }
     }

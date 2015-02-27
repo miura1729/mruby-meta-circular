@@ -966,18 +966,20 @@ extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *,
       ctab->body + toff;			                         \
 })
 
-void
+int
 mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 {
   int i;
   mrb_code *oiseq = irep->iseq;
   mrb_code *pc;
   mrb_code ins;
+  mrb_int tdrno = drno;
   irep->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*irep->ilen);
 
   for (i = 0, pc = oiseq; i < irep->ilen; i++, pc++) {
     ins = *pc;
     irep->iseq[i] = ins;
+
     if (GET_OPCODE(ins) == OP_ARRAY &&
 	GET_OPCODE(*(pc + 1)) == OP_MOVE &&
 	GET_OPCODE(*(pc + 2)) == OP_ARYCAT &&
@@ -996,20 +998,33 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
     }
 
     if (GET_OPCODE(ins) == OP_MOVE &&
-	GETARG_B(ins) == drno &&
-	GET_OPCODE(*(pc + 1)) == OP_SEND &&
-	GETARG_C(*(pc + 1)) == 127) {
-      i++;
-      pc++;
-      ins = *pc;
-      irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+	GETARG_B(ins) == drno) {
+      tdrno = GETARG_A(ins);
     }
-	
+
     if (GET_OPCODE(ins) == OP_SEND &&
-	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0) {
-      irep->iseq[i] = MKOP_A(OP_NOP, 0);
+	GETARG_A(ins) == tdrno) {
+      if (GETARG_C(ins) == 127) {
+	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+      }
+      else if (	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0) {
+	irep->iseq[i] = MKOP_A(OP_NOP, 0);
+      }
+      else if (	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "size") == 0) {
+	irep->iseq[i] = MKOP_AB(OP_LOADI, tdrno, 1);
+      }
+      else if (	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
+	irep->iseq[i] = MKOP_A(OP_NOP, 0);
+      }
+      else {
+	mrb_free(mrb, irep->iseq);
+	irep->iseq = oiseq;
+	return 0;
+      }
     }
   }
+
+  return 1;
 }
 
 static inline void *
@@ -2088,22 +2103,31 @@ RETRY_TRY_BLOCK:
 	    if (p == NULL) {
 	      mrb_irep *cirep = mrb_add_irep(mrb);
 	      *cirep = *irep;
-	      mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1);
-	      irep = cirep;
-	      pc = irep->iseq;
-	      p = mrb_proc_new(mrb, irep);
-	      *p = *mrb->c->ci->proc;
-	      proc = mrb->c->ci->proc = p;
-	      p->body.irep = irep;
-	      irep->pool[ipos] = mrb_obj_value(p);
+	      if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
+		p = mrb_proc_new(mrb, cirep);
+		p->env = proc->env;
+		p->target_class = proc->target_class;
+		//*p = *proc;
+		//p->body.irep = cirep;
+		irep->pool[ipos] = mrb_obj_value(p);
+		proc = p;
+		irep = cirep;
+		pc = cirep->iseq;
+		assert(p->env == NULL || p->env->cioff >= 0);
+	      }
+	      else {
+		regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
+	      }
 	    }
 	    else {
 	      mrb_irep *nirep = p->body.irep;
-	      *p = *mrb->c->ci->proc;
-	      p->body.irep = nirep;
-	      proc = mrb->c->ci->proc = (struct RProc *)mrb_obj_ptr(irep->pool[ipos]);
+	      p->env = proc->env;
+	      p->target_class = proc->target_class;
+	      //p->body.irep = nirep;
+	      proc = p;
 	      irep = nirep;
 	      pc = irep->iseq;
+	      assert(p->env == NULL || p->env->cioff >= 0);
 	    }
 	  }
 	  else {
