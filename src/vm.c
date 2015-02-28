@@ -967,6 +967,37 @@ extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *,
 })
 
 int
+mrb_check_export_reps(mrb_state *mrb, mrb_irep *irep, mrb_int drno, int level)
+{
+  int i;
+  mrb_code *pc;
+  mrb_code ins;
+  for (i = 0; i < irep->rlen; i++) {
+    if (mrb_check_export_reps(mrb, irep->reps[i], drno, level + 1)) {
+      return 1;
+    }
+  }
+
+  for (i = 0, pc = irep->iseq; i < irep->ilen; i++, pc++) {
+    ins = *pc;
+    //disasm_once(mrb, irep, ins);
+    switch(GET_OPCODE(ins)) {
+    case OP_GETUPVAR:
+    case OP_SETUPVAR:
+      if (GETARG_B(ins) == drno && GETARG_C(ins) == level) {
+	return 1;
+      }
+      break;
+
+    default:
+      break;
+    }
+  }
+
+  return 0;
+}
+
+int
 mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 {
   int i;
@@ -974,8 +1005,14 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
   mrb_code *pc;
   mrb_code ins;
   mrb_int tdrno = drno;
-  irep->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*irep->ilen);
 
+  for (i = 0; i < irep->rlen; i++) {
+    if (mrb_check_export_reps(mrb, irep->reps[i], drno, 0)) {
+      return 0;
+    }
+  }
+
+  irep->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*irep->ilen);
   for (i = 0, pc = oiseq; i < irep->ilen; i++, pc++) {
     ins = *pc;
     irep->iseq[i] = ins;
@@ -997,13 +1034,29 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
       irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
     }
 
-    if (GET_OPCODE(ins) == OP_MOVE &&
-	GETARG_B(ins) == drno) {
-      tdrno = GETARG_A(ins);
+    if (GET_OPCODE(ins) == OP_MOVE) {
+      if (GETARG_B(ins) == drno) {
+	tdrno = GETARG_A(ins);
+      }
+      else if (GETARG_A(ins) == drno) {
+	mrb_free(mrb, irep->iseq);
+	irep->iseq = oiseq;
+	return 0;
+      }
+    }
+
+    if (GET_OPCODE(ins) == OP_RETURN) {
+      if (   GETARG_A(ins) == tdrno
+	  || GETARG_A(ins) == drno) {
+	mrb_free(mrb, irep->iseq);
+	irep->iseq = oiseq;
+	return 0;
+      }
     }
 
     if (GET_OPCODE(ins) == OP_SEND &&
-	GETARG_A(ins) == tdrno) {
+	(GETARG_A(ins) == tdrno ||
+	 (GETARG_C(ins) >= 1 && GETARG_A(ins) + 1 == tdrno))) {
       if (GETARG_C(ins) == 127) {
 	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
       }
@@ -2105,10 +2158,9 @@ RETRY_TRY_BLOCK:
 	      *cirep = *irep;
 	      if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
 		p = mrb_proc_new(mrb, cirep);
+		p->flags = proc->flags;
 		p->env = proc->env;
 		p->target_class = proc->target_class;
-		//*p = *proc;
-		//p->body.irep = cirep;
 		irep->pool[ipos] = mrb_obj_value(p);
 		proc = p;
 		irep = cirep;
@@ -2123,7 +2175,7 @@ RETRY_TRY_BLOCK:
 	      mrb_irep *nirep = p->body.irep;
 	      p->env = proc->env;
 	      p->target_class = proc->target_class;
-	      //p->body.irep = nirep;
+	      p->flags = proc->flags;
 	      proc = p;
 	      irep = nirep;
 	      pc = irep->iseq;
