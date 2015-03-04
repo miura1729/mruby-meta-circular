@@ -27,6 +27,8 @@
 #define CI_ACC_SKIP    -1
 #define CI_ACC_DIRECT  -2
 
+int mrb_patch_irep_var2fix(mrb_state *, mrb_irep *, mrb_int);
+
 int
 mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
 {
@@ -262,6 +264,8 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_code *pc = *status->pc;
   mrb_value *regs = *status->regs;
   mrb_code i = *pc;
+  mrb_irep *irep = *status->irep;
+  struct RProc *proc = *status->proc;
 
   //printf("enter %x %x \n", pc, mrb->c->ci);
   /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
@@ -337,7 +341,47 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       value_move(&regs[1], argv, m1+o); /* m1 + o */
     }
     if (r) {                  /* r */
-      regs[m1+o+1] = mrb_ary_new_from_values(mrb, argc-m1-o-m2, argv+m1+o);
+      int rnum = argc-m1-o-m2;
+      //printf("%d %x\n", rnum, irep);
+      //disasm_irep(mrb, irep);
+      if (rnum == 1) {
+	int ipos = GETARG_A(*(pc + 1));
+	struct RProc *p = mrb_proc_ptr(irep->pool[ipos]);
+
+	if (p == NULL) {
+	  mrb_irep *cirep = mrb_add_irep(mrb);
+	  *cirep = *irep;
+	  if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
+	    p = mrb_proc_new(mrb, cirep);
+	    p->flags = proc->flags;
+	    p->env = proc->env;
+	    p->target_class = proc->target_class;
+	    irep->pool[ipos] = mrb_obj_value(p);
+	    mrb->c->ci->proc = *status->proc = p;
+	    *status->irep = cirep;
+	    *status->pc = cirep->iseq;
+	  }
+	  else {
+	    regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
+	  }
+	}
+	else {
+	  mrb_irep *nirep = p->body.irep;
+	  mrb_code *oiseq = nirep->iseq;
+	  *nirep = *irep;
+	  nirep->iseq = oiseq;
+	  p = mrb_proc_new(mrb, nirep);
+	  p->env = proc->env;
+	  p->target_class = proc->target_class;
+	  p->flags = proc->flags;
+	  mrb->c->ci->proc = *status->proc = p;
+	  *status->irep = nirep;
+	  *status->pc = irep->iseq;
+	}
+      }
+      else {
+	regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
+      }
     }
     if (m2) {
       if (argc-m2 > m1) {

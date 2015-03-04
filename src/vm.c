@@ -1019,6 +1019,7 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 
     if (GET_OPCODE(ins) == OP_ARRAY &&
 	GET_OPCODE(*(pc + 1)) == OP_MOVE &&
+	GETARG_B(*(pc + 1)) == drno &&
 	GET_OPCODE(*(pc + 2)) == OP_ARYCAT &&
 	GET_OPCODE(*(pc + 3)) == OP_SEND &&
 	GETARG_C(*(pc + 3)) == 127) {
@@ -2150,19 +2151,21 @@ RETRY_TRY_BLOCK:
 	  //disasm_irep(mrb, irep);
 	  if (rnum == 1) {
 	    int ipos = GETARG_A(*(pc + 1));
-	    struct RProc *p = mrb_proc_ptr(irep->pool[ipos]);
+	    mrb_irep *nirep = (mrb_irep *)mrb_fixnum(irep->pool[ipos]);
+	    struct RProc *p;
 	    assert(GET_OPCODE(*(pc + 1)) == OP_NOP);
 
-	    if (p == NULL) {
+	    if (nirep == NULL) {
 	      mrb_irep *cirep = mrb_add_irep(mrb);
 	      *cirep = *irep;
 	      if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
 		p = mrb_proc_new(mrb, cirep);
 		p->flags = proc->flags;
-		p->env = proc->env;
+		p->body.irep->refcnt++;
 		p->target_class = proc->target_class;
-		irep->pool[ipos] = mrb_obj_value(p);
-		proc = p;
+		p->env = proc->env;
+		irep->pool[ipos] = mrb_fixnum_value(cirep);
+		mrb->c->ci->proc = proc = p;
 		irep = cirep;
 		pc = cirep->iseq;
 		assert(p->env == NULL || p->env->cioff >= 0);
@@ -2172,13 +2175,14 @@ RETRY_TRY_BLOCK:
 	      }
 	    }
 	    else {
-	      mrb_irep *nirep = p->body.irep;
-	      p->env = proc->env;
-	      p->target_class = proc->target_class;
+	      p = mrb_proc_new(mrb, nirep);
 	      p->flags = proc->flags;
-	      proc = p;
+	      p->body.irep->refcnt++;
+	      p->target_class = proc->target_class;
+	      p->env = proc->env;
+	      mrb->c->ci->proc = proc = p;
 	      irep = nirep;
-	      pc = irep->iseq;
+	      pc = nirep->iseq;
 	      assert(p->env == NULL || p->env->cioff >= 0);
 	    }
 	  }
