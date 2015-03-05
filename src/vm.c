@@ -1076,6 +1076,19 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	return 0;
       }
     }
+    else {
+      switch (GET_OPCODE(ins)) {
+      case OP_SEND:
+      case OP_ARRAY:
+	if (GETARG_A(ins) <= tdrno &&
+	    tdrno <= GETARG_A(ins) + GETARG_C(ins)) {
+	  mrb_free(mrb, irep->iseq);
+	  irep->iseq = oiseq;
+	  return 0;
+	}
+	break;
+      }
+    }
   }
 
   return 1;
@@ -2168,7 +2181,7 @@ RETRY_TRY_BLOCK:
 		mrb->c->ci->proc = proc = p;
 		irep = cirep;
 		pc = cirep->iseq;
-		assert(p->env == NULL || p->env->cioff >= 0);
+		//assert(p->env == NULL || p->env->cioff >= 0);
 	      }
 	      else {
 		regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
@@ -2183,7 +2196,7 @@ RETRY_TRY_BLOCK:
 	      mrb->c->ci->proc = proc = p;
 	      irep = nirep;
 	      pc = nirep->iseq;
-	      assert(p->env == NULL || p->env->cioff >= 0);
+	      //	      assert(p->env == NULL || p->env->cioff >= 0);
 	    }
 	  }
 	  else {
