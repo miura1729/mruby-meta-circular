@@ -2181,6 +2181,7 @@ RETRY_TRY_BLOCK:
 		mrb->c->ci->proc = proc = p;
 		irep = cirep;
 		pc = cirep->iseq;
+		mrb->c->ci->prev_pc = NULL;
 		//assert(p->env == NULL || p->env->cioff >= 0);
 	      }
 	      else {
@@ -2196,6 +2197,7 @@ RETRY_TRY_BLOCK:
 	      mrb->c->ci->proc = proc = p;
 	      irep = nirep;
 	      pc = nirep->iseq;
+	      mrb->c->ci->prev_pc = NULL;
 	      //	      assert(p->env == NULL || p->env->cioff >= 0);
 	    }
 	  }

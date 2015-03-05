@@ -346,37 +346,38 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       //disasm_irep(mrb, irep);
       if (rnum == 1) {
 	int ipos = GETARG_A(*(pc + 1));
-	struct RProc *p = mrb_proc_ptr(irep->pool[ipos]);
+	mrb_irep *nirep = (mrb_irep *)mrb_fixnum(irep->pool[ipos]);
+	struct RProc *p;
 
-	if (p == NULL) {
+	if (nirep == NULL) {
 	  mrb_irep *cirep = mrb_add_irep(mrb);
 	  *cirep = *irep;
 	  if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
 	    p = mrb_proc_new(mrb, cirep);
 	    p->flags = proc->flags;
-	    p->env = proc->env;
+	    p->body.irep->refcnt++;
 	    p->target_class = proc->target_class;
-	    irep->pool[ipos] = mrb_obj_value(p);
-	    mrb->c->ci->proc = *status->proc = p;
+	    p->env = proc->env;
+	    (*status->irep)->pool[ipos] = mrb_fixnum_value(cirep);
+	    mrb->c->ci->proc = proc = p;
 	    *status->irep = cirep;
 	    *status->pc = cirep->iseq;
+	    //assert(p->env == NULL || p->env->cioff >= 0);
 	  }
 	  else {
 	    regs[m1+o+1] = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
 	  }
 	}
 	else {
-	  mrb_irep *nirep = p->body.irep;
-	  mrb_code *oiseq = nirep->iseq;
-	  *nirep = *irep;
-	  nirep->iseq = oiseq;
 	  p = mrb_proc_new(mrb, nirep);
-	  p->env = proc->env;
-	  p->target_class = proc->target_class;
 	  p->flags = proc->flags;
-	  mrb->c->ci->proc = *status->proc = p;
+	  p->body.irep->refcnt++;
+	  p->target_class = proc->target_class;
+	  p->env = proc->env;
+	  mrb->c->ci->proc = proc = p;
 	  *status->irep = nirep;
-	  *status->pc = irep->iseq;
+	  *status->pc = nirep->iseq;
+	  //	      assert(p->env == NULL || p->env->cioff >= 0);
 	}
       }
       else {
