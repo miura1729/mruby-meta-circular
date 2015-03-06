@@ -345,7 +345,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("%d %x\n", rnum, irep);
       //disasm_irep(mrb, irep);
       if (rnum == 1) {
-	int ipos = GETARG_A(*(pc + 1));
+	int ipos = 0;
 	mrb_irep *nirep = (mrb_irep *)mrb_fixnum(irep->pool[ipos]);
 	struct RProc *p;
 

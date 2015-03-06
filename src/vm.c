@@ -1024,15 +1024,22 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	GET_OPCODE(*(pc + 3)) == OP_SEND &&
 	GETARG_C(*(pc + 3)) == 127) {
 
-      irep->iseq[i++] = MKOP_A(OP_NOP, 0);
-      pc++;
-      ins = *pc;
-      irep->iseq[i++] = MKOP_AB(OP_MOVE, GETARG_A(ins) - 1, GETARG_B(ins));
-      pc++;
-      irep->iseq[i++] = MKOP_A(OP_NOP, 0);
-      pc++;
-      ins = *pc;
-      irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+      if (GETARG_C(ins) == 0) {
+	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+	pc++;
+	ins = *pc;
+	irep->iseq[i++] = MKOP_AB(OP_MOVE, GETARG_A(ins) - 1, GETARG_B(ins));
+	pc++;
+	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+	pc++;
+	ins = *pc;
+	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+      }
+      else {
+	mrb_free(mrb, irep->iseq);
+	irep->iseq = oiseq;
+	return 0;
+      }
     }
 
     if (GET_OPCODE(ins) == OP_MOVE) {
@@ -1057,17 +1064,17 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 
     if (GET_OPCODE(ins) == OP_SEND &&
 	(GETARG_A(ins) == tdrno ||
-	 (GETARG_C(ins) >= 1 && GETARG_A(ins) + 1 == tdrno))) {
+	 (GETARG_C(ins) == 1 && GETARG_A(ins) + 1 == tdrno))) {
       if (GETARG_C(ins) == 127) {
 	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
       }
-      else if (	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0) {
+      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0) {
 	irep->iseq[i] = MKOP_A(OP_NOP, 0);
       }
-      else if (	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "size") == 0) {
+      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "size") == 0) {
 	irep->iseq[i] = MKOP_AB(OP_LOADI, tdrno, 1);
       }
-      else if (	strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
+      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
 	irep->iseq[i] = MKOP_A(OP_NOP, 0);
       }
       else {
@@ -1080,6 +1087,9 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
       switch (GET_OPCODE(ins)) {
       case OP_SEND:
       case OP_ARRAY:
+      case OP_HASH:
+      case OP_ADD:
+      case OP_SUB:
 	if (GETARG_A(ins) <= tdrno &&
 	    tdrno <= GETARG_A(ins) + GETARG_C(ins)) {
 	  mrb_free(mrb, irep->iseq);
@@ -2163,10 +2173,9 @@ RETRY_TRY_BLOCK:
 	  //printf("%d %x\n", rnum, irep);
 	  //disasm_irep(mrb, irep);
 	  if (rnum == 1) {
-	    int ipos = GETARG_A(*(pc + 1));
+	    int ipos = 0;
 	    mrb_irep *nirep = (mrb_irep *)mrb_fixnum(irep->pool[ipos]);
 	    struct RProc *p;
-	    assert(GET_OPCODE(*(pc + 1)) == OP_NOP);
 
 	    if (nirep == NULL) {
 	      mrb_irep *cirep = mrb_add_irep(mrb);
