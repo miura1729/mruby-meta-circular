@@ -518,7 +518,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
       ci = mrb->c->ci = mrb->c->cibase + (*status->proc)->env->cioff + 1;
       mrb->c->stack = ci->stackent;
-      mrb->c->ci = mrb->c->cibase + ci->proc->env->cioff + 1;
+      mrb->c->ci = mrb->c->cibase + (*status->proc)->env->cioff + 1;
       while (ci > mrb->c->ci) {
 	if (ci[-1].acc == CI_ACC_SKIP) {
 	  mrb->c->ci = ci;
