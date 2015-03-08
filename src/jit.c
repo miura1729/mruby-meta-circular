@@ -353,7 +353,12 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	  mrb_irep *cirep = mrb_add_irep(mrb);
 	  *cirep = *irep;
 	  if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
-	    p = mrb_proc_new(mrb, cirep);
+	    if (irep->shared_lambda == 1) {
+	      p = mrbjit_get_local_proc(mrb, cirep);
+	    }
+	    else {
+	      p = mrb_proc_new(mrb, cirep);
+	    }
 	    p->flags = proc->flags;
 	    p->body.irep->refcnt++;
 	    p->target_class = proc->target_class;
@@ -369,7 +374,12 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	  }
 	}
 	else {
-	  p = mrb_proc_new(mrb, nirep);
+	  if (irep->shared_lambda == 1) {
+	    p = mrbjit_get_local_proc(mrb, nirep);
+	  }
+	  else {
+	    p = mrb_proc_new(mrb, nirep);
+	  }
 	  p->flags = proc->flags;
 	  p->body.irep->refcnt++;
 	  p->target_class = proc->target_class;
