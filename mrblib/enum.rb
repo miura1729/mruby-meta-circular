@@ -213,13 +213,13 @@ module Enumerable
       result = args[0]
     end
     self.each{|*val|
-      val = val.__svalue
+      val2 = val.__svalue
       if flag
         # push first element as initial
         flag = false
-        result = val
+        result = val2
       else
-        result = block.call(result, val)
+        result = block.call(result, val2)
       end
     }
     result

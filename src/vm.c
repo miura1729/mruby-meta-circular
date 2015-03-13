@@ -1086,7 +1086,7 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	irep->iseq[i] = MKOP_A(OP_NOP, 0);
       }
       else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "size") == 0) {
-	irep->iseq[i] = MKOP_AB(OP_LOADI, tdrno, 1);
+	irep->iseq[i] = MKOP_AsBx(OP_LOADI, tdrno, 1);
       }
       else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
 	irep->iseq[i] = MKOP_A(OP_NOP, 0);
@@ -1096,6 +1096,8 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	irep->iseq = oiseq;
 	return 0;
       }
+
+      tdrno = drno;
     }
     else {
       switch (GET_OPCODE(ins)) {

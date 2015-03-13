@@ -381,7 +381,6 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	    p = mrb_proc_new(mrb, nirep);
 	  }
 	  p->flags = proc->flags;
-	  p->body.irep->refcnt++;
 	  p->target_class = proc->target_class;
 	  p->env = proc->env;
 	  mrb->c->ci->proc = proc = p;
