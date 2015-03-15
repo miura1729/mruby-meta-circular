@@ -1035,10 +1035,10 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	GET_OPCODE(*(pc + 1)) == OP_MOVE &&
 	GETARG_B(*(pc + 1)) == drno &&
 	GET_OPCODE(*(pc + 2)) == OP_ARYCAT &&
-	GET_OPCODE(*(pc + 3)) == OP_SEND &&
-	GETARG_C(*(pc + 3)) == 127) {
+	GETARG_C(ins) == 0) {
 
-      if (GETARG_C(ins) == 0) {
+      if (GET_OPCODE(*(pc + 3)) == OP_SEND &&
+	  GETARG_C(*(pc + 3)) == 127) {
 	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
 	pc++;
 	ins = *pc;
@@ -1048,6 +1048,19 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	pc++;
 	ins = *pc;
 	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
+      }
+      else if (GET_OPCODE(*(pc + 4)) == OP_SENDB &&
+	       GETARG_C(*(pc + 4)) == 127) {
+	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+	pc++;
+	ins = *pc;
+	irep->iseq[i++] = MKOP_AB(OP_MOVE, GETARG_A(ins) - 1, GETARG_B(ins));
+	pc++;
+	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+	pc++;
+	irep->iseq[i++] = *(pc++);
+	ins = *pc;
+	irep->iseq[i] = MKOP_ABC(OP_SENDB, GETARG_A(ins), GETARG_B(ins), 1);
       }
       else {
 	mrb_free(mrb, irep->iseq);
