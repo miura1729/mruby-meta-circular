@@ -1907,7 +1907,7 @@ RETRY_TRY_BLOCK:
         ci->nregs = irep->nregs;
         if (n == CALL_MAXARGS) {
           ci->argc = -1;
-          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
+	  stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
         }
         else {
           ci->argc = n;
@@ -2436,7 +2436,15 @@ RETRY_TRY_BLOCK:
       mrb_value recv;
       mrb_sym mid = syms[GETARG_B(i)];
 
+
       recv = regs[a];
+      if (n == CALL_MAXARGS) {
+	SET_NIL_VALUE(regs[a + 2]);
+      }
+      else {
+	SET_NIL_VALUE(regs[a + n+1]);
+      }
+
       c = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
@@ -2465,7 +2473,7 @@ RETRY_TRY_BLOCK:
       }
 
       /* move stack */
-      value_move(mrb->c->stack, &regs[a], ci->argc+1);
+      value_move(regs, &regs[a], ci->argc+2);
 
       if (MRB_PROC_CFUNC_P(m)) {
 	int orgdisflg = mrb->compile_info.disable_jit;
@@ -2473,6 +2481,7 @@ RETRY_TRY_BLOCK:
         mrb->c->stack[0] = m->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
+	i = MKOP_AB(OP_RETURN, 0, OP_R_NORMAL);
         goto L_RETURN;
       }
       else {
@@ -2480,13 +2489,14 @@ RETRY_TRY_BLOCK:
         irep = m->body.irep;
         pool = irep->pool;
         syms = irep->syms;
+	proc = m;
+        ci->nregs = irep->nregs;
         if (ci->argc < 0) {
           stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
         }
         else {
           stack_extend(mrb, irep->nregs, ci->argc+2);
         }
-        regs = mrb->c->stack;
         pc = irep->iseq;
       }
       JUMP;
