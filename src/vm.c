@@ -2461,10 +2461,25 @@ RETRY_TRY_BLOCK:
         }
       }
 
+      if (mrb->c->ci->env && mrb->c->ci->proc->body.irep->shared_lambda != 1) {
+	struct REnv *e = mrb->c->ci->env;
+	size_t len = (size_t)MRB_ENV_STACK_LEN(e);
+	mrb_value *p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
+
+	MRB_ENV_UNSHARE_STACK(e);
+	if (len > 0) {
+	  stack_copy(p, e->stack, len);
+	}
+	e->stack = p;
+	mrb_write_barrier(mrb, (struct RBasic *)e);
+      }
+
       /* replace callinfo */
       ci = mrb->c->ci;
       ci->mid = mid;
       ci->target_class = c;
+      ci->env = 0;
+      proc = ci->proc = m;
       if (n == CALL_MAXARGS) {
         ci->argc = -1;
       }
@@ -2489,7 +2504,6 @@ RETRY_TRY_BLOCK:
         irep = m->body.irep;
         pool = irep->pool;
         syms = irep->syms;
-	proc = m;
         ci->nregs = irep->nregs;
         if (ci->argc < 0) {
           stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs, 3);
