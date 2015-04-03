@@ -1049,6 +1049,18 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	ins = *pc;
 	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
       }
+      else if (GET_OPCODE(*(pc + 3)) == OP_TAILCALL &&
+	  GETARG_C(*(pc + 3)) == 127) {
+	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+	pc++;
+	ins = *pc;
+	irep->iseq[i++] = MKOP_AB(OP_MOVE, GETARG_A(ins) - 1, GETARG_B(ins));
+	pc++;
+	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
+	pc++;
+	ins = *pc;
+	irep->iseq[i] = MKOP_ABC(OP_TAILCALL, GETARG_A(ins), GETARG_B(ins), 1);
+      }
       else if (GET_OPCODE(*(pc + 4)) == OP_SENDB &&
 	       GETARG_C(*(pc + 4)) == 127) {
 	irep->iseq[i++] = MKOP_A(OP_NOP, 0);
@@ -1095,14 +1107,12 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
       if (GETARG_C(ins) == 127) {
 	irep->iseq[i] = MKOP_ABC(OP_SEND, GETARG_A(ins), GETARG_B(ins), 1);
       }
-      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0) {
+      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0 ||
+	       strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
 	irep->iseq[i] = MKOP_A(OP_NOP, 0);
       }
       else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "size") == 0) {
 	irep->iseq[i] = MKOP_AsBx(OP_LOADI, tdrno, 1);
-      }
-      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
-	irep->iseq[i] = MKOP_A(OP_NOP, 0);
       }
       else {
 	mrb_free(mrb, irep->iseq);
@@ -1112,9 +1122,27 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 
       tdrno = drno;
     }
+    else if (GET_OPCODE(ins) == OP_TAILCALL &&
+	(GETARG_A(ins) == tdrno ||
+	 (GETARG_C(ins) == 1 && GETARG_A(ins) + 1 == tdrno))) {
+      if (GETARG_C(ins) == 127) {
+	irep->iseq[i] = MKOP_ABC(OP_TAILCALL, GETARG_A(ins), GETARG_B(ins), 1);
+      }
+      else if (strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "__svalue") == 0 ||
+	       strcmp(mrb_sym2name(mrb, irep->syms[GETARG_B(ins)]), "[]") == 0) {
+	irep->iseq[i] = MKOP_AB(OP_RETURN, GETARG_A(ins), OP_R_NORMAL);
+      }
+      else {
+	mrb_free(mrb, irep->iseq);
+	irep->iseq = oiseq;
+	return 0;
+      }
+    }
     else {
       switch (GET_OPCODE(ins)) {
       case OP_SEND:
+      case OP_SENDB:
+      case OP_TAILCALL:
       case OP_ARRAY:
       case OP_HASH:
       case OP_ADD:
