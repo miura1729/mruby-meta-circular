@@ -1229,6 +1229,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     if (ci->used > 0) {
       int toff = ci - (irep->jit_entry_tab + n)->body;
       prev_pc = *ppc;
+      /* For compiled block through call operation */
+      mrb->compile_info.force_compile = 0;
 
       //printf("%x %x \n", ci->entry, *ppc);
 #if 0
