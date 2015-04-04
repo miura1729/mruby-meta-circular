@@ -1259,44 +1259,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     return ivid;
   }
 
-  const void *
-    ent_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  int
+    gen_accessor(mrb_state *mrb, struct RProc *m, mrb_value recv, int a, mrbjit_code_info *coi)
   {
-    mrb_code *pc = *status->pc;
-    mrb_value *regs = *status->regs;
-    mrb_sym *syms = *status->syms;
-    int i = *pc;
-    int a = GETARG_A(i);
-    int n = GETARG_C(i);
-    struct RProc *m;
-    mrb_value prim;
-    struct RClass *c;
-    const void *code = getCurr();
-    mrb_value recv;
-    mrb_sym mid = syms[GETARG_B(i)];
     mrb_sym ivid;
-    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
-    mrbjit_reginfo *sinfo;
 
-    if (GETARG_C(i) == CALL_MAXARGS) {
-      n = 1;
-    }
-
-    recv = regs[a];
-    gen_flush_regs(mrb, pc, status, coi, 1);
-    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 1);
-
-    c = mrb_class(mrb, recv);
-    m = mrb_method_search_vm(mrb, &c, mid);
-    if (!m) {
-      return NULL;
-    }
-
-    dinfo->unboxedp = 0;
-    dinfo->type = MRB_TT_FREE;
-    dinfo->klass = NULL;
-    dinfo->constp = 0;
-    
     if ((ivid = is_reader(mrb, m))) {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
@@ -1310,7 +1277,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	// regs[a] = obj;
 	emit_local_var_write(mrb, coi, a, reg_dtmp0);
 
-	return code;
+	return 1;
       }
     }
 
@@ -1335,30 +1302,40 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	call((void *)mrb_write_barrier);
 	emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
 
-	return code;
+	return 1;
       }
     }
 
-    if (GET_OPCODE(i) != OP_SENDB) {
-      //SET_NIL_VALUE(regs[a+n+1]);
-      mrbjit_reginfo *binfo;
-      int dstno;
-      if (n == CALL_MAXARGS) {
-	dstno = (a + 2);
-      }
-      else {
-	dstno = (a + n + 1);
-      }
-      emit_load_literal(mrb, coi, reg_tmp0, 0);
-      emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
-      emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
-      emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
-      binfo = &coi->reginfo[dstno];
-      binfo->unboxedp = 0;
-      binfo->type = MRB_TT_FREE;
-      binfo->klass = NULL;
-      binfo->constp = 0;
+    return 0;
+  }
+
+  void
+    gen_setnilblock(mrb_state *mrb, int a, int n, mrbjit_code_info *coi)
+  {
+    //SET_NIL_VALUE(regs[a+n+1]);
+    mrbjit_reginfo *binfo;
+    int dstno;
+    if (n == CALL_MAXARGS) {
+      dstno = (a + 2);
     }
+    else {
+      dstno = (a + n + 1);
+    }
+    emit_load_literal(mrb, coi, reg_tmp0, 0);
+    emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
+    emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
+    emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
+    binfo = &coi->reginfo[dstno];
+    binfo->unboxedp = 0;
+    binfo->type = MRB_TT_FREE;
+    binfo->klass = NULL;
+    binfo->constp = 0;
+  }
+
+  int
+    gen_send_primitive(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *m, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    mrb_value prim;
 
     prim = mrb_obj_iv_get(mrb, (struct RObject *)c, mid);
     if (mrb_type(prim) == MRB_TT_PROC) {
@@ -1372,11 +1349,62 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	if (!MRB_PROC_CFUNC_P(m)) {
 	  m->body.irep->disable_jit = 1;
 	}
-	return code;
+	return 1;
 
       default:
 	break;
       }
+    }
+
+    return 0;
+  }
+
+  const void *
+    ent_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    mrb_code *pc = *status->pc;
+    mrb_value *regs = *status->regs;
+    mrb_sym *syms = *status->syms;
+    int i = *pc;
+    int a = GETARG_A(i);
+    int n = GETARG_C(i);
+    struct RProc *m;
+    struct RClass *c;
+    const void *code = getCurr();
+    mrb_value recv;
+    mrb_sym mid = syms[GETARG_B(i)];
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+    mrbjit_reginfo *sinfo;
+
+    if (GETARG_C(i) == CALL_MAXARGS) {
+      n = 1;
+    }
+
+    recv = regs[a];
+    gen_flush_regs(mrb, pc, status, coi, 1);
+    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 1);
+
+    c = mrb_class(mrb, recv);
+    m = mrb_method_search_vm(mrb, &c, mid);
+    if (!m) {
+      return NULL;
+    }
+
+    dinfo->unboxedp = 0;
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
+    dinfo->constp = 0;
+
+    if (gen_accessor(mrb, m, recv, a, coi)) {
+      return code;
+    }
+    
+    if (GET_OPCODE(i) != OP_SENDB) {
+      gen_setnilblock(mrb, a, n, coi);
+    }
+
+    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
+      return code;
     }
 
     if (MRB_PROC_CFUNC_P(m)) {
