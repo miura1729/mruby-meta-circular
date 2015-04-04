@@ -1504,12 +1504,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   const void *
-    ent_return(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_return(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_code i)
   {
     const void *code = getCurr();
     struct mrb_context *c = mrb->c;
     mrb_code *pc = *status->pc;
-    mrb_code i = *pc;
     int can_use_fast = (c->ci != c->cibase &&
 			GETARG_B(i) == OP_R_NORMAL &&
 			(c->ci->env == 0 || 
