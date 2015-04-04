@@ -445,7 +445,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       mrbjit_cipop(mrb);
       ci = mrb->c->ci;
       mrb->c->stack = ci[1].stackent;
-      if (ci[1].acc < 0 && *status->prev_jmp) {
+      if (ci[1].acc == CI_ACC_SKIP && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
       }
@@ -548,7 +548,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     while (eidx > mrb->c->ci->eidx) {
       mrbjit_ecall(mrb, --eidx);
     }
-    if (acc < 0) {
+    if (acc == CI_ACC_SKIP) {
       mrb->jmp = *status->prev_jmp;
       return rc;		/* return v */
     }
@@ -594,7 +594,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
       mrbjit_cipop(mrb);
       ci = mrb->c->ci;
       mrb->c->stack = ci[1].stackent;
-      if (ci[1].acc < 0 && *status->prev_jmp) {
+      if (ci[1].acc == CI_ACC_SKIP && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
       }
@@ -645,7 +645,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     while (eidx > c->ci->eidx) {
       mrbjit_ecall(mrb, --eidx);
     }
-    if (acc < 0) {
+    if (acc == CI_ACC_SKIP) {
       mrb->jmp = *status->prev_jmp;
       return rc;		/* return v */
     }
