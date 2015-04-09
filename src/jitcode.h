@@ -196,13 +196,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (coi) {
       assert(coi->method_arg_ver < 0x8000);
       if (!is_clr_rc) {
-	push(eax);
+	emit_push(mrb, coi, eax);
       }
       emit_move(mrb, coi, edx, edi, OffsetOf(mrb_context, ci));
       emit_load_literal(mrb, coi, eax, coi->method_arg_ver);
       emit_movew(mrb, coi, edx, OffsetOf(mrb_callinfo, method_arg_ver), ax);
       if (!is_clr_rc) {
-	pop(eax);
+	emit_pop(mrb, coi, eax);
       }
     }
 
