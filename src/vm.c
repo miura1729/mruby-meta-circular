@@ -2519,7 +2519,7 @@ RETRY_TRY_BLOCK:
       }
 
       /* move stack */
-      value_move(regs, &regs[a], ci->argc+2);
+      value_move(regs, &regs[a], n+2);
 
       if (MRB_PROC_CFUNC_P(m)) {
 	int orgdisflg = mrb->compile_info.disable_jit;

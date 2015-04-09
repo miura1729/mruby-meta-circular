@@ -452,14 +452,14 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 {
   mrb_value *regs = *status->regs;
   mrb_code *pc = *status->pc;
-  int i = *pc;
-  int a = GETARG_A(i);
-  //int nargs = GETARG_C(i);
+  int ins = *pc;
+  int a = GETARG_A(ins);
+  //int nargs = GETARG_C(ins);
 
   struct RProc *m;
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
-  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(i)];
+  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
   mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
   dinfo->unboxedp = 0;
 
@@ -516,8 +516,45 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
     }
     
     /* call info setup */
-    gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
+    if (GET_OPCODE(ins) == OP_TAILCALL) {
+      int j;
+      int n = GETARG_C(ins);
+      if (n == 127) {
+	n = 1;
+      }
 
+      /* move stack */
+      for (j = 0; j < n + 2; j++) {
+	emit_local_var_read(mrb, coi, reg_dtmp0, a + j);
+	emit_local_var_write(mrb, coi, j, reg_dtmp0);
+      }
+
+      /* setup ci */
+      emit_move(mrb, coi, reg_tmp1, edi, OffsetOf(mrb_context, ci));
+
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), (Xbyak::uint32)mid);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, target_class), (Xbyak::uint32)c);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, proc), reg_tmp0);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), reg_tmp0);
+      if (n == CALL_MAXARGS) {
+	emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, argc), -1);
+      }
+      else {
+	emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, argc), n);
+      }
+
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (Xbyak::uint32)pirep->nregs);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (Xbyak::uint32)pirep);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(pool), (Xbyak::uint32)pirep->pool);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(syms), (Xbyak::uint32)pirep->syms);
+      /* stack extend */
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (Xbyak::uint32)pirep->iseq);
+    }
+    else {
+      gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
+    }
     gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
   }
 

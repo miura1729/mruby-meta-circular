@@ -202,6 +202,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     }
     break;
 
+  case OP_TAILCALL:
+    rc =code->ent_tailcall(mrb, status, coi);
+    break;
+
   case OP_ADD:
     rc =code->ent_add(mrb, status, coi, regs);
     break;
@@ -299,6 +303,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     break;
 
   default:
+    mrb->compile_info.force_compile = 0;
     mrb->compile_info.nest_level = 0;
     rc =NULL;
     break;
