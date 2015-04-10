@@ -198,7 +198,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
       rc =code->ent_return(mrb, status, coi, **ppc);
     }
     else {
-      rc =code->ent_return_inline(mrb, status, coi);
+      rc =code->ent_return_inline(mrb, status, coi, **ppc);
     }
     break;
 

@@ -1538,7 +1538,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_value_write(mrb, coi, 0, reg_tmp0);
       emit_local_var_type_write(mrb, coi, 0, reg_tmp1);
 
-      ent_return(mrb, status, coi, retcode);
+      mrb->compile_info.nest_level--;
+      if (mrb->c->ci->proc->env ||
+	  mrb->compile_info.nest_level != 0 ||
+	  (mrb->c->ci != mrb->c->cibase &&
+	   mrb->c->ci[0].proc->body.irep == mrb->c->ci[-1].proc->body.irep)) {
+	ent_return(mrb, status, coi, retcode);
+      }
+      else {
+	ent_return_inline(mrb, status, coi, retcode);
+      }
     }
     else {
       mrb_irep *sirep = m->body.irep;
@@ -1769,11 +1778,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   const void *
-    ent_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    ent_return_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_code i)
   {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
-    mrb_code i = *pc;
 
 #if 0
     mrb_value *regs = *status->regs;
