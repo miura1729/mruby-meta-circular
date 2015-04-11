@@ -306,7 +306,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
         genop_peep(s, i0, NOVAL);
         i0 = s->iseq[s->pc-1];
         return genop(s, MKOP_AB(OP_RETURN, GETARG_A(i0), OP_R_NORMAL));
-#if 1
+#if 0
       case OP_SEND:
         if (GETARG_B(i) == OP_R_NORMAL && GETARG_A(i) == GETARG_A(i0)) {
           s->iseq[s->pc-1] = MKOP_ABC(OP_TAILCALL, GETARG_A(i0), GETARG_B(i0), GETARG_C(i0));
