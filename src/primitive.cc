@@ -205,13 +205,15 @@ mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 
 const void *
 MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
-			      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+					  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo)
 {
   mrb_code **ppc = status->pc;
   mrb_value *regs  = *status->regs;
   void *code = NULL;
 
   COMP_GEN_JMP(setnz(al), setnz(al));
+  dinfo->regplace = MRBJIT_REG_AL;
+  dinfo->unboxedp = 1;
 
   return NULL;
 }
@@ -232,7 +234,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
   case MRB_TT_STRING:
-    if (mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi) == NULL) {
+    if (mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi, dinfo) == NULL) {
       dinfo->type = MRB_TT_TRUE;
       dinfo->klass = mrb->true_class;
       dinfo->constp = 0;

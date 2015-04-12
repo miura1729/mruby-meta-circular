@@ -2799,7 +2799,7 @@ do {                                                                 \
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
   const void *
     mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
-				  mrbjit_vmstatus *status, mrbjit_code_info *coi);
+				  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo);
 
   mrb_value 
     mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
