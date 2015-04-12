@@ -762,6 +762,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
 	srcno < dstno) {
+      /* Arg pram. set */
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
     else {
