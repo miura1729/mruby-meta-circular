@@ -162,12 +162,6 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, regno);
   emit_local_var_div(mrb, coi, regno + 1);
-  test(eax, eax);
-  setl(al);
-  and(eax, 1);
-  neg(eax);
-  emit_load_literal(mrb, coi, reg_tmp0, 0);
-  emit_sub(mrb, coi, edx, eax);
   emit_local_var_value_write(mrb, coi, regno, reg_tmp1);
 
   dinfo->type = MRB_TT_FIXNUM;
