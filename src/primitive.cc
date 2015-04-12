@@ -209,8 +209,9 @@ MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
 {
   mrb_code **ppc = status->pc;
   mrb_value *regs  = *status->regs;
+  void *code = NULL;
 
-  COMP_GEN(setnz(al), setnz(al));
+  COMP_GEN_JMP(setnz(al), setnz(al));
 
   return NULL;
 }
