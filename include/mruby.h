@@ -62,6 +62,7 @@ typedef void * mrbjit_code_area;
 
 enum mrbjit_regplace {
   MRBJIT_REG_MEMORY = 0,
+  MRBJIT_REG_IMMIDATE,
   MRBJIT_REG_AL,
   MRBJIT_REG_EAX,
   MRBJIT_REG_EDX,
@@ -89,9 +90,10 @@ enum mrbjit_regplace {
 typedef struct mrbjit_reginfo {
   enum mrb_vtype type;
   struct RClass *klass;
+  enum mrbjit_regplace regplace;
   int constp;
   int unboxedp;
-  enum mrbjit_regplace regplace;
+  mrb_value value;
 } mrbjit_reginfo;
 
 typedef struct mrbjit_code_info {

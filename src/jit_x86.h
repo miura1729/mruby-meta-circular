@@ -42,9 +42,30 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     reg_dtmp1 = xmm1;
   }
   
+  void
+    gen_flush_literal(mrb_state *mrb, mrbjit_code_info *coi, const Xbyak::uint32 dstno) 
+  {
+    mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
+
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)dinfo->value.value.p);
+    emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
+    if (mrb_type(dinfo->value) == MRB_TT_FLOAT ||
+	dinfo->type != mrb_type(dinfo->value)) {
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)dinfo->value.value.ttt);
+      emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
+      dinfo->type = mrb_type(dinfo->value);
+    }
+    dinfo->constp = 1;
+    dinfo->unboxedp = 0;
+  }
+
 #define DEREF_REGNO(regno)                                           \
   ({								     \
     mrbjit_reginfo *rinfo = &coi->reginfo[regno];                    \
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {		     \
+      gen_flush_literal(mrb, coi, regno);			     \
+      rinfo->regplace = MRBJIT_REG_MEMORY;                           \
+    }                                                                \
     if (rinfo->regplace == MRBJIT_REG_AL) {                          \
       emit_bool_boxing(mrb, coi, reg_tmp0);                          \
       emit_local_var_type_write(mrb, coi, regno, reg_tmp0);          \

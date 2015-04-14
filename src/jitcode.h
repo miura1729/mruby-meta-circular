@@ -78,6 +78,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     case MRBJIT_REG_MEMORY:
       break;
 
+    case MRBJIT_REG_IMMIDATE:
+      gen_flush_literal(mrb, coi, pos);
+      break;
+
     case MRBJIT_REG_AL:
       /*      printf("%x %x \n", *status->pc, *status->irep);
       disasm_irep(mrb, *status->irep);
@@ -140,6 +144,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     switch(coi->reginfo[pos].regplace) {
+    case MRBJIT_REG_IMMIDATE:
     case MRBJIT_REG_MEMORY:
       break;
 
@@ -799,18 +804,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
-    const Xbyak::uint32 dstno = GETARG_A(**ppc);
     const Xbyak::uint32 src = GETARG_sBx(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    emit_load_literal(mrb, coi, reg_tmp0, src);
-    emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
-    if (dinfo->type != MRB_TT_FIXNUM) {
-      emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FIXNUM);
-      emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
-      dinfo->type = MRB_TT_FIXNUM;
-      dinfo->klass = mrb->fixnum_class;
-    }
+    dinfo->value = mrb_fixnum_value(src);
+    dinfo->regplace = MRBJIT_REG_IMMIDATE;
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
 
