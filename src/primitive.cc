@@ -162,11 +162,14 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, regno);
   emit_local_var_div(mrb, coi, regno + 1);
+  test(reg_tmp1, reg_tmp1);
+  jz("@f");
   emit_local_var_value_read(mrb, coi, reg_tmp0, regno);
   xor(reg_tmp0, dword [ecx + (regno + 1) * 8]);
   sar(reg_tmp0, 31);
   and(reg_tmp0, dword [ecx + (regno + 1) * 8]);
   add(reg_tmp1, reg_tmp0);
+  L("@@");
   emit_local_var_value_write(mrb, coi, regno, reg_tmp1);
 
   dinfo->type = MRB_TT_FIXNUM;
