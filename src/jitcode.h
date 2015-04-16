@@ -80,6 +80,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     case MRBJIT_REG_IMMIDATE:
       gen_flush_literal(mrb, coi, pos);
+      /* Keep regplace for guard modify in guard fail */
+      coi->reginfo[pos].regplace = MRBJIT_REG_IMMIDATE;
       break;
 
     case MRBJIT_REG_AL:
@@ -809,9 +811,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     dinfo->value = mrb_fixnum_value(src);
     dinfo->regplace = MRBJIT_REG_IMMIDATE;
-    dinfo->constp = 1;
-    dinfo->unboxedp = 0;
-
+    gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
   }
 
@@ -975,6 +975,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       return NULL;
     }
 
+    gen_flush_regs(mrb, *status->pc, status, coi, 1);
     /* You can not change class of self in Ruby */
     if (mrb_type(self) == MRB_TT_OBJECT) {
       emit_local_var_value_read(mrb, coi, reg_tmp0, 0); /* self */
@@ -1005,6 +1006,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int ivoff = mrbjit_iv_off(mrb, self, id);
 
     inLocalLabel();
+    gen_flush_regs(mrb, *status->pc, status, coi, 1);
 
     if (ivoff != -1) {
       emit_local_var_value_read(mrb, coi, reg_tmp0, 0); /* self */
