@@ -322,6 +322,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       return;
     }
 
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE && 
+	mrb_type(rinfo->value) == tt) {
+      return;
+    }
+
     /* Get type tag */
     emit_local_var_type_read(mrb, coi, reg_tmp0, regpos);
     rinfo->type = tt;
@@ -811,7 +816,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     dinfo->value = mrb_fixnum_value(src);
     dinfo->regplace = MRBJIT_REG_IMMIDATE;
-    gen_flush_literal(mrb, coi, GETARG_A(**ppc));
+    //gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
   }
 
@@ -1386,7 +1391,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     recv = regs[a];
-    gen_flush_regs(mrb, pc, status, coi, 1);
     gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 1);
 
     c = mrb_class(mrb, recv);
@@ -1411,6 +1415,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
       return code;
     }
+    gen_flush_regs(mrb, pc, status, coi, 1);
 
     if (MRB_PROC_CFUNC_P(m)) {
       //mrb_p(mrb, regs[a]);
@@ -2087,8 +2092,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #define COMP_GEN_II(CMPINST)                                         \
 do {                                                                 \
+    mrbjit_reginfo *r2info = &coi->reginfo[regno + 1];               \
     emit_local_var_value_read(mrb, coi, reg_tmp0, regno);	     \
-    emit_local_var_cmp(mrb, coi, reg_tmp0, regno + 1);		     \
+    if (r2info->regplace == MRBJIT_REG_IMMIDATE) {                   \
+      emit_cmp(mrb, coi, reg_tmp0, mrb_fixnum(r2info->value));       \
+    }                                                                \
+    else {                                                           \
+      emit_local_var_cmp(mrb, coi, reg_tmp0, regno + 1);	     \
+    }                                                                \
     CMPINST;     						     \
 } while(0)
 
@@ -2347,7 +2358,7 @@ do {                                                                 \
     int siz = GETARG_C(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    gen_flush_regs(mrb, *status->pc, status, coi, 1);
+    gen_flush_regs(mrb, *ppc, status, coi, 1);
     emit_cfunc_start(mrb, coi);
 
     lea(eax, ptr [ecx + srcoff]);
@@ -2742,6 +2753,7 @@ do {                                                                 \
     dinfo->klass = mrb->hash_class;
     dinfo->unboxedp = 0;
 
+    gen_flush_regs(mrb, *ppc, status, coi, 1);
     emit_cfunc_start(mrb, coi);
 
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)num);
@@ -2750,7 +2762,7 @@ do {                                                                 \
     call((void *) mrb_hash_new_capa);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(int));
 
-    for(i = 0; i < num * 2; i+= 2) {
+    for (i = 0; i < num * 2; i+= 2) {
       emit_push(mrb, coi, reg_tmp0);
       emit_push(mrb, coi, reg_tmp1);
       emit_cfunc_start(mrb, coi);

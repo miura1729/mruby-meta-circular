@@ -150,6 +150,7 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -157,7 +158,6 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
     return mrb_nil_value();
   }
   gen_type_guard(mrb, regno, status, pc, coi);
-
   gen_type_guard(mrb, regno + 1, status, pc, coi);
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, regno);
@@ -170,6 +170,7 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   and(reg_tmp0, dword [ecx + (regno + 1) * 8]);
   add(reg_tmp1, reg_tmp0);
   L("@@");
+
   emit_local_var_value_write(mrb, coi, regno, reg_tmp1);
 
   dinfo->type = MRB_TT_FIXNUM;
@@ -291,6 +292,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
+  gen_flush_regs(mrb, pc, status, coi, 1);
   gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 
   ainfo->unboxedp = 0;
@@ -352,8 +354,9 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
-#if 0
-
+  gen_flush_regs(mrb, pc, status, coi, 1);
+  gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
+#if 1
   emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
   test(eax, eax);
@@ -433,6 +436,7 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
     return mrb_nil_value();
   }
 
+  gen_flush_regs(mrb, pc, status, coi, 1);
   gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, regno);
@@ -469,6 +473,8 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   dinfo->unboxedp = 0;
 
   m = mrb_method_search_vm(mrb, &c, mid);
+
+  gen_flush_regs(mrb, pc, status, coi, 1);
 
   // TODO add guard of class
   
@@ -597,6 +603,8 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
 
   dinfo->unboxedp = 0;
   m = mrb_method_search_vm(mrb, &c, mid);
+
+  gen_flush_regs(mrb, pc, status, coi, 1);
 
   // TODO add guard of class
   
