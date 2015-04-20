@@ -2092,14 +2092,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #define COMP_GEN_II(CMPINST)                                         \
 do {                                                                 \
-    mrbjit_reginfo *r2info = &coi->reginfo[regno + 1];               \
     emit_local_var_value_read(mrb, coi, reg_tmp0, regno);	     \
-    if (r2info->regplace == MRBJIT_REG_IMMIDATE) {                   \
-      emit_cmp(mrb, coi, reg_tmp0, mrb_fixnum(r2info->value));       \
-    }                                                                \
-    else {                                                           \
-      emit_local_var_cmp(mrb, coi, reg_tmp0, regno + 1);	     \
-    }                                                                \
+    emit_local_var_cmp(mrb, coi, reg_tmp0, regno + 1);		     \
     CMPINST;     						     \
 } while(0)
 

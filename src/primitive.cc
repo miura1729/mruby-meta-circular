@@ -293,7 +293,6 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
   inLocalLabel();
   gen_flush_regs(mrb, pc, status, coi, 1);
-  gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 
   ainfo->unboxedp = 0;
   ainfo->regplace = MRBJIT_REG_MEMORY;
@@ -355,7 +354,6 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   inLocalLabel();
   gen_flush_regs(mrb, pc, status, coi, 1);
-  gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 #if 1
   emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
@@ -437,7 +435,6 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
   }
 
   gen_flush_regs(mrb, pc, status, coi, 1);
-  gen_class_guard(mrb, regno, status, pc, coi, NULL, 1);
 
   emit_local_var_value_read(mrb, coi, reg_tmp1, regno);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));

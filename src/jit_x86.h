@@ -96,8 +96,14 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_local_var_value_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
   {
-    regno = DEREF_REGNO(regno);
-    mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {
+      mov(dst, (Xbyak::uint32)rinfo->value.value.p);
+    }
+    else {
+      regno = DEREF_REGNO(regno);
+      mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+    }
   }
 
   void emit_local_var_value_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Reg32 src)
@@ -109,8 +115,14 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_local_var_type_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
   {
-    regno = DEREF_REGNO(regno);
-    mov(dst, ptr [reg_regs + regno * sizeof(mrb_value) + 4]);
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {
+      mov(dst, (Xbyak::uint32)rinfo->value.value.ttt);
+    }
+    else {
+      regno = DEREF_REGNO(regno);
+      mov(dst, ptr [reg_regs + regno * sizeof(mrb_value) + 4]);
+    }
   }
 
   void emit_local_var_type_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Reg32 src)
@@ -276,8 +288,19 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_local_var_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 src, int regno) {
-    regno = DEREF_REGNO(regno);
-    cmp(src, ptr [reg_regs + regno * sizeof(mrb_value)]);
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {
+      if (rinfo->value.value.p == 0) {
+	test(src, src);
+      }
+      else {
+	cmp(src, (Xbyak::uint32)rinfo->value.value.p);
+      }
+    }
+    else {
+      regno = DEREF_REGNO(regno);
+      cmp(src, ptr [reg_regs + regno * sizeof(mrb_value)]);
+    }
   }
 
   void emit_local_var_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm src, int regno) {
