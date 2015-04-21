@@ -765,19 +765,24 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *sinfo = &coi->reginfo[GETARG_B(**ppc)];
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    if (coi && coi->reginfo) {
-      gen_flush_one(mrb, status, coi, GETARG_B(**ppc));
+    if (sinfo->regplace == MRBJIT_REG_IMMIDATE ||
+	(sinfo->regplace >= MRBJIT_REG_VMREG0 &&
+	 sinfo->regplace < MRBJIT_REG_VMREGMAX)) {
+      *dinfo = *sinfo;
     }
-    sinfo->regplace = MRBJIT_REG_MEMORY;
-    sinfo->unboxedp = 0;
-    *dinfo = *sinfo;
-
-    if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
-	srcno < dstno) {
+    else if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
+	     srcno < dstno) {
       /* Arg pram. set */
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
     else {
+      if (coi && coi->reginfo) {
+	gen_flush_one(mrb, status, coi, GETARG_B(**ppc));
+      }
+      sinfo->regplace = MRBJIT_REG_MEMORY;
+      sinfo->unboxedp = 0;
+      *dinfo = *sinfo;
+
       emit_local_var_read(mrb, coi, reg_dtmp0, srcno);
       emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
     }
