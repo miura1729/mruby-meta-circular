@@ -1284,6 +1284,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	rc = NULL;
 	toff = mrb->c->ci->prev_tentry_offset = -1;
       }
+      else if (rc == (void *(*)())3) {
+	/* Guard JMPIF/JMPNOT fail */
+	method_arg_ver = mrb->c->ci->method_arg_ver;
+	prev_pc = mrb->c->ci->prev_pc;
+	toff = mrb->c->ci->prev_tentry_offset;
+
+	rc = NULL;
+      }
       else {
 	method_arg_ver = mrb->c->ci->method_arg_ver;
       }
@@ -1319,6 +1327,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	/* Here is send already compiled method. Native code call happen in
 	  compiling callee method. */
 	mrb->c->ci->prev_tentry_offset = toff;
+      }
+      else if (*ppc == mrb->c->ci->prev_pc) {
+	/* JMPIF/JMPNOT guard fail */
       }
       else if (*ppc == mrb->c->ci->prev_pc + 1) {
 	/* Here is send already compiled method. Native code call happen in

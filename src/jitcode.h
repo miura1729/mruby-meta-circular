@@ -219,6 +219,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (is_clr_rc == 2) {
       emit_load_literal(mrb, coi, reg_tmp0, 1); /* Top method type guard fail */
     }
+    else if (is_clr_rc == 3) {
+      /* JMPIF/ JMPNOT fail */
+      mrb_irep *irep = *status->irep;
+      int ioff = ISEQ_OFFSET_OF(*status->pc);
+      int toff = coi - (irep->jit_entry_tab + ioff)->body;
+
+      emit_move(mrb, coi, reg_tmp0, reg_context,  OffsetOf(mrb_context, ci));
+      emit_load_literal(mrb, coi, reg_tmp1, (Xbyak::uint32)(*status->pc));
+      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, prev_pc), reg_tmp1);
+      emit_load_literal(mrb, coi, reg_tmp1, toff);
+      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, prev_tentry_offset), reg_tmp1);
+      emit_load_literal(mrb, coi, reg_tmp0, 3);
+    }
     else if (is_clr_rc) {
       emit_load_literal(mrb, coi, reg_tmp0, 0);
     }
@@ -380,7 +393,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(mrb, pc, 1, 0, status, coi);
+    gen_exit(mrb, pc, 3, 0, status, coi);
 
     L("@@");
   }
@@ -820,8 +833,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
     dinfo->value = mrb_fixnum_value(src);
-    dinfo->regplace = MRBJIT_REG_IMMIDATE;
-    //gen_flush_literal(mrb, coi, GETARG_A(**ppc));
+    //dinfo->regplace = MRBJIT_REG_IMMIDATE;
+    gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
   }
 
@@ -1778,7 +1791,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     jnz("@f");
 
     L(".ret_vm");
-    gen_exit(mrb, NULL, 1, 1, status, coi);
+    gen_exit(mrb, NULL, 3, 1, status, coi);
 
     L("@@");
     emit_jmp(mrb, coi, eax);
@@ -2507,12 +2520,12 @@ do {                                                                 \
       test(al, al);
       if (mrb_test(regs[cond])) {
 	jnz("@f");
-	gen_exit(mrb, *ppc + 1, 1, 0, status, coi);
+	gen_exit(mrb, *ppc + 1, 3, 0, status, coi);
 	L("@@");
       }
       else {
 	jz("@f");
-	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
+	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
 	L("@@");
       }
 
@@ -2544,12 +2557,12 @@ do {                                                                 \
       test(al, al);
       if (!mrb_test(regs[cond])) {
 	jz("@f");
-	gen_exit(mrb, *ppc + 1, 1, 0, status, coi);
+	gen_exit(mrb, *ppc + 1, 3, 0, status, coi);
 	L("@@");
       }
       else {
 	jnz("@f");
-	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 1, 0, status, coi);
+	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
 	L("@@");
       }
 
