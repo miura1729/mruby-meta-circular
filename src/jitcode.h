@@ -200,7 +200,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_flush_regs(mrb, pc, status, coi, 0);
     L(".exitlab");
 
+    emit_move(mrb, coi, reg_tmp1, reg_context,  OffsetOf(mrb_context, ci));
+    emit_load_literal(mrb, coi, ecx, (Xbyak::uint32)(*status->pc));
+    //emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, prev_pc), ecx);
+
     if (coi) {
+      mrb_irep *irep = *status->irep;
+      int ioff = ISEQ_OFFSET_OF(*status->pc);
+      int toff = coi - (irep->jit_entry_tab + ioff)->body;
+
+      /* break ecx(reg_regs) don't use for this aim */
+      emit_load_literal(mrb, coi, ecx, toff);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, prev_tentry_offset), ecx);
+
       assert(coi->method_arg_ver < 0x8000);
       if (!is_clr_rc) {
 	emit_push(mrb, coi, eax);
@@ -221,15 +233,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
     else if (is_clr_rc == 3) {
       /* JMPIF/ JMPNOT fail */
-      mrb_irep *irep = *status->irep;
-      int ioff = ISEQ_OFFSET_OF(*status->pc);
-      int toff = coi - (irep->jit_entry_tab + ioff)->body;
-
-      emit_move(mrb, coi, reg_tmp0, reg_context,  OffsetOf(mrb_context, ci));
-      emit_load_literal(mrb, coi, reg_tmp1, (Xbyak::uint32)(*status->pc));
-      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, prev_pc), reg_tmp1);
-      emit_load_literal(mrb, coi, reg_tmp1, toff);
-      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, prev_tentry_offset), reg_tmp1);
       emit_load_literal(mrb, coi, reg_tmp0, 3);
     }
     else if (is_clr_rc) {
@@ -833,7 +836,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
     dinfo->value = mrb_fixnum_value(src);
-    //dinfo->regplace = MRBJIT_REG_IMMIDATE;
+    dinfo->regplace = MRBJIT_REG_IMMIDATE;
     gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
   }
@@ -1791,7 +1794,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     jnz("@f");
 
     L(".ret_vm");
-    gen_exit(mrb, NULL, 3, 1, status, coi);
+    gen_exit(mrb, NULL, 1, 1, status, coi);
 
     L("@@");
     emit_jmp(mrb, coi, eax);

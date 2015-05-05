@@ -1227,7 +1227,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
     if (ci->used > 0) {
-      int toff = ci - (irep->jit_entry_tab + n)->body;
       prev_pc = *ppc;
       /* For compiled block through call operation */
       mrb->compile_info.force_compile = 0;
@@ -1282,20 +1281,26 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	method_arg_ver = irep->arg_ver_num;
 	//printf("new version %d \n", method_arg_ver);
 	rc = NULL;
-	toff = mrb->c->ci->prev_tentry_offset = -1;
+	mrb->c->ci->prev_tentry_offset = -1;
       }
       else if (rc == (void *(*)())3) {
 	/* Guard JMPIF/JMPNOT fail */
 	method_arg_ver = mrb->c->ci->method_arg_ver;
-	prev_pc = mrb->c->ci->prev_pc;
-	toff = mrb->c->ci->prev_tentry_offset;
-
+	mrb->c->ci->prev_tentry_offset = -1;
+	
 	rc = NULL;
+      }
+      else if (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
+	       GET_OPCODE(*(*ppc - 1)) == OP_SENDB) {
+	method_arg_ver = mrb->c->ci->method_arg_ver;
+	//mrb->c->ci->prev_tentry_offset = -1;
       }
       else {
 	method_arg_ver = mrb->c->ci->method_arg_ver;
+	mrb->c->ci->prev_tentry_offset = -1;
       }
 
+      prev_pc = mrb->c->ci->prev_pc;
       //disasm_once(mrb, irep, **ppc);
       //mrb_irep *search_irep(mrb_state *mrb, mrb_code *pc);
       //if (search_irep(mrb, *ppc) != irep) {
@@ -1320,43 +1325,26 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
 
       if (irep->iseq == *ppc && mrb->compile_info.force_compile == 0) {
-	mrb->c->ci->prev_tentry_offset = -1;
 	prev_pc = mrb->c->ci->prev_pc = NULL;
       }
-      else if (*ppc == prev_pc + 1) {
-	/* Here is send already compiled method. Native code call happen in
-	  compiling callee method. */
-	mrb->c->ci->prev_tentry_offset = toff;
-      }
-      else if (*ppc == mrb->c->ci->prev_pc) {
-	/* JMPIF/JMPNOT guard fail */
-      }
-      else if (*ppc == mrb->c->ci->prev_pc + 1) {
-	/* Here is send already compiled method. Native code call happen in
-	  compiling callee method and exit in the method. */
-	prev_pc = mrb->c->ci->prev_pc;
-      }
-      else {
-	mrb->c->ci->prev_tentry_offset = -1;
-      }
 
-      switch (GET_OPCODE(*(*ppc - 1))) {
+      /*switch (GET_OPCODE(*(*ppc - 1))) {
       case OP_SEND:
       case OP_SENDB:
-	prev_pc = *ppc - 1;
+	mrb->c->ci->prev_pc = prev_pc = *ppc - 1;
 	if (mrb->c->ci->prev_tentry_offset == -1) {
 	  mrbjit_codetab *ctab = irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc - 1);
 	  int i;
 
 	  for (i = ctab->size - 1; i <= 0; i--) {
-	    if (ctab->body[i].used == -1) {
+	    if (ctab->body[i].used) {
 	      break;
 	    }
 	  }
 	  mrb->c->ci->prev_tentry_offset = i;
 	}
 	break;
-      }
+	}*/
 
       ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc, method_arg_ver);
     }
