@@ -1291,7 +1291,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   int
-    gen_accessor(mrb_state *mrb, struct RProc *m, mrb_value recv, int a, mrbjit_code_info *coi)
+    gen_accessor(mrb_state *mrb, mrbjit_vmstatus *status, struct RProc *m, mrb_value recv, int a, mrbjit_code_info *coi)
   {
     mrb_sym ivid;
 
@@ -1316,6 +1316,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       const int ivoff = mrbjit_iv_off(mrb, recv, ivid);
 
       if (ivoff >= 0) {
+	gen_flush_regs(mrb, *status->pc, status, coi, 1);
+
 	/* Inline IV writer */
 	emit_local_var_value_read(mrb, coi, reg_tmp1, a);
 	emit_move(mrb, coi, eax, reg_tmp1, OffsetOf(struct RObject, iv));
@@ -1425,7 +1427,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = NULL;
     dinfo->constp = 0;
 
-    if (gen_accessor(mrb, m, recv, a, coi)) {
+    if (gen_accessor(mrb, status, m, recv, a, coi)) {
       return code;
     }
     
@@ -1512,7 +1514,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = NULL;
     dinfo->constp = 0;
 
-    if (gen_accessor(mrb, m, recv, a, coi)) {
+    if (gen_accessor(mrb, status, m, recv, a, coi)) {
       ent_return(mrb, status, coi, retcode);
       return code;
     }
@@ -2531,6 +2533,7 @@ do {                                                                 \
 	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
 	L("@@");
       }
+      rinfo->regplace = MRBJIT_REG_MEMORY;
 
       return code;
     }
@@ -2568,6 +2571,7 @@ do {                                                                 \
 	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
 	L("@@");
       }
+      rinfo->regplace = MRBJIT_REG_MEMORY;
 
       return code;
     }
