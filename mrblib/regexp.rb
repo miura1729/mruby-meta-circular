@@ -6,17 +6,21 @@ module RegexpCompiler
   SYM_PLUS = 2
   SYM_RAISE = 3
   SYM_SIZE = 4
+  SYM_PUSH = 5
+  SYM_POP = 6
+  SYM_LAST = 7
 
   REG_STRING = 1
-  REG_CURPOS = 2
-  REG_BEGPOS = 3
-  REG_ENDPOS = 4
-  REG_RC = 5
+  REG_POSTACK = 2
+  REG_CURPOS = 3
+  REG_BEGPOS = 4
+  REG_ENDPOS = 6
+  REG_RC = 7
 
-  REG_ARG0 = 6
-  REG_ARG1 = 7
+  REG_ARG0 = 8
+  REG_ARG1 = 9
 
-  def gen_match_letter(ch)
+  def gen_match_letter_aux(ch)
     @pool.push ch
     sidx = @pool.size - 1
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_STRING)
@@ -24,14 +28,43 @@ module RegexpCompiler
     @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_AREF, 1)
     @code.push mkop_ABx(OPTABLE_CODE[:LOADL], REG_ARG1, sidx)
     @code.push mkop_ABC(OPTABLE_CODE[:EQ], REG_ARG0, SYM_EQ, 1)
+  end
+
+  def gen_match_letter(ch)
+    gen_match_letter_aux(ch)
     @code.push mkop_AsBx(OPTABLE_CODE[:JMPIF], REG_ARG0, 3)
     @code.push mkop_A(OPTABLE_CODE[:LOADNIL], REG_RC)
     @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_RAISE, 0)
     @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_CURPOS, SYM_PLUS, 1)
   end
 
-  def gen_match_dot(ch)
+  def gen_match_dot
     @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_CURPOS, SYM_PLUS, 1)
+  end
+
+  def gen_match_star(ch)
+    # push BEGPOS
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_POSTACK)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG1, REG_BEGPOS)
+    @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_PUSH, 1)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_BEGPOS, REG_CURPOS)
+    @code.push mkop_sBx(OPTABLE_CODE[:ONERR], 2)
+    @code.push mkop_sBx(OPTABLE_CODE[:JMP], 3 + 5 + 6 + 1)
+
+    @code.push mkop_A(OPTABLE_CODE[:RESCUE], 0)
+    @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
+
+    gen_match_letter_aux(ch)  # Gen code size == 5
+
+    @code.push mkop_AsBx(OPTABLE_CODE[:JMPIF], REG_ARG0, -5 - 2 - 3)
+
+    # POP REG_BEG2POS
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_POSTACK)
+    @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_POP, 0)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_BEGPOS, REG_ARG0)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
+    @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_RAISE, 0)
   end
 end
 
@@ -66,27 +99,42 @@ class Regexp
     @code.push mkop_A(OPTABLE_CODE[:RETURN], REG_RC)
 
     escape = false
+    i = 0
     regexp.each_char do |ch|
       if escape then
         gen_match_letter(ch)
+        escape = false
       else
         case ch
         when '\\'
           escape = true
-          
+
         when '.'
-          gen_match_dot(ch)
+          case regexp[i + 1]
+          when '*'
+            gen_match_star2
+
+          else
+            gen_match_dot
+          end
 
         when '*'
-          
+
         else
-          gen_match_letter(ch)
+          case regexp[i + 1]
+          when '*'
+            gen_match_star(ch)
+
+          else
+            gen_match_letter(ch)
+          end
         end
       end
+      i = i + 1
     end
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_RC, REG_BEGPOS)
     @code.push mkop_A(OPTABLE_CODE[:RETURN], REG_RC)
-    irep = Irep.new_irep(@code, @pool, [:[], :==, :+, :raise, :size], 10, 2)
+    irep = Irep.new_irep(@code, @pool, [:[], :==, :+, :raise, :size, :push, :pop, :last], 10, 2)
 
     @proc = irep.to_proc
   end
@@ -107,6 +155,9 @@ class Regexp
       compile(@regexp)
     end
 
-    @proc.call(str)
+    a = []
+    b = @proc.call(str, a)
+    p a
+    b
   end
 end
