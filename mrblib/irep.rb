@@ -67,6 +67,14 @@ module RiteOpcodeUtil
     (mkop_A(op, a) | mkarg_bx(b))
   end
 
+  def mkop_Bx(op, b)
+    (mk_opcode(op) |mkarg_bx(b))
+  end
+
+  def mkop_sBx(op, b)
+    (mk_opcode(op) |mkarg_sbx(b))
+  end
+
   def mkop_AsBx(op, a, b)
     (mkop_A(op, a) | mkarg_sbx(b))
   end
@@ -293,7 +301,7 @@ class Irep
 
     when 3                      # Bx
       res += "#{getarg_bx(code)}"
-      
+
     when 4                      # AB
       res += "R#{getarg_a(code)}"
       res += ", "
