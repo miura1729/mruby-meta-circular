@@ -20,6 +20,13 @@ module RegexpCompiler
   REG_ARG0 = 8
   REG_ARG1 = 9
 
+  def gen_comp_current_end(offset)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_BEGPOS)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG1, REG_ENDPOS)
+    @code.push mkop_ABC(OPTABLE_CODE[:EQ], REG_ARG0, SYM_EQ, 1)
+    @code.push mkop_AsBx(OPTABLE_CODE[:JMPNOT], REG_ARG0, offset)
+  end
+
   def gen_match_letter_aux(ch)
     @pool.push ch
     sidx = @pool.size - 1
@@ -42,13 +49,17 @@ module RegexpCompiler
     @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_CURPOS, SYM_PLUS, 1)
   end
 
-  def gen_match_star(ch)
-    # push BEGPOS
+  # push BEGPOS
+  def gen_match_star_push_begpos
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_POSTACK)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG1, REG_BEGPOS)
     @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_PUSH, 1)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_BEGPOS, REG_CURPOS)
     @code.push mkop_sBx(OPTABLE_CODE[:ONERR], 2)
+  end
+
+  def gen_match_star(ch)
+    gen_match_star_push_begpos
     @code.push mkop_sBx(OPTABLE_CODE[:JMP], 3 + 5 + 6 + 1)
 
     @code.push mkop_A(OPTABLE_CODE[:RESCUE], 0)
@@ -59,6 +70,28 @@ module RegexpCompiler
     @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
     @code.push mkop_AsBx(OPTABLE_CODE[:JMPIF], REG_ARG0, -5 - 3 - 2 - 1)
+
+    # POP REG_BEG2POS
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_POSTACK)
+    @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_POP, 0)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_BEGPOS, REG_ARG0)
+    @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_RAISE, 0)
+
+    @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_CURPOS, SYM_PLUS, 1)
+  end
+
+  def gen_match_star_dot
+    # push BEGPOS
+    gen_match_star_push_begpos
+    @code.push mkop_sBx(OPTABLE_CODE[:JMP], 13)
+
+    @code.push mkop_A(OPTABLE_CODE[:RESCUE], 0)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
+
+    @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
+
+    gen_comp_current_end(-9)
 
     # POP REG_BEG2POS
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_POSTACK)
@@ -94,10 +127,7 @@ class Regexp
     @code.push mkop_A(OPTABLE_CODE[:RESCUE], 0)
     @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
-    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_BEGPOS)
-    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG1, REG_ENDPOS)
-    @code.push mkop_ABC(OPTABLE_CODE[:EQ], REG_ARG0, SYM_EQ, 1)
-    @code.push mkop_AsBx(OPTABLE_CODE[:JMPNOT], REG_ARG0, -8)
+    gen_comp_current_end(-8)
     @code.push mkop_A(OPTABLE_CODE[:RETURN], REG_RC)
 
     escape = false
@@ -114,7 +144,7 @@ class Regexp
         when '.'
           case regexp[i + 1]
           when '*'
-            gen_match_star2
+            gen_match_star_dot
 
           else
             gen_match_dot
@@ -159,7 +189,10 @@ class Regexp
 
     a = []
     b = @proc.call(str, a)
-    p a
-    b
+    if a[0] then
+      a[0]
+    else
+      b
+    end
   end
 end
