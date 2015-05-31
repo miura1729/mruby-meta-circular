@@ -52,19 +52,21 @@ module RegexpCompiler
     @code.push mkop_sBx(OPTABLE_CODE[:JMP], 3 + 5 + 6 + 1)
 
     @code.push mkop_A(OPTABLE_CODE[:RESCUE], 0)
-    @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
 
     gen_match_letter_aux(ch)  # Gen code size == 5
 
-    @code.push mkop_AsBx(OPTABLE_CODE[:JMPIF], REG_ARG0, -5 - 2 - 3)
+    @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
+    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
+    @code.push mkop_AsBx(OPTABLE_CODE[:JMPIF], REG_ARG0, -5 - 3 - 2 - 1)
 
     # POP REG_BEG2POS
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_ARG0, REG_POSTACK)
     @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_POP, 0)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_BEGPOS, REG_ARG0)
-    @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
     @code.push mkop_ABC(OPTABLE_CODE[:SEND], REG_ARG0, SYM_RAISE, 0)
+
+    @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_CURPOS, SYM_PLUS, 1)
   end
 end
 
