@@ -31,8 +31,9 @@ MRuby::Build.new do |conf|
   #conf.gem '../mruby-meta-circular'
   #conf.gem '../mruby-pjson'
   #conf.gem '../mruby-profiler'
-  conf.gem 'mrbgems/mruby-mmm'
   conf.gembox 'default'
+  conf.gem 'mrbgems/mruby-mmm'
+  conf.gem 'mrbgems/mruby-parray'
 
   # C compiler settings
   # conf.cc do |cc|
