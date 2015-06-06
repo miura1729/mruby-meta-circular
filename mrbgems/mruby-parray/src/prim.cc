@@ -13,20 +13,19 @@ mrbjit_instance_alloc_pa(mrb_state *mrb, mrb_value cv)
   struct RClass *c = mrb_obj_ptr(cv)->c;
   struct RObject *o;
   enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
+  mrb_value n;
   segment *seg;
 
   if (c->tt == MRB_TT_SCLASS)
     mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
 
   if (ttype == 0) ttype = MRB_TT_OBJECT;
+  
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
-  o->iv = (iv_tbl *)mrb_malloc(mrb, sizeof(iv_tbl));
-  o->iv->last_len = 0;
-  seg = (segment *)mrb_malloc(mrb, sizeof(segment));
-  o->iv->rootseg = seg;
-  o->iv->rootseg->next = NULL;
+  n = mrb_obj_value(o);
+  mrb_iv_copy(mrb, n, cv);
 
-  return mrb_obj_value(o);
+  return n;
 }
 }
 
@@ -75,8 +74,15 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   /* reg_tmp0 store pointer to new vector */
 
-  emit_push(mrb, coi, reg_tmp0);
-  
+  /*  emit_push(mrb, coi, reg_tmp0);
+  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, c));
+  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
+  emit_load_literal(mrb, coi, reg_tmp1, 0);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
+  emit_pop(mrb, coi, reg_tmp0);*/
+
+  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+
   emit_local_var_value_read(mrb, coi, reg_tmp1, a + 1);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RObject, iv));
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, 0);
@@ -85,21 +91,11 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
 
   movupd(xmm0, ptr [eax]);
-  paddq(xmm0, ptr [edx]);
-  movupd(xmm1, ptr [eax + 16]);
-  paddq(xmm1, ptr [edx + 16]);
-
-  emit_pop(mrb, coi, reg_tmp0);
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RObject, iv));
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
-
+  addpd(xmm0, ptr [edx]);
   movupd(ptr [eax], xmm0);
-  movupd(ptr [eax + 16], xmm1);
-
-  /*  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
-  emit_load_literal(mrb, coi, reg_tmp1, 0);
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);*/
+  movupd(xmm0, ptr [eax + 16]);
+  addpd(xmm0, ptr [edx + 16]);
+  movupd(ptr [eax + 16], xmm0);
 
   if (civoff >= 0) {
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
