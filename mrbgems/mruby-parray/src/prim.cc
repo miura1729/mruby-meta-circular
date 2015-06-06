@@ -24,6 +24,7 @@ mrbjit_instance_alloc_pa(mrb_state *mrb, mrb_value cv)
   o->iv->last_len = 0;
   seg = (segment *)mrb_malloc(mrb, sizeof(segment));
   o->iv->rootseg = seg;
+  o->iv->rootseg->next = NULL;
 
   return mrb_obj_value(o);
 }
