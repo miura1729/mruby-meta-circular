@@ -66,7 +66,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       gen_flush_literal(mrb, coi, regno);			     \
       rinfo->regplace = MRBJIT_REG_MEMORY;	                     \
     }                                                                \
-    if (rinfo->regplace == MRBJIT_REG_AL) {                          \
+    if (rinfo->regplace == MRBJIT_REG_AL && 0) {                          \
       emit_bool_boxing(mrb, coi, reg_tmp0);                          \
       emit_local_var_type_write(mrb, coi, regno, reg_tmp0);          \
       rinfo->regplace = MRBJIT_REG_MEMORY;                           \

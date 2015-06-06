@@ -88,9 +88,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       /*      printf("%x %x \n", *status->pc, *status->irep);
       disasm_irep(mrb, *status->irep);
       disasm_once(mrb, *status->irep, **status->pc);*/
-    //printf("\n\n");
+      //printf("\n\n");
+      /*coi->reginfo[pos].regplace = MRBJIT_REG_MEMORY;
       emit_bool_boxing(mrb, coi, reg_tmp0);
       emit_local_var_type_write(mrb, coi, pos, reg_tmp0);
+      coi->reginfo[pos].regplace = MRBJIT_REG_AL;*/
       break;
        
     case MRBJIT_REG_VMREG0:
@@ -155,9 +157,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       disasm_irep(mrb, *status->irep);
       disasm_once(mrb, *status->irep, **status->pc);*/
     //printf("\n\n");
+      /*      coi->reginfo[pos].regplace = MRBJIT_REG_MEMORY;
       emit_local_var_type_read(mrb, coi, reg_tmp0, pos);
       emit_cmp(mrb, coi, eax, 0xfff00001);
       setnz(al);
+      coi->reginfo[pos].regplace = MRBJIT_REG_AL;*/
       break;
        
     case MRBJIT_REG_VMREG0:
@@ -2226,7 +2230,7 @@ do {                                                                 \
     switch (GET_OPCODE(*(*ppc + 1))) {                               \
     case OP_JMPIF:                                                   \
     case OP_JMPNOT:                                                  \
-      break;                                                         \
+      /*      break;		*/				     \
     default:							     \
       COMP_BOOL_SET;                                                 \
       return code;                                                   \
@@ -2522,6 +2526,7 @@ do {                                                                 \
 
 #if 1
     if (rinfo->regplace == MRBJIT_REG_AL) {
+      rinfo->regplace = MRBJIT_REG_MEMORY;
       test(al, al);
       if (mrb_test(regs[cond])) {
 	jnz("@f");
@@ -2533,7 +2538,7 @@ do {                                                                 \
 	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
 	L("@@");
       }
-      rinfo->regplace = MRBJIT_REG_MEMORY;
+      gen_flush_regs(mrb, *ppc, status, coi, 1);
 
       return code;
     }
@@ -2560,6 +2565,7 @@ do {                                                                 \
 
 #if 1
     if (rinfo->regplace == MRBJIT_REG_AL) {
+      rinfo->regplace = MRBJIT_REG_MEMORY;
       test(al, al);
       if (!mrb_test(regs[cond])) {
 	jz("@f");
@@ -2571,7 +2577,7 @@ do {                                                                 \
 	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
 	L("@@");
       }
-      rinfo->regplace = MRBJIT_REG_MEMORY;
+      gen_flush_regs(mrb, *ppc, status, coi, 1);
 
       return code;
     }

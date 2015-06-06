@@ -1286,14 +1286,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       else if (rc == (void *(*)())3) {
 	/* Guard JMPIF/JMPNOT fail */
 	method_arg_ver = mrb->c->ci->method_arg_ver;
-	//mrb->c->ci->prev_tentry_offset = -1;
+	mrb->c->ci->prev_tentry_offset = -1;
 	
 	rc = NULL;
       }
       else if (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
 	       GET_OPCODE(*(*ppc - 1)) == OP_SENDB) {
 	method_arg_ver = mrb->c->ci->method_arg_ver;
-	//mrb->c->ci->prev_tentry_offset = -1;
+	mrb->c->ci->prev_tentry_offset = -1;
       }
       else {
 	method_arg_ver = mrb->c->ci->method_arg_ver;
