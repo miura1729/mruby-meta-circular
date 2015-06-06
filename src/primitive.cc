@@ -150,7 +150,6 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -452,195 +451,22 @@ mrbjit_prim_ary_first(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_ary_first_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
-mrb_value
-MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
-					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+void
+MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
+				mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_value *regs = *status->regs;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
   //int nargs = GETARG_C(ins);
-
   struct RProc *m;
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
   mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
-  dinfo->unboxedp = 0;
 
   m = mrb_method_search_vm(mrb, &c, mid);
-
-  gen_flush_regs(mrb, pc, status, coi, 1);
-
-  // TODO add guard of class
-  
-  // obj = mrbjit_instance_alloc(mrb, klass);
-  emit_cfunc_start(mrb, coi);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
-  emit_arg_push(mrb, coi, 2, eax);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
-  emit_arg_push(mrb, coi, 1, eax);
-  emit_arg_push(mrb, coi, 0, esi);
-  call((void *)mrbjit_instance_alloc);
-  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
-
-  // regs[a] = obj;
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
-  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
-
-  if (MRB_PROC_CFUNC_P(m)) {
-    CALL_CFUNC_BEGIN;
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)c);
-    emit_arg_push(mrb, coi, 3, eax);
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
-    emit_arg_push(mrb, coi, 2, eax);
-    CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
-  }
-  else {
-    /* patch initialize method */
-    mrb_irep *pirep = m->body.irep;
-    mrb_code *piseq = pirep->iseq;
-    for (unsigned int i = 0; i < pirep->ilen; i++) {
-      if (GET_OPCODE(piseq[i]) == OP_RETURN && 
-	  (piseq[i] & ((1 << 23) - 1)) != piseq[i]) {
-	pirep->iseq = (mrb_code *)mrb_malloc(mrb, pirep->ilen *  sizeof(mrb_code));
-	for (unsigned int j = 0; j < pirep->ilen; j++) {
-	  pirep->iseq[j] = piseq[j];
-	}
-	if (!(pirep->flags & MRB_ISEQ_NO_FREE)) {
-	  mrb_free(mrb, piseq);
-	}
-	piseq = pirep->iseq;
-	break;
-      }
-    }
-
-    for (unsigned int i = 0; i < pirep->ilen; i++) {
-      if (GET_OPCODE(piseq[i]) == OP_RETURN) {
-	/* clear A argument (return self always) */
-	piseq[i] &= ((1 << 23) - 1);
-      }
-    }
-    
-    /* call info setup */
-    if (GET_OPCODE(ins) == OP_TAILCALL) {
-      int j;
-      int n = GETARG_C(ins);
-      if (n == 127) {
-	n = 1;
-      }
-
-      /* move stack */
-      for (j = 0; j < n + 2; j++) {
-	emit_local_var_read(mrb, coi, reg_dtmp0, a + j);
-	emit_local_var_write(mrb, coi, j, reg_dtmp0);
-      }
-
-      /* setup ci */
-      emit_move(mrb, coi, reg_tmp1, edi, OffsetOf(mrb_context, ci));
-
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), (Xbyak::uint32)mid);
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, target_class), (Xbyak::uint32)c);
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
-      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, proc), reg_tmp0);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), reg_tmp0);
-      if (n == CALL_MAXARGS) {
-	emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, argc), -1);
-      }
-      else {
-	emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, argc), n);
-      }
-
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (Xbyak::uint32)pirep->nregs);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (Xbyak::uint32)pirep);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(pool), (Xbyak::uint32)pirep->pool);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(syms), (Xbyak::uint32)pirep->syms);
-      /* stack extend */
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (Xbyak::uint32)pirep->iseq);
-    }
-    else {
-      gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
-    }
-    gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
-  }
-
-  dinfo->type = MRB_TT_OBJECT;
-  dinfo->klass = mrb_class_ptr(klass);
-  dinfo->constp = 0;
-
-  return mrb_true_value();
-}
-
-extern "C" mrb_value
-mrbjit_prim_instance_new(mrb_state *mrb, mrb_value proc, void *status, void *coi)
-{
-  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
-
-  return code->mrbjit_prim_instance_new_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
-}
-
-mrb_value
-MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
-					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
-{
-  mrb_value *regs = *status->regs;
-  mrb_code *pc = *status->pc;
-  mrb_code ins = *pc;
-  int a = GETARG_A(ins);
-  //int nargs = GETARG_C(ins);
-
-  struct RProc *m;
-  mrb_value klass = regs[a];
-  struct RClass *c = mrb_class_ptr(klass);
-  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
-  mrb_sym mid = mrb_intern_cstr(mrb, "initialize");
-  int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
-
-  dinfo->unboxedp = 0;
-  m = mrb_method_search_vm(mrb, &c, mid);
-
-  gen_flush_regs(mrb, pc, status, coi, 1);
-
-  // TODO add guard of class
-  
-  // obj = mrbjit_instance_alloc(mrb, klass);
-  if (civoff >= 0) {
-    emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-    emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
-    emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
-    emit_push(mrb, coi, eax);			/* PUSH __objcache__ */
-    emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value) + 4);
-    emit_move(mrb, coi, reg_tmp0, reg_tmp0, civoff * sizeof(mrb_value));
-    test(eax, eax);
-    jnz("@f");
-  }    
-
-  emit_cfunc_start(mrb, coi);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
-  emit_arg_push(mrb, coi, 2, eax);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
-  emit_arg_push(mrb, coi, 1, eax);
-  emit_arg_push(mrb, coi, 0, esi);
-  call((void *)mrbjit_instance_alloc);
-  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
-
-  L("@@");
-  // regs[a] = obj;
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
-  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
-  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
-  emit_load_literal(mrb, coi, reg_tmp1, 0);
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
-
-  if (civoff >= 0) {
-    emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
-    emit_load_literal(mrb, coi, reg_tmp1, 0);
-    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
-    emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
-    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
-  }    
 
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
@@ -722,6 +548,112 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   dinfo->type = MRB_TT_OBJECT;
   dinfo->klass = mrb_class_ptr(klass);
   dinfo->constp = 0;
+}  
+
+
+mrb_value
+MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
+					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_code *pc = *status->pc;
+  mrb_code ins = *pc;
+  int a = GETARG_A(ins);
+  //int nargs = GETARG_C(ins);
+
+  mrb_value klass = regs[a];
+  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
+  dinfo->unboxedp = 0;
+
+  gen_flush_regs(mrb, pc, status, coi, 1);
+
+  // TODO add guard of class
+  
+  // obj = mrbjit_instance_alloc(mrb, klass);
+  emit_cfunc_start(mrb, coi);
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
+  emit_arg_push(mrb, coi, 2, eax);
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
+  emit_arg_push(mrb, coi, 1, eax);
+  emit_arg_push(mrb, coi, 0, esi);
+  call((void *)mrbjit_instance_alloc);
+  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
+
+  // regs[a] = obj;
+  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
+
+  gen_call_initialize(mrb, proc, status, coi);
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_instance_new(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_instance_new_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
+					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_code *pc = *status->pc;
+  mrb_code ins = *pc;
+  int a = GETARG_A(ins);
+  //int nargs = GETARG_C(ins);
+
+  mrb_value klass = regs[a];
+  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
+  int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
+
+  dinfo->unboxedp = 0;
+
+  gen_flush_regs(mrb, pc, status, coi, 1);
+
+  // TODO add guard of class
+  
+  // obj = mrbjit_instance_alloc(mrb, klass);
+  if (civoff >= 0) {
+    emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+    emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
+    emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
+    emit_push(mrb, coi, eax);			/* PUSH __objcache__ */
+    emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value) + 4);
+    emit_move(mrb, coi, reg_tmp0, reg_tmp0, civoff * sizeof(mrb_value));
+    test(eax, eax);
+    jnz("@f");
+  }    
+
+  emit_cfunc_start(mrb, coi);
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
+  emit_arg_push(mrb, coi, 2, eax);
+  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
+  emit_arg_push(mrb, coi, 1, eax);
+  emit_arg_push(mrb, coi, 0, esi);
+  call((void *)mrbjit_instance_alloc);
+  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
+
+  L("@@");
+  // regs[a] = obj;
+  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
+  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
+  emit_load_literal(mrb, coi, reg_tmp1, 0);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
+
+  if (civoff >= 0) {
+    emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
+    emit_load_literal(mrb, coi, reg_tmp1, 0);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
+  }
+
+  gen_call_initialize(mrb, proc, status, coi);
 
   return mrb_true_value();
 }

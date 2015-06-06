@@ -2823,6 +2823,8 @@ do {                                                                 \
 
     return code;
   }
+  /* primitive helper */
+  void gen_call_initialize(mrb_state *, mrb_value,mrbjit_vmstatus *, mrbjit_code_info *);
 
   /* primitive methodes */
   mrb_value 
