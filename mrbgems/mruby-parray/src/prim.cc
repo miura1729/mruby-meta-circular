@@ -6,27 +6,6 @@ extern "C" {
 #include "mruby/irep.h"
 #include "mruby/variable.h"
 #include "mruby/opcode.h"
-
-mrb_value
-mrbjit_instance_alloc_pa(mrb_state *mrb, mrb_value cv)
-{
-  struct RClass *c = mrb_obj_ptr(cv)->c;
-  struct RObject *o;
-  enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
-  mrb_value n;
-  segment *seg;
-
-  if (c->tt == MRB_TT_SCLASS)
-    mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
-
-  if (ttype == 0) ttype = MRB_TT_OBJECT;
-  
-  o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
-  n = mrb_obj_value(o);
-  mrb_iv_copy(mrb, n, cv);
-
-  return n;
-}
 }
 
 mrb_value
@@ -39,6 +18,7 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   int a = GETARG_A(ins);
   //int nargs = GETARG_C(ins);
 
+  struct RClass *c = mrb_obj_ptr(regs[a])->c;
   mrb_value klass = regs[a];
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
   int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
@@ -62,13 +42,11 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   }    
 
   emit_cfunc_start(mrb, coi);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
-  emit_arg_push(mrb, coi, 2, eax);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
-  emit_arg_push(mrb, coi, 1, eax);
+  emit_load_literal(mrb, coi, reg_tmp0, 4);
+  emit_arg_push(mrb, coi, 1, reg_tmp0);
   emit_arg_push(mrb, coi, 0, esi);
-  call((void *)mrbjit_instance_alloc_pa);
-  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
+  call((void *)mrb_ary_new_capa);
+  emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
 
   L("@@");
   // regs[a] = obj;
@@ -81,21 +59,27 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
   emit_pop(mrb, coi, reg_tmp0);*/
 
+  emit_local_var_value_read(mrb, coi, reg_tmp1, a);
   emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
 
-  emit_local_var_value_read(mrb, coi, reg_tmp1, a + 1);
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RObject, iv));
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, 0);
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a + 1);
+  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
+
+  movupd(xmm0, ptr [reg_tmp1]);
+  movupd(xmm1, ptr [reg_tmp0]);
+  addpd(xmm0, xmm1);
+  movupd(xmm1, ptr [reg_tmp1 + 16]);
+  movupd(xmm2, ptr [reg_tmp0 + 16]);
+  addpd(xmm1, xmm2);
+
   emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RObject, iv));
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
-
-  movupd(xmm0, ptr [eax]);
-  addpd(xmm0, ptr [edx]);
+  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
   movupd(ptr [eax], xmm0);
-  movupd(xmm0, ptr [eax + 16]);
-  addpd(xmm0, ptr [edx + 16]);
-  movupd(ptr [eax + 16], xmm0);
+  movupd(ptr [eax + 16], xmm1);
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
 
   if (civoff >= 0) {
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
