@@ -90,7 +90,7 @@ fmt_u(uint32_t x, char *s)
 typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)];
 #endif
 
-#ifdef __CYGWIN32__
+#if (defined(__CYGWIN32__) || defined(__NetBSD__) || defined(mips)) && !defined(__linux__)
 static long double
 frexpl (long double x, int *eptr)
 {
@@ -121,7 +121,7 @@ fmt_fp(struct fmt_args *f, long double y, int w, int p, int fl, int t)
   } else prefix++, pl=0;
 
   if (!isfinite(y)) {
-    char *ss = (t&32)?"inf":"INF";
+    const char *ss = (t&32)?"inf":"INF";
     if (y!=y) ss=(t&32)?"nan":"NAN";
     pad(f, ' ', w, 3+pl, fl&~ZERO_PAD);
     out(f, prefix, pl);

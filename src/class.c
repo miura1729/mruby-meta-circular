@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <stdarg.h>
 #include "mruby.h"
 #include "mruby/array.h"
@@ -134,6 +133,19 @@ mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
   return mrb_class_ptr(outer);
 }
 
+static void
+check_if_class_or_module(mrb_state *mrb, mrb_value obj)
+{
+  switch (mrb_type(obj)) {
+  case MRB_TT_CLASS:
+  case MRB_TT_SCLASS:
+  case MRB_TT_MODULE:
+    return;
+  default:
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class/module", mrb_inspect(mrb, obj));
+  }
+}
+
 static struct RClass*
 define_module(mrb_state *mrb, mrb_sym name, struct RClass *outer)
 {
@@ -163,6 +175,7 @@ mrb_define_module(mrb_state *mrb, const char *name)
 MRB_API struct RClass*
 mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 {
+  check_if_class_or_module(mrb, outer);
   return define_module(mrb, id, mrb_class_ptr(outer));
 }
 
@@ -235,15 +248,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   else {
     s = 0;
   }
-  switch (mrb_type(outer)) {
-  case MRB_TT_CLASS:
-  case MRB_TT_SCLASS:
-  case MRB_TT_MODULE:
-    break;
-  default:
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class/module", outer);
-    break;
-  }
+  check_if_class_or_module(mrb, outer);
   c = define_class(mrb, id, s, mrb_class_ptr(outer));
   mrb_class_inherited(mrb, mrb_class_real(c->super), c);
 
@@ -393,27 +398,6 @@ clear_method_cache(mrb_state *mrb)
     }
   }
 #endif
-}
-
-MRB_API void
-mrb_define_method_vm(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_value body)
-{
-  khash_t(mt) *h = c->mt;
-  khiter_t k;
-  struct RProc *p;
-
-  if (mrb->is_method_cache_used) {
-    clear_method_cache(mrb);
-    mrb->is_method_cache_used = 0;
-  }
-  
-  if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, mrb, h, name);
-  p = mrb_proc_ptr(body);
-  kh_value(h, k) = p;
-  if (p) {
-    mrb_field_write_barrier(mrb, (struct RBasic *)c, (struct RBasic *)p);
-  }
 }
 
 /* a function to raise NotImplementedError with current method name */
@@ -1576,7 +1560,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 {
   struct RProc *m = mrb_method_search(mrb, c, b);
 
-  mrb_define_method_vm(mrb, c, a, mrb_obj_value(m));
+  mrb_define_method_raw(mrb, c, a, m);
 }
 
 /*!
@@ -1668,14 +1652,11 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 static void
 undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
-  mrb_value m;
-
   if (!mrb_obj_respond_to(mrb, c, a)) {
     mrb_name_error(mrb, a, "undefined method '%S' for class '%S'", mrb_sym2str(mrb, a), mrb_obj_value(c));
   }
   else {
-    SET_PROC_VALUE(m, 0);
-    mrb_define_method_vm(mrb, c, a, m);
+    mrb_define_method_raw(mrb, c, a, NULL);
   }
 }
 

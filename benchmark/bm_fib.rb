@@ -1,4 +1,3 @@
-# Fib 39
 
 def fib n
   return n if n < 2

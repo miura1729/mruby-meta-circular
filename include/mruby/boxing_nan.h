@@ -62,7 +62,6 @@ typedef struct mrb_value {
 #define mrb_symbol(o)   (o).value.sym
 
 #define BOXNAN_SET_VALUE(o, tt, attr, v) do {\
-    (o).value.ttt = (0xfff00000|(tt));   \
   switch (tt) {\
   case MRB_TT_FALSE:\
   case MRB_TT_TRUE:\
@@ -71,6 +70,7 @@ typedef struct mrb_value {
   case MRB_TT_SYMBOL: (o).attr = (v); break;\
   default: (o).value.p = ((void *)((uintptr_t)(v)));break;	\
   }\
+  (o).value.ttt = (0xfff00000|(tt));		\
 } while (0)
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
@@ -88,7 +88,6 @@ typedef struct mrb_value {
 #define SET_INT_VALUE(r,n) BOXNAN_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) BOXNAN_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
-#define SET_PROC_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_PROC, value.p, v)
 #define SET_CPTR_VALUE(mrb,r,v) BOXNAN_SET_VALUE(r, MRB_TT_CPTR, value.p, v)
 #define SET_UNDEF_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
 

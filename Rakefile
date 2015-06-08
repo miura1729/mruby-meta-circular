@@ -21,13 +21,14 @@ end
 # load custom rules
 load "#{MRUBY_ROOT}/src/mruby_core.rake"
 load "#{MRUBY_ROOT}/mrblib/mrblib.rake"
-load "#{MRUBY_ROOT}/tools/mrbc/mrbc.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems_test.rake"
 load "#{MRUBY_ROOT}/test/mrbtest.rake"
+
+load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 
 ##############################
 # generic build targets, rules
