@@ -1520,14 +1520,14 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
     &&L_OP_DEBUG, &&L_OP_STOP, &&L_OP_ERR,
   };
 
-  mrb_irep *irep;
-  mrb_code *pc;
-  mrb_value *pool;
-  mrb_sym *syms;
+  mrb_irep *irep = proc->body.irep;
+  mrb_code *pc = irep->iseq;
+  mrb_value *pool = irep->pool;
+  mrb_sym *syms = irep->syms;
   mrb_value *regs = NULL;
   mrb_code i;
-  int ai;
-  struct mrb_jmpbuf *prev_jmp;
+  int ai = mrb_gc_arena_save(mrb);
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   void *gtptr;			/* Use in NEXT/JUMP */
   mrb_bool exc_catched = FALSE;
@@ -3196,7 +3196,7 @@ RETRY_TRY_BLOCK:
       /* A B            R(A).newmethod(Syms(B),R(A+1)) */
       int a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
-      struct RProc *p = mrb_proc_ptr(regs[a+1]);
+      struct RProc *p;
       khash_t(mt) *h = c->mt;
       khiter_t k;
 
@@ -3222,9 +3222,9 @@ RETRY_TRY_BLOCK:
 	}
       }
 
+      p = mrb_proc_ptr(regs[a+1]);
       mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, mrb_proc_ptr(regs[a+1])->body.irep);
       mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], p);
-
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
