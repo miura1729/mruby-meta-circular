@@ -19,7 +19,7 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   //int nargs = GETARG_C(ins);
 
   struct RClass *c = mrb_obj_ptr(regs[a])->c;
-  mrb_value klass = regs[a];
+  mrb_value klass = mrb_obj_value(c);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
   int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
 
@@ -32,6 +32,7 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
     emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+    emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, c));
     emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
     emit_push(mrb, coi, eax);			/* PUSH __objcache__ */
@@ -52,12 +53,12 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   /* reg_tmp0 store pointer to new vector */
 
-  /*  emit_push(mrb, coi, reg_tmp0);
+  emit_push(mrb, coi, reg_tmp0);
   emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, c));
   emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
   emit_load_literal(mrb, coi, reg_tmp1, 0);
   emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
-  emit_pop(mrb, coi, reg_tmp0);*/
+  emit_pop(mrb, coi, reg_tmp0);
 
   emit_push(mrb, coi, ebx);
 
@@ -93,8 +94,8 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
   }    
 
-  dinfo->type = MRB_TT_OBJECT;
-  dinfo->klass = mrb_class_ptr(klass);
+  dinfo->type = MRB_TT_ARRAY;
+  dinfo->klass = c;
   dinfo->constp = 0;
 
   return mrb_true_value();
