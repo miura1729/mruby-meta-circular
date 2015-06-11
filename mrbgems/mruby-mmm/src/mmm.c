@@ -59,6 +59,7 @@ mrb_mruby_mmm_gem_init(mrb_state *mrb)
   mmm = mrb_define_module(mrb, "MMM");
   mrb_define_method(mrb, mmm, "move", mrb_mmm_move, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, mmm, "included", mrb_mmm_included, MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, mmm, "move", mrbjit_prim_mmm_move);
 }
 
 void

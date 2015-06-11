@@ -667,6 +667,38 @@ mrbjit_prim_mmm_instance_new(mrb_state *mrb, mrb_value proc, void *status, void 
 }
 
 mrb_value
+MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_code *pc = *status->pc;
+  mrb_code ins = *pc;
+  int a = GETARG_A(ins);
+  //int nargs = GETARG_C(ins);
+
+  struct RClass *c = mrb_obj_ptr(regs[a])->c;
+  mrb_value klass = mrb_obj_value(c);
+  int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, c));
+  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
+  emit_move(mrb, coi, eax, eax, 0);
+  emit_local_var_read(mrb, coi, reg_dtmp0, a);
+  emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_dtmp0);
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_mmm_move(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_mmm_move_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
 MRBJitCode::mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
