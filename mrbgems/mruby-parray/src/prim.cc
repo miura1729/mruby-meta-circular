@@ -53,13 +53,6 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   /* reg_tmp0 store pointer to new vector */
 
-  emit_push(mrb, coi, reg_tmp0);
-  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, c));
-  emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
-  emit_load_literal(mrb, coi, reg_tmp1, 0);
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
-  emit_pop(mrb, coi, reg_tmp0);
-
   emit_push(mrb, coi, ebx);
 
   emit_local_var_value_read(mrb, coi, ebx, a);
