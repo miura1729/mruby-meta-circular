@@ -76,10 +76,8 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
 
   emit_pop(mrb, coi, ebx);
 
-  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
-
   if (civoff >= 0) {
+    emit_local_var_value_read(mrb, coi, reg_tmp0, a);
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));
     emit_move(mrb, coi, reg_tmp0, esp, 0);
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
@@ -90,6 +88,9 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
     L("@@");
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
   }    
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
 
   dinfo->type = MRB_TT_ARRAY;
   dinfo->klass = c;
