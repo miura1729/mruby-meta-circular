@@ -9,8 +9,12 @@ mrb_mmm_move(mrb_state *mrb, mrb_value self)
 {
   struct RObject *obj = mrb_obj_ptr(self);
   struct RObject *cls = (struct RObject *)obj->c;
+  mrb_sym objcache_sym = mrb_intern_lit(mrb, "__objcache__");
+  mrb_value oldobj;
 
-  mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "__objcache__"), self);
+  oldobj = mrb_obj_iv_get(mrb, cls, objcache_sym);
+  obj->c = mrb_class_ptr(oldobj);
+  mrb_obj_iv_set(mrb, cls, objcache_sym, self);
 
   return self;
 }
@@ -18,8 +22,9 @@ mrb_mmm_move(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_mmm_instance_new(mrb_state *mrb, mrb_value self)
 {
-  struct RObject *obj = mrb_obj_ptr(self);
-  mrb_value ins = mrb_obj_iv_get(mrb, obj, mrb_intern_lit(mrb, "__objcache__"));
+  struct RObject *cls = mrb_obj_ptr(self);
+  mrb_sym objcache_sym = mrb_intern_lit(mrb, "__objcache__");
+  mrb_value ins = mrb_obj_iv_get(mrb, cls, objcache_sym);
   mrb_value blk;
   mrb_value *argv;
   mrb_int argc;
@@ -28,10 +33,16 @@ mrb_mmm_instance_new(mrb_state *mrb, mrb_value self)
     return mrb_instance_new(mrb, self);
   }
   else {
+    if (mrb_obj_ptr(ins)->c) {
+      mrb_obj_iv_set(mrb, cls, objcache_sym, mrb_obj_value(mrb_obj_ptr(ins)->c));
+    }
+    else {
+      mrb_obj_iv_set(mrb, cls, objcache_sym, mrb_nil_value());
+    }
+    mrb_obj_ptr(ins)->c = cls;
     mrb_get_args(mrb, "*&", &argv, &argc, &blk);
     mrb_obj_ptr(ins)->iv->last_len = 0;
     mrb_funcall_with_block(mrb, ins, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
-    mrb_obj_iv_set(mrb, obj, mrb_intern_lit(mrb, "__objcache__"), mrb_nil_value());
 
     return ins;
   }

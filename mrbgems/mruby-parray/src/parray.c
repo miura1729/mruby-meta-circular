@@ -9,8 +9,8 @@
 static mrb_value
 mrb_vec_instance_new(mrb_state *mrb, mrb_value self)
 {
-  struct RObject *obj = mrb_obj_ptr(self);
-  mrb_value ins = mrb_obj_iv_get(mrb, obj, mrb_intern_lit(mrb, "__objcache__"));
+  struct RObject *cls = mrb_obj_ptr(self);
+  mrb_value ins = mrb_obj_iv_get(mrb, cls, mrb_intern_lit(mrb, "__objcache__"));
   mrb_value blk;
   mrb_value *argv;
   mrb_int argc;
@@ -19,9 +19,16 @@ mrb_vec_instance_new(mrb_state *mrb, mrb_value self)
     return mrb_instance_new(mrb, self);
   }
   else {
+    if (mrb_obj_ptr(ins)->c) {
+      mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "__objcache__"), 
+		     mrb_obj_value(mrb_obj_ptr(ins)->c));
+    }
+    else {
+      mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "__objcache__"), mrb_nil_value());
+    }
+    mrb_obj_ptr(ins)->c = cls;
     mrb_get_args(mrb, "*&", &argv, &argc, &blk);
     mrb_funcall_with_block(mrb, ins, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
-    mrb_obj_iv_set(mrb, obj, mrb_intern_lit(mrb, "__objcache__"), mrb_nil_value());
 
     return ins;
   }

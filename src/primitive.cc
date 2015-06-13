@@ -607,6 +607,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   //int nargs = GETARG_C(ins);
 
   mrb_value klass = regs[a];
+  struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
   int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
 
@@ -616,6 +617,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
 
   // TODO add guard of class
   
+  inLocalLabel();
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
     emit_local_var_value_read(mrb, coi, reg_tmp0, a);
@@ -625,7 +627,25 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value) + 4);
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, civoff * sizeof(mrb_value));
     test(eax, eax);
-    jnz("@f");
+    jz(".empty");
+    push(eax);
+    push(edx);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));
+    cmp(reg_tmp1, 1);
+    jz(".setnil");
+    emit_move(mrb, coi, reg_tmp0, esp, 8);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    jmp(".ee");
+    L(".setnil");
+    emit_move(mrb, coi, reg_tmp0, esp, 8);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
+    L(".ee");
+    pop(edx);
+    pop(eax);
+    jmp("@f");
+    L(".empty");
   }    
 
   emit_cfunc_start(mrb, coi);
@@ -645,6 +665,9 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_load_literal(mrb, coi, reg_tmp1, 0);
   emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
 
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
+
   if (civoff >= 0) {
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
     emit_load_literal(mrb, coi, reg_tmp1, 0);
@@ -652,6 +675,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
   }
+  outLocalLabel();
 
   gen_call_initialize(mrb, proc, status, coi);
 
@@ -685,7 +709,11 @@ MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
   emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
   emit_move(mrb, coi, eax, eax, 0);
   emit_local_var_read(mrb, coi, reg_dtmp0, a);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value));
   emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_dtmp0);
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+  emit_move(mrb, coi, eax, OffsetOf(struct RObject, c), reg_tmp1);
 
   return mrb_true_value();
 }
