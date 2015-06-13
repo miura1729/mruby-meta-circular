@@ -631,14 +631,23 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     push(eax);
     push(edx);
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));
-    cmp(reg_tmp1, 1);
-    jz(".setnil");
     emit_move(mrb, coi, reg_tmp0, esp, 8);
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    test(edx, edx);
+    jz(".setnil");
+    push(eax);
+    emit_cfunc_start(mrb, coi);
+    emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+    emit_arg_push(mrb, coi, 1, reg_tmp0);
+    emit_arg_push(mrb, coi, 0, esi);
+    call((void *)mrb_write_barrier);
+    emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
+    pop(eax);
+
+    emit_move(mrb, coi, reg_tmp1, esp, 0);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
     jmp(".ee");
     L(".setnil");
-    emit_move(mrb, coi, reg_tmp0, esp, 8);
-    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
     emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
     L(".ee");
@@ -665,17 +674,17 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_load_literal(mrb, coi, reg_tmp1, 0);
   emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
 
-  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
-
   if (civoff >= 0) {
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
-    emit_load_literal(mrb, coi, reg_tmp1, 0);
+    /*emit_load_literal(mrb, coi, reg_tmp1, 0);
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
     emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
-    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
+      emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);*/
   }
   outLocalLabel();
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
 
   gen_call_initialize(mrb, proc, status, coi);
 
@@ -714,6 +723,12 @@ MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, a);
   emit_move(mrb, coi, eax, OffsetOf(struct RObject, c), reg_tmp1);
+
+  emit_cfunc_start(mrb, coi);
+  emit_arg_push(mrb, coi, 1, reg_tmp0);
+  emit_arg_push(mrb, coi, 0, esi);
+  call((void *)mrb_write_barrier);
+  emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
 
   return mrb_true_value();
 }

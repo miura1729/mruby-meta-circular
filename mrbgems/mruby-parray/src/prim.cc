@@ -29,6 +29,7 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
 
   // TODO add guard of class
   
+  inLocalLabel();
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
     emit_local_var_value_read(mrb, coi, reg_tmp0, a);
@@ -39,7 +40,33 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value) + 4);
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, civoff * sizeof(mrb_value));
     test(eax, eax);
-    jnz("@f");
+    jz(".empty");
+    push(eax);
+    push(edx);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));
+    test(edx, edx);
+    jz(".setnil");
+    push(edx);
+    emit_cfunc_start(mrb, coi);
+    emit_arg_push(mrb, coi, 1, reg_tmp0);
+    emit_arg_push(mrb, coi, 0, esi);
+    call((void *)mrb_write_barrier);
+    emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
+    pop(edx);
+
+    emit_move(mrb, coi, reg_tmp0, esp, 8);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    jmp(".ee");
+    L(".setnil");
+    emit_move(mrb, coi, reg_tmp0, esp, 8);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
+    emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
+    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
+    L(".ee");
+    pop(edx);
+    pop(eax);
+    jmp("@f");
+    L(".empty");
   }    
 
   emit_cfunc_start(mrb, coi);
@@ -77,20 +104,12 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   emit_pop(mrb, coi, ebx);
 
   if (civoff >= 0) {
-    emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));
-    emit_move(mrb, coi, reg_tmp0, esp, 0);
-    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
-    cmp(reg_tmp1, 1);
-    jnz("@f");
-    emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE);
-    emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);
-    L("@@");
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ 
   }    
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, a);
   emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
+  outLocalLabel();
 
   dinfo->type = MRB_TT_ARRAY;
   dinfo->klass = c;
