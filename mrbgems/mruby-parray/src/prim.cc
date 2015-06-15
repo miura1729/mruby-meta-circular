@@ -138,3 +138,64 @@ mrbjit_prim_pve4_add(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_pvec4_add_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
+				       mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_value *regs = *status->regs;
+  mrb_code *pc = *status->pc;
+  mrb_code ins = *pc;
+  int a = GETARG_A(ins);
+  //int nargs = GETARG_C(ins);
+
+  struct RClass *c = mrb_obj_ptr(regs[a])->c;
+  mrb_value klass = mrb_obj_value(c);
+  mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
+  int civoff = mrbjit_iv_off(mrb, klass, mrb_intern_lit(mrb, "__objcache__"));
+
+  dinfo->unboxedp = 0;
+
+  gen_flush_regs(mrb, pc, status, coi, 1);
+
+  PVEC4_ALLOCATE;
+
+  // regs[a] = obj;
+  /* reg_tmp0 store pointer to new vector */
+
+  emit_push(mrb, coi, ebx);
+
+  emit_local_var_value_read(mrb, coi, ebx, a);
+  emit_move(mrb, coi, ebx, ebx, OffsetOf(struct RArray, ptr));
+
+  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
+
+  emit_local_var_value_read(mrb, coi, reg_tmp1, a + 1);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+
+  movupd(xmm0, ptr [ebx]);
+  movupd(xmm1, ptr [reg_tmp1]);
+  subpd(xmm0, xmm1);
+  movupd(ptr [reg_tmp0], xmm0);
+
+  movupd(xmm0, ptr [ebx + 16]);
+  movupd(xmm1, ptr [reg_tmp1 + 16]);
+  subpd(xmm0, xmm1);
+  movupd(ptr [reg_tmp0 + 16], xmm0);
+
+  emit_pop(mrb, coi, ebx);
+
+  PVEC4_ALLOCATE_FIN;
+
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_pve4_sub(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_pvec4_sub_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+

@@ -70,6 +70,7 @@ mrb_mruby_parray_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, vec4, "[]",              mrb_vec_aget,         MRB_ARGS_ANY());
   mrb_define_method(mrb, vec4, "[]=",             mrb_vec_aset,         MRB_ARGS_ANY());
   mrbjit_define_primitive(mrb, vec4, "+", mrbjit_prim_pve4_add);
+  mrbjit_define_primitive(mrb, vec4, "-", mrbjit_prim_pve4_sub);
 }
 
 void
