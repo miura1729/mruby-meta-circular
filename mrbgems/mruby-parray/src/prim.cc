@@ -131,7 +131,7 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
 }
 
 extern "C" mrb_value
-mrbjit_prim_pve4_add(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+mrbjit_prim_pvec4_add(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
@@ -192,10 +192,108 @@ MRBJitCode::mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
 }
 
 extern "C" mrb_value
-mrbjit_prim_pve4_sub(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+mrbjit_prim_pvec4_sub(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
   return code->mrbjit_prim_pvec4_sub_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
+
+mrb_value
+MRBJitCode::mrbjit_prim_pvec4_aget_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_code i = *pc;
+  int regno = GETARG_A(i);
+  const Xbyak::uint32 aryno = regno;
+  const Xbyak::uint32 idxno = aryno + 1;
+  mrbjit_reginfo *ainfo = &coi->reginfo[regno];
+  mrbjit_reginfo *iinfo = &coi->reginfo[regno + 1];
+
+  if (iinfo->regplace == MRBJIT_REG_IMMIDATE) {
+    emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    movsd(xmm0, ptr [edx + mrb_fixnum(iinfo->value) * sizeof(mrb_value)]);
+    emit_local_var_write(mrb, coi, aryno, xmm0);
+  }
+  else {
+    gen_flush_regs(mrb, pc, status, coi, 1);
+
+    emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
+    movsd(xmm0, ptr [edx + eax * sizeof(mrb_value)]);
+    emit_local_var_write(mrb, coi, aryno, xmm0);
+  }
+  
+  ainfo->unboxedp = 0;
+  ainfo->regplace = MRBJIT_REG_MEMORY;
+  ainfo->type = MRB_TT_FLOAT;
+  ainfo->klass = mrb->float_class;
+  ainfo->constp = 0;
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_pvec4_aget(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_pvec4_aget_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  const Xbyak::uint32 aryno = regno;
+  const Xbyak::uint32 idxno = aryno + 1;
+  const Xbyak::uint32 valno = idxno + 1;
+  mrbjit_reginfo *ainfo = &coi->reginfo[regno];
+  mrbjit_reginfo *iinfo = &coi->reginfo[regno + 1];
+
+  if (iinfo->regplace == MRBJIT_REG_IMMIDATE) {
+    emit_local_var_read(mrb, coi, xmm0, valno);
+    emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    movsd(ptr [edx + mrb_fixnum(iinfo->value) * sizeof(mrb_value)], xmm0);
+  }
+  else {
+    gen_flush_regs(mrb, pc, status, coi, 1);
+    emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+    emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
+
+    emit_local_var_read(mrb, coi, xmm0, valno);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    movsd(ptr [edx + eax * sizeof(mrb_value)], xmm0);
+  }
+
+  /*  emit_cfunc_start(mrb, coi);
+
+  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
+  emit_arg_push(mrb, coi, 3, reg_tmp0);
+  emit_local_var_value_read(mrb, coi, reg_tmp0, valno);
+  emit_arg_push(mrb, coi, 2, reg_tmp0);
+  emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+  emit_arg_push(mrb, coi, 1, reg_tmp1);
+  emit_arg_push(mrb, coi, 0, esi);
+  call((void *)mrb_field_write_barrier);
+  emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + sizeof(mrb_value));*/
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_pvec4_aset(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_pvec4_aset_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
 

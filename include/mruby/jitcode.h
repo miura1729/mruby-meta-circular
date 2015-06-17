@@ -2891,6 +2891,13 @@ do {                                                                 \
   mrb_value
     mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
+  mrb_value
+    mrbjit_prim_pvec4_aget_impl(mrb_state *mrb, mrb_value proc,
+			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value
+    mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
+			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 };
 
 #endif  /* MRUBY_JITCODE_H */

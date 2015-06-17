@@ -11,12 +11,13 @@ mrb_vec_instance_new(mrb_state *mrb, mrb_value self)
 {
   struct RObject *cls = mrb_obj_ptr(self);
   mrb_value ins = mrb_obj_iv_get(mrb, cls, mrb_intern_lit(mrb, "__objcache__"));
+  struct RArray *insp;
   mrb_value blk;
   mrb_value *argv;
   mrb_int argc;
 
   if (mrb_nil_p(ins)) {
-    return mrb_instance_new(mrb, self);
+    ins = mrb_ary_new_capa(mrb, 4);
   }
   else {
     if (mrb_obj_ptr(ins)->c) {
@@ -26,12 +27,19 @@ mrb_vec_instance_new(mrb_state *mrb, mrb_value self)
     else {
       mrb_obj_iv_set(mrb, cls, mrb_intern_lit(mrb, "__objcache__"), mrb_nil_value());
     }
-    mrb_obj_ptr(ins)->c = cls;
-    mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-    mrb_funcall_with_block(mrb, ins, mrb_intern_lit(mrb, "initialize"), argc, argv, blk);
-
-    return ins;
   }
+
+  insp = mrb_ary_ptr(ins);
+  insp->c = cls;
+  mrb_obj_ptr(ins)->c = cls;
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  mrb_ary_set(mrb, ins, 0, argv[0]);
+  mrb_ary_set(mrb, ins, 1, argv[1]);
+  mrb_ary_set(mrb, ins, 2, argv[2]);
+  mrb_ary_set(mrb, ins, 3, argv[3]);
+
+  return ins;
 }
 
 static mrb_value
@@ -69,8 +77,10 @@ mrb_mruby_parray_gem_init(mrb_state *mrb)
 
   mrb_define_method(mrb, vec4, "[]",              mrb_vec_aget,         MRB_ARGS_ANY());
   mrb_define_method(mrb, vec4, "[]=",             mrb_vec_aset,         MRB_ARGS_ANY());
-  mrbjit_define_primitive(mrb, vec4, "+", mrbjit_prim_pve4_add);
-  mrbjit_define_primitive(mrb, vec4, "-", mrbjit_prim_pve4_sub);
+  mrbjit_define_primitive(mrb, vec4, "+", mrbjit_prim_pvec4_add);
+  mrbjit_define_primitive(mrb, vec4, "-", mrbjit_prim_pvec4_sub);
+  mrbjit_define_primitive(mrb, vec4, "[]", mrbjit_prim_pvec4_aget);
+  mrbjit_define_primitive(mrb, vec4, "[]=", mrbjit_prim_pvec4_aset);
 }
 
 void

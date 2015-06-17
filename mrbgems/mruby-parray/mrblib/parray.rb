@@ -28,7 +28,37 @@ module PArray
     end
 
     def cross(other)
-#      PVector4.new2(@b * other.c - @c * other.b, @c * other.a - @a * other.c, @a * other.b - @b * other.b, 0)
+      PVector4[self[1] * other[2] - self[2] * other[1], self[2] * other[0] -self[0] * other[2], self[0] * other[1] - self[1] * other[0], 0.0]
+    end
+
+    def dot(other)
+      self[0] * other[0] + self[1] * other[1] +
+      self[2] * other[2] + self[3] * other[3]
+    end
+
+    def length
+      Math.sqrt(self[0] * self[0] + self[1] * self[1] +
+           self[2] * self[2] + self[3] * self[3])
+    end
+
+    def normalize
+      len = length
+      if len > 1.0e-17 then
+        v = PVector4[
+            self[0] / len,
+            self[1] / len,
+            self[2] / len,
+            self[3] / len
+        ]
+      else
+        v = PVector4[
+            self[0],
+            self[1],
+            self[2],
+            self[3]
+        ]
+      end
+      v
     end
   end
 end
