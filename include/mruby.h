@@ -302,6 +302,7 @@ MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mi
 MRB_API struct RClass * mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super);
 MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name);
 void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbjit_prim_func_t func);
+void mrbjit_define_class_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbjit_prim_func_t func);
 
 /* required arguments */
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)

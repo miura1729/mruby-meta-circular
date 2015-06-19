@@ -841,7 +841,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     dinfo->value = mrb_fixnum_value(src);
     dinfo->regplace = MRBJIT_REG_IMMIDATE;
-    gen_flush_literal(mrb, coi, GETARG_A(**ppc));
+    //gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
   }
 
@@ -2885,6 +2885,9 @@ do {                                                                 \
     mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 
+  mrb_value
+    mrbjit_prim_pvec4_new_impl(mrb_state *mrb, mrb_value proc,
+			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
   mrb_value
     mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);

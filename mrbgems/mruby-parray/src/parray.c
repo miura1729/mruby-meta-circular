@@ -31,13 +31,18 @@ mrb_vec_instance_new(mrb_state *mrb, mrb_value self)
 
   insp = mrb_ary_ptr(ins);
   insp->c = cls;
-  mrb_obj_ptr(ins)->c = cls;
   mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_write_barrier(mrb, (struct RBasic*)insp);
 
-  mrb_ary_set(mrb, ins, 0, argv[0]);
+  /*  mrb_ary_set(mrb, ins, 0, argv[0]);
   mrb_ary_set(mrb, ins, 1, argv[1]);
   mrb_ary_set(mrb, ins, 2, argv[2]);
-  mrb_ary_set(mrb, ins, 3, argv[3]);
+  mrb_ary_set(mrb, ins, 3, argv[3]);*/
+  insp->ptr[0] = argv[0];
+  insp->ptr[1] = argv[1];
+  insp->ptr[2] = argv[2];
+  insp->ptr[3] = argv[3];
+  insp->len = 4;
 
   return ins;
 }
@@ -74,13 +79,15 @@ mrb_mruby_parray_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(vec4, MRB_TT_ARRAY);
 
   mrb_define_class_method(mrb, vec4, "[]",        mrb_vec_instance_new,     MRB_ARGS_ANY());
+  mrbjit_define_class_primitive(mrb, vec4, "[]", mrbjit_prim_pvec4_new);
 
   mrb_define_method(mrb, vec4, "[]",              mrb_vec_aget,         MRB_ARGS_ANY());
+  mrbjit_define_primitive(mrb, vec4, "[]", mrbjit_prim_pvec4_aget);
   mrb_define_method(mrb, vec4, "[]=",             mrb_vec_aset,         MRB_ARGS_ANY());
+  mrbjit_define_primitive(mrb, vec4, "[]=", mrbjit_prim_pvec4_aset);
+
   mrbjit_define_primitive(mrb, vec4, "+", mrbjit_prim_pvec4_add);
   mrbjit_define_primitive(mrb, vec4, "-", mrbjit_prim_pvec4_sub);
-  mrbjit_define_primitive(mrb, vec4, "[]", mrbjit_prim_pvec4_aget);
-  mrbjit_define_primitive(mrb, vec4, "[]=", mrbjit_prim_pvec4_aset);
 }
 
 void

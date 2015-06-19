@@ -141,7 +141,7 @@ def clamp(f)
 end
 
 def otherBasis(basis, n)
-  basis[2] = PArray::PVector4[n[0], n[1], n[2], 0.0]
+  basis[2] = PArray::PVector4[n[0].to_f, n[1].to_f, n[2].to_f, 0.0]
   basis[1] = PArray::PVector4[0.0, 0.0, 0.0, 0.0]
 
   if n[0] < 0.6 and n[0] > -0.6 then
@@ -200,7 +200,7 @@ class Scene
         ry = x * basis[0][1] + y * basis[1][1] + z * basis[2][1]
         rz = x * basis[0][2] + y * basis[1][2] + z * basis[2][2]
 
-        raydir = PArray::PVector4[rx, ry, rz, 0.0]
+        raydir = PArray::PVector4[rx.to_f, ry.to_f, rz.to_f, 0.0]
         ray = Ray.new(p0, raydir)
 
         occisect = Isect.new

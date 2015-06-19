@@ -372,6 +372,13 @@ mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbj
   mrbjit_define_primitive_id(mrb, c, mrb_intern_cstr(mrb, name), func);
 }  
 
+void
+mrbjit_define_class_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbjit_prim_func_t func)
+{
+  prepare_singleton_class(mrb, (struct RBasic*)c);
+  mrbjit_define_primitive_id(mrb, c->c, mrb_intern_cstr(mrb, name), func);
+}  
+
 static void
 clear_method_cache(mrb_state *mrb)
 {
