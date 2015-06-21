@@ -795,11 +795,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       /* Arg pram. set */
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
-    else {
+    else if (sinfo->regplace == MRBJIT_REG_MEMORY) {
       if (coi && coi->reginfo) {
 	gen_flush_one(mrb, status, coi, GETARG_B(**ppc));
       }
-      sinfo->regplace = MRBJIT_REG_MEMORY;
       sinfo->unboxedp = 0;
       *dinfo = *sinfo;
 
@@ -2226,6 +2225,7 @@ do {                                                                 \
 do {                                                                 \
     int regno = GETARG_A(**ppc);	                             \
                                                                      \
+    gen_flush_regs(mrb, *ppc, status, coi, 1);                         \
     COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
     switch (GET_OPCODE(*(*ppc + 1))) {                               \
     case OP_JMPIF:                                                   \
@@ -2413,6 +2413,7 @@ do {                                                                 \
     int srcno = GETARG_B(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
+    gen_flush_regs(mrb, *ppc, status, coi, 1);
     emit_cfunc_start(mrb, coi);
 
     emit_local_var_type_read(mrb, coi, reg_tmp0, srcno);
