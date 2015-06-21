@@ -6,8 +6,8 @@
 # mruby version by Hideki Miura
 #
 
-IMAGE_WIDTH = 64
-IMAGE_HEIGHT = 64
+IMAGE_WIDTH = 256
+IMAGE_HEIGHT = 256
 NSUBSAMPLES = 2
 NAO_SAMPLES = 8
 
@@ -52,11 +52,10 @@ class Sphere
       if t > 0.0 and t < isect.t then
         isect.t = t
         isect.hit = true
-        a = isect.pl
+        isect.pl.move
         isect.pl = PArray::PVector4[ray.org[0] + ray.dir[0] * t,
                           ray.org[1] + ray.dir[1] * t,
                           ray.org[2] + ray.dir[2] * t, 0.0]
-        a.move
         n = isect.pl - @center
         isect.n = n.normalize
       end
@@ -141,7 +140,7 @@ def clamp(f)
 end
 
 def otherBasis(basis, n)
-  basis[2] = PArray::PVector4[n[0].to_f, n[1].to_f, n[2].to_f, 0.0]
+  basis[2] = PArray::PVector4[n[0], n[1], n[2], 0.0]
   basis[1] = PArray::PVector4[0.0, 0.0, 0.0, 0.0]
 
   if n[0] < 0.6 and n[0] > -0.6 then
@@ -200,7 +199,7 @@ class Scene
         ry = x * basis[0][1] + y * basis[1][1] + z * basis[2][1]
         rz = x * basis[0][2] + y * basis[1][2] + z * basis[2][2]
 
-        raydir = PArray::PVector4[rx.to_f, ry.to_f, rz.to_f, 0.0]
+        raydir = PArray::PVector4[rx, ry, rz, 0.0]
         ray = Ray.new(p0, raydir)
 
         occisect = Isect.new
@@ -209,6 +208,7 @@ class Scene
         @spheres[2].intersect(ray, occisect)
         @plane.intersect(ray, occisect)
         ray.move
+        raydir.move
         if occisect.hit then
           occlusion = occlusion + 1.0
         else
@@ -269,9 +269,9 @@ class Scene
         r = rad[0] / (nsf * nsf)
         g = rad[1] / (nsf * nsf)
         b = rad[2] / (nsf * nsf)
-#        printf("%c", clamp(r))
-#        printf("%c", clamp(g))
-#        printf("%c", clamp(b))
+        printf("%c", clamp(r))
+        printf("%c", clamp(g))
+        printf("%c", clamp(b))
         rad.move
       end
     end
