@@ -819,13 +819,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     mrb_value val = irep->pool[GETARG_Bx(**ppc)];
     dinfo->type = (mrb_vtype)mrb_type(val);
+    dinfo->value = val;
     dinfo->klass = mrb_class(mrb, val);
-    dinfo->constp = 1;
+    dinfo->regplace = MRBJIT_REG_IMMIDATE;
     dinfo->unboxedp = 0;
 
+#if 1
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)irep->pool + srcoff);
     movsd(xmm0, ptr [eax]);
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+#endif
 
     return code;
   }
@@ -839,6 +842,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
     dinfo->value = mrb_fixnum_value(src);
+    dinfo->type = MRB_TT_FIXNUM;
     dinfo->regplace = MRBJIT_REG_IMMIDATE;
     //gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
@@ -882,8 +886,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
 
+    dinfo->regplace = (enum mrbjit_regplace)(MRBJIT_REG_VMREG0);
+#if 0
     emit_local_var_read(mrb, coi, reg_dtmp0, 0); /* self */
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+#endif
     return code;
   }
 
