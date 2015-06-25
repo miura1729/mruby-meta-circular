@@ -1100,7 +1100,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
  *
  *  Returns a copy of <i>str</i> with all uppercase letters replaced with their
  *  lowercase counterparts. The operation is locale insensitive---only
- *  characters ``A'' to ``Z'' are affected.
+ *  characters 'A' to 'Z' are affected.
  *
  *     "hEllO".downcase   #=> "hello"
  */
@@ -1703,7 +1703,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *
  *  If <i>pattern</i> is omitted, the value of <code>$;</code> is used.  If
  *  <code>$;</code> is <code>nil</code> (which is the default), <i>str</i> is
- *  split on whitespace as if ` ' were specified.
+ *  split on whitespace as if ' ' were specified.
  *
  *  If the <i>limit</i> parameter is omitted, trailing null fields are
  *  suppressed. If <i>limit</i> is a positive number, at most that number of
@@ -1715,10 +1715,8 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *     " now's  the time".split        #=> ["now's", "the", "time"]
  *     " now's  the time".split(' ')   #=> ["now's", "the", "time"]
  *     " now's  the time".split(/ /)   #=> ["", "now's", "", "the", "time"]
- *     "1, 2.34,56, 7".split(%r{,\s*}) #=> ["1", "2.34", "56", "7"]
  *     "hello".split(//)               #=> ["h", "e", "l", "l", "o"]
  *     "hello".split(//, 3)            #=> ["h", "e", "llo"]
- *     "hi mom".split(%r{\s*})         #=> ["h", "i", "m", "o", "m"]
  *
  *     "mellow yellow".split("ello")   #=> ["m", "w y", "w"]
  *     "1,2,,3,4,,".split(',')         #=> ["1", "2", "", "3", "4"]
@@ -1987,7 +1985,8 @@ bad:
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
-  struct RString *ps = mrb_str_ptr(*ptr);
+  mrb_value str = mrb_str_to_str(mrb, *ptr);
+  struct RString *ps = mrb_str_ptr(str);
   mrb_int len = mrb_str_strlen(mrb, ps);
   char *p = RSTR_PTR(ps);
 
@@ -2004,12 +2003,12 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
+    /* Raises if the string contains a null character (the badcheck) */
     s = mrb_string_value_cstr(mrb, &str);
   }
   else {
-    s = RSTRING_PTR(str);
+    s = mrb_string_value_ptr(mrb, str);
   }
   if (s) {
     len = RSTRING_LEN(str);
@@ -2212,7 +2211,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
  *
  *  Returns a copy of <i>str</i> with all lowercase letters replaced with their
  *  uppercase counterparts. The operation is locale insensitive---only
- *  characters ``a'' to ``z'' are affected.
+ *  characters 'a' to 'z' are affected.
  *
  *     "hEllO".upcase   #=> "HELLO"
  */
