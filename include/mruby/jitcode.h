@@ -486,7 +486,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   void 
     gen_set_jit_entry(mrb_state *mrb, mrb_code *pc, mrbjit_code_info *coi, mrb_irep *irep)
   {
-    int ioff;
+    unsigned int ioff;
     int toff;
     mrbjit_codetab *ctab;
 
@@ -821,7 +821,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->type = (mrb_vtype)mrb_type(val);
     dinfo->value = val;
     dinfo->klass = mrb_class(mrb, val);
-    dinfo->regplace = MRBJIT_REG_IMMIDATE;
+    //    dinfo->regplace = MRBJIT_REG_IMMIDATE;
     dinfo->unboxedp = 0;
 
 #if 1
@@ -877,7 +877,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     int a = GETARG_A(**ppc);
-    const Xbyak::uint32 dstno = a;
     mrbjit_reginfo *dinfo = &coi->reginfo[a];
     mrb_value self = *status->regs[0];
 
@@ -1375,7 +1374,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     binfo->constp = 0;
   }
 
-  int
+  void *
     gen_send_primitive(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RProc *m, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_value prim;
@@ -1385,21 +1384,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mrb_value res = ((mrbjit_prim_func_t)mrb_proc_ptr(prim)->body.func)(mrb, prim, status, coi);
       switch (mrb_type(res)) {
       case MRB_TT_PROC:
-	m = mrb_proc_ptr(res);
-	break;
+	return mrb_proc_ptr(res);
 	
       case MRB_TT_TRUE:
 	if (!MRB_PROC_CFUNC_P(m)) {
 	  m->body.irep->disable_jit = 1;
 	}
-	return 1;
+	return (struct RProc *)1;
 
       default:
 	break;
       }
     }
 
-    return 0;
+    return NULL;
   }
 
   const void *
@@ -1412,6 +1410,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int a = GETARG_A(i);
     int n = GETARG_C(i);
     struct RProc *m;
+    struct RProc *pm;
     struct RClass *c;
     const void *code = getCurr();
     mrb_value recv;
@@ -1445,7 +1444,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_setnilblock(mrb, a, n, coi);
     }
 
-    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
+    pm = (struct RProc *)gen_send_primitive(mrb, c, mid, m, status, coi);
+    if (pm == (struct RProc *)1) {
+      return code;
+    }
+    else if (pm) {
       return code;
     }
     gen_flush_regs(mrb, pc, status, coi, 1);
