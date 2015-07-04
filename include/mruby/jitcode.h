@@ -1169,7 +1169,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
 
-    emit_load_literal(mrb, coi, reg_tmp0, v.value.i);
+    emit_load_literal(mrb, coi, reg_tmp0, mrb_fixnum(v));
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     emit_load_literal(mrb, coi, reg_tmp0, v.value.ttt);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
@@ -1192,7 +1192,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = mrb_class(mrb, v);
     dinfo->constp = 1;
 
-    emit_load_literal(mrb, coi, reg_tmp0, v.value.i);
+    emit_load_literal(mrb, coi, reg_tmp0, mrb_fixnum(v));
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     emit_load_literal(mrb, coi, reg_tmp0, v.value.ttt);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
