@@ -15,6 +15,7 @@
 #include "mruby/range.h"
 #include "mruby/string.h"
 #include "mruby/re.h"
+#include "mruby/primitive.h"
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -2477,6 +2478,8 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "<=>",             mrb_str_cmp_m,           MRB_ARGS_REQ(1)); /* 15.2.10.5.1  */
   mrb_define_method(mrb, s, "==",              mrb_str_equal_m,         MRB_ARGS_REQ(1)); /* 15.2.10.5.2  */
   mrb_define_method(mrb, s, "+",               mrb_str_plus_m,          MRB_ARGS_REQ(1)); /* 15.2.10.5.4  */
+  mrbjit_define_primitive(mrb, s, "+", mrbjit_prim_str_plus);
+
   mrb_define_method(mrb, s, "*",               mrb_str_times,           MRB_ARGS_REQ(1)); /* 15.2.10.5.5  */
   mrb_define_method(mrb, s, "[]",              mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.6  */
   mrb_define_method(mrb, s, "capitalize",      mrb_str_capitalize,      MRB_ARGS_NONE()); /* 15.2.10.5.7  */

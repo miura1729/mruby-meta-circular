@@ -2897,6 +2897,10 @@ do {                                                                 \
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 
   mrb_value
+    mrbjit_prim_str_plus_impl(mrb_state *mrb, mrb_value proc,
+			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
+  mrb_value
     mrbjit_prim_pvec4_new_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
   mrb_value

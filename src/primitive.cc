@@ -936,3 +936,47 @@ mrbjit_prim_numeric_minus_at(mrb_state *mrb, mrb_value proc, void *status, void 
 
   return code->mrbjit_prim_numeric_minus_at_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
+
+
+mrb_value
+MRBJitCode::mrbjit_prim_str_plus_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  const int dstno = GETARG_A(i);
+  const int srcno = dstno + 1;
+  mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
+  dinfo->unboxedp = 0;
+
+  gen_type_guard(mrb, srcno, status, pc, coi);
+
+  emit_cfunc_start(mrb, coi);
+  emit_local_var_type_read(mrb, coi, reg_tmp0, srcno);
+  emit_arg_push(mrb, coi, 4, eax);
+  emit_local_var_value_read(mrb, coi, reg_tmp0, srcno);
+  emit_arg_push(mrb, coi, 3, eax);
+  emit_local_var_type_read(mrb, coi, reg_tmp0, dstno);
+  emit_arg_push(mrb, coi, 2, eax);
+  emit_local_var_value_read(mrb, coi, reg_tmp0, dstno);
+  emit_arg_push(mrb, coi, 1, eax);
+  emit_arg_push(mrb, coi, 0, esi);
+  call((void *)mrb_str_plus);
+  emit_cfunc_end(mrb, coi, sizeof(mrb_value)*2 + sizeof(mrb_state *));
+
+  emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
+  emit_local_var_type_write(mrb, coi, dstno, reg_tmp1);
+
+  dinfo->type = MRB_TT_STRING;
+  dinfo->klass = mrb->string_class;
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_str_plus(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_str_plus_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
