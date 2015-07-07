@@ -93,7 +93,7 @@ get_opt(mrb_state* mrb)
 static mrb_value
 get_random(mrb_state *mrb) {
   return mrb_const_get(mrb,
-             mrb_obj_value(mrb_class_get(mrb, "Random")),
+             mrb_obj_value(mrb, mrb_class_get(mrb, "Random")),
              mrb_intern_lit(mrb, "DEFAULT"));
 }
 
@@ -129,7 +129,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   if (t) {
     mrb_free(mrb, t);
   }
-  mrb_data_init(self, NULL, &mt_state_type);
+  mrb_data_init(mrb, self, NULL, &mt_state_type);
 
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
@@ -145,7 +145,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
     t->seed = mrb_fixnum(seed);
   }
 
-  mrb_data_init(self, t, &mt_state_type);
+  mrb_data_init(mrb, self, t, &mt_state_type);
 
   return self;
 }
@@ -336,7 +336,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
-  mrb_const_set(mrb, mrb_obj_value(random), mrb_intern_lit(mrb, "DEFAULT"),
+  mrb_const_set(mrb, mrb_obj_value(mrb, random), mrb_intern_lit(mrb, "DEFAULT"),
           mrb_obj_new(mrb, random, 0, NULL));
 }
 

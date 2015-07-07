@@ -1714,7 +1714,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[0];
 
 #if 0
-    mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
+    mrb_value sclass = mrb_obj_value(mrb, mrb_obj_class(mrb, regs[0]));
     printf("%s#%s -> ", 
 	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
 	   mrb_sym2name(mrb, mrb->c->ci->mid));
@@ -1820,7 +1820,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_value *regs = *status->regs;
     mrb_code i = *pc;
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
-    mrb_value sclass = mrb_obj_value(mrb_obj_class(mrb, regs[0]));
+    mrb_value sclass = mrb_obj_value(mrb, mrb_obj_class(mrb, regs[0]));
     printf("%s#%s -> ", 
 	   RSTRING_PTR(mrb_funcall(mrb, sclass, "inspect", 0)), 
 	   mrb_sym2name(mrb, mrb->c->ci->mid));

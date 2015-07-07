@@ -211,7 +211,7 @@ f_eval(mrb_state *mrb, mrb_value self)
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
   ret = mrb_toplevel_run(mrb, proc);
   if (mrb->exc) {
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
+    mrb_exc_raise(mrb, mrb_obj_value(mrb, mrb->exc));
   }
 
   return ret;

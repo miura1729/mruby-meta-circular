@@ -412,10 +412,10 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   if (mrb_class_defined(mrb, "SystemCallError")) {
     sce = mrb_class_get(mrb, "SystemCallError");
     if (mesg != NULL) {
-      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+      mrb_funcall(mrb, mrb_obj_value(mrb, sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
     }
     else {
-      mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 1, mrb_fixnum_value(no));
+      mrb_funcall(mrb, mrb_obj_value(mrb, sce), "_sys_fail", 1, mrb_fixnum_value(no));
     }
   }
   else {
@@ -430,7 +430,7 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_int argc, const mrb_value *a
   va_list ap;
 
   va_start(ap, fmt);
-  exc = mrb_funcall(mrb, mrb_obj_value(E_NOMETHOD_ERROR), "new", 3,
+  exc = mrb_funcall(mrb, mrb_obj_value(mrb, E_NOMETHOD_ERROR), "new", 3,
                     mrb_vformat(mrb, fmt, ap), mrb_symbol_value(id),
                     mrb_ary_new_from_values(mrb, argc, argv));
   va_end(ap);

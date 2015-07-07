@@ -28,7 +28,7 @@ struct RArray {
 };
 
 #define mrb_ary_ptr(v)    ((struct RArray*)(mrb_ptr(v)))
-#define mrb_ary_value(p)  mrb_obj_value((void*)(p))
+#define mrb_ary_value(p)  mrb_obj_value(mrb, (void*)(p))
 #define RARRAY(v)  ((struct RArray*)(mrb_ptr(v)))
 
 #define RARRAY_LEN(a) (RARRAY(a)->len)
@@ -53,7 +53,7 @@ MRB_API void mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val
 MRB_API void mrb_ary_replace(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_value mrb_check_array_type(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item);
-MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
+  MRB_API mrb_value mrb_ary_entry(mrb_state *mrb, mrb_value ary, mrb_int offset);
 MRB_API mrb_value mrb_ary_shift(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_ary_clear(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);

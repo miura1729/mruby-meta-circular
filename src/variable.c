@@ -639,7 +639,7 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
   size_t len = iv_size(mrb, t);
 
   if (len > 0) {
-    const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
+    const char *cn = mrb_obj_classname(mrb, mrb_obj_value(mrb, obj));
     mrb_value str = mrb_str_buf_new(mrb, 30);
 
     mrb_str_cat_lit(mrb, str, "-<");
@@ -651,7 +651,7 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
     mrb_str_cat_lit(mrb, str, ">");
     return str;
   }
-  return mrb_any_to_s(mrb, mrb_obj_value(obj));
+  return mrb_any_to_s(mrb, mrb_obj_value(mrb, obj));
 }
 
 MRB_API mrb_value
@@ -790,7 +790,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym)
     c = c->super;
   }
   mrb_name_error(mrb, sym, "uninitialized class variable %S in %S",
-                 mrb_sym2str(mrb, sym), mrb_obj_value(cls));
+                 mrb_sym2str(mrb, sym), mrb_obj_value(mrb, cls));
   /* not reached */
   return mrb_nil_value();
 }
@@ -910,7 +910,7 @@ L_RETRY:
     goto L_RETRY;
   }
   name = mrb_symbol_value(sym);
-  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern_lit(mrb, "const_missing"), 1, &name);
+  return mrb_funcall_argv(mrb, mrb_obj_value(mrb, base), mrb_intern_lit(mrb, "const_missing"), 1, &name);
 }
 
 MRB_API mrb_value

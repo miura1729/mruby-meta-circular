@@ -385,7 +385,7 @@ MRB_API mrb_value mrb_toplevel_run(mrb_state*, struct RProc*);
 MRB_API mrb_value mrb_context_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
 
 MRB_API void mrb_p(mrb_state*, mrb_value);
-MRB_API mrb_int mrb_obj_id(mrb_value obj);
+MRB_API mrb_int mrb_obj_id(mrb_state *,mrb_value obj);
 MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
 MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);

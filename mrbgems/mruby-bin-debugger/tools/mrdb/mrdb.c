@@ -693,7 +693,7 @@ main(int argc, char **argv)
     mrbc_context_free(mrb, cc);
   }
   if (mrdb->dbg->xm == DBG_QUIT && !mrb_undef_p(v) && mrb->exc) {
-    const char *classname = mrb_obj_classname(mrb, mrb_obj_value(mrb->exc));
+    const char *classname = mrb_obj_classname(mrb, mrb_obj_value(mrb, mrb->exc));
     if (!strcmp(classname, "DebuggerExit")) {
       cleanup(mrb, &args);
       return 0;

@@ -199,7 +199,7 @@ mrb_str_new_empty(mrb_state *mrb, mrb_value str)
   struct RString *s = str_new(mrb, 0, 0);
 
   str_with_class(mrb, s, str);
-  return mrb_obj_value(s);
+  return mrb_obj_value(mrb, s);
 }
 
 #ifndef MRB_STR_BUF_MIN_SIZE
@@ -224,7 +224,7 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
   s->as.heap.ptr = (char *)mrb_malloc(mrb, capa+1);
   RSTR_PTR(s)[0] = '\0';
 
-  return mrb_obj_value(s);
+  return mrb_obj_value(mrb, s);
 }
 
 static void
@@ -271,7 +271,7 @@ str_buf_cat(mrb_state *mrb, struct RString *s, const char *ptr, size_t len)
 MRB_API mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, size_t len)
 {
-  return mrb_obj_value(str_new(mrb, p, len));
+  return mrb_obj_value(mrb, str_new(mrb, p, len));
 }
 
 /*
@@ -296,14 +296,14 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 
   s = str_new(mrb, p, len);
 
-  return mrb_obj_value(s);
+  return mrb_obj_value(mrb, s);
 }
 
 MRB_API mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s = str_new_static(mrb, p, len);
-  return mrb_obj_value(s);
+  return mrb_obj_value(mrb, s);
 }
 
 void
@@ -415,7 +415,7 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   memcpy(RSTR_PTR(t), RSTR_PTR(s), RSTR_LEN(s));
   memcpy(RSTR_PTR(t) + RSTR_LEN(s), RSTR_PTR(s2), RSTR_LEN(s2));
 
-  return mrb_obj_value(t);
+  return mrb_obj_value(mrb, t);
 }
 
 /* 15.2.10.5.2  */
@@ -490,7 +490,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   }
   p[RSTR_LEN(str2)] = '\0';
 
-  return mrb_obj_value(str2);
+  return mrb_obj_value(mrb, str2);
 }
 /* -------------------------------------------------------------- */
 
@@ -1172,7 +1172,7 @@ mrb_str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     shared->refcnt++;
   }
 
-  return mrb_obj_value(s);
+  return mrb_obj_value(mrb, s);
 }
 
 MRB_API mrb_value
@@ -1378,7 +1378,7 @@ L_SHARE:
     }
   }
 
-  return mrb_obj_value(s1);
+  return mrb_obj_value(mrb, s1);
 }
 
 /* 15.2.10.5.24 */
@@ -1485,7 +1485,7 @@ mrb_ptr_to_str(mrb_state *mrb, void *p)
     *p2 = c;
   }
 
-  return mrb_obj_value(p_str);
+  return mrb_obj_value(mrb, p_str);
 }
 
 MRB_API mrb_value
@@ -1526,7 +1526,7 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
   while (e >= s) {
     *p++ = *e--;
   }
-  return mrb_obj_value(s2);
+  return mrb_obj_value(mrb, s2);
 }
 
 /* 15.2.10.5.30 */
@@ -2355,7 +2355,7 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
     }
   }
   *q = '"';
-  return mrb_obj_value(result);
+  return mrb_obj_value(mrb, result);
 }
 
 MRB_API mrb_value

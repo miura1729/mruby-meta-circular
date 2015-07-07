@@ -179,6 +179,8 @@ no_optimize(codegen_scope *s)
 static int
 genop_peep(codegen_scope *s, mrb_code i, int val)
 {
+  struct mrb_state *mrb = s->mrb;
+
   /* peephole optimization */
   if (!no_optimize(s) && s->lastlabel != s->pc && s->pc > 0) {
     mrb_code i0 = s->iseq[s->pc-1];
@@ -425,6 +427,7 @@ new_lit(codegen_scope *s, mrb_value val)
 {
   size_t i;
   mrb_value *pv;
+  struct mrb_state *mrb = s->mrb;
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
@@ -666,6 +669,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     genop(s, MKOP_Ax(OP_ENTER, a));
     if (ra) {
       size_t ppos = s->irep->plen;
+      struct mrb_state *mrb = s->mrb;
       BOXNAN_SET_VALUE(s->irep->pool[ppos], MRB_TT_FALSE, value.p, NULL);
       s->irep->plen++;
     }
@@ -3673,7 +3677,7 @@ disp_type(mrb_state *mrb, mrbjit_reginfo *rinfo)
 
   case MRB_TT_OBJECT:
     printf("object ");
-    mrb_p(mrb, mrb_obj_value(rinfo->klass));
+    mrb_p(mrb, mrb_obj_value(mrb, rinfo->klass));
     break;
 
   case MRB_TT_PROC:

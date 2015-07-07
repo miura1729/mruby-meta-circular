@@ -60,7 +60,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
 static inline void
-stack_clear(mrb_value *from, size_t count)
+stack_clear(mrb_state *mrb, mrb_value *from, size_t count)
 {
 #ifndef MRB_NAN_BOXING
   const mrb_value mrb_value_zero = { { 0 } };
@@ -126,7 +126,7 @@ init_new_stack_space(mrb_state *mrb, int room, int keep)
 {
   if (room > keep) {
     /* do not leave uninitialized malloc region */
-    stack_clear(&(mrb->c->stack[keep]), room - keep);
+    stack_clear(mrb, &(mrb->c->stack[keep]), room - keep);
   }
 }
 
@@ -497,7 +497,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
         cipop(mrb);
       }
       mrb->jmp = 0;
-      val = mrb_obj_value(mrb->exc);
+      val = mrb_obj_value(mrb, mrb->exc);
     }
     MRB_END_EXC(&c_jmp);
   }
@@ -3095,14 +3095,14 @@ RETRY_TRY_BLOCK:
 	}
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
-      regs[GETARG_A(i)] = mrb_obj_value(p);
+      regs[GETARG_A(i)] = mrb_obj_value(mrb, p);
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
 
     CASE(OP_OCLASS) {
       /* A      R(A) := ::Object */
-      regs[GETARG_A(i)] = mrb_obj_value(mrb->object_class);
+      regs[GETARG_A(i)] = mrb_obj_value(mrb, mrb->object_class);
       NEXT;
     }
 
@@ -3116,10 +3116,10 @@ RETRY_TRY_BLOCK:
       base = regs[a];
       super = regs[a+1];
       if (mrb_nil_p(base)) {
-        base = mrb_obj_value(mrb->c->ci->target_class);
+        base = mrb_obj_value(mrb, mrb->c->ci->target_class);
       }
       c = mrb_vm_define_class(mrb, base, super, id);
-      regs[a] = mrb_obj_value(c);
+      regs[a] = mrb_obj_value(mrb, c);
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
@@ -3133,10 +3133,10 @@ RETRY_TRY_BLOCK:
 
       base = regs[a];
       if (mrb_nil_p(base)) {
-        base = mrb_obj_value(mrb->c->ci->target_class);
+        base = mrb_obj_value(mrb, mrb->c->ci->target_class);
       }
       c = mrb_vm_define_module(mrb, base, id);
-      regs[a] = mrb_obj_value(c);
+      regs[a] = mrb_obj_value(mrb, c);
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }
@@ -3239,7 +3239,7 @@ RETRY_TRY_BLOCK:
         mrb->exc = mrb_obj_ptr(exc);
         goto L_RAISE;
       }
-      regs[GETARG_A(i)] = mrb_obj_value(mrb->c->ci->target_class);
+      regs[GETARG_A(i)] = mrb_obj_value(mrb, mrb->c->ci->target_class);
       NEXT;
     }
 
@@ -3278,7 +3278,7 @@ RETRY_TRY_BLOCK:
       ERR_PC_CLR(mrb);
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
-        return mrb_obj_value(mrb->exc);
+        return mrb_obj_value(mrb, mrb->exc);
       }
       return regs[irep->nlocals];
     }

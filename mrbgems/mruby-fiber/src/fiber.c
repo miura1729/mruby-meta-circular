@@ -362,7 +362,7 @@ fiber_current(mrb_state *mrb, mrb_value self)
     f->cxt = mrb->c;
     mrb->c->fib = f;
   }
-  return mrb_obj_value(mrb->c->fib);
+  return mrb_obj_value(mrb, mrb->c->fib);
 }
 
 void

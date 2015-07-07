@@ -39,7 +39,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb->atexit_stack_len = 0;
 
   mrb->compile_info.code_base = NULL;
-  mrb->compile_info.disable_jit = 0;
+  mrb->compile_info.disable_jit = 1;
   mrb->compile_info.force_compile = 0;
   mrb->compile_info.nest_level = 0;
 #ifndef MRB_GC_FIXED_ARENA
@@ -237,7 +237,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
       ns->as.heap.ptr[len] = '\0';
     }
   }
-  return mrb_obj_value(ns);
+  return mrb_obj_value(mrb, ns);
 }
 
 MRB_API void
@@ -297,7 +297,7 @@ mrb_top_self(mrb_state *mrb)
     mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }
-  return mrb_obj_value(mrb->top_self);
+  return mrb_obj_value(mrb, mrb->top_self);
 }
 
 MRB_API void

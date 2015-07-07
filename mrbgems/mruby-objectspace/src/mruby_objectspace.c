@@ -132,11 +132,11 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
   if (!obj->c) return;
 
   /* filter class kind if target module defined */
-  if (d->target_module && !mrb_obj_is_kind_of(mrb, mrb_obj_value(obj), d->target_module)) {
+  if (d->target_module && !mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb, obj), d->target_module)) {
     return;
   }
 
-  mrb_yield(mrb, d->block, mrb_obj_value(obj));
+  mrb_yield(mrb, d->block, mrb_obj_value(mrb, obj));
   ++d->count;
 }
 

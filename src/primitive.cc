@@ -22,7 +22,7 @@ mrbjit_instance_alloc(mrb_state *mrb, mrb_value cv)
   if (ttype == MRB_TT_OBJECT) {
     o->iv = &o->ivent;
   }
-  return mrb_obj_value(o);
+  return mrb_obj_value(mrb, o);
 }
 
 }
@@ -801,7 +801,7 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   nirep->slen = cirep->slen;
   nirep->nregs = cirep->nregs;
 
-  return mrb_obj_value(mrbjit_get_local_proc(mrb, nirep));
+  return mrb_obj_value(mrb, mrbjit_get_local_proc(mrb, nirep));
 }
 
 extern "C" mrb_value
@@ -830,7 +830,7 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
   dinfo->unboxedp = 0;
 
 
-  return mrb_obj_value(m);
+  return mrb_obj_value(mrb, m);
 }
 
 extern "C" mrb_value

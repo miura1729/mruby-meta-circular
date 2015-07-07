@@ -82,7 +82,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
       fputs(" => ", stdout);
     }
     else {
-      val = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+      val = mrb_funcall(mrb, mrb_obj_value(mrb, mrb->exc), "inspect", 0);
     }
   }
   if (!mrb_string_p(val)) {
@@ -456,7 +456,7 @@ main(int argc, char **argv)
         stack_keep = proc->body.irep->nlocals;
         /* did an exception occur? */
         if (mrb->exc) {
-          p(mrb, mrb_obj_value(mrb->exc), 0);
+          p(mrb, mrb_obj_value(mrb, mrb->exc), 0);
           mrb->exc = 0;
         }
         else {

@@ -45,7 +45,7 @@ mrb_print_error(mrb_state *mrb)
   mrb_value s;
 
   mrb_print_backtrace(mrb);
-  s = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+  s = mrb_funcall(mrb, mrb_obj_value(mrb, mrb->exc), "inspect", 0);
   if (mrb_string_p(s)) {
     fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stderr);
     putc('\n', stderr);
@@ -58,7 +58,7 @@ mrb_show_version(mrb_state *mrb)
 {
   mrb_value msg;
 
-  msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"));
+  msg = mrb_const_get(mrb, mrb_obj_value(mrb, mrb->object_class), mrb_intern_lit(mrb, "MRUBY_DESCRIPTION"));
   printstr(mrb, msg);
   printstr(mrb, mrb_str_new_lit(mrb, "\n"));
 }
@@ -68,7 +68,7 @@ mrb_show_copyright(mrb_state *mrb)
 {
   mrb_value msg;
 
-  msg = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"));
+  msg = mrb_const_get(mrb, mrb_obj_value(mrb, mrb->object_class), mrb_intern_lit(mrb, "MRUBY_COPYRIGHT"));
   printstr(mrb, msg);
   printstr(mrb, mrb_str_new_lit(mrb, "\n"));
 }
