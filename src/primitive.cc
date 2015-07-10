@@ -436,7 +436,7 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
 
   gen_flush_regs(mrb, pc, status, coi, 1);
 
-  emit_local_var_value_read(mrb, coi, reg_tmp1, regno);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
   emit_move(mrb, coi, xmm0, reg_tmp1, 0);
   emit_local_var_write(mrb, coi, regno, xmm0);
@@ -607,7 +607,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   
   // obj = mrbjit_instance_alloc(mrb, klass);
   if (civoff >= 0) {
-    emit_local_var_value_read(mrb, coi, reg_tmp0, a);
+    emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);
     emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
     emit_push(mrb, coi, eax);			/* PUSH __objcache__ */

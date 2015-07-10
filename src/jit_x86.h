@@ -106,6 +106,19 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
+  void emit_local_var_ptr_value_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
+  {
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {
+      mov(dst, (Xbyak::uint32)rinfo->value.value.p);
+    }
+    else {
+      regno = DEREF_REGNO(regno);
+      mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+      add(dst, reg_mrb);
+    }
+  }
+
   void emit_local_var_value_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Reg32 src)
   {
     mrbjit_reginfo *rinfo = &coi->reginfo[regno];
