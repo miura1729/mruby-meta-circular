@@ -300,14 +300,14 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   ainfo->klass = NULL;
   ainfo->constp = 0;
 
-  emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
-  test(eax, eax);
+  test(reg_tmp0, reg_tmp0);
   jge(".normal");
-  add(eax, dword [edx + OffsetOf(struct RArray, len)]);
+  add(reg_tmp0, dword [reg_tmp1 + OffsetOf(struct RArray, len)]);
   jl(".retnil");
   L(".normal");
-  emit_cmp(mrb, coi, eax, edx, OffsetOf(struct RArray, len));
+  emit_cmp(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(struct RArray, len));
   jge(".retnil");
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
   test(edx, edx);
@@ -355,14 +355,14 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   inLocalLabel();
   gen_flush_regs(mrb, pc, status, coi, 1);
 #if 1
-  emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
   test(eax, eax);
   jge(".normal");
-  add(eax, dword [edx + OffsetOf(struct RArray, len)]);
+  add(reg_tmp0, dword [reg_tmp1 + OffsetOf(struct RArray, len)]);
   jl(".retnil");
   L(".normal");
-  emit_cmp(mrb, coi, eax, edx, OffsetOf(struct RArray, len));
+  emit_cmp(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(struct RArray, len));
   jge(".retnil");
 
   emit_local_var_read(mrb, coi, xmm0, valno);
@@ -373,9 +373,9 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
   emit_arg_push(mrb, coi, 3, reg_tmp0);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, valno);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, valno);
   emit_arg_push(mrb, coi, 2, reg_tmp0);
-  emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_arg_push(mrb, coi, 1, reg_tmp1);
   emit_arg_push(mrb, coi, 0, esi);
   call((void *)mrb_field_write_barrier);

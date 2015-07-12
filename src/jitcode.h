@@ -1068,7 +1068,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       L(".fastivset");
       emit_local_var_read(mrb, coi, reg_dtmp0, srcno);
-      emit_local_var_value_read(mrb, coi, reg_tmp0, 0); /* self */
+      emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, 0); /* self */
       emit_push(mrb, coi, reg_tmp0);
       emit_cfunc_start(mrb, coi);
       emit_arg_push(mrb, coi, 1, eax);
@@ -1187,7 +1187,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = mrb_class(mrb, v);
     dinfo->constp = 1;
 
-    emit_load_literal(mrb, coi, reg_tmp0, mrb_fixnum(v) - (Xbyak::uint32)mrb);
+    emit_load_literal(mrb, coi, reg_tmp0, mrb_fixnum(v));
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     emit_load_literal(mrb, coi, reg_tmp0, v.value.ttt);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
@@ -1439,7 +1439,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_setnilblock(mrb, a, n, coi);
     }
 
-    if (0 && gen_send_primitive(mrb, c, mid, m, status, coi)) {
+    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
       return code;
     }
     gen_flush_regs(mrb, pc, status, coi, 1);
@@ -2653,6 +2653,7 @@ do {                                                                 \
       call((void *) mrb_proc_new);
     }
     emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
+    emit_sub(mrb, coi, reg_tmp0, reg_mrb);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_PROC);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp1);

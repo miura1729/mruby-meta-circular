@@ -70,7 +70,7 @@ typedef struct mrb_value {
   case MRB_TT_UNDEF:\
   case MRB_TT_FIXNUM:\
   case MRB_TT_SYMBOL: (o).attr = (mrb_int)(v); break;\
-  default: (o).value.p = ((int32_t)(((uint8_t *) (v)) - (uint8_t *) mrb));break; \
+  default: (o).value.p = ((int32_t)(((uint8_t *)(v)) - (uint8_t *)mrb));break; \
   }\
 } while (0)
 
