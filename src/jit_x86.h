@@ -19,7 +19,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg32 reg_regs;	/* ecx */
   Xbyak::Reg32 reg_vars;	/* ebx */
   Xbyak::Reg32 reg_mrb;		/* esi */
-  Xbyak::Reg32 reg_context;	/* edo */
+  Xbyak::Reg32 reg_context;	/* edi */
 
   Xbyak::Reg32 reg_tmp0;	/* eax */
   Xbyak::Reg32 reg_tmp1;	/* edx */
