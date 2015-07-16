@@ -630,6 +630,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   emit_local_var_value_write(mrb, coi, a, reg_tmp0);
   emit_local_var_type_write(mrb, coi, a, reg_tmp1);
+  emit_add(mrb, coi, reg_tmp0, reg_mrb);
   emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv));
   emit_load_literal(mrb, coi, reg_tmp1, 0);
   emit_move(mrb, coi, reg_tmp0, OffsetOf(iv_tbl, last_len), reg_tmp1);
