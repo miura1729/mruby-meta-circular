@@ -8,6 +8,8 @@ extern "C" {
 #include "mruby/value.h"
 }
 
+typedef Xbyak::uint32 cpu_word_t;
+
 /* Regs Map                               *
  * ecx   -- pointer to regs               *
  * ebx   -- pointer to status->pc         *
@@ -25,7 +27,6 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg32 reg_tmp1;	/* edx */
   Xbyak::Xmm reg_dtmp0;		/* xmm0 */
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
-  
 
   MRBGenericCodeGenerator() 
     :CodeGenerator(1024 * 1024)
