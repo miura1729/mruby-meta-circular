@@ -344,12 +344,15 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
+  mrb_value *regs = *status->regs;
   const cpu_word_t aryno = regno;
   const cpu_word_t idxno = aryno + 1;
   const cpu_word_t valno = idxno + 1;
 
-  if (nargs != 2) {
-    return mrb_nil_value();    	// Support only 2 args(index, value)
+  if (nargs != 2 || 
+      mrb_type(regs[idxno]) != MRB_TT_FIXNUM ||
+      ARY_SHARED_P(mrb_ary_ptr(regs[aryno]))) {
+    return mrb_nil_value();    	// Support only simple array set
   }
 
   inLocalLabel();
@@ -369,17 +372,22 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
   movsd(ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)], reg_dtmp0);
 
+  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
+  xor(reg_tmp0, 0xfff00000);
+  emit_cmp(mrb, coi, reg_tmp0, MRB_TT_HAS_BASIC);
+  jb(".exit");
+  emit_cmp(mrb, coi, reg_tmp0, MRB_TT_MAXDEFINE);
+  ja(".exit");
+
   emit_cfunc_start(mrb, coi);
 
-  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
-  emit_arg_push(mrb, coi, 3, reg_tmp0);
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, valno);
   emit_arg_push(mrb, coi, 2, reg_tmp0);
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_arg_push(mrb, coi, 1, reg_tmp1);
   emit_arg_push(mrb, coi, 0, reg_mrb);
   call((void *)mrb_field_write_barrier);
-  emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + sizeof(mrb_value));
+  emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
   emit_jmp(mrb, coi, ".exit");
 
