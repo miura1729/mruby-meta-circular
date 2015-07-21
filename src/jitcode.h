@@ -2027,20 +2027,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_type_guard(mrb, reg1pos, status, *ppc, coi);
 
     if (r0type == MRB_TT_FIXNUM) {
-      emit_local_var_int_value_read(mrb, coi, xmm0, reg0pos);
+      emit_local_var_int_value_read(mrb, coi, reg_dtmp0, reg0pos);
     }
     else {
       emit_local_var_read(mrb, coi, reg_dtmp0, reg0pos);
     }
 
     if (r1type == MRB_TT_FIXNUM) {
-      emit_local_var_int_value_read(mrb, coi, xmm1, reg1pos);
+      emit_local_var_int_value_read(mrb, coi, reg_dtmp1, reg1pos);
     }
     else {
       emit_local_var_read(mrb, coi, reg_dtmp1, reg1pos);
     }
 
-    emit_div(mrb, coi, xmm0, xmm1);
+    emit_div(mrb, coi, reg_dtmp0, reg_dtmp1);
     emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);
 
     /* Div returns Float always */
