@@ -1222,17 +1222,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #define CALL_CFUNC_STATUS(func_name, auxargs)			     \
   do {                                                               \
-    lea(reg_tmp0, dword [reg_vars + VMSOffsetOf(status)]);                     \
-    emit_arg_push(mrb, coi, 1, reg_tmp0);			             \
+    lea(reg_tmp0, dword [reg_vars + VMSOffsetOf(status)]);           \
+    emit_arg_push(mrb, coi, 1, reg_tmp0);			     \
 \
     /* Update pc */                                                  \
     emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)(*status->pc)); \
 \
-    emit_arg_push(mrb, coi, 0, reg_mrb);				     \
+    emit_arg_push(mrb, coi, 0, reg_mrb);			     \
     call((void *)func_name);                                         \
-    emit_cfunc_end(mrb, coi, (auxargs + 2) * 4);				     \
+    emit_cfunc_end(mrb, coi, (auxargs + 2) * 4);	             \
 \
-    test(reg_tmp0, reg_tmp0);					             \
+    test(reg_tmp0, reg_tmp0);					     \
     jz("@f");                                                        \
     gen_exit(mrb, NULL, 0, 1, status, coi);			     \
     L("@@");                                                         \
@@ -1920,9 +1920,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #define OVERFLOW_CHECK_GEN(AINST)                                       \
     jno("@f");                                                          \
-    emit_local_var_int_value_read(mrb, coi, xmm0, reg0pos);	        \
-    emit_local_var_int_value_read(mrb, coi, xmm1, reg1pos);	        \
-    AINST(mrb, coi, xmm0, xmm1);					\
+    emit_local_var_int_value_read(mrb, coi, reg_dtmp0, reg0pos);	\
+    emit_local_var_int_value_read(mrb, coi, reg_dtmp1, reg1pos);	\
+    AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				\
     emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);			\
     gen_exit(mrb, *status->pc + 1, 1, 2, status, coi);			\
     L("@@");                                                            \
@@ -1962,20 +1962,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_type_guard(mrb, reg1pos, status, *ppc, coi);			\
 \
       if (r0type == MRB_TT_FIXNUM) {                                    \
-        emit_local_var_int_value_read(mrb, coi, xmm0, reg0pos);         \
+        emit_local_var_int_value_read(mrb, coi, reg_dtmp0, reg0pos);    \
       }                                                                 \
       else {                                                            \
 	emit_local_var_read(mrb, coi, reg_dtmp0, reg0pos);		\
       }                                                                 \
 \
       if (r1type == MRB_TT_FIXNUM) {                                    \
-        emit_local_var_int_value_read(mrb, coi, xmm1, reg1pos);         \
+        emit_local_var_int_value_read(mrb, coi, reg_dtmp1, reg1pos);    \
       }                                                                 \
       else {                                                            \
 	emit_local_var_read(mrb, coi, reg_dtmp1, reg1pos);		\
       }                                                                 \
 \
-      AINST(mrb, coi, xmm0, xmm1);				        \
+      AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				        \
       emit_local_var_write(mrb, coi, reg0pos, reg_dtmp0);		\
       dinfo->type = MRB_TT_FLOAT;                                       \
       dinfo->klass = mrb->float_class;                                  \
@@ -2053,17 +2053,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
 #define OVERFLOW_CHECK_I_GEN(AINST)                                     \
     jno("@f");                                                          \
-    emit_local_var_int_value_read(mrb, coi, xmm0, regno);	        \
+    emit_local_var_int_value_read(mrb, coi, reg_dtmp0, regno);	        \
     emit_load_literal(mrb, coi, reg_tmp0, y);				\
-    cvtsi2sd(xmm1, reg_tmp0);                                                \
-    AINST(mrb, coi, xmm0, xmm1);					\
+    cvtsi2sd(reg_dtmp1, reg_tmp0);                                      \
+    AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				\
     emit_local_var_write(mrb, coi, regno, reg_dtmp0);			\
     gen_exit(mrb, *status->pc + 1, 1, 2, status, coi);			\
     L("@@");                                                            \
 
 #define ARTH_I_GEN(AINST)                                               \
   do {                                                                  \
-    const cpu_word_t y = GETARG_C(**ppc);                            \
+    const cpu_word_t y = GETARG_C(**ppc);                               \
     int regno = GETARG_A(**ppc);                                        \
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];                       \
@@ -2088,9 +2088,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }                                                                   \
     else if (atype == MRB_TT_FLOAT) {					\
       emit_local_var_read(mrb, coi, reg_dtmp0, regno);			\
-      emit_load_literal(mrb, coi, reg_tmp0, y + (cpu_word_t)mrb);    \
-      cvtsi2sd(xmm1, reg_tmp0);                                              \
-      AINST(mrb, coi, xmm0, xmm1);				        \
+      emit_load_literal(mrb, coi, reg_tmp0, y + (cpu_word_t)mrb);       \
+      cvtsi2sd(reg_dtmp1, reg_tmp0);                                    \
+      AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				\
       emit_local_var_write(mrb, coi, regno, reg_dtmp0);			\
       dinfo->type = MRB_TT_FLOAT;					\
       dinfo->klass = mrb->float_class;  				\
@@ -2127,23 +2127,23 @@ do {                                                                 \
 
 #define COMP_GEN_IF(CMPINST)                                         \
 do {                                                                 \
-    emit_local_var_int_value_read(mrb, coi, xmm0, regno);	     \
-    emit_local_var_cmp(mrb, coi, xmm0, regno + 1);		     \
+    emit_local_var_int_value_read(mrb, coi, reg_dtmp0, regno);	     \
+    emit_local_var_cmp(mrb, coi, reg_dtmp0, regno + 1);		     \
     CMPINST;    						     \
 } while(0)
 
 #define COMP_GEN_FI(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_read(mrb, coi, reg_dtmp0, regno);		     \
-    emit_local_var_int_value_read(mrb, coi, xmm1, regno + 1);        \
-    comisd(xmm0, xmm1);     			                     \
+    emit_local_var_int_value_read(mrb, coi, reg_dtmp1, regno + 1);   \
+    comisd(reg_dtmp0, reg_dtmp1);     			             \
     CMPINST;     						     \
 } while(0)
 
 #define COMP_GEN_FF(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_read(mrb, coi, reg_dtmp0, regno);		     \
-    emit_local_var_cmp(mrb, coi, xmm0, regno + 1);		     \
+    emit_local_var_cmp(mrb, coi, reg_dtmp0, regno + 1);		     \
     CMPINST;    						     \
 } while(0)
     
