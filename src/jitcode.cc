@@ -61,7 +61,7 @@ mrbjit_gen_load_patch(mrbjit_code_area coderaw, void *dst, void *address, mrbjit
   else {
     code  = (MRBJitCode *) coderaw;
   }
-  code->gen_load_patch(dst, (Xbyak::uint32)address, status, coi);
+  code->gen_load_patch(dst, (cpu_word_t)address, status, coi);
 }
 
 void

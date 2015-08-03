@@ -466,7 +466,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	rinfo->klass = c;
 	emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, regpos);
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RBasic, c));
-	emit_cmp(mrb, coi, reg_tmp0, (int)c);
+	emit_cmp(mrb, coi, reg_tmp0, (cpu_word_t)c);
 	jz("@f");
 	/* Guard fail exit code */
 	gen_exit(mrb, pc, rc, 0, status, coi);
