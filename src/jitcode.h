@@ -2088,7 +2088,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }                                                                   \
     else if (atype == MRB_TT_FLOAT) {					\
       emit_local_var_read(mrb, coi, reg_dtmp0, regno);			\
-      emit_load_literal(mrb, coi, reg_tmp0, y + (cpu_word_t)mrb);       \
+      emit_load_literal(mrb, coi, reg_tmp0, y);                         \
       cvtsi2sd(reg_dtmp1, reg_tmp0);                                    \
       AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				\
       emit_local_var_write(mrb, coi, regno, reg_dtmp0);			\
