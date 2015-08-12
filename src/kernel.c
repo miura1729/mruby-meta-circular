@@ -228,7 +228,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_class_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_obj_value(mrb, mrb_obj_class(mrb, self));
+  return mrb_obj_value(mrb_obj_class(mrb, self));
 }
 
 static struct RClass*
@@ -247,12 +247,12 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
       clone->c = clone;
     }
     else {
-      clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(mrb, klass));
+      clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(klass));
     }
 
     clone->super = klass->super;
     if (klass->iv) {
-      mrb_iv_copy(mrb, mrb_obj_value(mrb, clone), mrb_obj_value(mrb, klass));
+      mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
       mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern_lit(mrb, "__attached__"), obj);
     }
     if (klass->mt) {
@@ -334,7 +334,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   }
   p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
   p->c = mrb_singleton_class_clone(mrb, self);
-  clone = mrb_obj_value(mrb, p);
+  clone = mrb_obj_value(p);
   init_copy(mrb, clone, self);
 
   return clone;
@@ -369,7 +369,7 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
     mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
   }
   p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
-  dup = mrb_obj_value(mrb, p);
+  dup = mrb_obj_value(p);
   init_copy(mrb, dup, obj);
 
   return dup;
@@ -832,7 +832,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     a[1] = mrb_check_string_type(mrb, a[0]);
     if (!mrb_nil_p(a[1])) {
       argc = 2;
-      a[0] = mrb_obj_value(mrb, E_RUNTIME_ERROR);
+      a[0] = mrb_obj_value(E_RUNTIME_ERROR);
     }
     /* fall through */
   default:
@@ -1018,7 +1018,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &v);
   len = RARRAY_LEN(ary);
   for (i=0; i<len; i++) {
-    mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(mrb, ary, i), eqq, 1, &v);
+    mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
   }
   return mrb_false_value();

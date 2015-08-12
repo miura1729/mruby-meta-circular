@@ -36,7 +36,7 @@ struct_ivar_get(mrb_state *mrb, mrb_value c, mrb_sym id)
     kclass = RCLASS_SUPER(c);
     if (kclass == 0 || kclass == sclass)
       return mrb_nil_value();
-    c = mrb_obj_value(mrb, kclass);
+    c = mrb_obj_value(kclass);
   }
 }
 
@@ -57,7 +57,7 @@ mrb_struct_s_members(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_struct_members(mrb_state *mrb, mrb_value s)
 {
-  mrb_value members = mrb_struct_s_members(mrb, mrb_obj_value(mrb, mrb_obj_class(mrb, s)));
+  mrb_value members = mrb_struct_s_members(mrb, mrb_obj_value(mrb_obj_class(mrb, s)));
   if (!strcmp(mrb_class_name(mrb, mrb_obj_class(mrb, s)), "Struct")) {
     if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
       mrb_raisef(mrb, E_TYPE_ERROR,
@@ -95,7 +95,7 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_struct_members_m(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb, mrb_obj_class(mrb, obj)));
+  return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
 static mrb_value
@@ -263,14 +263,14 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     if (!is_const_id(mrb, mrb_sym2name_len(mrb, id, NULL))) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
-    if (mrb_const_defined_at(mrb, mrb_obj_value(mrb, klass), id)) {
+    if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
       /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
   MRB_SET_INSTANCE_TT(c, MRB_TT_ARRAY);
-  nstr = mrb_obj_value(mrb, c);
+  nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, mrb_intern_lit(mrb, "__members__"), members);
 
   mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
@@ -372,7 +372,7 @@ num_members(mrb_state *mrb, struct RClass *klass)
 {
   mrb_value members;
 
-  members = struct_ivar_get(mrb, mrb_obj_value(mrb, klass), mrb_intern_lit(mrb, "__members__"));
+  members = struct_ivar_get(mrb, mrb_obj_value(klass), mrb_intern_lit(mrb, "__members__"));
   if (!mrb_array_p(members)) {
     mrb_raise(mrb, E_TYPE_ERROR, "broken members");
   }
@@ -721,7 +721,7 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
   mrb_value members, ret;
   mrb_int i;
 
-  members = mrb_struct_s_members(mrb, mrb_obj_value(mrb, mrb_class(mrb, self)));
+  members = mrb_struct_s_members(mrb, mrb_obj_value(mrb_class(mrb, self)));
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
 
   for (i = 0; i < RARRAY_LEN(members); ++i) {

@@ -5581,7 +5581,7 @@ load_exec(mrb_state *mrb, parser_state *p, mrbc_context *c)
   }
   if (c) {
     if (c->dump_result) mrb_codedump_all(mrb, proc);
-    if (c->no_exec) return mrb_obj_value(mrb, proc);
+    if (c->no_exec) return mrb_obj_value(proc);
     if (c->target_class) {
       target = c->target_class;
     }

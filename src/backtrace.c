@@ -67,7 +67,7 @@ get_backtrace_i(mrb_state *mrb, struct backtrace_location *loc, void *data)
   int ai;
 
   ai = mrb_gc_arena_save(mrb);
-  ary = mrb_obj_value(mrb, (struct RArray*)data);
+  ary = mrb_obj_value((struct RArray*)data);
 
   str = mrb_str_new_cstr(mrb, loc->filename);
   mrb_str_cat_lit(mrb, str, ":");
@@ -172,7 +172,7 @@ mrb_print_backtrace(mrb_state *mrb)
 {
   struct print_backtrace_args args;
 
-  if (!mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb, mrb->exc), E_SYSSTACK_ERROR)) {
+  if (!mrb->exc || mrb_obj_is_kind_of(mrb, mrb_obj_value(mrb->exc), E_SYSSTACK_ERROR)) {
     return;
   }
 

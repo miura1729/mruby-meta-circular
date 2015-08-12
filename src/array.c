@@ -54,7 +54,7 @@ MRB_API mrb_value
 mrb_ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
   struct RArray *a = ary_new_capa(mrb, capa);
-  return mrb_obj_value(mrb, a);
+  return mrb_obj_value(a);
 }
 
 MRB_API mrb_value
@@ -110,7 +110,7 @@ mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
   a->ptr[0] = car;
   a->ptr[1] = cdr;
   a->len = 2;
-  return mrb_obj_value(mrb, a);
+  return mrb_obj_value(a);
 }
 
 static void
@@ -651,7 +651,7 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   b->aux.shared->refcnt++;
   ARY_SET_SHARED_FLAG(b);
 
-  return mrb_obj_value(mrb, b);
+  return mrb_obj_value(b);
 }
 
 static mrb_int
@@ -952,7 +952,7 @@ mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 }
 
 MRB_API mrb_value
-mrb_ary_entry(struct mrb_state *mrb, mrb_value ary, mrb_int offset)
+mrb_ary_entry2(struct mrb_state *mrb, mrb_value ary, mrb_int offset)
 {
   if (offset < 0) {
     offset += RARRAY_LEN(ary);

@@ -3677,7 +3677,7 @@ disp_type(mrb_state *mrb, mrbjit_reginfo *rinfo)
 
   case MRB_TT_OBJECT:
     printf("object ");
-    mrb_p(mrb, mrb_obj_value(mrb, rinfo->klass));
+    mrb_p(mrb, mrb_obj_value(rinfo->klass));
     break;
 
   case MRB_TT_PROC:

@@ -40,7 +40,7 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
       struct RClass *c = mrb_class(mrb, obj);
 
       mrb_raisef(mrb, E_TYPE_ERROR, "uninitialized %S (expected %S)",
-                 mrb_obj_value(mrb, c), mrb_str_new_cstr(mrb, type->struct_name));
+                 mrb_obj_value(c), mrb_str_new_cstr(mrb, type->struct_name));
     }
   }
 }
@@ -164,7 +164,7 @@ mrb_word_boxing_float_pool(mrb_state *mrb, mrb_float f)
   nf->tt = MRB_TT_FLOAT;
   nf->c = mrb->float_class;
   nf->f = f;
-  return mrb_obj_value(mrb, nf);
+  return mrb_obj_value(nf);
 }
 
 MRB_API mrb_value

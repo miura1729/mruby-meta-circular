@@ -159,12 +159,13 @@ mrb_symbol_value(mrb_sym i)
 }
 
 static inline mrb_value
-mrb_obj_value(struct mrb_state *mrb, void *p)
+mrb_obj_value2(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
   SET_OBJ_VALUE(v, (struct RBasic*)p);
   return v;
 }
+#define mrb_obj_value(p) mrb_obj_value2(mrb, (p))
 
 static inline mrb_value
 mrb_nil_value(void)

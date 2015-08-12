@@ -155,7 +155,7 @@ mrb_hash_new_capa(mrb_state *mrb, int capa)
     kh_resize(ht, mrb, h->ht, capa);
   }
   h->iv = 0;
-  return mrb_obj_value(mrb, h);
+  return mrb_obj_value(h);
 }
 
 MRB_API mrb_value
@@ -250,7 +250,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
     }
   }
 
-  return mrb_obj_value(mrb, ret);
+  return mrb_obj_value(ret);
 }
 
 MRB_API mrb_value

@@ -45,7 +45,7 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
 
   mrdb_check_syntax(mrb, dbg, expr, len);
   if (mrb->exc) {
-    v = mrb_obj_value(mrb, mrb->exc);
+    v = mrb_obj_value(mrb->exc);
     mrb->exc = 0;
   }
   else {

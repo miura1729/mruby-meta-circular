@@ -92,7 +92,7 @@ mrb_ary_at(mrb_state *mrb, mrb_value ary)
   mrb_int pos;
   mrb_get_args(mrb, "i", &pos);
 
-  return mrb_ary_entry(mrb, ary, pos);
+  return mrb_ary_entry(ary, pos);
 }
 
 static mrb_value

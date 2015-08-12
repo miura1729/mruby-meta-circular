@@ -189,7 +189,7 @@ mrb_time_update_datetime(struct mrb_time *self)
 static mrb_value
 mrb_time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
 {
-  return mrb_obj_value(mrb, Data_Wrap_Struct(mrb, tc, &mrb_time_type, tm));
+  return mrb_obj_value(Data_Wrap_Struct(mrb, tc, &mrb_time_type, tm));
 }
 
 

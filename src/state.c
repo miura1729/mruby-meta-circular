@@ -237,7 +237,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
       ns->as.heap.ptr[len] = '\0';
     }
   }
-  return mrb_obj_value(mrb, ns);
+  return mrb_obj_value(ns);
 }
 
 MRB_API void
@@ -297,7 +297,7 @@ mrb_top_self(mrb_state *mrb)
     mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }
-  return mrb_obj_value(mrb, mrb->top_self);
+  return mrb_obj_value(mrb->top_self);
 }
 
 MRB_API void
