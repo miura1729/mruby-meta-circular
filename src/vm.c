@@ -377,7 +377,6 @@ cipush(mrb_state *mrb)
   ci->pc = 0;
   ci->err = 0;
   ci->proc = 0;
-  ci->method_arg_ver = 0;
   ci->prev_pc = NULL;
 
   return ci;
@@ -977,7 +976,7 @@ extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *,
 			   void *(**)());
 #define GET_CODE_INFO(pc, toff) ({                        \
       mrbjit_codetab *ctab = irep->jit_entry_tab + ISEQ_OFFSET_OF((pc)); \
-      ctab->body + toff;			                         \
+      ctab->body + toff;                                                 \
 })
 
 int
@@ -1196,7 +1195,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->c->ci->prev_pc;
-  method_arg_ver = mrb->c->ci->method_arg_ver;
+  method_arg_ver = irep->arg_ver_num;
 
   if (irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
@@ -1285,18 +1284,16 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
       else if (rc == (void *(*)())3) {
 	/* Guard JMPIF/JMPNOT fail */
-	method_arg_ver = mrb->c->ci->method_arg_ver;
 	mrb->c->ci->prev_tentry_offset = -1;
 	
 	rc = NULL;
       }
       else if (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
 	       GET_OPCODE(*(*ppc - 1)) == OP_SENDB) {
-	method_arg_ver = mrb->c->ci->method_arg_ver;
-	mrb->c->ci->prev_tentry_offset = -1;
+	mrb->c->ci->prev_pc = *ppc - 1;
+	//mrb->c->ci->prev_tentry_offset = -1;
       }
       else {
-	method_arg_ver = mrb->c->ci->method_arg_ver;
 	mrb->c->ci->prev_tentry_offset = -1;
       }
 
@@ -1358,9 +1355,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("p %x %x\n", *ppc, prev_pc);
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n, irep);
       ci->prev_pc = prev_pc;
-      ci->method_arg_ver = method_arg_ver;
       ci->caller_pc = caller_pc;
       ci->code_base = mrb->compile_info.code_base;
+      ci->method_arg_ver = method_arg_ver;
       ci->entry = NULL;
       ci->used = -1;
     }
@@ -1385,6 +1382,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     if (prev_coi && prev_coi->reginfo) {
       mrbjit_reginfo *prev_rinfo = prev_coi->reginfo;
 
+      //printf("%x %d %d %d \n", prev_pc, mrb->c->ci->prev_tentry_offset, ci->used, method_arg_ver);
       for (i = 0; i < irep->nregs; i++) {
 	ci->reginfo[i] = prev_rinfo[i];
       }
@@ -1444,7 +1442,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
  skip:
 
   mrb->c->ci->prev_pc = *ppc;
-  mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {
     mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
   }
@@ -1551,7 +1548,6 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
   mrb->compile_info.nest_level = 0;
   mrb->c->ci->prev_pc = NULL;
-  mrb->c->ci->method_arg_ver = 0;
   mrb->c->ci->prev_tentry_offset = -1;
 
 RETRY_TRY_BLOCK:

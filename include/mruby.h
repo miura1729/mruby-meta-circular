@@ -131,7 +131,7 @@ typedef struct {
 
   mrb_code *prev_pc;
   int16_t prev_tentry_offset;
-  uint16_t method_arg_ver;
+  uint16_t method_arg_ver;	/* for packking. not used. */
 
   void *dummy[1];
 } mrb_callinfo;

@@ -217,6 +217,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_load_literal(mrb, coi, reg_regs, toff);
       emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, prev_tentry_offset), reg_regs);
 
+#if 0
       assert(coi->method_arg_ver < 0x8000);
       if (!is_clr_rc) {
 	emit_push(mrb, coi, reg_tmp0);
@@ -227,6 +228,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       if (!is_clr_rc) {
 	emit_pop(mrb, coi, reg_tmp0);
       }
+#endif
     }
 
     if (pc) {
