@@ -517,6 +517,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
+    ctab->body[toff].prev_pc = pc;
+    ctab->body[toff].caller_pc = NULL;
+    ctab->body[toff].method_arg_ver = coi->method_arg_ver;
+
     /* This code is patched when compiled continaution code */
     if (ctab->body[toff].entry) {
       mov(reg_tmp1, (cpu_word_t)ctab->body[toff].entry);

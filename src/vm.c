@@ -1205,6 +1205,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     mrb->compile_info.nest_level = 0;
   }
 
+  if (mrb->c->ci->prev_pc == NULL &&
+      (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
+       GET_OPCODE(*(*ppc - 1)) == OP_SENDB)) {
+    prev_pc = mrb->c->ci->prev_pc = *ppc - 1;
+    caller_pc = NULL;
+    mrb->c->ci->prev_tentry_offset = 0;
+  }
+
   cbase = mrb->compile_info.code_base;
   n = ISEQ_OFFSET_OF(*ppc);
   ci = mrbjit_search_codeinfo_prev_inline(irep->jit_entry_tab + n, prev_pc, caller_pc, method_arg_ver);
@@ -1266,6 +1274,14 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       *(status->syms) = irep->syms;
       n = ISEQ_OFFSET_OF(*ppc);
 
+      if (irep->jit_inlinep) {
+	caller_pc = mrb->c->ci->pc;
+      }
+      else {
+	caller_pc = NULL;
+	mrb->compile_info.nest_level = 0;
+      }
+
       if (prev_entry == (void *(*)())1) {
 	/* Overflow happened */
 	//puts("overflow");
@@ -1284,14 +1300,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
       else if (rc == (void *(*)())3) {
 	/* Guard JMPIF/JMPNOT fail */
-	mrb->c->ci->prev_tentry_offset = -1;
+	mrb->c->ci->prev_tentry_offset = irep->arg_ver_num;
+	/* pc sets next of JMPIF/JMPNOT address */
+	mrb->c->ci->prev_pc = *ppc - 1;
+	//printf("%d %x %d \n", mrb->c->ci->prev_tentry_offset, mrb->c->ci->prev_pc, irep->prof_info[n + 2]);
 	
 	rc = NULL;
       }
       else if (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
 	       GET_OPCODE(*(*ppc - 1)) == OP_SENDB) {
 	mrb->c->ci->prev_pc = *ppc - 1;
-	//mrb->c->ci->prev_tentry_offset = -1;
+	caller_pc = NULL;
+	mrb->c->ci->prev_tentry_offset = 0;
       }
       else {
 	mrb->c->ci->prev_tentry_offset = -1;
@@ -1310,13 +1330,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	goto skip;
       }
 
-      if (irep->jit_inlinep) {
-	caller_pc = mrb->c->ci->pc;
-      }
-      else {
-	caller_pc = NULL;
-	mrb->compile_info.nest_level = 0;
-      }
       if (irep->jit_entry_tab == NULL) {
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
