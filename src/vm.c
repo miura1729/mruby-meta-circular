@@ -1210,7 +1210,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
        GET_OPCODE(*(*ppc - 1)) == OP_SENDB)) {
     prev_pc = mrb->c->ci->prev_pc = *ppc - 1;
     caller_pc = NULL;
-    mrb->c->ci->prev_tentry_offset = 0;
+    mrb->c->ci->prev_tentry_offset = irep->arg_ver_num;
   }
 
   cbase = mrb->compile_info.code_base;
@@ -1311,7 +1311,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	       GET_OPCODE(*(*ppc - 1)) == OP_SENDB) {
 	mrb->c->ci->prev_pc = *ppc - 1;
 	caller_pc = NULL;
-	mrb->c->ci->prev_tentry_offset = 0;
+	mrb->c->ci->prev_tentry_offset = irep->arg_ver_num;
       }
       else {
 	mrb->c->ci->prev_tentry_offset = -1;
