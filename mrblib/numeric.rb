@@ -48,7 +48,7 @@ module Integral
     return to_enum(:downto, num) unless block_given?
 
     i = self.to_i
-    while(i >= num)
+    while i >= num
       block.call(i)
       i -= 1
     end
@@ -89,7 +89,7 @@ module Integral
     return to_enum(:upto, num) unless block_given?
 
     i = self.to_i
-    while(i <= num)
+    while i <= num
       block.call(i)
       i += 1
     end
@@ -100,18 +100,18 @@ module Integral
   # Calls the given block from +self+ to +num+
   # incremented by +step+ (default 1).
   #
-  def step(num, step=1, &block)
+  def step(num, step = 1, &block)
     raise ArgumentError, "step can't be 0" if step == 0
     return to_enum(:step, num, step) unless block_given?
 
     i = if num.kind_of? Float then self.to_f else self end
     if step > 0
-      while(i <= num)
+      while i <= num
         block.call(i)
         i += step
       end
     else
-      while(i >= num)
+      while i >= num
         block.call(i)
         i += step
       end
@@ -165,16 +165,12 @@ class Float
   # floats should be compatible to integers.
   def >> other
     n = self.to_i
-    other.to_i.times {
-      n /= 2
-    }
+    other.to_i.times { n /= 2 }
     n
   end
   def << other
     n = self.to_i
-    other.to_i.times {
-      n *= 2
-    }
+    other.to_i.times { n *= 2 }
     n.to_i
   end
 end

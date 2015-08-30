@@ -25,7 +25,7 @@
 #include "mruby/error.h"
 #include "mruby/opcode.h"
 #include "value_array.h"
-#include "mrb_throw.h"
+#include "mruby/throw.h"
 
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)
@@ -425,6 +425,7 @@ ecall(mrb_state *mrb, int i)
   struct RObject *exc;
   int orgdisflg = mrb->compile_info.disable_jit;
 
+  if (i<0) return;
   p = mrb->c->ensure[i];
   if (!p) return;
   if (mrb->c->ci->eidx > i)
@@ -1492,6 +1493,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
 #define CALL_MAXARGS 127
 
+void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
+
 MRB_API mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
@@ -1821,7 +1824,7 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci = mrb->c->ci;
       int n, eidx = ci->eidx;
 
-      for (n=0; n<a && eidx > ci[-1].eidx; n++) {
+      for (n=0; n<a && (ci == mrb->c->cibase || eidx > ci[-1].eidx); n++) {
         ecall(mrb, --eidx);
         ARENA_RESTORE(mrb, ai);
       }
@@ -1867,9 +1870,21 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
+        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
 
-        mid = mrb_intern_lit(mrb, "method_missing");
-        m = mrb_method_search_vm(mrb, &c, mid);
+        m = mrb_method_search_vm(mrb, &c, missing);
+        if (!m) {
+          mrb_value args;
+
+          if (n == CALL_MAXARGS) {
+            args = regs[a+1];
+          }
+          else {
+            args = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          }
+          mrb_method_missing(mrb, mid, recv, args);
+        }
+        mid = missing;
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
@@ -2025,6 +2040,13 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i);
       int n = GETARG_C(i);
 
+      if (mid == 0) {
+        mrb_value exc;
+
+        exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        mrb->exc = mrb_obj_ptr(exc);
+        goto L_RAISE;
+      }
       recv = regs[0];
       c = mrb->c->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
@@ -2114,6 +2136,7 @@ RETRY_TRY_BLOCK:
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) {
           mrb_value exc;
+
           exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
           mrb->exc = mrb_obj_ptr(exc);
           goto L_RAISE;
@@ -2334,6 +2357,9 @@ RETRY_TRY_BLOCK:
             MRB_THROW(prev_jmp);
           }
           if (ci == mrb->c->cibase) {
+            while (eidx > 0) {
+              ecall(mrb, --eidx);
+            }
             if (ci->ridx == 0) {
               if (mrb->c == mrb->root_c) {
                 regs = mrb->c->stack = mrb->c->stbase;
@@ -3004,33 +3030,28 @@ RETRY_TRY_BLOCK:
       int pre  = GETARG_B(i);
       int post = GETARG_C(i);
 
+      struct RArray *ary;
+      int len, idx;
+
       if (!mrb_array_p(v)) {
-        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        v = mrb_ary_new_from_values(mrb, 1, &regs[a]);
+      }
+      ary = mrb_ary_ptr(v);
+      len = ary->len;
+      if (len > pre + post) {
+        regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
         while (post--) {
-          SET_NIL_VALUE(regs[a]);
-          a++;
+          regs[a++] = ary->ptr[len-post-1];
         }
       }
       else {
-        struct RArray *ary = mrb_ary_ptr(v);
-        int len = ary->len;
-        int idx;
-
-        if (len > pre + post) {
-          regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
-          while (post--) {
-            regs[a++] = ary->ptr[len-post-1];
-          }
+        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        for (idx=0; idx+pre<len; idx++) {
+          regs[a+idx] = ary->ptr[pre+idx];
         }
-        else {
-          regs[a++] = mrb_ary_new_capa(mrb, 0);
-          for (idx=0; idx+pre<len; idx++) {
-            regs[a+idx] = ary->ptr[pre+idx];
-          }
-          while (idx < post) {
-            SET_NIL_VALUE(regs[a+idx]);
-            idx++;
-          }
+        while (idx < post) {
+          SET_NIL_VALUE(regs[a+idx]);
+          idx++;
         }
       }
       ARENA_RESTORE(mrb, ai);
@@ -3195,7 +3216,7 @@ RETRY_TRY_BLOCK:
       struct RClass *c = mrb_class_ptr(regs[a]);
       khash_t(mt) *h = c->mt;
       khiter_t k;
-      struct RProc *p;
+      struct RProc *p = mrb_proc_ptr(regs[a+1]);
 
       if (h) {
 	k = kh_get(mt, mrb, h, syms[GETARG_B(i)]);
@@ -3220,7 +3241,7 @@ RETRY_TRY_BLOCK:
       }
 
       mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, mrb_proc_ptr(regs[a+1])->body.irep);
-      mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
+      mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], mrb_proc_ptr(regs[a+1]));
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }

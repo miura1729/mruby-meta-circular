@@ -130,7 +130,7 @@ module MRuby
       end
 
       def define_gem_init_builder
-        file objfile("#{build_dir}/gem_init") => "#{build_dir}/gem_init.c"
+        file objfile("#{build_dir}/gem_init") => [ "#{build_dir}/gem_init.c", File.join(dir, "mrbgem.rake") ]
         file "#{build_dir}/gem_init.c" => [build.mrbcfile, __FILE__] + [rbfiles].flatten do |t|
           FileUtils.mkdir_p build_dir
           generate_gem_init("#{build_dir}/gem_init.c")
@@ -304,7 +304,14 @@ module MRuby
         default_gems = []
         each do |g|
           g.dependencies.each do |dep|
-            default_gems << dep if dep[:default] and not gem_table.key? dep[:gem]
+            unless gem_table.key? dep[:gem]
+              if dep[:default]; default_gems << dep
+              elsif File.exist? "#{MRUBY_ROOT}/mrbgems/#{dep[:gem]}" # check core
+                default_gems << { :gem => dep[:gem], :default => { :core => dep[:gem] } }
+              else # fallback to mgem-list
+                default_gems << { :gem => dep[:gem], :default => { :mgem => dep[:gem] } }
+              end
+            end
           end
         end
 
@@ -316,7 +323,11 @@ module MRuby
           spec.setup
 
           spec.dependencies.each do |dep|
-            default_gems << dep if dep[:default] and not gem_table.key? dep[:gem]
+            unless gem_table.key? dep[:gem]
+              if dep[:default]; default_gems << dep
+              else default_gems << { :gem => dep[:gem], :default => { :mgem => dep[:gem] } }
+              end
+            end
           end
           gem_table[spec.name] = spec
         end
