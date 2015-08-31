@@ -2717,17 +2717,25 @@ do {                                                                 \
     dinfo->klass = mrb->string_class;
     dinfo->unboxedp = 0;
 
-    emit_cfunc_start(mrb, coi);
+    if (GET_OPCODE(*(*ppc + 1)) == OP_STRCAT &&
+	GETARG_B(*(*ppc + 1)) == GETARG_A(**ppc)) {
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)str);
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0, 4);
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
+    }
+    else {
+      emit_cfunc_start(mrb, coi);
 
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)str);
-    emit_move(mrb, coi, edx, eax, 4);
-    emit_arg_push(mrb, coi, 2, edx);
-    emit_move(mrb, coi, edx, eax, 0);
-    emit_arg_push(mrb, coi, 1, edx);
-    emit_arg_push(mrb, coi, 0, esi);
-    call((void *) mrb_str_dup);
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)str);
+      emit_move(mrb, coi, edx, eax, 4);
+      emit_arg_push(mrb, coi, 2, edx);
+      emit_move(mrb, coi, edx, eax, 0);
+      emit_arg_push(mrb, coi, 1, edx);
+      emit_arg_push(mrb, coi, 0, esi);
+      call((void *) mrb_str_dup);
     
-    emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
+      emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
+    }
 
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp1);
