@@ -114,6 +114,7 @@ task :all => depfiles do
 end
 
 desc "run all mruby tests"
+
 task :test => ["all"] do
   MRuby.each_target do
     run_test if test_enabled?
