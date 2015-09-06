@@ -25,7 +25,7 @@
 #include "mruby/error.h"
 #include "mruby/opcode.h"
 #include "value_array.h"
-#include "mrb_throw.h"
+#include "mruby/throw.h"
 
 #ifndef ENABLE_STDIO
 #if defined(__cplusplus)
@@ -377,6 +377,7 @@ cipush(mrb_state *mrb)
   ci->pc = 0;
   ci->err = 0;
   ci->proc = 0;
+  ci->method_arg_ver = 0;
   ci->prev_pc = NULL;
 
   return ci;
@@ -424,6 +425,7 @@ ecall(mrb_state *mrb, int i)
   struct RObject *exc;
   int orgdisflg = mrb->compile_info.disable_jit;
 
+  if (i<0) return;
   p = mrb->c->ensure[i];
   if (!p) return;
   if (mrb->c->ci->eidx > i)
@@ -976,7 +978,7 @@ extern void *mrbjit_invoke(mrb_value *, mrb_code **, mrb_state *,
 			   void *(**)());
 #define GET_CODE_INFO(pc, toff) ({                        \
       mrbjit_codetab *ctab = irep->jit_entry_tab + ISEQ_OFFSET_OF((pc)); \
-      ctab->body + toff;                                                 \
+      ctab->body + toff;			                         \
 })
 
 int
@@ -1195,7 +1197,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   prev_pc = mrb->c->ci->prev_pc;
-  method_arg_ver = irep->arg_ver_num;
+  method_arg_ver = mrb->c->ci->method_arg_ver;
 
   if (irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
@@ -1203,14 +1205,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   else {
     caller_pc = NULL;
     mrb->compile_info.nest_level = 0;
-  }
-
-  if (mrb->c->ci->prev_pc == NULL &&
-      (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
-       GET_OPCODE(*(*ppc - 1)) == OP_SENDB)) {
-    prev_pc = mrb->c->ci->prev_pc = *ppc - 1;
-    caller_pc = NULL;
-    mrb->c->ci->prev_tentry_offset = irep->arg_ver_num;
   }
 
   cbase = mrb->compile_info.code_base;
@@ -1274,14 +1268,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       *(status->syms) = irep->syms;
       n = ISEQ_OFFSET_OF(*ppc);
 
-      if (irep->jit_inlinep) {
-	caller_pc = mrb->c->ci->pc;
-      }
-      else {
-	caller_pc = NULL;
-	mrb->compile_info.nest_level = 0;
-      }
-
       if (prev_entry == (void *(*)())1) {
 	/* Overflow happened */
 	//puts("overflow");
@@ -1300,20 +1286,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
       else if (rc == (void *(*)())3) {
 	/* Guard JMPIF/JMPNOT fail */
-	mrb->c->ci->prev_tentry_offset = irep->arg_ver_num;
-	/* pc sets next of JMPIF/JMPNOT address */
-	mrb->c->ci->prev_pc = *ppc - 1;
-	//printf("%d %x %d \n", mrb->c->ci->prev_tentry_offset, mrb->c->ci->prev_pc, irep->prof_info[n + 2]);
+	method_arg_ver = mrb->c->ci->method_arg_ver;
+	mrb->c->ci->prev_tentry_offset = -1;
 	
 	rc = NULL;
       }
       else if (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
 	       GET_OPCODE(*(*ppc - 1)) == OP_SENDB) {
-	mrb->c->ci->prev_pc = *ppc - 1;
-	caller_pc = NULL;
-	mrb->c->ci->prev_tentry_offset = irep->arg_ver_num;
+	method_arg_ver = mrb->c->ci->method_arg_ver;
+	mrb->c->ci->prev_tentry_offset = -1;
       }
       else {
+	method_arg_ver = mrb->c->ci->method_arg_ver;
 	mrb->c->ci->prev_tentry_offset = -1;
       }
 
@@ -1330,6 +1314,13 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	goto skip;
       }
 
+      if (irep->jit_inlinep) {
+	caller_pc = mrb->c->ci->pc;
+      }
+      else {
+	caller_pc = NULL;
+	mrb->compile_info.nest_level = 0;
+      }
       if (irep->jit_entry_tab == NULL) {
 	mrbjit_make_jit_entry_tab(mrb, irep, irep->ilen);
       }
@@ -1368,9 +1359,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       //printf("p %x %x\n", *ppc, prev_pc);
       ci = add_codeinfo(mrb, irep->jit_entry_tab + n, irep);
       ci->prev_pc = prev_pc;
+      ci->method_arg_ver = method_arg_ver;
       ci->caller_pc = caller_pc;
       ci->code_base = mrb->compile_info.code_base;
-      ci->method_arg_ver = method_arg_ver;
       ci->entry = NULL;
       ci->used = -1;
     }
@@ -1395,7 +1386,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     if (prev_coi && prev_coi->reginfo) {
       mrbjit_reginfo *prev_rinfo = prev_coi->reginfo;
 
-      //printf("%x %d %d %d \n", prev_pc, mrb->c->ci->prev_tentry_offset, ci->used, method_arg_ver);
       for (i = 0; i < irep->nregs; i++) {
 	ci->reginfo[i] = prev_rinfo[i];
       }
@@ -1455,6 +1445,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
  skip:
 
   mrb->c->ci->prev_pc = *ppc;
+  mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {
     mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
   }
@@ -1501,6 +1492,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 #endif
 
 #define CALL_MAXARGS 127
+
+void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 
 MRB_API mrb_value
 mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
@@ -1561,6 +1554,7 @@ mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int
 
   mrb->compile_info.nest_level = 0;
   mrb->c->ci->prev_pc = NULL;
+  mrb->c->ci->method_arg_ver = 0;
   mrb->c->ci->prev_tentry_offset = -1;
 
 RETRY_TRY_BLOCK:
@@ -1830,7 +1824,7 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci = mrb->c->ci;
       int n, eidx = ci->eidx;
 
-      for (n=0; n<a && eidx > ci[-1].eidx; n++) {
+      for (n=0; n<a && (ci == mrb->c->cibase || eidx > ci[-1].eidx); n++) {
         ecall(mrb, --eidx);
         ARENA_RESTORE(mrb, ai);
       }
@@ -1876,9 +1870,21 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &c, mid);
       if (!m) {
         mrb_value sym = mrb_symbol_value(mid);
+        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
 
-        mid = mrb_intern_lit(mrb, "method_missing");
-        m = mrb_method_search_vm(mrb, &c, mid);
+        m = mrb_method_search_vm(mrb, &c, missing);
+        if (!m) {
+          mrb_value args;
+
+          if (n == CALL_MAXARGS) {
+            args = regs[a+1];
+          }
+          else {
+            args = mrb_ary_new_from_values(mrb, n, regs+a+1);
+          }
+          mrb_method_missing(mrb, mid, recv, args);
+        }
+        mid = missing;
         if (n == CALL_MAXARGS) {
           mrb_ary_unshift(mrb, regs[a+1], sym);
         }
@@ -2034,6 +2040,13 @@ RETRY_TRY_BLOCK:
       int a = GETARG_A(i);
       int n = GETARG_C(i);
 
+      if (mid == 0) {
+        mrb_value exc;
+
+        exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        mrb->exc = mrb_obj_ptr(exc);
+        goto L_RAISE;
+      }
       recv = regs[0];
       c = mrb->c->ci->target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
@@ -2123,6 +2136,7 @@ RETRY_TRY_BLOCK:
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) {
           mrb_value exc;
+
           exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
           mrb->exc = mrb_obj_ptr(exc);
           goto L_RAISE;
@@ -2331,9 +2345,6 @@ RETRY_TRY_BLOCK:
           if (ci->ridx == 0) goto L_STOP;
           goto L_RESCUE;
         }
-        while (eidx > ci[-1].eidx) {
-          ecall(mrb, --eidx);
-        }
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->c->ci;
@@ -2343,6 +2354,9 @@ RETRY_TRY_BLOCK:
             MRB_THROW(prev_jmp);
           }
           if (ci == mrb->c->cibase) {
+            while (eidx > 0) {
+              ecall(mrb, --eidx);
+            }
             if (ci->ridx == 0) {
               if (mrb->c == mrb->root_c) {
                 regs = mrb->c->stack = mrb->c->stbase;
@@ -3013,33 +3027,28 @@ RETRY_TRY_BLOCK:
       int pre  = GETARG_B(i);
       int post = GETARG_C(i);
 
+      struct RArray *ary;
+      int len, idx;
+
       if (!mrb_array_p(v)) {
-        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        v = mrb_ary_new_from_values(mrb, 1, &regs[a]);
+      }
+      ary = mrb_ary_ptr(v);
+      len = ary->len;
+      if (len > pre + post) {
+        regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
         while (post--) {
-          SET_NIL_VALUE(regs[a]);
-          a++;
+          regs[a++] = ary->ptr[len-post-1];
         }
       }
       else {
-        struct RArray *ary = mrb_ary_ptr(v);
-        int len = ary->len;
-        int idx;
-
-        if (len > pre + post) {
-          regs[a++] = mrb_ary_new_from_values(mrb, len - pre - post, ary->ptr+pre);
-          while (post--) {
-            regs[a++] = ary->ptr[len-post-1];
-          }
+        regs[a++] = mrb_ary_new_capa(mrb, 0);
+        for (idx=0; idx+pre<len; idx++) {
+          regs[a+idx] = ary->ptr[pre+idx];
         }
-        else {
-          regs[a++] = mrb_ary_new_capa(mrb, 0);
-          for (idx=0; idx+pre<len; idx++) {
-            regs[a+idx] = ary->ptr[pre+idx];
-          }
-          while (idx < post) {
-            SET_NIL_VALUE(regs[a+idx]);
-            idx++;
-          }
+        while (idx < post) {
+          SET_NIL_VALUE(regs[a+idx]);
+          idx++;
         }
       }
       ARENA_RESTORE(mrb, ai);
@@ -3229,7 +3238,7 @@ RETRY_TRY_BLOCK:
       }
 
       mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, mrb_proc_ptr(regs[a+1])->body.irep);
-      mrb_define_method_vm(mrb, c, syms[GETARG_B(i)], regs[a+1]);
+      mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], mrb_proc_ptr(regs[a+1]));
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }

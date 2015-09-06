@@ -8,6 +8,7 @@ module MRuby
     end
 
     def each_target(&block)
+      return to_enum(:each_target) if block.nil?
       @targets.each do |key, target|
         target.instance_eval(&block)
       end
@@ -79,7 +80,7 @@ module MRuby
         @git = Command::Git.new(self)
         @mrbc = Command::Mrbc.new(self)
 
-        @bins = %w(mrbc)
+        @bins = []
         @gems, @libmruby = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
         @cxx_abi_enabled = false
@@ -91,6 +92,8 @@ module MRuby
 
       MRuby::Build.current = MRuby.targets[@name]
       MRuby.targets[@name].instance_eval(&block)
+
+      build_mrbc_exec if name == 'host'
     end
 
     def enable_debug
@@ -118,6 +121,32 @@ module MRuby
       @cxx_abi_enabled = true
     end
 
+    def compile_as_cxx src, cxx_src, obj = nil, includes = []
+      src = File.absolute_path src
+      cxx_src = File.absolute_path cxx_src
+      obj = objfile(cxx_src) if obj.nil?
+
+      file cxx_src => [src, __FILE__] do |t|
+        FileUtils.mkdir_p File.dirname t.name
+        IO.write t.name, <<EOS
+#define __STDC_CONSTANT_MACROS
+#define __STDC_LIMIT_MACROS
+
+extern "C" {
+#include "#{src}"
+}
+
+#{src == "#{MRUBY_ROOT}/src/error.c"? 'mrb_int mrb_jmpbuf::jmpbuf_id = 0;' : ''}
+EOS
+      end
+
+      file obj => cxx_src do |t|
+        cxx.run t.name, t.prerequisites.first, [], ["#{MRUBY_ROOT}/src"] + includes
+      end
+
+      obj
+    end
+
     def enable_bintest
       @enable_bintest = true
     end
@@ -141,8 +170,16 @@ module MRuby
       MRUBY_ROOT
     end
 
+    def build_mrbc_exec
+      gem :core => 'mruby-bin-mrbc'
+    end
+
     def mrbcfile
-      MRuby.targets[@name].exefile("#{MRuby.targets[@name].build_dir}/bin/mrbc")
+      return @mrbcfile if @mrbcfile
+
+      mrbc_build = MRuby.targets['host']
+      gems.each { |v| mrbc_build = self if v.name == 'mruby-bin-mrbc' }
+      @mrbcfile = mrbc_build.exefile("#{mrbc_build.build_dir}/bin/mrbc")
     end
 
     def compilers
@@ -245,6 +282,10 @@ module MRuby
 
   class CrossBuild < Build
     attr_block %w(test_runner)
+    # cross compiling targets for building native extensions.
+    # host  - arch of where the built binary will run
+    # build - arch of the machine building the binary
+    attr_accessor :host_target, :build_target
 
     def initialize(name, build_dir=nil, &block)
       @test_runner = Command::CrossTestRunner.new(self)

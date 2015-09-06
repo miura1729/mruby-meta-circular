@@ -1,7 +1,7 @@
 /*
 ** mruby - An embeddable Ruby implementation
 **
-** Copyright (c) mruby developers 2010-2014
+** Copyright (c) mruby developers 2010-2015
 **
 ** Permission is hereby granted, free of charge, to any person obtaining
 ** a copy of this software and associated documentation files (the
@@ -264,10 +264,13 @@ typedef struct mrb_state {
 # define mrb_noreturn _Noreturn
 #elif defined __GNUC__ && !defined __STRICT_ANSI__
 # define mrb_noreturn __attribute__((noreturn))
+# define mrb_deprecated __attribute__((deprecated))
 #elif defined _MSC_VER
 # define mrb_noreturn __declspec(noreturn)
+# define mrb_deprecated __declspec(deprecated)
 #else
 # define mrb_noreturn
+# define mrb_deprecated
 #endif
 
 typedef mrb_value (*mrb_func_t)(mrb_state *mrb, mrb_value);
@@ -323,16 +326,6 @@ void mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name,
 #define MRB_ARGS_ANY()      MRB_ARGS_REST()
 /* accept no arguments */
 #define MRB_ARGS_NONE()     ((mrb_aspec)0)
-
-/* compatibility macros; will be removed */
-#define ARGS_REQ(n)         MRB_ARGS_REQ(n)
-#define ARGS_OPT(n)         MRB_ARGS_OPT(n)
-#define ARGS_REST()         MRB_ARGS_REST()
-#define ARGS_POST(n)        MRB_ARGS_POST()
-#define ARGS_KEY(n1,n2)     MRB_ARGS_KEY(n1,n2)
-#define ARGS_BLOCK()        MRB_ARGS_BLOCK()
-#define ARGS_ANY()          MRB_ARGS_ANY()
-#define ARGS_NONE()         MRB_ARGS_NONE()
 
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, const char *format, ...);
 
@@ -422,24 +415,23 @@ MRB_API mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass
 MRB_API mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);
 
-/* need to include <ctype.h> to use these macros */
 #ifndef ISPRINT
-#define ISASCII(c) (!(((int)(unsigned char)(c)) & ~0x7f))
-#define ISPRINT(c) (ISASCII(c) && isprint((int)(unsigned char)(c)))
-#define ISSPACE(c) (ISASCII(c) && isspace((int)(unsigned char)(c)))
-#define ISUPPER(c) (ISASCII(c) && isupper((int)(unsigned char)(c)))
-#define ISLOWER(c) (ISASCII(c) && islower((int)(unsigned char)(c)))
-#define ISALNUM(c) (ISASCII(c) && isalnum((int)(unsigned char)(c)))
-#define ISALPHA(c) (ISASCII(c) && isalpha((int)(unsigned char)(c)))
-#define ISDIGIT(c) (ISASCII(c) && isdigit((int)(unsigned char)(c)))
-#define ISXDIGIT(c) (ISASCII(c) && isxdigit((int)(unsigned char)(c)))
-#define ISBLANK(c) (ISASCII(c) && ((c) == ' ' || (c) == '\t'))
-#define ISCNTRL(c) (ISASCII(c) && iscntrl((int)(unsigned char)(c)))
-#define TOUPPER(c) (ISASCII(c) ? toupper((int)(unsigned char)(c)) : (c))
-#define TOLOWER(c) (ISASCII(c) ? tolower((int)(unsigned char)(c)) : (c))
+#define ISASCII(c) ((unsigned)(c) <= 0x7f)
+#define ISPRINT(c) (((unsigned)(c) - 0x20) < 0x5f)
+#define ISSPACE(c) ((c) == ' ' || (unsigned)(c) - '\t' < 5)
+#define ISUPPER(c) (((unsigned)(c) - 'A') < 26)
+#define ISLOWER(c) (((unsigned)(c) - 'a') < 26)
+#define ISALPHA(c) ((((unsigned)(c) | 0x20) - 'a') < 26)
+#define ISDIGIT(c) (((unsigned)(c) - '0') < 10)
+#define ISXDIGIT(c) (ISDIGIT(c) || ((unsigned)(c) | 0x20) - 'a' < 6)
+#define ISALNUM(c) (ISALPHA(c) || ISDIGIT(c))
+#define ISBLANK(c) ((c) == ' ' || (c) == '\t')
+#define ISCNTRL(c) ((unsigned)(c) < 0x20 || (c) == 0x7f)
+#define TOUPPER(c) (ISLOWER(c) ? ((c) & 0x5f) : (c))
+#define TOLOWER(c) (ISUPPER(c) ? ((c) | 0x20) : (c))
 #endif
 
-MRB_API mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, long len);
+MRB_API mrb_value mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len);
 MRB_API mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 
 MRB_API mrb_noreturn void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);

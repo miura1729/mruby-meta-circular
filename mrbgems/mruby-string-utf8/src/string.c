@@ -5,7 +5,6 @@
 #include "mruby/range.h"
 #include "mruby/numeric.h"
 #include "mruby/re.h"
-#include <ctype.h>
 #include <string.h>
 
 static const char utf8len_codepage[256] =
@@ -260,6 +259,7 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
   switch (mrb_type(indx)) {
     case MRB_TT_FLOAT:
       indx = mrb_flo_to_fixnum(mrb, indx);
+      /* fall through */
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
 

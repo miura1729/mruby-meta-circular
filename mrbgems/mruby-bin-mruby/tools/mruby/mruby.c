@@ -11,12 +11,8 @@
 static void
 p(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value val;
+  mrb_value val = mrb_inspect(mrb, obj);
 
-  val = mrb_funcall(mrb, obj, "inspect", 0);
-  if (!mrb_string_p(val)) {
-    val = mrb_obj_as_string(mrb, obj);
-  }
   fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
   putc('\n', stdout);
 }
@@ -163,10 +159,9 @@ cleanup(mrb_state *mrb, struct _args *args)
 {
   if (args->rfp && args->rfp != stdin)
     fclose(args->rfp);
-  if (args->cmdline && !args->fname)
+  if (!args->fname)
     mrb_free(mrb, args->cmdline);
-  if (args->argv)
-    mrb_free(mrb, args->argv);
+  mrb_free(mrb, args->argv);
   mrb_close(mrb);
 }
 
@@ -209,7 +204,7 @@ main(int argc, char **argv)
   /* Set $0 */
   zero_sym = mrb_intern_lit(mrb, "$0");
   if (args.rfp) {
-    char *cmdline;
+    const char *cmdline;
     cmdline = args.cmdline ? args.cmdline : "-";
     mrbc_filename(mrb, c, cmdline);
     mrb_gv_set(mrb, zero_sym, mrb_str_new_cstr(mrb, cmdline));

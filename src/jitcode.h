@@ -217,7 +217,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_load_literal(mrb, coi, reg_regs, toff);
       emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, prev_tentry_offset), reg_regs);
 
-#if 0
       assert(coi->method_arg_ver < 0x8000);
       if (!is_clr_rc) {
 	emit_push(mrb, coi, reg_tmp0);
@@ -228,7 +227,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       if (!is_clr_rc) {
 	emit_pop(mrb, coi, reg_tmp0);
       }
-#endif
     }
 
     if (pc) {
@@ -516,10 +514,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
         ctab->body[j].entry = NULL;
       }
     }
-
-    ctab->body[toff].prev_pc = pc;
-    ctab->body[toff].caller_pc = NULL;
-    ctab->body[toff].method_arg_ver = coi->method_arg_ver;
 
     /* This code is patched when compiled continaution code */
     if (ctab->body[toff].entry) {
@@ -2727,17 +2721,25 @@ do {                                                                 \
     dinfo->klass = mrb->string_class;
     dinfo->unboxedp = 0;
 
-    emit_cfunc_start(mrb, coi);
+    if (GET_OPCODE(*(*ppc + 1)) == OP_STRCAT &&
+	GETARG_B(*(*ppc + 1)) == GETARG_A(**ppc)) {
+      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)str);
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0, 4);
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
+    }
+    else {
+      emit_cfunc_start(mrb, coi);
 
-    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)str);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp0, 4);
-    emit_arg_push(mrb, coi, 2, reg_tmp1);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp0, 0);
-    emit_arg_push(mrb, coi, 1, reg_tmp1);
-    emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_str_dup);
+      emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)str);
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0, 4);
+      emit_arg_push(mrb, coi, 2, reg_tmp1);
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0, 0);
+      emit_arg_push(mrb, coi, 1, reg_tmp1);
+      emit_arg_push(mrb, coi, 0, reg_mrb);
+      call((void *) mrb_str_dup);
     
-    emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
+      emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
+    }
 
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp1);

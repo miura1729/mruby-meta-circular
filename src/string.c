@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
 #include <float.h>
 #include <limits.h>
 #include <stddef.h>
@@ -76,9 +75,18 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
   }
 }
 
+static void
+check_frozen(mrb_state *mrb, struct RString *s)
+{
+  if (RSTR_FROZEN_P(s)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen string");
+  }
+}
+
 MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
+  check_frozen(mrb, s);
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
@@ -118,6 +126,15 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
     RSTR_UNSET_NOFREE_FLAG(s);
     return;
   }
+}
+
+static mrb_value
+mrb_str_freeze(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+
+  RSTR_SET_FROZEN_FLAG(s);
+  return str;
 }
 
 MRB_API mrb_value
@@ -1101,7 +1118,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
  *
  *  Returns a copy of <i>str</i> with all uppercase letters replaced with their
  *  lowercase counterparts. The operation is locale insensitive---only
- *  characters ``A'' to ``Z'' are affected.
+ *  characters 'A' to 'Z' are affected.
  *
  *     "hEllO".downcase   #=> "hello"
  */
@@ -1346,6 +1363,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   long len;
 
+  check_frozen(mrb, s1);
   len = RSTR_LEN(s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
@@ -1704,7 +1722,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *
  *  If <i>pattern</i> is omitted, the value of <code>$;</code> is used.  If
  *  <code>$;</code> is <code>nil</code> (which is the default), <i>str</i> is
- *  split on whitespace as if ` ' were specified.
+ *  split on whitespace as if ' ' were specified.
  *
  *  If the <i>limit</i> parameter is omitted, trailing null fields are
  *  suppressed. If <i>limit</i> is a positive number, at most that number of
@@ -1716,10 +1734,8 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *     " now's  the time".split        #=> ["now's", "the", "time"]
  *     " now's  the time".split(' ')   #=> ["now's", "the", "time"]
  *     " now's  the time".split(/ /)   #=> ["", "now's", "", "the", "time"]
- *     "1, 2.34,56, 7".split(%r{,\s*}) #=> ["1", "2.34", "56", "7"]
  *     "hello".split(//)               #=> ["h", "e", "l", "l", "o"]
  *     "hello".split(//, 3)            #=> ["h", "e", "llo"]
- *     "hi mom".split(%r{\s*})         #=> ["h", "i", "m", "o", "m"]
  *
  *     "mellow yellow".split("ello")   #=> ["m", "w y", "w"]
  *     "1,2,,3,4,,".split(',')         #=> ["1", "2", "", "3", "4"]
@@ -1768,22 +1784,21 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   result = mrb_ary_new(mrb);
   beg = 0;
   if (split_type == awk) {
-    char *ptr = RSTRING_PTR(str);
-    char *eptr = RSTRING_END(str);
-    char *bptr = ptr;
     mrb_bool skip = TRUE;
+    mrb_int idx = 0;
+    mrb_int str_len = RSTRING_LEN(str);
     unsigned int c;
+    int ai = mrb_gc_arena_save(mrb);
 
-    end = beg;
-    while (ptr < eptr) {
-      int ai = mrb_gc_arena_save(mrb);
-      c = (unsigned char)*ptr++;
+    idx = end = beg;
+    while (idx < str_len) {
+      c = (unsigned char)RSTRING_PTR(str)[idx++];
       if (skip) {
         if (ISSPACE(c)) {
-          beg = ptr - bptr;
+          beg = idx;
         }
         else {
-          end = ptr - bptr;
+          end = idx;
           skip = FALSE;
           if (lim_p && lim <= i) break;
         }
@@ -1792,42 +1807,33 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
         skip = TRUE;
-        beg = ptr - bptr;
+        beg = idx;
         if (lim_p) ++i;
       }
       else {
-        end = ptr - bptr;
+        end = idx;
       }
     }
   }
   else if (split_type == string) {
-    char *ptr = RSTRING_PTR(str); /* s->as.ary */
-    char *temp = ptr;
-    char *eptr = RSTRING_END(str);
-    mrb_int slen = RSTRING_LEN(spat);
+    mrb_int str_len = RSTRING_LEN(str);
+    mrb_int pat_len = RSTRING_LEN(spat);
+    mrb_int idx = 0;
+    int ai = mrb_gc_arena_save(mrb);
 
-    if (slen == 0) {
-      int ai = mrb_gc_arena_save(mrb);
-      while (ptr < eptr) {
-        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr-temp, 1));
-        mrb_gc_arena_restore(mrb, ai);
-        ptr++;
-        if (lim_p && lim <= ++i) break;
+    while (idx < str_len) {
+      if (pat_len > 0) {
+        end = mrb_memsearch(RSTRING_PTR(spat), pat_len, RSTRING_PTR(str)+idx, str_len - idx);
+        if (end < 0) break;
+      } else {
+        end = 1;
       }
+      mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, idx, end));
+      mrb_gc_arena_restore(mrb, ai);
+      idx += end + pat_len;
+      if (lim_p && lim <= ++i) break;
     }
-    else {
-      char *sptr = RSTRING_PTR(spat);
-      int ai = mrb_gc_arena_save(mrb);
-
-      while (ptr < eptr &&
-        (end = mrb_memsearch(sptr, slen, ptr, eptr - ptr)) >= 0) {
-        mrb_ary_push(mrb, result, mrb_str_subseq(mrb, str, ptr - temp, end));
-        mrb_gc_arena_restore(mrb, ai);
-        ptr += end + slen;
-        if (lim_p && lim <= ++i) break;
-      }
-    }
-    beg = ptr - temp;
+    beg = idx;
   }
   else {
     mrb_noregexp(mrb, str);
@@ -1940,7 +1946,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
       }
       break;
   } /* end of switch (base) { */
-  if (*str == '0') {    /* squeeze preceeding 0s */
+  if (*str == '0') {    /* squeeze preceding 0s */
     uscore = 0;
     while ((c = *++str) == '0' || c == '_') {
       if (c == '_') {
@@ -1998,7 +2004,8 @@ bad:
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
-  struct RString *ps = mrb_str_ptr(*ptr);
+  mrb_value str = mrb_str_to_str(mrb, *ptr);
+  struct RString *ps = mrb_str_ptr(str);
   mrb_int len = mrb_str_strlen(mrb, ps);
   char *p = RSTR_PTR(ps);
 
@@ -2015,12 +2022,12 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  str = mrb_str_to_str(mrb, str);
   if (badcheck) {
+    /* Raises if the string contains a null character (the badcheck) */
     s = mrb_string_value_cstr(mrb, &str);
   }
   else {
-    s = RSTRING_PTR(str);
+    s = mrb_string_value_ptr(mrb, str);
   }
   if (s) {
     len = RSTRING_LEN(str);
@@ -2069,6 +2076,7 @@ MRB_API double
 mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
 {
   char *end;
+  char buf[DBL_DIG * 4 + 10];
   double d;
 
   enum {max_width = 20};
@@ -2089,7 +2097,6 @@ bad:
     return d;
   }
   if (*end) {
-    char buf[DBL_DIG * 4 + 10];
     char *n = buf;
     char *e = buf + sizeof(buf) - 1;
     char prev = 0;
@@ -2223,7 +2230,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
  *
  *  Returns a copy of <i>str</i> with all lowercase letters replaced with their
  *  uppercase counterparts. The operation is locale insensitive---only
- *  characters ``a'' to ``z'' are affected.
+ *  characters 'a' to 'z' are affected.
  *
  *     "hEllO".upcase   #=> "HELLO"
  */
@@ -2526,4 +2533,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */
   mrb_define_method(mrb, s, "inspect",         mrb_str_inspect,         MRB_ARGS_NONE()); /* 15.2.10.5.46(x) */
   mrb_define_method(mrb, s, "bytes",           mrb_str_bytes,           MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, s, "freeze",          mrb_str_freeze,          MRB_ARGS_NONE());
 }
