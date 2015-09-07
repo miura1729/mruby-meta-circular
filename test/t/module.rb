@@ -495,7 +495,10 @@ end
 # Not ISO specified
 
 # @!group prepend
+ $once = true
   assert('Module#prepend') do
+   if $once then
+    $once = false
     module M0
       def m1; [:M0] end
     end
@@ -522,6 +525,7 @@ end
       include M4
       def m1; [:C1, super, :C1] end
     end
+  end
 
     obj = P1.new
     expected = [:M2,[:M3,[:C1,[:M4,[:M1,[:C0,[:M0],:C0],:M1],:M4],:C1],:M3],:M2]
@@ -682,16 +686,20 @@ end
   end
 
   # mruby has no visibility control
+ $once = true
   assert 'Module#prepend inherited visibility' do
     bug8238 = '[ruby-core:54105] [Bug #8238]'
-    module Test4PrependVisibilityInherited
-      class A
-        def foo() A; end
-        private :foo
-      end
-      class B < A
-        public :foo
-        prepend Module.new
+    if $once then
+      $once = false
+      module Test4PrependVisibilityInherited
+        class A
+          def foo() A; end
+          private :foo
+        end
+        class B < A
+          public :foo
+          prepend Module.new
+        end
       end
     end
     assert_equal(Test4PrependVisibilityInherited::A, Test4PrependVisibilityInherited::B.new.foo, "#{bug8238}")
