@@ -119,8 +119,6 @@ MRuby::Build.new('host-debug') do |conf|
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
-  conf.cxx.defines = %w(ENABLE_DEBUG)
-  enable_debug
   # bintest
   # conf.enable_bintest
 end
@@ -128,7 +126,7 @@ end
 MRuby::Build.new('test') do |conf|
   toolchain :gcc
 
-  enable_debug
+  #enable_debug
   conf.enable_bintest
   conf.enable_test
   conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32))
@@ -136,7 +134,6 @@ MRuby::Build.new('test') do |conf|
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
-  conf.cxx.defines = %w(ENABLE_DEBUG)
 
   conf.gembox 'default'
 end
