@@ -1,12 +1,12 @@
 #a = Irep::get_irep_by_no(2)
 a = Irep::get_irep([], :each)
 #a = Irep::get_irep(1..3, :each)
-p a
-p a.pool
-p a.syms
-p Irep::OPTABLE_SYM
+t_print a
+t_print a.pool
+t_print a.syms
+t_print Irep::OPTABLE_SYM
 a.iseq.each do |n|
-  p Irep::OPTABLE[n & 0x7f]
+  t_print Irep::OPTABLE[n & 0x7f]
 end
 
 def foo
@@ -49,13 +49,13 @@ end
 #a = Irep::get_irep(self, :factt)
 a = Irep::get_irep(self, :fibt)
 a.iseq.each do |n|
-  p Irep::OPTABLE[n & 0x7f]
+  t_print Irep::OPTABLE[n & 0x7f]
 end
 vm = RiteVM.new
-p vm.to_relocate_iseq(Irep::get_irep(self, :fib))
-p vm.eval(a)
-#p foo
-#p factt
-p fibt
+t_print vm.to_relocate_iseq(Irep::get_irep(self, :fib))
+t_print vm.eval(a)
+#t_print foo
+#t_print factt
+t_print fibt
 
 

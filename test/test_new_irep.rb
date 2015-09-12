@@ -1,3 +1,4 @@
+module Foo
 include RiteOpcodeUtil
 # Make irep
 iseq = [
@@ -12,9 +13,9 @@ p = irep.to_proc
 
 i = 0
 while i < 100
-  p.call
+  t_print.call
   i = i + 1
 end
-p irep.reg_class(0)
-p irep.reg_class(1)
-
+t_print irep.reg_class(0)
+t_print irep.reg_class(1)
+end

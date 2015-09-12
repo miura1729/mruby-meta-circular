@@ -11,7 +11,7 @@
 #endif
 #include <stdio.h>
 
-static char *optable[] = {
+static const char *optable[] = {
   "NOP", "MOVE",
   "LOADL", "LOADI", "LOADSYM", "LOADNIL",
   "LOADSELF", "LOADT", "LOADF",
@@ -554,33 +554,33 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);
 
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
-  mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, ARGS_REQ(2));
-  mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, ARGS_REQ(5));
+  mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, MRB_ARGS_REQ(2));
+  mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, MRB_ARGS_REQ(5));
 
-  mrb_define_method(mrb, a, "id", mrb_irep_id, ARGS_NONE());
-  mrb_define_method(mrb, a, "iseq", mrb_irep_iseq, ARGS_NONE());
-  mrb_define_method(mrb, a, "iseq=", mrb_irep_set_iseq, ARGS_REQ(1));
-  mrb_define_method(mrb, a, "pool", mrb_irep_pool, ARGS_NONE());
-  mrb_define_method(mrb, a, "pool=", mrb_irep_set_pool, ARGS_NONE());
-  mrb_define_method(mrb, a, "syms", mrb_irep_syms, ARGS_NONE());
-  mrb_define_method(mrb, a, "syms=", mrb_irep_set_syms, ARGS_NONE());
-  mrb_define_method(mrb, a, "nregs", mrb_irep_nregs, ARGS_NONE());
-  mrb_define_method(mrb, a, "nregs=", mrb_irep_set_nregs, ARGS_REQ(1));
-  mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, ARGS_NONE());
-  mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, ARGS_REQ(1));
+  mrb_define_method(mrb, a, "id", mrb_irep_id, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "iseq", mrb_irep_iseq, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "iseq=", mrb_irep_set_iseq, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "pool", mrb_irep_pool, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "pool=", mrb_irep_set_pool, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "syms", mrb_irep_syms, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "syms=", mrb_irep_set_syms, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "nregs", mrb_irep_nregs, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "nregs=", mrb_irep_set_nregs, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, MRB_ARGS_REQ(1));
 #if defined MRBJIT
-  mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, ARGS_REQ(1));
-  mrb_define_method(mrb, a, "reg_type", mrb_irep_regtype, ARGS_REQ(1));
+  mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "reg_type", mrb_irep_regtype, MRB_ARGS_REQ(1));
 #endif
-  mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, ARGS_NONE());
+  mrb_define_method(mrb, a, "to_proc", mrb_irep_to_proc, MRB_ARGS_NONE());
 
-  mrb_define_class_method(mrb, a, "get_proc_irep", mrb_env_get_proc_irep, ARGS_REQ(1));
+  mrb_define_class_method(mrb, a, "get_proc_irep", mrb_env_get_proc_irep, MRB_ARGS_REQ(1));
 
   a = mrb_define_class(mrb, "Env", mrb->object_class);
   MRB_SET_INSTANCE_TT(a, MRB_TT_DATA);
-  mrb_define_class_method(mrb, a, "get_proc_env", mrb_env_get_proc_env, ARGS_ANY());
-  mrb_define_class_method(mrb, a, "get_current_env", mrb_env_get_current_env, ARGS_ANY());
-  mrb_define_method(mrb, a, "to_a", mrb_env_to_a, ARGS_NONE());
+  mrb_define_class_method(mrb, a, "get_proc_env", mrb_env_get_proc_env, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, a, "get_current_env", mrb_env_get_current_env, MRB_ARGS_ANY());
+  mrb_define_method(mrb, a, "to_a", mrb_env_to_a, MRB_ARGS_NONE());
 }
 
 void

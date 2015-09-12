@@ -123,12 +123,11 @@ class Regexp
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
 
     @code.push mkop_sBx(OPTABLE_CODE[:ONERR], 2)
-    @code.push mkop_sBx(OPTABLE_CODE[:JMP], 9)
+    @code.push mkop_sBx(OPTABLE_CODE[:JMP], 8)
     @code.push mkop_A(OPTABLE_CODE[:RESCUE], 0)
     @code.push mkop_ABC(OPTABLE_CODE[:ADDI], REG_BEGPOS, SYM_PLUS, 1)
     @code.push mkop_AB(OPTABLE_CODE[:MOVE], REG_CURPOS, REG_BEGPOS)
     gen_comp_current_end(-8)
-    @code.push mkop_A(OPTABLE_CODE[:RETURN], REG_RC)
 
     escape = false
     i = 0

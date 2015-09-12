@@ -345,7 +345,7 @@ def fib(n)
 end
 
 def fibt
-  fib(20)
+  fib(24)
 end
 
 a = Irep::get_irep(self, :fibt)
