@@ -1117,6 +1117,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     emit_cfunc_start(mrb, coi);
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)irep->syms[idpos]);
+    emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     call((void *)mrb_vm_cv_get);
     emit_cfunc_end(mrb, coi, argsize);
