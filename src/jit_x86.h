@@ -51,7 +51,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)dinfo->value.value.p);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
     if (mrb_type(dinfo->value) == MRB_TT_FLOAT ||
-	dinfo->type != mrb_type(dinfo->value)) {
+	dinfo->type != mrb_type(dinfo->value) || 1) {
       emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)dinfo->value.value.ttt);
       emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
       dinfo->type = mrb_type(dinfo->value);
