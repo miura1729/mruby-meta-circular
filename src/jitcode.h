@@ -2501,12 +2501,12 @@ do {                                                                 \
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct REnv, c));
     }
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct REnv, stack));
+    emit_cfunc_start(mrb, coi);
+    emit_arg_push(mrb, coi, 1, reg_tmp0);
 
     emit_local_var_read(mrb, coi, reg_dtmp0, valno);
     emit_move(mrb, coi, reg_tmp1, idxpos * sizeof(mrb_value), reg_dtmp0);
 
-    emit_cfunc_start(mrb, coi);
-    emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     call((void *)mrb_write_barrier);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
