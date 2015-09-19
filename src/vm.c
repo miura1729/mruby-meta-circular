@@ -1430,6 +1430,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	ci->patch_pos = NULL;
       }
     }
+    else if (ci->used == 1) {
+      if (prev_entry) {
+	cbase = mrb->compile_info.code_base;
+	mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
+      }
+    }
   }
 
   if (cbase && 
