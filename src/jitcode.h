@@ -2600,6 +2600,31 @@ do {                                                                 \
   }
 
   const void *
+    ent_onerr(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+
+    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, rsize));
+    emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
+    emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
+    emit_cmp(mrb, coi, reg_tmp1, reg_tmp0);
+    ja("@f");
+    gen_exit(mrb, NULL, 0, 1, status, coi);
+    L("@@");
+    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, rescue));
+    emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
+    emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
+    lea(reg_tmp1, ptr [reg_tmp1 + reg_tmp0 * 4]);
+    emit_move(mrb, coi, reg_tmp1, 0, (Xbyak::uint32)(*ppc + GETARG_sBx(**ppc)));
+    inc(reg_tmp0);
+    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, ci));
+    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, ridx), reg_tmp0);
+
+    return code;
+  }
+
+  const void *
     ent_lambda(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();

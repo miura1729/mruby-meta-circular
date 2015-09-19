@@ -278,6 +278,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->ent_jmpnot(mrb, status, coi, regs);
     break;
 
+  case OP_ONERR:
+    rc =code->ent_onerr(mrb, status, coi, regs);
+    break;
+
   case OP_LAMBDA:
     rc =code->ent_lambda(mrb, status, coi, regs);
     break;
