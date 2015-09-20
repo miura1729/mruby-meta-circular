@@ -386,7 +386,36 @@ cipush(mrb_state *mrb)
 mrb_callinfo*
 mrbjit_cipush(mrb_state *mrb)
 {
-  return cipush(mrb);
+  struct mrb_context *c = mrb->c;
+  mrb_callinfo *ci = c->ci;
+
+  int eidx = ci->eidx;
+  int ridx = ci->ridx;
+
+  if (ci + 1 == c->ciend) {
+    ptrdiff_t size = ci - c->cibase;
+    mrb_callinfo *sci;
+    mrb_callinfo *dci;
+
+    c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
+    sci = c->cibase;
+    c->cibase = (mrb_callinfo *)(((int)(c->cibase_org) + 63) & (~(64 - 1)));
+    for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
+      *dci = *sci;
+    }
+
+    c->ci = c->cibase + size;
+    c->ciend = c->cibase + size * 2;
+  }
+  ci = ++c->ci;
+  ci->eidx = eidx;
+  ci->ridx = ridx;
+  ci->env = 0;
+  ci->err = 0;
+  ci->method_arg_ver = 0;
+  ci->prev_pc = NULL;
+
+  return ci;
 }
 
 static void
