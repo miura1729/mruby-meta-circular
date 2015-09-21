@@ -1735,9 +1735,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (can_inline) {
       /* Check must copy env */
       emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
-      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, env));
+      /*      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, env));
       test(reg_tmp0, reg_tmp0);
-      jnz(".reg_vm");
+      jnz(".reg_vm");*/
 
       /* Check exception happened? */
       emit_move(mrb, coi, reg_tmp0, reg_mrb, OffsetOf(mrb_state, exc));
