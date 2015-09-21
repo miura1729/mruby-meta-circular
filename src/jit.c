@@ -156,6 +156,10 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
     ci->proc = m;
     return status->gototable[0];	/* goto L_RAISE; */
   }
+  if (ci != mrb->c->ci) {
+    /* OP_SEND like method ex. __send__  */
+    ci[-1].jit_entry = NULL;
+  }
   /* pop stackpos */
   ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
