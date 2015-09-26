@@ -22,6 +22,17 @@ enum method_kind {
   IV_WRITER,
 };
 
+#include "mruby/common.h"
+#include "mruby/compile.h"
+
+/**
+ * @file mruby/irep.h
+ * @defgroup mruby_irep Compiled mruby scripts.
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
+
 enum irep_pool_type {
   IREP_TT_STRING,
   IREP_TT_FIXNUM,
@@ -95,8 +106,7 @@ MRB_API void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 MRB_API void mrb_irep_decref(mrb_state*, struct mrb_irep*);
 void mrbjit_make_jit_entry_tab(mrb_state *, mrb_irep *, int);
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_IREP_H */
