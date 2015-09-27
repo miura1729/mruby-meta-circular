@@ -103,7 +103,7 @@ mrb_float_id(mrb_float f)
 }
 
 MRB_API mrb_int
-mrb_obj_id(mrb_value obj)
+mrb_obj_id(struct mrb_state *mrb, mrb_value obj)
 {
   mrb_int tt = mrb_type(obj);
 

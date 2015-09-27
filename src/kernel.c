@@ -147,7 +147,7 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_id_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_obj_id(self));
+  return mrb_fixnum_value(mrb_obj_id(mrb, self));
 }
 
 /* 15.3.1.2.2  */
@@ -461,7 +461,7 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_obj_id(self));
+  return mrb_fixnum_value(mrb_obj_id(mrb, self));
 }
 
 /* 15.3.1.3.16 */
@@ -656,13 +656,13 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 {
   khint_t i;
   mrb_value ary;
-  mrb_bool prepended;
+  mrb_bool prepended = FALSE;
   struct RClass* oldklass;
   khash_t(st)* set = kh_init(st, mrb);
 
   if (!recur && (klass->flags & MRB_FLAG_IS_PREPENDED)) {
     MRB_CLASS_ORIGIN(klass);
-    prepended = 1;
+    prepended = TRUE;
   }
 
   oldklass = 0;

@@ -7,6 +7,19 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
+#include "mruby/common.h"
+
+/**
+ * @file mruby/value.h
+ * @defgroup mruby_value Value definitions
+ *
+ * @ref mrb_value functions and macros.
+ *
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
+
 typedef uint32_t mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
@@ -144,6 +157,7 @@ static inline mrb_value
 mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_INT_VALUE(v, i);
   return v;
 }
@@ -152,22 +166,31 @@ static inline mrb_value
 mrb_symbol_value(mrb_sym i)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_SYM_VALUE(v, i);
   return v;
 }
 
 static inline mrb_value
-mrb_obj_value(void *p)
+mrb_obj_value2(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
   SET_OBJ_VALUE(v, (struct RBasic*)p);
   return v;
 }
+#define mrb_obj_value(p) mrb_obj_value2(mrb, (p))
 
-static inline mrb_value
-mrb_nil_value(void)
+
+/**
+ * Get a nil mrb_value object.
+ *
+ * @return
+ *      nil mrb_value object reference.
+ */
+MRB_INLINE mrb_value mrb_nil_value(void)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_NIL_VALUE(v);
   return v;
 }
@@ -176,6 +199,7 @@ static inline mrb_value
 mrb_false_value(void)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_FALSE_VALUE(v);
   return v;
 }
@@ -184,6 +208,7 @@ static inline mrb_value
 mrb_true_value(void)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_TRUE_VALUE(v);
   return v;
 }
@@ -192,6 +217,7 @@ static inline mrb_value
 mrb_bool_value(mrb_bool boolean)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_BOOL_VALUE(v, boolean);
   return v;
 }
@@ -200,6 +226,7 @@ static inline mrb_value
 mrb_undef_value(void)
 {
   mrb_value v;
+  struct mrb_state *mrb = NULL;
   SET_UNDEF_VALUE(v);
   return v;
 }
@@ -226,5 +253,8 @@ mrb_ro_data_p(const char *p)
 #else
 # define mrb_ro_data_p(p) FALSE
 #endif
+
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_VALUE_H */

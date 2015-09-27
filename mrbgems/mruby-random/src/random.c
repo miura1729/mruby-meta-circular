@@ -129,7 +129,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   if (t) {
     mrb_free(mrb, t);
   }
-  mrb_data_init(self, NULL, &mt_state_type);
+  mrb_data_init(mrb, self, NULL, &mt_state_type);
 
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
@@ -145,7 +145,7 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
     t->seed = mrb_fixnum(seed);
   }
 
-  mrb_data_init(self, t, &mt_state_type);
+  mrb_data_init(mrb, self, t, &mt_state_type);
 
   return self;
 }

@@ -26,11 +26,12 @@
 
 /* value representation by nan-boxing:
  *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
- *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
- *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
- *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
+ *   object: 1111111111110000 0000000000TTTTTT PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
+ *   int   : 1111111111110000 0000000000TTTTTT IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
+ *   sym   : 1111111111110000 0100000000TTTTTT SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
  * In order to get enough bit size to save TT, all pointers are shifted 2 bits
  * in the right direction. Also, TTTTTT is the mrb_vtype;
+ * P...P is 32bit signed offset from mrb
  */
 typedef struct mrb_value {
   union {
@@ -40,7 +41,7 @@ typedef struct mrb_value {
         MRB_ENDIAN_LOHI(
           uint32_t ttt;
           ,union {
-	    void *p;
+	    int32_t p;
             mrb_int i;
             mrb_sym sym;
           };
@@ -55,7 +56,7 @@ typedef struct mrb_value {
 #define mrb_tt(o)       (enum mrb_vtype)((o).value.ttt & 0xfffff)
 #define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
 //#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
-#define mrb_ptr(o)      (o).value.p
+#define mrb_ptr(o)      ((void *)((uint8_t *)mrb + (o).value.p))
 #define mrb_float(o)    (o).f
 #define mrb_cptr(o)     mrb_ptr(o)
 #define mrb_fixnum(o)   (o).value.i
@@ -68,8 +69,8 @@ typedef struct mrb_value {
   case MRB_TT_TRUE:\
   case MRB_TT_UNDEF:\
   case MRB_TT_FIXNUM:\
-  case MRB_TT_SYMBOL: (o).attr = (v); break;\
-  default: (o).value.p = ((void *)((uintptr_t)(v)));break;	\
+  case MRB_TT_SYMBOL: (o).attr = (mrb_int)(v); break;\
+  default: (o).value.p = ((int32_t)(((uint8_t *)(v)) - (uint8_t *)mrb));break; \
   }\
 } while (0)
 

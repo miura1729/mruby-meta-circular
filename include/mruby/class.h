@@ -7,9 +7,15 @@
 #ifndef MRUBY_CLASS_H
 #define MRUBY_CLASS_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
+
+/**
+ * @file mruby/class.h
+ * @defgroup mruby_class Class class
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
 
 struct RClass {
   MRB_OBJECT_HEADER;
@@ -86,5 +92,8 @@ extern mrb_value ((*mrbjit_attr_func[])(mrb_state *, mrb_value));
 #if defined(__cplusplus)
 }  /* extern "C" { */
 #endif
+
+/** @} */
+MRB_END_DECL
 
 #endif  /* MRUBY_CLASS_H */

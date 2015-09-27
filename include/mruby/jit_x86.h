@@ -8,6 +8,8 @@ extern "C" {
 #include "mruby/value.h"
 }
 
+typedef Xbyak::uint32 cpu_word_t;
+
 /* Regs Map                               *
  * ecx   -- pointer to regs               *
  * ebx   -- pointer to status->pc         *
@@ -19,13 +21,12 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg32 reg_regs;	/* ecx */
   Xbyak::Reg32 reg_vars;	/* ebx */
   Xbyak::Reg32 reg_mrb;		/* esi */
-  Xbyak::Reg32 reg_context;	/* edo */
+  Xbyak::Reg32 reg_context;	/* edi */
 
   Xbyak::Reg32 reg_tmp0;	/* eax */
   Xbyak::Reg32 reg_tmp1;	/* edx */
   Xbyak::Xmm reg_dtmp0;		/* xmm0 */
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
-  
 
   MRBGenericCodeGenerator() 
     :CodeGenerator(1024 * 1024)
@@ -49,8 +50,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)dinfo->value.value.p);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
-    if (mrb_type(dinfo->value) == MRB_TT_FLOAT || 1 ||
-	dinfo->type != mrb_type(dinfo->value)) {
+    if (mrb_type(dinfo->value) == MRB_TT_FLOAT ||
+	dinfo->type != mrb_type(dinfo->value) || 1) {
       emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)dinfo->value.value.ttt);
       emit_local_var_type_write(mrb, coi, dstno, reg_tmp0);
       dinfo->type = mrb_type(dinfo->value);
@@ -71,7 +72,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       emit_local_var_type_write(mrb, coi, regno, reg_tmp0);          \
       rinfo->regplace = MRBJIT_REG_MEMORY;                           \
     }                                                                \
-    (rinfo->regplace >= MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
+    (rinfo->regplace > MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
   })
 
 
@@ -103,6 +104,19 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     else {
       regno = DEREF_REGNO(regno);
       mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+    }
+  }
+
+  void emit_local_var_ptr_value_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
+  {
+    mrbjit_reginfo *rinfo = &coi->reginfo[regno];
+    if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {
+      mov(dst, (Xbyak::uint32)rinfo->value.value.p);
+    }
+    else {
+      regno = DEREF_REGNO(regno);
+      mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+      add(dst, reg_mrb);
     }
   }
 

@@ -129,6 +129,7 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
   if (mrb_array_p(res_src)) {
     mrb_int i;
     mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$asserts"));
+    mrb_state *mrb = mrb_src;
     for (i = 0; i < RARRAY_LEN(res_src); ++i) {
       mrb_value val_src = RARRAY_PTR(res_src)[i];
       mrb_ary_push(mrb_dst, res_dst, mrb_str_new(mrb_dst, RSTRING_PTR(val_src), RSTRING_LEN(val_src)));

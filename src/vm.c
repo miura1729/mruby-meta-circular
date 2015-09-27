@@ -60,7 +60,7 @@ The value below allows about 60000 recursive calls in the simplest case. */
 #define ARENA_RESTORE(mrb,ai) (mrb)->arena_idx = (ai)
 
 static inline void
-stack_clear(mrb_value *from, size_t count)
+stack_clear(mrb_state *mrb, mrb_value *from, size_t count)
 {
 #ifndef MRB_NAN_BOXING
   const mrb_value mrb_value_zero = { { 0 } };
@@ -126,7 +126,7 @@ init_new_stack_space(mrb_state *mrb, int room, int keep)
 {
   if (room > keep) {
     /* do not leave uninitialized malloc region */
-    stack_clear(&(mrb->c->stack[keep]), room - keep);
+    stack_clear(mrb, &(mrb->c->stack[keep]), room - keep);
   }
 }
 
@@ -386,7 +386,36 @@ cipush(mrb_state *mrb)
 mrb_callinfo*
 mrbjit_cipush(mrb_state *mrb)
 {
-  return cipush(mrb);
+  struct mrb_context *c = mrb->c;
+  mrb_callinfo *ci = c->ci;
+
+  int eidx = ci->eidx;
+  int ridx = ci->ridx;
+
+  if (ci + 1 == c->ciend) {
+    ptrdiff_t size = ci - c->cibase;
+    mrb_callinfo *sci;
+    mrb_callinfo *dci;
+
+    c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
+    sci = c->cibase;
+    c->cibase = (mrb_callinfo *)(((int)(c->cibase_org) + 63) & (~(64 - 1)));
+    for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
+      *dci = *sci;
+    }
+
+    c->ci = c->cibase + size;
+    c->ciend = c->cibase + size * 2;
+  }
+  ci = ++c->ci;
+  ci->eidx = eidx;
+  ci->ridx = ridx;
+  ci->env = 0;
+  ci->err = 0;
+  ci->method_arg_ver = 0;
+  ci->prev_pc = NULL;
+
+  return ci;
 }
 
 static void
@@ -1391,7 +1420,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
-    if (ci->used < 0 && irep->ilen > 1) {
+    if ((ci->used < 0 && irep->ilen > 1) || 
+	(ci->used == 1 && prev_entry && *ppc == irep->iseq)) {
       int ioff;
       int toff;
       mrbjit_codetab *ctab;
@@ -1429,6 +1459,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_gen_load_patch(cbase, (void *)ci->patch_pos, ci->entry, status, ci);	
 	ci->patch_pos = NULL;
       }
+    }
+    else if (ci->used == 1 && prev_entry) {
+      cbase = mrb->compile_info.code_base;
+      mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
     }
   }
 
@@ -2252,10 +2286,10 @@ RETRY_TRY_BLOCK:
 	  //disasm_irep(mrb, irep);
 	  if (rnum == 1) {
 	    int ipos = 0;
-	    mrb_irep *nirep = (mrb_irep *)mrb_fixnum(irep->pool[ipos]);
+	    mrb_irep *nirep = (mrb_irep *)((uint32_t)mrb + mrb_fixnum(irep->pool[ipos]));
 	    struct RProc *p;
 
-	    if (nirep == NULL) {
+	    if (nirep == (mrb_irep *)mrb) {
 	      mrb_irep *cirep = mrb_add_irep(mrb);
 	      *cirep = *irep;
 	      if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
@@ -2269,7 +2303,7 @@ RETRY_TRY_BLOCK:
 		p->body.irep->refcnt++;
 		p->env = proc->env;
 		p->target_class = proc->target_class;
-		irep->pool[ipos] = mrb_fixnum_value(cirep);
+		irep->pool[ipos] = mrb_fixnum_value((uint32_t)cirep - (uint32_t)mrb);
 		mrb->c->ci->proc = proc = p;
 		irep = cirep;
 		pc = cirep->iseq;
@@ -3213,7 +3247,7 @@ RETRY_TRY_BLOCK:
       struct RClass *c = mrb_class_ptr(regs[a]);
       khash_t(mt) *h = c->mt;
       khiter_t k;
-      struct RProc *p = mrb_proc_ptr(regs[a+1]);
+      struct RProc *p;
 
       if (h) {
 	k = kh_get(mt, mrb, h, syms[GETARG_B(i)]);

@@ -8,4 +8,3 @@
 #define MRUBY_JITCODE_H
 
 #include "mruby/jitcode.h"
-#endif  /* MRUBY_JITCODE_H */

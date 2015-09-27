@@ -1,4 +1,4 @@
-#include "jitcode.h"
+#include "mruby/jitcode.h"
 
 extern "C" {
 
@@ -61,7 +61,7 @@ mrbjit_gen_load_patch(mrbjit_code_area coderaw, void *dst, void *address, mrbjit
   else {
     code  = (MRBJitCode *) coderaw;
   }
-  code->gen_load_patch(dst, (Xbyak::uint32)address, status, coi);
+  code->gen_load_patch(dst, (cpu_word_t)address, status, coi);
 }
 
 void
@@ -276,6 +276,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   case OP_JMPNOT:
     rc =code->ent_jmpnot(mrb, status, coi, regs);
+    break;
+
+  case OP_ONERR:
+    rc =code->ent_onerr(mrb, status, coi, regs);
     break;
 
   case OP_LAMBDA:

@@ -7,12 +7,27 @@
 #ifndef MRUBY_DATA_H
 #define MRUBY_DATA_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include "mruby/common.h"
 
+/**
+ * @file mruby/data.h
+ * @defgroup mruby_data Custom C wrapped data.
+ *
+ * Defining Ruby wrappers around native objects.
+ *
+ * @ingroup mruby
+ * @{
+ */
+MRB_BEGIN_DECL
+
+/**
+ * Custom data type description.
+ */
 typedef struct mrb_data_type {
+  /** data type name */
   const char *struct_name;
+
+  /** data type release function pointer */
   void (*dfree)(mrb_state *mrb, void*);
 } mrb_data_type;
 
@@ -52,15 +67,14 @@ MRB_API void *mrb_data_check_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_t
 } while (0)
 
 static inline void
-mrb_data_init(mrb_value v, void *ptr, const mrb_data_type *type)
+mrb_data_init(struct mrb_state *mrb, mrb_value v, void *ptr, const mrb_data_type *type)
 {
   mrb_assert(mrb_type(v) == MRB_TT_DATA);
   DATA_PTR(v) = ptr;
   DATA_TYPE(v) = type;
 }
 
-#if defined(__cplusplus)
-}  /* extern "C" { */
-#endif
+/** @} */
+MRB_END_DECL
 
 #endif /* MRUBY_DATA_H */

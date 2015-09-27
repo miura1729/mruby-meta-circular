@@ -19,7 +19,7 @@
 #define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
 
 static inline mrb_value
-ary_elt(mrb_value ary, mrb_int offset)
+ary_elt(struct mrb_state *mrb, mrb_value ary, mrb_int offset)
 {
   if (offset < 0 || RARRAY_LEN(ary) <= offset) {
     return mrb_nil_value();
@@ -946,12 +946,12 @@ mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 }
 
 MRB_API mrb_value
-mrb_ary_entry(mrb_value ary, mrb_int offset)
+mrb_ary_entry2(struct mrb_state *mrb, mrb_value ary, mrb_int offset)
 {
   if (offset < 0) {
     offset += RARRAY_LEN(ary);
   }
-  return ary_elt(ary, offset);
+  return ary_elt(mrb, ary, offset);
 }
 
 static mrb_value
