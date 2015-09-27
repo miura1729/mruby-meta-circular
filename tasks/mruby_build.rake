@@ -46,7 +46,7 @@ module MRuby
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
     attr_reader :libmruby, :gems, :toolchains
-    attr_writer :enable_bintest
+    attr_writer :enable_bintest, :enable_test
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -85,6 +85,8 @@ module MRuby
         @build_mrbtest_lib_only = false
         @cxx_abi_enabled = false
         @cxx_exception_disabled = false
+        @enable_bintest = false
+        @enable_test = false
         @toolchains = []
 
         MRuby.targets[@name] = self
@@ -94,6 +96,7 @@ module MRuby
       MRuby.targets[@name].instance_eval(&block)
 
       build_mrbc_exec if name == 'host'
+      build_mrbtest if test_enabled?
     end
 
     def enable_debug
@@ -127,8 +130,8 @@ module MRuby
       obj = objfile(cxx_src) if obj.nil?
 
       file cxx_src => [src, __FILE__] do |t|
-        File.open(t.name, 'w') do |f|
-          f.write <<EOS
+        FileUtils.mkdir_p File.dirname t.name
+        IO.write t.name, <<EOS
 #define __STDC_CONSTANT_MACROS
 #define __STDC_LIMIT_MACROS
 
@@ -136,9 +139,8 @@ extern "C" {
 #include "#{src}"
 }
 
-#{File.basename(src) == 'error.c'? 'mrb_int mrb_jmpbuf::jmpbuf_id = 0;' : ''}
+#{src == "#{MRUBY_ROOT}/src/error.c"? 'mrb_int mrb_jmpbuf::jmpbuf_id = 0;' : ''}
 EOS
-        end
       end
 
       file obj => cxx_src do |t|
@@ -169,6 +171,18 @@ EOS
 
     def root
       MRUBY_ROOT
+    end
+
+    def enable_test
+      @enable_test = true
+    end
+
+    def test_enabled?
+      @enable_test
+    end
+
+    def build_mrbtest
+      gem :core => 'mruby-test'
     end
 
     def build_mrbc_exec
@@ -250,10 +264,10 @@ EOS
 
     def run_test
       puts ">>> Test #{name} <<<"
-      mrbtest = exefile("#{build_dir}/test/mrbtest")
+      mrbtest = exefile("#{build_dir}/bin/mrbtest")
       sh "#{filename mrbtest.relative_path}#{$verbose ? ' -v' : ''}"
       puts
-      run_bintest if @enable_bintest
+      run_bintest if bintest_enabled?
     end
 
     def run_bintest
@@ -298,7 +312,7 @@ EOS
     end
 
     def run_test
-      mrbtest = exefile("#{build_dir}/test/mrbtest")
+      mrbtest = exefile("#{build_dir}/bin/mrbtest")
       if (@test_runner.command == nil)
         puts "You should run #{mrbtest} on target device."
         puts

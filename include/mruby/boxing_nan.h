@@ -62,6 +62,7 @@ typedef struct mrb_value {
 #define mrb_symbol(o)   (o).value.sym
 
 #define BOXNAN_SET_VALUE(o, tt, attr, v) do {\
+  (o).value.ttt = (0xfff00000|(tt));	     \
   switch (tt) {\
   case MRB_TT_FALSE:\
   case MRB_TT_TRUE:\
@@ -70,7 +71,6 @@ typedef struct mrb_value {
   case MRB_TT_SYMBOL: (o).attr = (v); break;\
   default: (o).value.p = ((void *)((uintptr_t)(v)));break;	\
   }\
-  (o).value.ttt = (0xfff00000|(tt));		\
 } while (0)
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
