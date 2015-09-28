@@ -13,7 +13,7 @@ mrb_mmm_move(mrb_state *mrb, mrb_value self)
   mrb_value oldobj;
 
   oldobj = mrb_obj_iv_get(mrb, cls, objcache_sym);
-  obj->c = mrb_class_ptr(oldobj);
+  obj->c = oldobj.value.p;
   mrb_obj_iv_set(mrb, cls, objcache_sym, self);
 
   return self;
