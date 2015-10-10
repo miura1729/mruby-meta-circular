@@ -34,7 +34,7 @@ mrb_mmm_instance_new(mrb_state *mrb, mrb_value self)
   mrb_value *argv;
   mrb_int argc;
 
-  if (mrb_nil_p(ins)) {
+  if (ins.value.p == NULL) {
     return mrb_instance_new(mrb, self);
   }
   else {
