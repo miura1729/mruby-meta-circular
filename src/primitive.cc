@@ -157,6 +157,8 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
       mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
     return mrb_nil_value();
   }
+  gen_flush_regs(mrb, pc, status, coi, 1);
+
   gen_type_guard(mrb, regno, status, pc, coi);
   gen_type_guard(mrb, regno + 1, status, pc, coi);
 
