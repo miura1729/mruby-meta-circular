@@ -656,6 +656,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, proc), (cpu_word_t)m);
 
       emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (cpu_word_t)m->body.irep);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), (cpu_word_t)m);
     }
 
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)mid);
@@ -1544,7 +1545,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* setup ci */
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
 
-    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), (cpu_word_t)mid);
+    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, mid), (cpu_word_t)mid);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
