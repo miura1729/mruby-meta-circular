@@ -951,6 +951,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->constp = 0;
     dinfo->unboxedp = 0;
 
+    gen_flush_regs(mrb, *ppc, status, coi, 1);
     emit_cfunc_start(mrb, coi);
     emit_arg_push(mrb, coi, 1, (cpu_word_t)irep->syms[idpos]);
     emit_arg_push(mrb, coi, 0, reg_mrb);
@@ -972,6 +973,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const int argsize = 4 * sizeof(void *);
     mrb_irep *irep = *status->irep;
 
+    gen_flush_regs(mrb, *ppc, status, coi, 1);
     emit_cfunc_start(mrb, coi);
     emit_local_var_type_read(mrb, coi, reg_tmp0, srcno);
     emit_arg_push(mrb, coi, 3, reg_tmp0);
