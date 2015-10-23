@@ -1423,7 +1423,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     recv = regs[a];
-    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 1);
+    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 2);
 
     c = mrb_class(mrb, recv);
     m = mrb_method_search_vm(mrb, &c, mid);
@@ -1511,7 +1511,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     recv = regs[a];
     gen_flush_regs(mrb, pc, status, coi, 1);
-    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 1);
+    gen_class_guard(mrb, a, status, pc, coi, mrb_class(mrb, recv), 2);
 
     c = mrb_class(mrb, recv);
     m = mrb_method_search_vm(mrb, &c, mid);
