@@ -1352,6 +1352,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lambda_body(s, tree, 1);
 
       s->simple_lambda = -1;
+      s->shared_lambda = -1;
       s->irep->reps[idx]->shared_lambda = -1;
       if (s->irep->reps[idx]->simple_lambda == 1 && 0) {
 	/* no parent var access and child lambda */
@@ -1369,6 +1370,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lambda_body(s, tree, 1);
 
       s->simple_lambda = -1;
+      s->shared_lambda = -1;
       if (s->irep->reps[idx]->simple_lambda == 1 && 0) {
 	/* no parent var access and child lambda */
 	/* NO strict and NO capture */
