@@ -2896,6 +2896,9 @@ do {                                                                 \
     mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
   mrb_value 
+    mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
     mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
   mrb_value 

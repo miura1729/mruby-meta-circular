@@ -1096,6 +1096,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "join",            mrb_ary_join_m,       MRB_ARGS_ANY());  /* 15.2.12.5.17 */
   mrb_define_method(mrb, a, "last",            mrb_ary_last,         MRB_ARGS_ANY());  /* 15.2.12.5.18 */
   mrb_define_method(mrb, a, "length",          mrb_ary_size,         MRB_ARGS_NONE()); /* 15.2.12.5.19 */
+  mrbjit_define_primitive(mrb, a, "length", mrbjit_prim_ary_size);
+
   mrb_define_method(mrb, a, "pop",             mrb_ary_pop,          MRB_ARGS_NONE()); /* 15.2.12.5.21 */
   mrb_define_method(mrb, a, "push",            mrb_ary_push_m,       MRB_ARGS_ANY());  /* 15.2.12.5.22 */
   mrb_define_method(mrb, a, "replace",         mrb_ary_replace_m,    MRB_ARGS_REQ(1)); /* 15.2.12.5.23 */

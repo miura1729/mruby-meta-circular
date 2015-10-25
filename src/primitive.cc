@@ -463,6 +463,39 @@ mrbjit_prim_ary_first(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_ary_first_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_code i = *pc;
+  int regno = GETARG_A(i);
+  int nargs = GETARG_C(i);
+
+  // No support 1 args only no args.
+  if (nargs > 0) {
+    return mrb_nil_value();
+  }
+
+  gen_flush_regs(mrb, pc, status, coi, 1);
+
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, len));
+  emit_local_var_value_write(mrb, coi, regno, reg_tmp1);
+  emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FIXNUM);
+  emit_local_var_type_write(mrb, coi, regno, reg_tmp1);
+  
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_ary_size(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_ary_size_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
 void
 MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
 				mrbjit_vmstatus *status, mrbjit_code_info *coi)
