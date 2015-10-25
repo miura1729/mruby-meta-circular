@@ -239,6 +239,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_RETURN\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {
       case OP_R_NORMAL:
+        printf("\tnormal"); break;
       case OP_R_RETURN:
         printf("\treturn"); break;
       case OP_R_BREAK:
@@ -613,6 +614,7 @@ disasm_once(mrb_state *mrb, mrb_irep *irep, mrb_code c)
     printf("OP_RETURN\tR%d", GETARG_A(c));
     switch (GETARG_B(c)) {
     case OP_R_NORMAL:
+      printf("\tnormal"); break;
     case OP_R_RETURN:
       printf("\treturn"); break;
     case OP_R_BREAK:
