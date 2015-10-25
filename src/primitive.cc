@@ -519,7 +519,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
     emit_arg_push(mrb, coi, 1, eax);
     emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
     emit_arg_push(mrb, coi, 0, eax);
-    CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
+    CALL_CFUNC_STATUS(mrbjit_exec_send_c_void, 2);
   }
   else {
     /* patch initialize method */

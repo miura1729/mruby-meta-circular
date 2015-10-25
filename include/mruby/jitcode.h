@@ -26,6 +26,8 @@ extern "C" {
 
 void *mrbjit_exec_send_c(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
+void *mrbjit_exec_send_c_void(mrb_state *, mrbjit_vmstatus *, 
+		      struct RProc *, struct RClass *);
 void *mrbjit_exec_extend_callinfo(mrb_state *, mrb_context *, int);
 
 void *mrbjit_exec_send_mruby(mrb_state *, mrbjit_vmstatus *, 

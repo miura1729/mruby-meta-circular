@@ -132,12 +132,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   }
 
   ci->proc = m;
-  if (c->tt == MRB_TT_ICLASS) {
-    ci->target_class = c->c;
-  }
-  else {
-    ci->target_class = c;
-  }
+  ci->target_class = c;
 
   ci->pc = pc + 1;
   ci->acc = a;
@@ -150,6 +145,84 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   result = m->body.func(mrb, recv);
   mrb->compile_info.disable_jit = orgdisflg;
   mrb->c->stack[0] = result;
+  mrb_gc_arena_restore(mrb, ai);
+  if (mrb->exc) {
+    ci->mid = mid;
+    ci->proc = m;
+    return status->gototable[0];	/* goto L_RAISE; */
+  }
+  if (ci != mrb->c->ci) {
+    /* OP_SEND like method ex. __send__  */
+    ci[-1].jit_entry = NULL;
+  }
+  /* pop stackpos */
+  ci = mrb->c->ci;
+  if (!ci->target_class) { /* return from context modifying method (resume/yield) */
+    if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
+      irep = *(status->irep) = ci[-1].proc->body.irep;
+      *(status->pool) = irep->pool;
+      *(status->syms) = irep->syms;
+    }
+    *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
+    mrbjit_cipop(mrb);
+    *(status->pc) = ci->pc;
+
+    return status->optable[GET_OPCODE(**(status->pc))];
+  }
+  mrb->c->stack = mrb->c->ci->stackent;
+  mrbjit_cipop(mrb);
+
+  return NULL;
+}
+
+void *
+mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
+		 struct RProc *m, struct RClass *c)
+{
+  /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
+  mrb_code *pc = *status->pc;
+  mrb_value *regs = *status->regs;
+  mrb_irep *irep = *status->irep;
+  mrb_sym *syms = irep->syms;
+  int ai = *status->ai;
+  mrb_code i = *pc;
+
+  int a = GETARG_A(i);
+  int n = GETARG_C(i);
+  mrb_callinfo *ci;
+  mrb_value recv, result;
+  mrb_sym mid = syms[GETARG_B(i)];
+  int orgdisflg = mrb->compile_info.disable_jit;
+
+  recv = regs[a];
+
+  // printf("C %d %x %x %x\n", m->body.func, regs, n);
+  // puts(mrb_sym2name(mrb, mid));
+
+  ci = mrbjit_cipush(mrb);
+  ci->stackent = mrb->c->stack;
+  if (n == CALL_MAXARGS) {
+    ci->argc = -1;
+    ci->nregs = 3;
+  }
+  else {
+    ci->argc = n;
+    ci->nregs = n + 2;
+  }
+
+  ci->proc = m;
+  ci->target_class = c;
+
+  ci->pc = pc + 1;
+  ci->acc = a;
+
+  /* prepare stack */
+  mrb->c->stack += a;
+
+  //mrb_p(mrb, recv);
+  mrb->compile_info.disable_jit = 1;
+  result = m->body.func(mrb, recv);
+  mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
   if (mrb->exc) {
     ci->mid = mid;
