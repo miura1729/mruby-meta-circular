@@ -636,12 +636,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_context, stack));
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, stackent), reg_tmp0);
 
-    if (c->tt == MRB_TT_ICLASS) {
-      emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c->c);
-    }
-    else {
-      emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c);
-    }
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c);
 
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, pc), (cpu_word_t)(pc + 1));
 
@@ -1480,7 +1475,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	rinfo->klass = NULL;
 	rinfo->constp = 0;
       }
-      gen_send_mruby(mrb, m, mid, recv, mrb_class(mrb, recv), status, pc, coi);
+      gen_send_mruby(mrb, m, mid, recv, c, status, pc, coi);
     }
 
     return code;
