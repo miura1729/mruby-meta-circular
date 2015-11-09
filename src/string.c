@@ -1319,7 +1319,18 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
   mrb_str_modify(mrb, s);
   if (RSTR_LEN(s) > 0) {
     mrb_int len;
+#ifdef MRB_UTF8_STRING
+    const char* t = RSTR_PTR(s), *p = t;
+    const char* e = p + RSTR_LEN(s);
+    while (p<e) {
+      mrb_int clen = utf8len(p, e);
+      if (p + clen>=e) break;
+      p += clen;
+    }
+    len = p - t;
+#else
     len = RSTR_LEN(s) - 1;
+#endif
     if (RSTR_PTR(s)[len] == '\n') {
       if (len > 0 &&
           RSTR_PTR(s)[len-1] == '\r') {
@@ -2587,7 +2598,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
         buf[i] = p[i];
       }
       mrb_str_cat(mrb, result, buf, clen);
-      p += clen;
+      p += clen-1;
       continue;
     }
 #endif
@@ -2664,7 +2675,7 @@ mrb_init_string(mrb_state *mrb)
 
   mrb_static_assert(RSTRING_EMBED_LEN_MAX < (1 << 5), "pointer size too big for embedded string");
 
-  s = mrb->string_class = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
+  mrb->string_class = s = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
   mrb_define_method(mrb, s, "bytesize",        mrb_str_bytesize,        MRB_ARGS_NONE());

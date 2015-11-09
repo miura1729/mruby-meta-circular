@@ -2398,7 +2398,7 @@ do {                                                                 \
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp1);
     
     emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
@@ -2445,7 +2445,7 @@ do {                                                                 \
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
     emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
@@ -2694,7 +2694,7 @@ do {                                                                 \
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
 
     emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
     return code;
   }
 

@@ -10,10 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/class.h
- * @defgroup mruby_class Class class
- * @ingroup mruby
- * @{
+ * Class class
  */
 MRB_BEGIN_DECL
 

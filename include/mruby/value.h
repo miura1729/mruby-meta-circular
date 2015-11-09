@@ -10,13 +10,7 @@
 #include "mruby/common.h"
 
 /**
- * @file mruby/value.h
- * @defgroup mruby_value Value definitions
- *
- * @ref mrb_value functions and macros.
- *
- * @ingroup mruby
- * @{
+ * MRuby Value definition functions and macros.
  */
 MRB_BEGIN_DECL
 
@@ -105,6 +99,22 @@ enum mrb_vtype {
 
 #include "mruby/object.h"
 
+#ifdef MRB_DOCUMENTATION_BLOCK
+
+/**
+ * @abstract
+ * MRuby value boxing.
+ *
+ * Actual implementation depends on configured boxing type.
+ *
+ * @see mruby/boxing_no.h Default boxing representation
+ * @see mruby/boxing_word.h Word representation
+ * @see mruby/boxing_nan.h Boxed double representation
+ */
+typedef void mrb_value;
+
+#endif
+
 #if defined(MRB_NAN_BOXING)
 #include "boxing_nan.h"
 #elif defined(MRB_WORD_BOXING)
@@ -135,8 +145,10 @@ enum mrb_vtype {
 #define mrb_test(o)   mrb_bool(o)
 MRB_API mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
 
-static inline mrb_value
-mrb_float_value(struct mrb_state *mrb, mrb_float f)
+/*
+ * Returns a float in Ruby.
+ */
+MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
   (void) mrb;
@@ -153,8 +165,10 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
   return v;
 }
 
-static inline mrb_value
-mrb_fixnum_value(mrb_int i)
+/*
+ * Returns a fixnum in Ruby.
+ */
+MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
   struct mrb_state *mrb = NULL;
@@ -181,7 +195,7 @@ mrb_obj_value2(struct mrb_state *mrb, void *p)
 #define mrb_obj_value(p) mrb_obj_value2(mrb, (p))
 
 
-/**
+/*
  * Get a nil mrb_value object.
  *
  * @return
@@ -195,8 +209,10 @@ MRB_INLINE mrb_value mrb_nil_value(void)
   return v;
 }
 
-static inline mrb_value
-mrb_false_value(void)
+/*
+ * Returns false in Ruby.
+ */
+MRB_INLINE mrb_value mrb_false_value(void)
 {
   mrb_value v;
   struct mrb_state *mrb = NULL;
@@ -204,8 +220,10 @@ mrb_false_value(void)
   return v;
 }
 
-static inline mrb_value
-mrb_true_value(void)
+/*
+ * Returns true in Ruby.
+ */
+MRB_INLINE mrb_value mrb_true_value(void)
 {
   mrb_value v;
   struct mrb_state *mrb = NULL;
@@ -254,7 +272,6 @@ mrb_ro_data_p(const char *p)
 # define mrb_ro_data_p(p) FALSE
 #endif
 
-/** @} */
 MRB_END_DECL
 
 #endif  /* MRUBY_VALUE_H */

@@ -677,7 +677,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           format++;
           if (i < argc && mrb_nil_p(*sp)) {
             *ps = NULL;
-            i++;
+            i++; sp++;
             break;
           }
         }
@@ -702,7 +702,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           if (i < argc && mrb_nil_p(*sp)) {
             *pb = 0;
             *pl = 0;
-            i++;
+            i++; sp++;
             break;
           }
         }
@@ -795,7 +795,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           format++;
           if (i < argc && mrb_nil_p(*sp)) {
             *datap = 0;
-            i++;
+            i++; sp++;
             break;
           }
         }

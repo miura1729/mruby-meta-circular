@@ -52,7 +52,7 @@ module MRuby
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
         end
-        @linker = LinkerConfig.new([], [], [], [])
+        @linker = LinkerConfig.new([], [], [], [], [])
 
         @rbfiles = Dir.glob("#{dir}/mrblib/**/*.rb").sort
         @objs = Dir.glob("#{dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
@@ -101,6 +101,10 @@ module MRuby
         requirements = ['>= 0.0.0'] if requirements.empty?
         requirements.flatten!
         @dependencies << {:gem => name, :requirements => requirements, :default => default_gem}
+      end
+
+      def add_test_dependency(*args)
+        add_dependency(*args) if build.test_enabled?
       end
 
       def add_conflict(name, *req)
