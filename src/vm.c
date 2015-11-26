@@ -27,7 +27,7 @@
 #include "value_array.h"
 #include "mruby/throw.h"
 
-#ifndef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -1495,7 +1495,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
 #define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
 #define ERR_PC_CLR(mrb)     mrb->c->ci->err = 0;
-#ifdef ENABLE_DEBUG
+#ifdef MRB_ENABLE_DEBUG_HOOK
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
@@ -3298,10 +3298,10 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_DEBUG) {
       /* A B C    debug print R(A),R(B),R(C) */
-#ifdef ENABLE_DEBUG
+#ifdef MRB_ENABLE_DEBUG_HOOK
       mrb->debug_op_hook(mrb, irep, pc, regs);
 #else
-#ifdef ENABLE_STDIO
+#ifndef MRB_DISABLE_STDIO
       printf("OP_DEBUG %d %d %d\n", GETARG_A(i), GETARG_B(i), GETARG_C(i));
 #else
       abort();
