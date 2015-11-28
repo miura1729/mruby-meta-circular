@@ -1623,22 +1623,23 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int i;
 
     if (irep->block_lambda) {
+      inLocalLabel();
       emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
       emit_cmp(mrb, coi, reg_tmp0, (cpu_word_t)irep);
-      jz("@f");
-      inLocalLabel();
+      jz(".gend");
 
       gen_flush_regs(mrb, *status->pc, status, coi, 1);
 
       L(".exitlab");
+      emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, iseq));
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);
       emit_load_literal(mrb, coi, reg_tmp0, 0);
       mov(reg_tmp1, ".exitlab");
       ret();
 
+      L(".gend");
       outLocalLabel();
-      L("@@");
     }
 
     selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
@@ -1916,6 +1917,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_dtmp0, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value));
       emit_local_var_write(mrb, coi, a, reg_dtmp0);
     }
+
+    return code;
+  }
+
+  const void *
+    ent_epush(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs) 
+  {
+    const void *code = getCurr();
+    mrb_code *pc = *status->pc;
+    /* Bx     ensure_push(SEQ[Bx]) */
+
+    /* execute by RITE VM */
+    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)status->optable[GET_OPCODE(*pc)]);
+    gen_exit(mrb, pc, 0, 0, status, coi);
 
     return code;
   }

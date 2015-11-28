@@ -91,13 +91,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     //    printf("%x \n", code->getCurr());
     mrb->compile_info.code_base = code;
   }
-  const void *entry = code->gen_entry(mrb, status);
-
-#ifdef ENABLE_DEBUG
-  if (mrb->code_fetch_hook) {
-    code->gen_call_fetch_hook(mrb, status, coi);
-  }
-#endif
+  const void *entry;
 
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
@@ -105,6 +99,14 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     mrb->compile_info.force_compile = 0;
     mrb->compile_info.nest_level++;
   }
+
+  entry = code->gen_entry(mrb, status);
+
+#ifdef ENABLE_DEBUG
+  if (mrb->code_fetch_hook) {
+    code->gen_call_fetch_hook(mrb, status, coi);
+  }
+#endif
 
   switch(GET_OPCODE(**ppc)) {
   case OP_NOP:
@@ -304,6 +306,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   case OP_BLKPUSH:
     rc = code->ent_blkpush(mrb, status, coi, regs);
+    break;
+
+  case OP_EPUSH:
+    rc = code->ent_epush(mrb, status, coi, regs);
     break;
 
   default:
