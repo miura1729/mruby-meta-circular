@@ -559,6 +559,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
     int acc, eidx = mrb->c->ci->eidx;
     mrb_value v = (*status->regs)[GETARG_A(i)];
+    struct RProc *proc = *status->proc;
 
     switch (GETARG_B(i)) {
     case OP_R_RETURN:
@@ -566,7 +567,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       if ((*status->proc)->env && !MRB_PROC_STRICT_P(*status->proc)) {
 	struct REnv *e = mrbjit_top_env(mrb, *status->proc);
 
-	if (e->cioff < 0) {
+	if (!MRB_ENV_STACK_SHARED_P(e)) {
 	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
 	}
@@ -594,17 +595,25 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	/* automatic yield at the end */
 	mrb->c->status = MRB_FIBER_TERMINATED;
 	mrb->c = mrb->c->prev;
+	mrb->c->status = MRB_FIBER_RUNNING;
       }
       ci = mrb->c->ci;
       break;
     case OP_R_BREAK:
-      if ((*status->proc)->env->cioff < 0) {
+      if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
 	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
 	goto L_RAISE;
       }
-      ci = mrb->c->ci = mrb->c->cibase + (*status->proc)->env->cioff + 1;
+      /* break from fiber block */
+      if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
+	struct mrb_context *c = mrb->c;
+	
+	mrb->c = c->prev;
+	c->prev = NULL;
+      }
+      ci = mrb->c->ci;
       mrb->c->stack = ci->stackent;
-      mrb->c->ci = mrb->c->cibase + (*status->proc)->env->cioff + 1;
+      mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
       while (ci > mrb->c->ci) {
 	if (ci[-1].acc == CI_ACC_SKIP) {
 	  mrb->c->ci = ci;
@@ -612,19 +621,18 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	}
 	ci--;
       }
-      //rc = status->optable[GET_OPCODE(*ci->pc)];
       break;
     default:
       /* cannot happen */
       break;
     }
+    while (eidx > mrb->c->ci->eidx) {
+      mrbjit_ecall(mrb, --eidx);
+    }
     mrbjit_cipop(mrb);
     acc = ci->acc;
     *status->pc = ci->pc;
     *status->regs = mrb->c->stack = ci->stackent;
-    while (eidx > mrb->c->ci->eidx) {
-      mrbjit_ecall(mrb, --eidx);
-    }
     if (acc == CI_ACC_SKIP) {
       mrb->jmp = *status->prev_jmp;
       return rc;		/* return v */
