@@ -52,6 +52,19 @@ mrbjit_gen_exit_patch(mrbjit_code_area coderaw, mrb_state *mrb, void *dst, mrb_c
 }
 
 void
+mrbjit_gen_exit_patch2(mrbjit_code_area coderaw, mrb_state *mrb, void *dst, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  MRBJitCode *code;
+  if (coderaw == NULL) {
+    code = the_code;
+  } 
+  else {
+    code  = (MRBJitCode *) coderaw;
+  }
+  code->gen_exit_patch2(mrb, dst, pc, status, coi);
+}
+
+void
 mrbjit_gen_load_patch(mrbjit_code_area coderaw, void *dst, void *address, mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   MRBJitCode *code;

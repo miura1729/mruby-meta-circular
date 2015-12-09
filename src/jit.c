@@ -773,3 +773,65 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   return NULL;
 }
 
+void
+mrbjit_reset_proc(mrb_state *mrb, mrbjit_vmstatus *status, struct RProc *p)
+{
+  /* Disable JIT output code for redefined method */
+  mrb_irep *irep = p->body.irep;
+  mrbjit_codetab *tab = irep->jit_entry_tab;
+  mrbjit_code_info *entry;
+  int i;
+
+  for (i = 0; i < tab->size; i++) {
+    entry = tab->body + i;
+    if (entry->used > 0) {
+      mrbjit_code_area cbase = mrb->compile_info.code_base;
+      mrbjit_gen_exit_patch2(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+    }
+  }
+}
+
+static void
+mrbjit_reset_caller_aux(mrb_state *mrb, mrbjit_vmstatus *status)
+{
+  /* Disable JIT output code for redefined method of caller */
+  struct RProc *p = mrb->c->ci[-1].proc;
+  mrb_irep *irep = p->body.irep;
+  mrbjit_codetab *tab = irep->jit_entry_tab;
+  mrbjit_code_info *entry;
+  int i;
+  int j;
+
+  for (i = 0; i < tab->size; i++) {
+    entry = tab->body + i;
+    if (entry->used > 0) {
+      mrbjit_code_area cbase = mrb->compile_info.code_base;
+      mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+    }
+  }
+  for (j = 0; j < irep->ilen; j++) {
+    for (i = 0; i < tab[j].size; i++) {
+      entry = tab[j].body + i;
+      entry->entry = NULL;
+      entry->used = -1;
+    }
+  }
+}
+
+void
+mrbjit_reset_caller()
+{
+  mrb_state *mrb;
+  mrbjit_vmstatus status;
+  struct RProc *p;
+  mrb_irep *irep;
+
+  asm volatile("mov %%esi, %0\n\t"
+	       : "=c"(mrb));
+  asm volatile("mov %%ebx, %0\n\t"
+	       : "=c"(status.pc));
+  p = mrb->c->ci[-1].proc;
+  irep = p->body.irep;
+  status.irep = &irep;
+  mrbjit_reset_caller_aux(mrb, &status);
+}

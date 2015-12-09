@@ -907,7 +907,6 @@ extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *, mrbjit_code_info *);
 extern const void *mrbjit_gen_jump_block(mrbjit_code_area, mrb_state *, void *, mrbjit_vmstatus *, mrbjit_code_info *, mrbjit_code_info *);
 extern void mrbjit_gen_jmp_patch(mrb_state *mrb, mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
-extern void mrbjit_gen_exit_patch(mrbjit_code_area, void *, mrb_state *, mrb_code *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_load_patch(mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_align(mrbjit_code_area, unsigned);
 
@@ -3241,31 +3240,21 @@ RETRY_TRY_BLOCK:
       khiter_t k;
       struct RProc *p;
 
+      p = NULL;
       if (h) {
 	k = kh_get(mt, mrb, h, syms[GETARG_B(i)]);
 	if (k != kh_end(h)) {
 	  p = kh_value(h, k);
 	  if (p && !MRB_PROC_CFUNC_P(p)) {
-	    /* Disable JIT output code for redefined method */
-	    mrb_irep *irep = p->body.irep;
-	    mrbjit_codetab *tab = irep->jit_entry_tab;
-	    mrbjit_code_info *entry;
-	    int i;
-
-	    for (i = 0; i < tab->size; i++) {
-	      entry = tab->body + i;
-	      if (entry->used > 0) {
-		mrbjit_code_area cbase = mrb->compile_info.code_base;
-		mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, &status, NULL);
-	      }
-	    }
+	    mrbjit_reset_proc(mrb, &status, p);
 	  }
 	}
       }
 
       p = mrb_proc_ptr(regs[a+1]);
-      mrb_proc_ptr(regs[a+1])->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, mrb_proc_ptr(regs[a+1])->body.irep);
-      mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], mrb_proc_ptr(regs[a+1]));
+      p->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, p->body.irep);
+      mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], p);
+
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }

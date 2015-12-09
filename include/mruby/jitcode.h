@@ -321,6 +321,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   void 
+    gen_exit_patch2(mrb_state *mrb, void *dst, mrb_code *pc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    size_t cursize = getSize();
+    const unsigned char *code = getCode();
+    size_t dstsize = (unsigned char *)dst - code;
+
+    setSize(dstsize);
+    call((void *)mrbjit_reset_caller);
+    gen_exit(mrb, pc, 1, 0, status, coi);
+    setSize(cursize);
+  }
+
+  void 
     gen_align(unsigned align)
   {
     const unsigned char *code = getCurr();
