@@ -9,10 +9,10 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/numeric.h"
-#include "mruby/string.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/numeric.h>
+#include <mruby/string.h>
 
 #include "mruby/primitive.h"
 

@@ -7,7 +7,7 @@
 #ifndef MRUBY_VALUE_H
 #define MRUBY_VALUE_H
 
-#include "mruby/common.h"
+#include "common.h"
 
 /**
  * MRuby Value definition functions and macros.
@@ -97,7 +97,7 @@ enum mrb_vtype {
   MRB_TT_MAXDEFINE    /*  24 */
 };
 
-#include "mruby/object.h"
+#include <mruby/object.h>
 
 #ifdef MRB_DOCUMENTATION_BLOCK
 

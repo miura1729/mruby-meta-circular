@@ -4,13 +4,13 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/proc.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
-#include "mruby/value.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/proc.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/value.h>
 
 typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
 
@@ -263,7 +263,7 @@ iv_free(mrb_state *mrb, iv_tbl *t, enum mrb_vtype type)
 
 #else
 
-#include "mruby/khash.h"
+#include <mruby/khash.h>
 
 #ifndef MRB_IVHASH_INIT_SIZE
 #define MRB_IVHASH_INIT_SIZE 8

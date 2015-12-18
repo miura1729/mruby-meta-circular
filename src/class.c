@@ -5,15 +5,15 @@
 */
 
 #include <stdarg.h>
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/numeric.h"
-#include "mruby/proc.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
-#include "mruby/error.h"
-#include "mruby/data.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/numeric.h>
+#include <mruby/proc.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/error.h>
+#include <mruby/data.h>
 
 #include "mruby/primitive.h"
 

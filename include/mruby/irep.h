@@ -14,16 +14,14 @@
 extern "C" {
 #endif
 
-#include "mruby/compile.h"
-
 enum method_kind {
   NORMAL = 0,
   IV_READER,
   IV_WRITER,
 };
 
-#include "mruby/common.h"
-#include "mruby/compile.h"
+#include "common.h"
+#include <mruby/compile.h>
 
 /**
  * Compiled mruby scripts.
