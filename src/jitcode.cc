@@ -65,7 +65,7 @@ mrbjit_gen_exit_patch2(mrbjit_code_area coderaw, mrb_state *mrb, void *dst, mrb_
 }
 
 void
-mrbjit_gen_load_patch(mrbjit_code_area coderaw, void *dst, void *address, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+mrbjit_gen_load_patch(mrbjit_code_area coderaw, mrb_state *mrb, void *dst, void *address, mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   MRBJitCode *code;
   if (coderaw == NULL) {
@@ -74,7 +74,7 @@ mrbjit_gen_load_patch(mrbjit_code_area coderaw, void *dst, void *address, mrbjit
   else {
     code  = (MRBJitCode *) coderaw;
   }
-  code->gen_load_patch(dst, (cpu_word_t)address, status, coi);
+  code->gen_load_patch(mrb, dst, (cpu_word_t)address, status, coi);
 }
 
 void

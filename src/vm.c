@@ -907,7 +907,7 @@ extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *, mrbjit_code_info *);
 extern const void *mrbjit_gen_jump_block(mrbjit_code_area, mrb_state *, void *, mrbjit_vmstatus *, mrbjit_code_info *, mrbjit_code_info *);
 extern void mrbjit_gen_jmp_patch(mrb_state *mrb, mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
-extern void mrbjit_gen_load_patch(mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
+extern void mrbjit_gen_load_patch(mrbjit_code_area, mrb_state *, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_align(mrbjit_code_area, unsigned);
 
 static inline mrbjit_code_info *
@@ -1455,7 +1455,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	// printf("%x %x %x\n", ci->entry, *ppc, ci);
       }
       if (ci->patch_pos) {
-	mrbjit_gen_load_patch(cbase, (void *)ci->patch_pos, ci->entry, status, ci);	
+	mrbjit_gen_load_patch(cbase, mrb, (void *)ci->patch_pos, ci->entry, status, ci);	
 	ci->patch_pos = NULL;
       }
     }

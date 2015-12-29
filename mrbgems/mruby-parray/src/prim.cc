@@ -32,7 +32,7 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1); \
                                                                      \
     emit_cfunc_start(mrb, coi);                                      \
-    emit_load_literal(mrb, coi, reg_tmp1, (Xbyak::uint32)c);         \
+    emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)c);         \
     emit_arg_push(mrb, coi, 1, reg_tmp1);                            \
     emit_arg_push(mrb, coi, 0, esi);                                 \
     call((void *)mrb_write_barrier);                                 \
@@ -67,7 +67,7 @@ do {                                                                  \
   }                                                                   \
                                                                       \
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);               \
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c); \
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (cpu_word_t)c); \
   emit_load_literal(mrb, coi, reg_tmp1, 4);                           \
   emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, len), reg_tmp1); \
   outLocalLabel();                                                    \
@@ -259,8 +259,8 @@ MRBJitCode::mrbjit_prim_pvec4_aget_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   mrb_code i = *pc;
   int regno = GETARG_A(i);
-  const Xbyak::uint32 aryno = regno;
-  const Xbyak::uint32 idxno = aryno + 1;
+  const cpu_word_t aryno = regno;
+  const cpu_word_t idxno = aryno + 1;
   mrbjit_reginfo *ainfo = &coi->reginfo[regno];
   mrbjit_reginfo *iinfo = &coi->reginfo[regno + 1];
 
@@ -304,9 +304,9 @@ MRBJitCode::mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
   mrb_code *pc = *status->pc;
   int i = *pc;
   int regno = GETARG_A(i);
-  const Xbyak::uint32 aryno = regno;
-  const Xbyak::uint32 idxno = aryno + 1;
-  const Xbyak::uint32 valno = idxno + 1;
+  const cpu_word_t aryno = regno;
+  const cpu_word_t idxno = aryno + 1;
+  const cpu_word_t valno = idxno + 1;
   mrbjit_reginfo *iinfo = &coi->reginfo[regno + 1];
 
   if (iinfo->regplace == MRBJIT_REG_IMMIDATE) {

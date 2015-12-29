@@ -253,7 +253,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
     else {
       //mov(reg_tmp1, (cpu_word_t)exit_ptr);
-      mov(reg_tmp1, ".exitlab");
+      emit_load_label(mrb, coi, reg_tmp1, ".exitlab");
     }
     ret();
     mrb->compile_info.nest_level = 0;
@@ -297,14 +297,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   void 
-    gen_load_patch(void *dst, cpu_word_t address, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+    gen_load_patch(mrb_state *mrb, void *dst, cpu_word_t address, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     size_t cursize = getSize();
     const unsigned char *code = getCode();
     size_t dstsize = (unsigned char *)dst - code;
 
     setSize(dstsize);
-    mov(reg_tmp1, address);
+    emit_load_literal_noopt(mrb, coi, reg_tmp1, address);
     setSize(cursize);
   }
 
@@ -532,11 +532,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     /* This code is patched when compiled continaution code */
     if (ctab->body[toff].entry) {
-      mov(reg_tmp1, (cpu_word_t)ctab->body[toff].entry);
+      emit_load_literal_noopt(mrb, coi, reg_tmp1, 
+			      (cpu_word_t)ctab->body[toff].entry);
     }
     else {
       ctab->body[toff].patch_pos = getCurr();
-      mov(reg_tmp1, 0);
+      emit_load_literal_noopt(mrb, coi, reg_tmp1, 0);
     }
 
     //ci->jit_entry = (irep->jit_entry_tab[-1] + ioff)->body[0].entry;
@@ -593,7 +594,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     jne("@f");
 
     if (addr_call_extend_callinfo == NULL) {
-      mov(reg_tmp0, "@f");
+      emit_load_label(mrb, coi, reg_tmp0, "@f");
       emit_push(mrb, coi, reg_tmp0);
 
       addr_call_extend_callinfo = (void *)getCurr();
@@ -706,7 +707,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       jb("@f");
 
       if (addr_call_stack_extend == NULL) {
-	mov(reg_tmp0, "@f");
+	emit_load_label(mrb, coi, reg_tmp0, "@f");
 	emit_push(mrb, coi, reg_tmp0);
 	emit_load_literal(mrb, coi, reg_tmp1, room);
 	emit_load_literal(mrb, coi, reg_tmp0, keep);
@@ -1648,7 +1649,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, iseq));
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);
       emit_load_literal(mrb, coi, reg_tmp0, 0);
-      mov(reg_tmp1, ".exitlab");
+      emit_load_label(mrb, coi, reg_tmp1, ".exitlab");
       ret();
 
       L(".gend");
@@ -1942,7 +1943,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Bx     ensure_push(SEQ[Bx]) */
 
     /* execute by RITE VM */
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)status->optable[GET_OPCODE(*pc)]);
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)status->optable[GET_OPCODE(*pc)]);
     gen_exit(mrb, pc, 0, 0, status, coi);
 
     return code;
@@ -2644,7 +2645,7 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
     lea(reg_tmp1, ptr [reg_tmp1 + reg_tmp0 * 4]);
-    emit_move(mrb, coi, reg_tmp1, 0, (Xbyak::uint32)(*ppc + GETARG_sBx(**ppc)));
+    emit_move(mrb, coi, reg_tmp1, 0, (cpu_word_t)(*ppc + GETARG_sBx(**ppc)));
     inc(reg_tmp0);
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, ci));
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, ridx), reg_tmp0);
@@ -2778,7 +2779,7 @@ do {                                                                 \
 
     if (GET_OPCODE(*(*ppc + 1)) == OP_STRCAT &&
 	GETARG_B(*(*ppc + 1)) == GETARG_A(**ppc)) {
-      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)str);
+      emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)str);
       emit_move(mrb, coi, reg_tmp1, reg_tmp0, 4);
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
     }
