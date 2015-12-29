@@ -195,7 +195,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
-  void emit_load_label(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, char *src) {
+  void emit_load_label(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, const char *src) {
     mov(dst, src);
   }
 

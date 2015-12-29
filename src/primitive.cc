@@ -515,9 +515,9 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
 
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)c);
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
     emit_arg_push(mrb, coi, 1, eax);
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
     emit_arg_push(mrb, coi, 0, eax);
     CALL_CFUNC_STATUS(mrbjit_exec_send_c_void, 2);
   }
@@ -564,10 +564,10 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
       /* setup ci */
       emit_move(mrb, coi, reg_tmp1, edi, OffsetOf(mrb_context, ci));
 
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), (Xbyak::uint32)mid);
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, target_class), (Xbyak::uint32)c);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), (cpu_word_t)mid);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c);
       emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
-      emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)m);
+      emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
       emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, proc), reg_tmp0);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), reg_tmp0);
       if (n == CALL_MAXARGS) {
@@ -577,12 +577,12 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
 	emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, argc), n);
       }
 
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (Xbyak::uint32)pirep->nregs);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (Xbyak::uint32)pirep);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(pool), (Xbyak::uint32)pirep->pool);
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(syms), (Xbyak::uint32)pirep->syms);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (cpu_word_t)pirep->nregs);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (cpu_word_t)pirep);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(pool), (cpu_word_t)pirep->pool);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(syms), (cpu_word_t)pirep->syms);
       /* stack extend */
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (Xbyak::uint32)pirep->iseq);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)pirep->iseq);
     }
     else {
       gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
@@ -616,9 +616,9 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   
   // obj = mrbjit_instance_alloc(mrb, klass);
   emit_cfunc_start(mrb, coi);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass) + 1));
+  emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass) + 1));
   emit_arg_push(mrb, coi, 2, eax);
-  emit_load_literal(mrb, coi, reg_tmp0, *((Xbyak::uint32 *)(&klass)));
+  emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass)));
   emit_arg_push(mrb, coi, 1, eax);
   emit_arg_push(mrb, coi, 0, esi);
   call((void *)mrbjit_instance_alloc);
@@ -719,7 +719,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     L(".update_end");
 
     emit_cfunc_start(mrb, coi);
-    emit_load_literal(mrb, coi, reg_tmp0, (Xbyak::uint32)c);
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     call((void *)mrb_write_barrier);
@@ -735,7 +735,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   L(".allocend");
   emit_pop(mrb, coi, ebx);
   //  emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);
-  //emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (Xbyak::uint32)c);
+  //emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (cpu_word_t)c);
 
   gen_call_initialize(mrb, proc, status, coi);
 

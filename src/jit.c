@@ -423,7 +423,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       //disasm_irep(mrb, irep);
       if (rnum == 1) {
 	int ipos = 0;
-	mrb_irep *nirep = (mrb_irep *)((uint8_t *)mrb + mrb_fixnum(irep->pool[ipos]));
+	mrb_irep *nirep = (mrb_irep *)((intptr_t)mrb + mrb_fixnum(irep->pool[ipos]));
 	struct RProc *p;
 
 	if (nirep == (mrb_irep *)mrb) {
@@ -440,7 +440,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	    p->body.irep->refcnt++;
 	    p->target_class = proc->target_class;
 	    p->env = proc->env;
-	    (*status->irep)->pool[ipos] = mrb_fixnum_value((int32_t)((uint8_t *)cirep - (uint8_t *)mrb));
+	    (*status->irep)->pool[ipos] = mrb_fixnum_value(((intptr_t)cirep - (intptr_t)mrb));
 	    mrb->c->ci->proc = proc = p;
 	    *status->irep = cirep;
 	    *status->pc = cirep->iseq;

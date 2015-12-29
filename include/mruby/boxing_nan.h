@@ -56,7 +56,7 @@ typedef struct mrb_value {
 #define mrb_tt(o)       (enum mrb_vtype)((o).value.ttt & 0xfffff)
 #define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
 //#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
-#define mrb_ptr(o)      ((void *)((uint8_t *)mrb + (o).value.p))
+#define mrb_ptr(o)      ((void *)((intptr_t)mrb + (o).value.p))
 #define mrb_float(o)    (o).f
 #define mrb_cptr(o)     mrb_ptr(o)
 #define mrb_fixnum(o)   (o).value.i
@@ -69,8 +69,8 @@ typedef struct mrb_value {
   case MRB_TT_TRUE:\
   case MRB_TT_UNDEF:\
   case MRB_TT_FIXNUM:\
-  case MRB_TT_SYMBOL: (o).attr = (mrb_int)(v); break;\
-  default: (o).value.p = ((int32_t)(((uint8_t *)(v)) - (uint8_t *)mrb));break; \
+  case MRB_TT_SYMBOL: (o).attr = (mrb_int)((intptr_t)v); break;		\
+  default: (o).value.p = ((int32_t)((intptr_t)(v) - (intptr_t)mrb));break; \
   }\
 } while (0)
 
