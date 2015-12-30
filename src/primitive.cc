@@ -625,8 +625,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
   // regs[a] = obj;
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
-  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
+  emit_local_var_write_from_cfunc(mrb, coi, a);
 
   gen_call_initialize(mrb, proc, status, coi);
 
@@ -685,15 +684,13 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_arg_push(mrb, coi, 0, reg_mrb);
   call((void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
-  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+  emit_local_var_write_from_cfunc(mrb, coi, a);
   jmp(".allocend");
 
   L("@@");
   // regs[a] = obj;
   emit_local_var_ptr_value_read(mrb, coi, ebx, a);
-  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+  emit_local_var_write_from_cfunc(mrb, coi, a);
 
   if (civoff >= 0) {
     emit_pop(mrb, coi, reg_tmp0);			/* POP __objcache__ */ 
@@ -1024,8 +1021,7 @@ MRBJitCode::mrbjit_prim_str_plus_impl(mrb_state *mrb, mrb_value proc,
   call((void *)mrb_str_plus);
   emit_cfunc_end(mrb, coi, sizeof(mrb_value)*2 + sizeof(mrb_state *));
 
-  emit_local_var_value_write(mrb, coi, dstno, reg_tmp0);
-  emit_local_var_type_write(mrb, coi, dstno, reg_tmp1);
+  emit_local_var_write_from_cfunc(mrb, coi, dstno);
 
   dinfo->type = MRB_TT_STRING;
   dinfo->klass = mrb->string_class;
