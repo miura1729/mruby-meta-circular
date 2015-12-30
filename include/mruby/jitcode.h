@@ -2547,6 +2547,7 @@ do {                                                                 \
     ent_jmp(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
+    gen_flush_regs(mrb, *status->pc, status, coi, 1);
     return code;
   }
 
