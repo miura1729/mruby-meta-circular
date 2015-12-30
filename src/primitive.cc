@@ -787,6 +787,7 @@ MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
   emit_add(mrb, coi, reg_tmp1, reg_mrb);
   L("@@");
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);
+  emit_sub(mrb, coi, reg_tmp1, reg_mrb);
   emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RObject, c), reg_tmp1);
 
   return mrb_true_value();
