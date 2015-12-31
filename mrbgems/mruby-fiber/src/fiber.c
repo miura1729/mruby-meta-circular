@@ -375,7 +375,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
-  mrbjit_define_primitive(mrb, c, "resume", mrbjit_prim_fiber_resume);
+  //  mrbjit_define_primitive(mrb, c, "resume", mrbjit_prim_fiber_resume);
 
   mrb_define_method(mrb, c, "transfer",   fiber_transfer, MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
