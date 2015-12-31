@@ -83,24 +83,24 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
   inLocalLabel();
   jnz(".cmpneq");
 
-  emit_load_literal(mrb, coi, reg_tmp0, 0);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0);
   emit_jmp(mrb, coi, ".cmpend");
 
   L(".cmpneq");
   jb(".cmplt");
 
-  emit_load_literal(mrb, coi, reg_tmp0, 1);
+  emit_load_literal(mrb, coi, reg_tmp0s, 1);
   emit_jmp(mrb, coi, ".cmpend");
 
   L(".cmplt");
-  emit_load_literal(mrb, coi, reg_tmp0, -1);
+  emit_load_literal(mrb, coi, reg_tmp0s, -1);
 
   L(".cmpend");
   outLocalLabel();
 
-  emit_local_var_value_write(mrb, coi, regno, reg_tmp0);
-  emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FIXNUM);
-  emit_local_var_type_write(mrb, coi, regno, reg_tmp0);
+  emit_local_var_value_write(mrb, coi, regno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FIXNUM);
+  emit_local_var_type_write(mrb, coi, regno, reg_tmp0s);
   dinfo->type = MRB_TT_FIXNUM;
   dinfo->klass = mrb->fixnum_class;
 
@@ -320,10 +320,10 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   emit_jmp(mrb, coi, ".exit");
 
   L(".retnil");
-  emit_load_literal(mrb, coi, reg_tmp0, 0);
-  emit_local_var_value_write(mrb, coi, aryno, reg_tmp0);
-  emit_load_literal(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_FALSE);
-  emit_local_var_type_write(mrb, coi, aryno, reg_tmp0);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0);
+  emit_local_var_value_write(mrb, coi, aryno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FALSE);
+  emit_local_var_type_write(mrb, coi, aryno, reg_tmp0s);
 
   L(".exit");
   outLocalLabel();
@@ -480,10 +480,10 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   gen_flush_regs(mrb, pc, status, coi, 1);
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, len));
-  emit_local_var_value_write(mrb, coi, regno, reg_tmp1);
-  emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FIXNUM);
-  emit_local_var_type_write(mrb, coi, regno, reg_tmp1);
+  emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(struct RArray, len));
+  emit_local_var_value_write(mrb, coi, regno, reg_tmp1s);
+  emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);
+  emit_local_var_type_write(mrb, coi, regno, reg_tmp1s);
   
   return mrb_true_value();
 }

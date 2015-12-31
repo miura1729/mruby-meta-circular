@@ -101,8 +101,7 @@ MRBJitCode::mrbjit_prim_pvec4_new_impl(mrb_state *mrb, mrb_value proc,
 
   // regs[a] = obj;
   /* reg_tmp0 store pointer to new vector */
-  emit_local_var_value_write(mrb, coi, a, reg_tmp0);
-  emit_local_var_type_write(mrb, coi, a, reg_tmp1);
+  emit_local_var_write_from_cfunc(mrb, coi, a);
   emit_add(mrb, coi, reg_tmp0, reg_mrb);
 
   emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
