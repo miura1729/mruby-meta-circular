@@ -398,18 +398,12 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 #endif
   emit_cfunc_start(mrb, coi);
 
-  emit_local_var_type_read(mrb, coi, reg_tmp0, valno);
-  emit_arg_push(mrb, coi, 5, reg_tmp0);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, valno);
-  emit_arg_push(mrb, coi, 4, reg_tmp0);
+  emit_arg_push_nan(mrb, coi, 3, reg_tmp0, valno);
 
   emit_local_var_value_read(mrb, coi, reg_tmp0, idxno);
-  emit_arg_push(mrb, coi, 3, reg_tmp0);
-
-  emit_local_var_type_read(mrb, coi, reg_tmp0, aryno);
   emit_arg_push(mrb, coi, 2, reg_tmp0);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, aryno);
-  emit_arg_push(mrb, coi, 1, reg_tmp0);
+
+  emit_arg_push_nan(mrb, coi, 1, reg_tmp0, aryno);
 
   emit_arg_push(mrb, coi, 0, reg_mrb);
 
@@ -617,10 +611,10 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   // obj = mrbjit_instance_alloc(mrb, klass);
   emit_cfunc_start(mrb, coi);
   emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass) + 1));
-  emit_arg_push(mrb, coi, 2, eax);
+  emit_arg_push(mrb, coi, 2, reg_tmp0);
   emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass)));
-  emit_arg_push(mrb, coi, 1, eax);
-  emit_arg_push(mrb, coi, 0, esi);
+  emit_arg_push(mrb, coi, 1, reg_tmp0);
+  emit_arg_push(mrb, coi, 0, reg_mrb);
   call((void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
@@ -677,10 +671,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   }    
 
   emit_cfunc_start(mrb, coi);
-  emit_local_var_type_read(mrb, coi, reg_tmp0, a);
-  emit_arg_push(mrb, coi, 2, reg_tmp0);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, a);
-  emit_arg_push(mrb, coi, 1, reg_tmp0);
+  emit_arg_push_nan(mrb, coi, 1, reg_tmp0, a);
   emit_arg_push(mrb, coi, 0, reg_mrb);
   call((void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
@@ -1009,14 +1000,8 @@ MRBJitCode::mrbjit_prim_str_plus_impl(mrb_state *mrb, mrb_value proc,
   gen_type_guard(mrb, srcno, status, pc, coi);
 
   emit_cfunc_start(mrb, coi);
-  emit_local_var_type_read(mrb, coi, reg_tmp0, srcno);
-  emit_arg_push(mrb, coi, 4, eax);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, srcno);
-  emit_arg_push(mrb, coi, 3, eax);
-  emit_local_var_type_read(mrb, coi, reg_tmp0, dstno);
-  emit_arg_push(mrb, coi, 2, eax);
-  emit_local_var_value_read(mrb, coi, reg_tmp0, dstno);
-  emit_arg_push(mrb, coi, 1, eax);
+  emit_arg_push_nan(mrb, coi, 2, reg_tmp0, srcno);
+  emit_arg_push_nan(mrb, coi, 1, reg_tmp0, dstno);
   emit_arg_push(mrb, coi, 0, esi);
   call((void *)mrb_str_plus);
   emit_cfunc_end(mrb, coi, sizeof(mrb_value)*2 + sizeof(mrb_state *));
