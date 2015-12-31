@@ -25,6 +25,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   Xbyak::Reg32 reg_tmp0;	/* eax */
   Xbyak::Reg32 reg_tmp1;	/* edx */
+  Xbyak::Reg32 reg_tmp0s;	/* eax (32bit version)*/
+  Xbyak::Reg32 reg_tmp1s;	/* edx (32bit version)*/
   Xbyak::Xmm reg_dtmp0;		/* xmm0 */
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
 
@@ -37,7 +39,9 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     reg_context = edi;
 
     reg_tmp0 = eax;
+    reg_tmp0s = eax;
     reg_tmp1 = edx;
+    reg_tmp1s = edx;
     
     reg_dtmp0 = xmm0;
     reg_dtmp1 = xmm1;
