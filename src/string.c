@@ -4,6 +4,10 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifdef _MSC_VER
+# define _CRT_NONSTDC_NO_DEPRECATE
+#endif
+
 #include <float.h>
 #include <limits.h>
 #include <stddef.h>
@@ -349,12 +353,12 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
     return 0;
   }
   else if (m == 1) {
-    const unsigned char *ys = y, *ye = ys + n;
-    for (; y < ye; ++y) {
-      if (*x == *y)
-        return y - ys;
-    }
-    return -1;
+    const unsigned char *ys = memchr(y, *x, n);
+
+    if (ys)
+      return ys - y;
+    else
+      return -1;
   }
   return mrb_memsearch_qs((const unsigned char *)x0, m, (const unsigned char *)y0, n);
 }
@@ -2125,34 +2129,42 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
       }
       break;
   } /* end of switch (base) { */
-  if (*p == '0') {    /* squeeze preceding 0s */
-    while (p<pend && ((c = *++p) == '0' || c == '_')) {
-      if (c == '_') {
-        if (*p == '_') {
-          if (badcheck) goto bad;
-          break;
-        }
-      }
-    }
-    if (!(c = *p) || ISSPACE(c)) --p;
-  }
-  c = *p;
-  if (badcheck && c == '\0') {
-    goto bad;
-  }
-  c = conv_digit(c);
-  if (c < 0 || c >= base) {
+  if (p>=pend) {
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
-
+  if (*p == '0') {    /* squeeze preceding 0s */
+    p++;
+    while (p<pend) {
+      c = *p++;
+      if (c == '_') {
+        if (p<pend && *p == '_') {
+          if (badcheck) goto bad;
+          break;
+        }
+        continue;
+      }
+      if (c != '0') {
+        p--;
+        break;
+      }
+    }
+  }
+  if (p == pend) {
+    if (badcheck) goto bad;
+    return mrb_fixnum_value(0);
+  }
   for ( ;p<pend;p++) {
     if (*p == '_') {
-      if (p[1] == '_') {
+      p++;
+      if (p==pend) {
         if (badcheck) goto bad;
         continue;
       }
-      p++;
+      if (*p == '_') {
+        if (badcheck) goto bad;
+        break;
+      }
     }
     if (badcheck && *p == '\0') {
       goto nullbyte;
@@ -2163,12 +2175,12 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
     }
     n *= base;
     n += c;
-    if (n > MRB_INT_MAX) {
+    if (n > (uint64_t)MRB_INT_MAX + (sign ? 0 : 1)) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer",
                  mrb_str_new(mrb, str, pend-str));
     }
   }
-  val = n;
+  val = (mrb_int)n;
   if (badcheck) {
     if (p == str) goto bad; /* no number */
     while (p<pend && ISSPACE(*p)) p++;
@@ -2181,7 +2193,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, int base, int b
   /* not reached */
  bad:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)",
-             mrb_inspect(mrb, mrb_str_new_cstr(mrb, str)));
+             mrb_inspect(mrb, mrb_str_new(mrb, str, pend-str)));
   /* not reached */
   return mrb_fixnum_value(0);
 }
