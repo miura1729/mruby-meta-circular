@@ -26,6 +26,7 @@
 
 #define CI_ACC_SKIP    -1
 #define CI_ACC_DIRECT  -2
+#define CI_ACC_RESUMED -3
 
 int mrb_patch_irep_var2fix(mrb_state *, mrb_irep *, mrb_int);
 
@@ -144,7 +145,6 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb->compile_info.disable_jit = 1;
   result = m->body.func(mrb, recv);
   mrb->compile_info.disable_jit = orgdisflg;
-  mrb->c->stack[0] = result;
   mrb_gc_arena_restore(mrb, ai);
   if (mrb->exc) {
     ci->mid = mid;
@@ -158,18 +158,21 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   /* pop stackpos */
   ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
-    if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
+    if (ci->acc == CI_ACC_RESUMED) {
+      mrb->jmp = *status->prev_jmp;
+      (*status->regs)[(*status->irep)->nlocals] = result;
+      return status->gototable[5]; /* goto L_HALT */
+    }
+    else {
       irep = *(status->irep) = ci[-1].proc->body.irep;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
     }
-    *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
-    mrbjit_cipop(mrb);
-    *(status->pc) = ci->pc;
-
-    return status->optable[GET_OPCODE(**(status->pc))];
   }
-  mrb->c->stack = mrb->c->ci->stackent;
+
+  mrb->c->stack[0] = result;
+  *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
+  *(status->pc) = ci->pc;
   mrbjit_cipop(mrb);
 
   return NULL;
@@ -236,7 +239,12 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
   /* pop stackpos */
   ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
-    if (!MRB_PROC_CFUNC_P(ci[-1].proc)) {
+    if (ci->acc == CI_ACC_RESUMED) {
+      mrb->jmp = *status->prev_jmp;
+      (*status->regs)[(*status->irep)->nlocals] = result;
+      return status->gototable[5]; /* goto L_HALT */
+    }
+    else {
       irep = *(status->irep) = ci[-1].proc->body.irep;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
@@ -628,6 +636,11 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     while (eidx > mrb->c->ci->eidx) {
       mrbjit_ecall(mrb, --eidx);
+    }
+    if (mrb->c->vmexec && !mrb->c->ci->target_class) {
+      mrb->c->vmexec = FALSE;
+      mrb->jmp = *status->prev_jmp;
+      return NULL;
     }
     mrbjit_cipop(mrb);
     acc = ci->acc;

@@ -1592,7 +1592,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
   mrb_bool exc_catched = FALSE;
 
   void *gototable[] = {
-    &&L_RAISE, &&L_RETURN, &&L_RESCUE, &&L_SEND, &&L_STOP
+    &&L_RAISE, &&L_RETURN, &&L_RESCUE, &&L_SEND, &&L_STOP, &&L_HALT
   };
 #endif
 
@@ -1602,7 +1602,6 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
   };
 
   irep = proc->body.irep;
-  pc = irep->iseq;
   pool = irep->pool;
   syms = irep->syms;
   ai = mrb_gc_arena_save(mrb);
@@ -3342,6 +3341,7 @@ RETRY_TRY_BLOCK:
       if (mrb->exc) {
         return mrb_obj_value(mrb->exc);
       }
+    L_HALT:
       return regs[irep->nlocals];
     }
 
