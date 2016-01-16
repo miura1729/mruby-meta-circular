@@ -1438,8 +1438,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
-    if ((ci->used < 0 && irep->ilen > 1) || 
-	(ci->used == 1 && prev_entry && *ppc == irep->iseq)) {
+    if (irep->ilen > 1) {
       int ioff;
       int toff;
       mrbjit_codetab *ctab;
@@ -1477,10 +1476,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	mrbjit_gen_load_patch(cbase, mrb, (void *)ci->patch_pos, ci->entry, status, ci);	
 	ci->patch_pos = NULL;
       }
-    }
-    else if (ci->used == 1 && prev_entry) {
-      cbase = mrb->compile_info.code_base;
-      mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
     }
   }
 
