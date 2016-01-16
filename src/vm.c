@@ -706,6 +706,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
 {
   struct RProc *p;
   mrb_callinfo *ci;
+  mrb_int max = 3;
 
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
@@ -718,11 +719,19 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   p = mrb_proc_ptr(blk);
   ci->proc = p;
   ci->argc = 1;
-  mrb->c->stack[1] = self;
   if (MRB_PROC_CFUNC_P(p)) {
+    stack_extend(mrb, 3, 0);
+    mrb->c->stack[0] = self;
+    mrb->c->stack[1] = self;
+    mrb->c->stack[2] = mrb_nil_value();
     return p->body.func(mrb, self);
   }
   ci->nregs = p->body.irep->nregs;
+  if (max < ci->nregs) max = ci->nregs;
+  stack_extend(mrb, max, 0);
+  mrb->c->stack[0] = self;
+  mrb->c->stack[1] = self;
+  mrb->c->stack[2] = mrb_nil_value();
   ci = cipush(mrb);
   ci->nregs = 0;
   ci->target_class = 0;
@@ -1539,7 +1548,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 
 MRB_API mrb_value
-mrb_context_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   mrb_irep *irep = proc->body.irep;
 
@@ -3379,30 +3388,24 @@ L_DISPATCH:
 MRB_API mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
-  return mrb_context_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
+  return mrb_vm_run(mrb, proc, self, mrb->c->ci->argc + 2); /* argc + 2 (receiver and block) */
 }
 
 MRB_API mrb_value
-mrb_toplevel_run_keep(mrb_state *mrb, struct RProc *proc, unsigned int stack_keep)
+mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   mrb_callinfo *ci;
   mrb_value v;
 
   if (!mrb->c->cibase || mrb->c->ci == mrb->c->cibase) {
-    return mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
+    return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   ci = cipush(mrb);
   ci->nregs = 1;   /* protect the receiver */
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
-  v = mrb_context_run(mrb, proc, mrb_top_self(mrb), stack_keep);
+  v = mrb_vm_run(mrb, proc, self, stack_keep);
   cipop(mrb);
 
   return v;
-}
-
-MRB_API mrb_value
-mrb_toplevel_run(mrb_state *mrb, struct RProc *proc)
-{
-  return mrb_toplevel_run_keep(mrb, proc, 0);
 }
