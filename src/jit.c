@@ -165,6 +165,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
     }
     else {
       irep = *(status->irep) = ci[-1].proc->body.irep;
+      *(status->proc) = ci[-1].proc;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
     }
@@ -246,12 +247,13 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
     }
     else {
       irep = *(status->irep) = ci[-1].proc->body.irep;
+      *(status->proc) = ci[-1].proc;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
     }
     *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
-    mrbjit_cipop(mrb);
     *(status->pc) = ci->pc;
+    mrbjit_cipop(mrb);
 
     return status->optable[GET_OPCODE(**(status->pc))];
   }
@@ -408,7 +410,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       value_move(&regs[1], argv, argc-mlen); /* m1 + o */
     }
     if (mlen) {
-      value_move(&regs[len-m2+1], &argv[argc-mlen], m2); /* m2 */
+      value_move(&regs[len-m2+1], &argv[argc-mlen], mlen); /* m2 */
     }
     if (r) {                  /* r */
       regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
@@ -421,12 +423,13 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       *(status->pc) += argc - m1 - m2 + 1;
   }
   else {
+    int rnum = 0;
     if (argv0 != argv) {
       regs[len+1] = *blk; /* move block */
       value_move(&regs[1], argv, m1+o); /* m1 + o */
     }
     if (r) {                  /* r */
-      int rnum = argc-m1-o-m2;
+      rnum = argc - m1 - o - m2;
       //printf("%d %x\n", rnum, irep);
       //disasm_irep(mrb, irep);
       if (rnum == 1) {
@@ -480,7 +483,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     if (m2) {
       if (argc-m2 > m1) {
-	value_move(&regs[m1+o+r+1], &argv[argc-m2], m2);
+	value_move(&regs[m1+o+r+1], &argv[argc+o+rnum], m2);
       }
     }
     if (argv0 == argv) {
