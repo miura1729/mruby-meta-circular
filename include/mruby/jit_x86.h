@@ -31,7 +31,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
 
   MRBGenericCodeGenerator() 
-    :CodeGenerator(1024 * 1024)
+    :CodeGenerator(1024 * 1024 * 10)
   {
     reg_regs = ecx;
     reg_vars = ebx;
