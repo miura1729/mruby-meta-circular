@@ -207,7 +207,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   case OP_RETURN:
     mrb->compile_info.nest_level--;
     if (mrb->c->ci->proc->env ||
-	mrb->compile_info.nest_level != 0 ||
+	mrb->compile_info.nest_level < 0 ||
 	(mrb->c->ci != mrb->c->cibase &&
 	 mrb->c->ci[0].proc->body.irep == mrb->c->ci[-1].proc->body.irep)) {
       rc =code->ent_return(mrb, status, coi, **ppc);
@@ -328,17 +328,19 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   default:
     mrb->compile_info.force_compile = 0;
     mrb->compile_info.nest_level = 0;
-    rc =NULL;
+    rc = NULL;
     break;
   }
 
   if (rc == NULL) {
     /* delete fetch hook */
     code->set_entry(entry);
-    rc2 = NULL;
   }
 
   if (rc2) {
+    if (rc == NULL) {
+      code->gen_exit(mrb, *ppc, 1, 0, status, coi);
+    }
     return rc2;
   }
 

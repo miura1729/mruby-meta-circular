@@ -2288,7 +2288,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1));
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
-  mrbjit_define_primitive(mrb, cls, "new", mrbjit_prim_instance_new);
+  //  mrbjit_define_primitive(mrb, cls, "new", mrbjit_prim_instance_new);
 
   mrb_define_method(mrb, cls, "initialize",              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));

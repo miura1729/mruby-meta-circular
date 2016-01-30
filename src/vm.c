@@ -1316,6 +1316,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
       n = ISEQ_OFFSET_OF(*ppc);
+      assert(*status->pc >= irep->iseq);
 
       if (prev_entry == (void *(*)())1) {
 	/* Overflow happened */
@@ -2165,7 +2166,7 @@ RETRY_TRY_BLOCK:
         ci->acc = a;
 
         /* setup environment for calling method */
-        ci->proc = m;
+        proc = ci->proc = m;
         irep = m->body.irep;
         pool = irep->pool;
         syms = irep->syms;
@@ -3238,7 +3239,7 @@ RETRY_TRY_BLOCK:
 
       p = mrb_proc_new(mrb, irep->reps[GETARG_Bx(i)]);
       p->target_class = ci->target_class;
-      ci->proc = p;
+      proc = ci->proc = p;
 
       if (MRB_PROC_CFUNC_P(p)) {
         int orgdisflg = mrb->compile_info.disable_jit;
