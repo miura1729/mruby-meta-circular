@@ -438,7 +438,7 @@ cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
 
-  if (c->ci->env) {
+  if (c->ci->env && c->ci->proc->body.irep->shared_lambda != 1) {
     mrb_env_unshare(mrb, c->ci->env);
   }
 
@@ -971,6 +971,8 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
       tab->body[i].reginfo = NULL;
       tab->body[i].patch_pos = NULL;
       tab->body[i].entry = NULL;
+      tab->body[i].prev_pc = NULL;
+      tab->body[i].caller_pc = NULL;
     }
   }
 

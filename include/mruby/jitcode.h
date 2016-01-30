@@ -519,7 +519,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       int j;
 
       oldsize = ctab->size;
-      ctab->size = oldsize + (oldsize >> 1) + 2;
+      ctab->size = toff + (toff >> 1) + 2;
       ctab->body = (mrbjit_code_info *)mrb_realloc(mrb, ctab->body, 
 						   sizeof(mrbjit_code_info) * ctab->size);
       for (j = oldsize; j < ctab->size; j++) {
