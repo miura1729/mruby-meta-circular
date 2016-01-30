@@ -206,8 +206,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_flush_regs(mrb, pc, status, coi, 0);
     L(".exitlab");
 
-    emit_move(mrb, coi, reg_tmp1, reg_context,  OffsetOf(mrb_context, ci));
-    emit_load_literal(mrb, coi, reg_regs, (cpu_word_t)(*status->pc));
+    //emit_load_literal(mrb, coi, reg_regs, (cpu_word_t)(*status->pc));
     //emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, prev_pc), reg_regs);
 
     if (coi) {
@@ -216,6 +215,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       int toff = coi - (irep->jit_entry_tab + ioff)->body;
 
       /* break ecx(reg_regs) don't use for this aim */
+      emit_move(mrb, coi, reg_tmp1, reg_context,  OffsetOf(mrb_context, ci));
       emit_load_literal(mrb, coi, reg_regs, toff);
       emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, prev_tentry_offset), reg_regs);
 
