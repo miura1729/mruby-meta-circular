@@ -91,10 +91,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       disasm_irep(mrb, *status->irep);
       disasm_once(mrb, *status->irep, **status->pc);*/
       //printf("\n\n");
-      /*coi->reginfo[pos].regplace = MRBJIT_REG_MEMORY;
+      coi->reginfo[pos].regplace = MRBJIT_REG_MEMORY;
       emit_bool_boxing(mrb, coi, reg_tmp0);
       emit_local_var_type_write(mrb, coi, pos, reg_tmp0);
-      coi->reginfo[pos].regplace = MRBJIT_REG_AL;*/
+      coi->reginfo[pos].regplace = MRBJIT_REG_AL;
       break;
        
     case MRBJIT_REG_VMREG0:
@@ -2238,11 +2238,12 @@ do {                                                                 \
 do {                                                                 \
     int regno = GETARG_A(**ppc);	                             \
                                                                      \
+    gen_flush_regs(mrb, *ppc, status, coi, 1);			     \
     COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
     switch (GET_OPCODE(*(*ppc + 1))) {                               \
     case OP_JMPIF:                                                   \
     case OP_JMPNOT:                                                  \
-      /*      break;		*/				     \
+      break;							     \
     default:							     \
       COMP_BOOL_SET;                                                 \
       return code;                                                   \
