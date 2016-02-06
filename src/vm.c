@@ -1441,7 +1441,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
-    if (irep->ilen > 1) {
+    if (GET_OPCODE(*irep->iseq) != OP_CALL) {
       int ioff;
       int toff;
       mrbjit_codetab *ctab;
@@ -1483,7 +1483,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   }
 
   if (cbase && 
-      entry == NULL && irep->ilen > 1 && !mrb->compile_info.force_compile) {
+      entry == NULL &&
+      GET_OPCODE(*irep->iseq) != OP_CALL &&
+      !mrb->compile_info.force_compile) {
     /* Finish compile */
     mrbjit_gen_exit(cbase, mrb, irep, ppc, status, ci);
     //mrbjit_gen_align(cbase, 16);
