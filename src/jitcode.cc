@@ -317,7 +317,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->ent_hash(mrb, status, coi, regs);
     break;
 
-    /*  case OP_BLKPUSH:
+    /*case OP_BLKPUSH:
     rc = code->ent_blkpush(mrb, status, coi, regs);
     break;*/
 

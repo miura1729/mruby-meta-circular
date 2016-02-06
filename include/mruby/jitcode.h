@@ -855,7 +855,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->value = mrb_fixnum_value(src);
     dinfo->type =  MRB_TT_FIXNUM;
     dinfo->regplace = MRBJIT_REG_IMMIDATE;
-    //gen_flush_literal(mrb, coi, GETARG_A(**ppc));
+    gen_flush_literal(mrb, coi, GETARG_A(**ppc));
     return code;
   }
 
