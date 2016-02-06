@@ -3,6 +3,7 @@
 
 assert('ensure - context - yield') do
   class EnsureYieldBreak
+    def initialize;@ensure_context = nil;end
     attr_reader :ensure_context
     def try
       yield
@@ -19,6 +20,7 @@ end
 
 assert('ensure - context - yield and break') do
   class EnsureYieldBreak
+    def initialize;@ensure_context = nil;end
     attr_reader :ensure_context
     def try
       yield
@@ -36,6 +38,7 @@ end
 
 assert('ensure - context - yield and return') do
   class EnsureYieldBreak
+    def initialize;@ensure_context = nil;end
     attr_reader :ensure_context
     def try
       yield
