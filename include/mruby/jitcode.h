@@ -274,7 +274,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	  gen_restore_one(mrb, status, coi, i);
 	}
       }
-    } else {
+    }
+    else {
       gen_flush_regs(mrb, *status->pc, status, prevcoi, 1);
       gen_restore_regs(mrb, *status->pc, status, coi);
     }
