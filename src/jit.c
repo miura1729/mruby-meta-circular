@@ -638,7 +638,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       /* cannot happen */
       break;
     }
-    while (eidx > mrb->c->ci->eidx) {
+    while (eidx > mrb->c->ci[-1].eidx) {
       mrbjit_ecall(mrb, --eidx);
     }
     if (mrb->c->vmexec && !mrb->c->ci->target_class) {
@@ -657,6 +657,8 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
     *status->proc = mrb->c->ci->proc;
     *status->irep = (*status->proc)->body.irep;
+    *status->pool = (*status->proc)->body.irep->pool;
+    *status->syms = (*status->proc)->body.irep->syms;
 
     (*status->regs)[acc] = v;
 
@@ -701,7 +703,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 	longjmp(*(jmp_buf*)mrb->jmp, 1);
       }
       if (ci > mrb->c->cibase) {
-	while (eidx > mrb->c->ci->eidx) {
+	while (eidx > mrb->c->ci[-1].eidx) {
 	  mrbjit_ecall(mrb, --eidx);
 	}
       }

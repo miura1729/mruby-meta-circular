@@ -398,7 +398,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
 
-    if (rinfo->constp) {
+    if (rinfo->constp && 0) {
       if (b && rinfo->type != MRB_TT_FALSE) {
 	return;
       }
