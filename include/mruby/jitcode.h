@@ -1464,9 +1464,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_arg_push(mrb, coi, 2, reg_tmp0);
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
 
-      /* Restore c->stack */
+      /* Restore c->stack to reg_regs */
       emit_move(mrb, coi, reg_tmp0, reg_mrb, OffsetOf(mrb_state, c));
-      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_context, stack), reg_regs);
+      emit_move(mrb, coi, reg_regs, reg_tmp0, OffsetOf(mrb_context, stack));
     }
     else {
       mrb_irep *sirep = m->body.irep;
