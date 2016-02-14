@@ -437,12 +437,13 @@ static void
 cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
-
-  if (c->ci->env && c->ci->proc->body.irep->shared_lambda != 1) {
-    mrb_env_unshare(mrb, c->ci->env);
-  }
+  struct REnv *env = c->ci->env;
 
   c->ci--;
+
+  if (env && c->ci->proc->body.irep->shared_lambda != 1) {
+    mrb_env_unshare(mrb, env);
+  }
 }
 
 void
@@ -1610,6 +1611,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
     optable, gototable, &prev_jmp
   };
 
+  mrb->vmstatus = (void *)&status;
   irep = proc->body.irep;
   pool = irep->pool;
   syms = irep->syms;
@@ -1981,6 +1983,7 @@ RETRY_TRY_BLOCK:
           ci->nregs = n + 2;
         }
         mrb->compile_info.disable_jit = 1;
+	mrb->vmstatus = (void *)&status;
         result = m->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -2055,6 +2058,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_CFUNC_P(m)) {
 	int orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
+	mrb->vmstatus = (void *)&status;
 	recv = m->body.func(mrb, recv);
 	mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -2154,6 +2158,7 @@ RETRY_TRY_BLOCK:
         else {
           ci->nregs = n + 2;
         }
+	mrb->vmstatus = (void *)&status;
         mrb->c->stack[0] = m->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -2615,6 +2620,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_CFUNC_P(m)) {
 	int orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
+	mrb->vmstatus = (void *)&status;
         mrb->c->stack[0] = m->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -3242,6 +3248,7 @@ RETRY_TRY_BLOCK:
         int orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
         ci->nregs = 0;
+	mrb->vmstatus = (void *)&status;
         mrb->c->stack[0] = p->body.func(mrb, recv);
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
@@ -3267,25 +3274,10 @@ RETRY_TRY_BLOCK:
       /* A B            R(A).newmethod(Syms(B),R(A+1)) */
       int a = GETARG_A(i);
       struct RClass *c = mrb_class_ptr(regs[a]);
-      khash_t(mt) *h = c->mt;
-      khiter_t k;
-      struct RProc *p;
+      struct RProc *p = mrb_proc_ptr(regs[a+1]);
 
-      p = NULL;
-      if (h) {
-	k = kh_get(mt, mrb, h, syms[GETARG_B(i)]);
-	if (k != kh_end(h)) {
-	  p = kh_value(h, k);
-	  if (p && !MRB_PROC_CFUNC_P(p)) {
-	    mrbjit_reset_proc(mrb, &status, p);
-	  }
-	}
-      }
-
-      p = mrb_proc_ptr(regs[a+1]);
-      p->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, p->body.irep);
+      mrb->vmstatus = (void *)&status;
       mrb_define_method_raw(mrb, c, syms[GETARG_B(i)], p);
-
       ARENA_RESTORE(mrb, ai);
       NEXT;
     }

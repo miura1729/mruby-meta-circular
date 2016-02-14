@@ -1,7 +1,7 @@
 /*
 ** mruby - An embeddable Ruby implementation
 **
-** Copyright (c) mruby developers 2010-2015
+** Copyright (c) mruby developers 2010-2016
 **
 ** Permission is hereby granted, free of charge, to any person obtaining
 ** a copy of this software and associated documentation files (the
@@ -204,9 +204,13 @@ typedef struct {
 
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
+#define MRB_STATE_NO_REGEXP 1
+#define MRB_STATE_REGEXP    2
+
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
+  uint32_t flags;
   mrb_allocf allocf;                      /* memory allocation function */
   void *allocf_ud;                        /* auxiliary data of allocf */
 
@@ -266,6 +270,8 @@ typedef struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   mrb_int atexit_stack_len;
+
+  void *vmstatus;
 } mrb_state;
 
 

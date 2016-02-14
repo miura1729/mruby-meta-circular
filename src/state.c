@@ -49,6 +49,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb->root_c = mrb->c;
 
   mrb_init_core(mrb);
+  mrb->vmstatus = NULL;
 
   return mrb;
 }
