@@ -484,7 +484,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     if (m2) {
       if (argc-m2 > m1) {
-	value_move(&regs[m1+o+r+1], &argv[argc+o+rnum], m2);
+	value_move(&regs[m1+o+r+1], &argv[m1+o+rnum], m2);
       }
     }
     if (argv0 == argv) {
