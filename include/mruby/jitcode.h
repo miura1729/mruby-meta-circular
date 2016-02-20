@@ -909,7 +909,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const cpu_word_t dstno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    if (dinfo->type != MRB_TT_TRUE) {
+    if (dinfo->type != MRB_TT_TRUE || 1) {
       emit_load_literal(mrb, coi, reg_tmp0s, 1);
       emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
       emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_TRUE);
@@ -932,7 +932,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const cpu_word_t dstno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    if (dinfo->type != MRB_TT_FALSE) {
+    if (dinfo->type != MRB_TT_FALSE || 1) {
       emit_load_literal(mrb, coi, reg_tmp0s, 1);
       emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
       emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FALSE);
