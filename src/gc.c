@@ -737,7 +737,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
       if (c && c != mrb->root_c) {
-	mrb_free_context(mrb, c);
         /*mrb_callinfo *ci = c->ci;
         mrb_callinfo *ce = c->cibase;
 
@@ -748,6 +747,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
           }
           ci--;
 	  }*/
+        
+        mrb_free_context(mrb, c);
       }
     }
     break;
