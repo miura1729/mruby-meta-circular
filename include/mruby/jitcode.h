@@ -589,6 +589,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /*    old ci  reg_tmp1 */
     /*    tmp  reg_tmp0 */
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
+    emit_add(mrb, coi, reg_tmp1, sizeof(mrb_callinfo) * 2);
     emit_cmp(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ciend));
     jl("@f");
 
@@ -599,19 +600,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       addr_call_extend_callinfo = (void *)getCurr();
 
       /* extend cfunction */
-      emit_push(mrb, coi, reg_tmp1);
+      emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
       emit_cfunc_start(mrb, coi);
       emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, cibase));
-      emit_sub(mrb, coi, reg_tmp0, reg_tmp1);
-      neg(reg_tmp0);
-      shr(reg_tmp0, 6);		/* sizeof mrb_callinfo */
-      emit_arg_push(mrb, coi, 2, reg_tmp0);
+      emit_sub(mrb, coi, reg_tmp1, reg_tmp0);
+      shr(reg_tmp1, 6);		/* sizeof mrb_callinfo */
+      emit_arg_push(mrb, coi, 2, reg_tmp1);
       emit_move(mrb, coi, reg_tmp0, reg_mrb, OffsetOf(mrb_state, c));
       emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
       call((void *) mrbjit_exec_extend_callinfo);
       emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
-      emit_pop(mrb, coi, reg_tmp1);
       //emit_move(mrb, coi, reg_context, reg_mrb, OffsetOf(mrb_state, c));
       ret();
     }
@@ -623,6 +622,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /*    ci  reg_context */
     /*    tmp  reg_tmp1 */
     /*    tmp  reg_tmp0 */
+    emit_move(mrb, coi, reg_context, reg_mrb, OffsetOf(mrb_state, c));
+    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
     emit_add(mrb, coi, reg_context, OffsetOf(mrb_context, ci), (cpu_word_t)sizeof(mrb_callinfo));
     emit_move(mrb, coi, reg_context, reg_context, OffsetOf(mrb_context, ci));
 
