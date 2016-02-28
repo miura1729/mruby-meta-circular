@@ -1907,6 +1907,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     else {
       int i;
 
+      return NULL;
       emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, ci));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, proc));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RProc, env));

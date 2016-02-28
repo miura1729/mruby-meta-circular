@@ -195,7 +195,6 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     while (b<e) {
       *b++ = *a++;
     }
-    *b = mrb_nil_value();	/* Can't pass blocks */
     c->cibase->argc = len;
     value = c->stack[0] = c->ci->proc->env->stack[0];
   }
@@ -392,7 +391,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
-  mrbjit_define_primitive(mrb, c, "resume", mrbjit_prim_fiber_resume);
+  //mrbjit_define_primitive(mrb, c, "resume", mrbjit_prim_fiber_resume);
 
   mrb_define_method(mrb, c, "transfer",   fiber_transfer, MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
