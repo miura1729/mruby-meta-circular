@@ -742,7 +742,9 @@ obj_free(mrb_state *mrb, struct RBasic *obj)
 
         while (ce <= ci) {
           struct REnv *e = ci->env;
-          if (e && !is_dead(&mrb->gc, e) && MRB_ENV_STACK_SHARED_P(e)) {
+          if (e && e->tt == MRB_TT_ENV && !is_dead(&mrb->gc, e) && 
+	      MRB_ENV_STACK_SHARED_P(e) &&
+	      ci->proc->body.irep->shared_lambda != 1) {
 	    mrb_env_unshare(mrb, e);
           }
           ci--;
