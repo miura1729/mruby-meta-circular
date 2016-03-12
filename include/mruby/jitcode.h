@@ -1684,7 +1684,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
        int b  = (ax>>0)& 0x1;
     */
 
-    if (mrb->c->ci->argc < 0 || o != 0 || r != 0 || m2 != 0 ||
+    if (mrb->c->ci->argc < 0 || (ax & ((1 << 18) - 1)) != 0 ||
 	m1 > mrb->c->ci->argc) {
       CALL_CFUNC_BEGIN;
       CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
