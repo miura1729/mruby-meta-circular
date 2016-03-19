@@ -147,7 +147,11 @@ end
 MRuby::Build.new('bench') do |conf|
   toolchain :gcc
 
-  conf.cc.flags << '-O3'
+  conf.cc.flags << %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32)
+  conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
+  conf.cxx.include_paths << "#{root}/xbyak"
+  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
+  conf.linker.libraries << "stdc++"
 
   conf.gembox 'default'
 end
