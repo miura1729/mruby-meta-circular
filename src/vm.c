@@ -2863,7 +2863,8 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
+	  regs[a] = mrb_fixnum_value(x / y);
+	  //          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
         }
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
@@ -2898,11 +2899,11 @@ RETRY_TRY_BLOCK:
       default:
         goto L_SEND;
       }
-#ifdef MRB_NAN_BOXING
+      /*#ifdef MRB_NAN_BOXING
       if (isnan(mrb_float(regs[a]))) {
         regs[a] = mrb_float_value(mrb, mrb_float(regs[a]));
       }
-#endif
+      #endif*/
       NEXT;
     }
 

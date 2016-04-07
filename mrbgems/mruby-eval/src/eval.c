@@ -212,7 +212,7 @@ f_eval(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
-  proc = create_proc_from_string(mrb, s, len, binding, file, line);
+  proc = create_proc_from_string(mrb, s, len, binding, file, line); 
   ret = mrb_top_run(mrb, proc, mrb->c->stack[0], 0);
   if (mrb->exc) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));

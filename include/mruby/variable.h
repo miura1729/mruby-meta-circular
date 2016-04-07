@@ -17,7 +17,7 @@ MRB_BEGIN_DECL
 #ifdef MRB_USE_IV_SEGLIST
 
 #ifndef MRB_SEGMENT_SIZE
-#define MRB_SEGMENT_SIZE 32
+#define MRB_SEGMENT_SIZE 128
 #endif
 
 typedef struct segment
