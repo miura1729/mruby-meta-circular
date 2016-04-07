@@ -2043,19 +2043,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     gen_type_guard(mrb, reg0pos, status, *ppc, coi);
     gen_type_guard(mrb, reg1pos, status, *ppc, coi);
-    
-    if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {
-      emit_local_var_value_read(mrb, coi, reg_tmp0s, reg0pos);
-      emit_local_var_div(mrb, coi, reg1pos);
-      emit_local_var_value_write(mrb, coi, reg0pos, reg_tmp0s);
-      emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);
-      emit_local_var_type_write(mrb, coi, reg0pos, reg_tmp1s);
-
-      dinfo->type = MRB_TT_FIXNUM;
-      dinfo->klass = mrb->fixnum_class;
-
-      return code;
-    }
 
     if (r0type == MRB_TT_FIXNUM) {
       emit_local_var_int_value_read(mrb, coi, reg_dtmp0, reg0pos);

@@ -28,15 +28,10 @@ MRuby::Build.new do |conf|
   #conf.gem '../mruby-pp'
   #conf.gem '../mruby-meta-circular'
   #conf.gem '../mruby-pjson'
-  conf.gem '../mruby-io'
-#  conf.gem '../mruby-require'
-  conf.gem '../mruby-onig-regexp'
-  conf.gem '../mruby-method'
-#  conf.gem '../mruby-profiler'
-  conf.gem 'mrbgems/mruby-eval'
+  #conf.gem '../mruby-profiler'
+  conf.gembox 'default'
   conf.gem 'mrbgems/mruby-mmm'
   conf.gem 'mrbgems/mruby-parray'
-  conf.gembox 'default'
 
   # C compiler settings
   # conf.cc do |cc|
