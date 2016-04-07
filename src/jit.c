@@ -168,6 +168,12 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
       *(status->proc) = ci[-1].proc;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
+      mrb->c->stack[0] = result;
+      *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
+      *(status->pc) = ci->pc;
+      mrbjit_cipop(mrb);
+
+      return status->gototable[6]; /* goto L_DISPATCH */
     }
   }
 
@@ -250,6 +256,11 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
       *(status->proc) = ci[-1].proc;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
+      *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
+      *(status->pc) = ci->pc;
+      mrbjit_cipop(mrb);
+
+      return status->gototable[6]; /* goto L_DISPATCH */
     }
     *(status->regs) = mrb->c->stack = mrb->c->ci->stackent;
     *(status->pc) = ci->pc;

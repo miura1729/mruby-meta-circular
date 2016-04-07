@@ -1442,6 +1442,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
+    if (ci->used > 0) {
+      goto  skip;
+    }
+
     if (GET_OPCODE(*irep->iseq) != OP_CALL) {
       int ioff;
       int toff;
@@ -1602,7 +1606,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
   mrb_bool exc_catched = FALSE;
 
   void *gototable[] = {
-    &&L_RAISE, &&L_RETURN, &&L_RESCUE, &&L_SEND, &&L_STOP, &&L_HALT
+    &&L_RAISE, &&L_RETURN, &&L_RESCUE, &&L_SEND, &&L_STOP, &&L_HALT, &&L_DISPATCH,
   };
 #endif
 
