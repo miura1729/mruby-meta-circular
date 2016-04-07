@@ -2473,6 +2473,28 @@ do {                                                                 \
   }
 
   const void *
+    ent_aref(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    int dstno = GETARG_A(**ppc);
+    int srcno = GETARG_B(**ppc);
+    int idx = GETARG_C(**ppc);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+
+    if (idx < 0) {
+      return NULL;
+    }
+
+    emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, srcno);
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
+    emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+
+    return code;
+  }
+
+  const void *
     ent_getupvar(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();
