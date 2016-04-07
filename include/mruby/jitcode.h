@@ -2429,7 +2429,7 @@ do {                                                                 \
     emit_cfunc_start(mrb, coi);
 
     emit_arg_push_nan(mrb, coi, 1, reg_tmp0, srcno);
-    emit_arg_push(mrb, coi, 0, reg_regs);
+    emit_arg_push(mrb, coi, 0, reg_mrb);
     call((void *) mrb_ary_splat);
 
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
