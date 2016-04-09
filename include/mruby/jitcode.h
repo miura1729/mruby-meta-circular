@@ -1245,6 +1245,25 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     L("@@");                                                         \
   }while (0)
 
+#define CALL_CFUNC_JMP(func_name, auxargs, off)			     \
+  do {                                                               \
+    lea(reg_tmp0, dword [reg_vars + VMSOffsetOf(status)]);           \
+    emit_arg_push(mrb, coi, 1, reg_tmp0);			     \
+\
+    /* Update pc */                                                  \
+    emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)(*status->pc)); \
+\
+    emit_arg_push(mrb, coi, 0, reg_mrb);			     \
+    call((void *)func_name);                                         \
+    emit_cfunc_end(mrb, coi, (auxargs + 2) * 4);	             \
+\
+    emit_vm_var_read(mrb, coi, reg_tmp1, VMSOffsetOf(pc));           \
+    emit_cmp(mrb, coi, reg_tmp1, (cpu_word_t)(npc)); \
+    jz("@f");                                                        \
+    gen_exit(mrb, NULL, 0, 1, status, coi);			     \
+    L("@@");                                                         \
+  }while (0)
+
   mrb_sym
     method_check(mrb_state *mrb, struct RProc *m, int opcode)
   {
@@ -1686,8 +1705,23 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (mrb->c->ci->argc < 0 || (ax & ((1 << 18) - 1)) != 0 ||
 	m1 > mrb->c->ci->argc) {
+      int argc = mrb->c->ci->argc;
+      mrb_code *npc = *status->pc + 1;
+
+      if (argc-m1-o-m2 == 1) {
+	mrb_irep *irep = *status->irep;
+	mrb_irep *nirep = (mrb_irep *)((uint32_t)mrb + mrb_fixnum(irep->pool[0]));
+	if (nirep != (mrb_irep *)mrb) {
+	  npc = nirep->iseq + 1;
+	}
+      }
+
+      if (o > 0 && argc >= m1 + m2) {
+	npc += argc - m1 - m2;
+      }
+
       CALL_CFUNC_BEGIN;
-      CALL_CFUNC_STATUS(mrbjit_exec_enter, 0);
+      CALL_CFUNC_JMP(mrbjit_exec_enter, 0, npc);
       if (r) {
 	mrbjit_reginfo *ainfo = &coi->reginfo[m1 + o + 1];
 	

@@ -508,7 +508,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
 
-  return status->optable[GET_OPCODE(**(status->pc))];
+  return status->gototable[6]; /* goto L_DISPATCH */
 }
 
 void *
