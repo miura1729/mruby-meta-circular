@@ -2469,7 +2469,8 @@ do {                                                                 \
     int idx = GETARG_C(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    if (idx < 0) {
+    if (!mrb_array_p(regs[srcno]) ||
+	idx < 0) {
       return NULL;
     }
 

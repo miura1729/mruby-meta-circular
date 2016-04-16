@@ -2262,6 +2262,7 @@ RETRY_TRY_BLOCK:
       int b  = MRB_ASPEC_BLOCK(ax);
       */
       int argc = mrb->c->ci->argc;
+      int oargc = mrb->c->ci->argc;
       mrb_value *argv = regs+1;
       mrb_value *argv0 = argv;
       int len = m1 + o + r + m2;
@@ -2323,7 +2324,7 @@ RETRY_TRY_BLOCK:
           rnum = argc-m1-o-m2;
 	  //printf("%d %x\n", rnum, irep);
 	  //disasm_irep(mrb, irep);
-	  if (rnum == 1) {
+	  if (rnum == 1 && oargc >= 0) {
 	    int ipos = 0;
 	    mrb_irep *nirep = (mrb_irep *)((uint32_t)mrb + mrb_fixnum(irep->pool[ipos]));
 	    struct RProc *p;

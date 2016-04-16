@@ -379,6 +379,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
      int b  = (ax>>0)& 0x1;
   */
   int argc = mrb->c->ci->argc;
+  int oargc = mrb->c->ci->argc;
   mrb_value *argv = regs+1;
   mrb_value *argv0 = argv;
   int len = m1 + o + r + m2;
@@ -443,7 +444,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       rnum = argc - m1 - o - m2;
       //printf("%d %x\n", rnum, irep);
       //disasm_irep(mrb, irep);
-      if (rnum == 1) {
+      if (rnum == 1 && oargc >= 0) {
 	int ipos = 0;
 	mrb_irep *nirep = (mrb_irep *)((intptr_t)mrb + mrb_fixnum(irep->pool[ipos]));
 	struct RProc *p;
