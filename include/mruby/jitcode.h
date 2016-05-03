@@ -2923,6 +2923,18 @@ do {                                                                 \
   mrb_value 
     mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_fix_and_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_fix_or_impl(mrb_state *mrb, mrb_value proc,
+			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_fix_lshift_impl(mrb_state *mrb, mrb_value proc,
+			    mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  mrb_value 
+    mrbjit_prim_fix_rshift_impl(mrb_state *mrb, mrb_value proc,
+			    mrbjit_vmstatus *status, mrbjit_code_info *coi);
   const void *
     mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
 				  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo);

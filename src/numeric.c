@@ -919,6 +919,17 @@ fix_rshift(mrb_state *mrb, mrb_value x)
   return rshift(val, width);
 }
 
+static mrb_value
+fix_bitfetch(mrb_state *mrb, mrb_value x)
+{
+  mrb_int pos, val;
+
+  fix_shift_get_width(mrb, &pos);
+
+  val = mrb_fixnum(x);
+  return mrb_fixnum_value((val >> pos) & 1);
+}
+
 /* 15.2.8.3.23 */
 /*
  *  call-seq:
@@ -1195,10 +1206,15 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fixnum,  "==",       fix_equal,         MRB_ARGS_REQ(1)); /* 15.2.8.3.7  */
   mrb_define_method(mrb, fixnum,  "~",        fix_rev,           MRB_ARGS_NONE()); /* 15.2.8.3.8  */
   mrb_define_method(mrb, fixnum,  "&",        fix_and,           MRB_ARGS_REQ(1)); /* 15.2.8.3.9  */
+  mrbjit_define_primitive(mrb, fixnum, "&", mrbjit_prim_fix_and);
   mrb_define_method(mrb, fixnum,  "|",        fix_or,            MRB_ARGS_REQ(1)); /* 15.2.8.3.10 */
+  mrbjit_define_primitive(mrb, fixnum, "|", mrbjit_prim_fix_or);
   mrb_define_method(mrb, fixnum,  "^",        fix_xor,           MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
+  mrbjit_define_primitive(mrb, fixnum, "<<", mrbjit_prim_fix_lshift);
   mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
+  mrbjit_define_primitive(mrb, fixnum, ">>", mrbjit_prim_fix_rshift);
+  mrb_define_method(mrb, fixnum,  "[]",       fix_bitfetch,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fixnum,  "eql?",     fix_eql,           MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
   mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          MRB_ARGS_NONE()); /* 15.2.8.3.18 */
 

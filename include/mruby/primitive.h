@@ -1,6 +1,10 @@
 extern mrb_value mrbjit_prim_num_cmp(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_fix_succ(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_fix_mod(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_fix_and(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_fix_or(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_fix_lshift(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_fix_rshift(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_fix_to_f(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_obj_not_equal_m(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_ary_aget(mrb_state *, mrb_value, void *, void *);
