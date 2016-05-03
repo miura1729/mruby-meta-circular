@@ -11,15 +11,19 @@ define mbt
       set $method_name = mrb_sym2name(mrb, $mid)
       set $filename = $irep->filename
       set $lines = $irep->lines
-      if ($filename && $lines)
-	if ($p == mrb->c->ci)
-	  set $lineno = $lines[pc - $irep->iseq]
+      if ($method_name) 
+	if ($filename && $lines)
+	  if ($p == mrb->c->ci)
+	    set $lineno = $lines[pc - $irep->iseq]
+	  else
+	    set $lineno = $lines[($p + 1)->pc - $irep->iseq]
+	  end
+          printf "0x%x MRUBY %s : %s:%d\n", $p, $method_name, $filename, $lineno
 	else
-	  set $lineno = $lines[($p + 1)->pc - $irep->iseq]
+          printf "0x%x MRUBY %s : \n", $p, $method_name
 	end
-        printf "0x%x MRUBY %s : %s:%d\n", $p, $method_name, $filename, $lineno
       else
-        printf "0x%x MRUBY %s : \n", $p, $method_name
+        printf "0x%x MRUBY    : \n", $p
       end
     end
     set $p = $p - 1
