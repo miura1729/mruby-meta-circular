@@ -26,13 +26,13 @@ do {                                                                 \
     push(edx);                                                       \
     emit_add(mrb, coi, reg_tmp0, reg_mrb);                           \
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));  \
-    test(reg_tmp1, reg_tmp1);                                                  \
+    test(reg_tmp1, reg_tmp1);                                        \
     jz(".setnil");                                                   \
     emit_move(mrb, coi, reg_tmp0, esp, 8);                           \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1); \
                                                                      \
     emit_cfunc_start(mrb, coi);                                      \
-    emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)c);         \
+    emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)c);            \
     emit_arg_push(mrb, coi, 1, reg_tmp1);                            \
     emit_arg_push(mrb, coi, 0, esi);                                 \
     call((void *)mrb_write_barrier);                                 \
@@ -43,38 +43,38 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1); \
     emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE); \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1); \
-    L(".ee");                                                         \
-    pop(edx);                                                         \
-    pop(eax);                                                         \
-    jmp("@f");                                                        \
-    L(".empty");                                                      \
-  }                                                                   \
-                                                                      \
-  emit_cfunc_start(mrb, coi);                                         \
-  emit_load_literal(mrb, coi, reg_tmp0, 4);                           \
-  emit_arg_push(mrb, coi, 1, reg_tmp0);                               \
-  emit_arg_push(mrb, coi, 0, reg_mrb);                                    \
-  call((void *)mrb_ary_new_capa);                                     \
-  emit_cfunc_end(mrb, coi, 2 * sizeof(void *));                       \
-                                                                      \
-  L("@@");                                                            \
+    L(".ee");                                                        \
+    pop(edx);                                                        \
+    pop(eax);                                                        \
+    jmp("@f");                                                       \
+    L(".empty");                                                     \
+  }                                                                  \
+                                                                     \
+  emit_cfunc_start(mrb, coi);                                        \
+  emit_load_literal(mrb, coi, reg_tmp0, 4);                          \
+  emit_arg_push(mrb, coi, 1, reg_tmp0);                              \
+  emit_arg_push(mrb, coi, 0, reg_mrb);                               \
+  call((void *)mrb_ary_new_capa);                                    \
+  emit_cfunc_end(mrb, coi, 2 * sizeof(void *));                      \
+                                                                     \
+  L("@@");                                                           \
  } while(0)
 
-#define PVEC4_ALLOCATE_FIN                                            \
-do {                                                                  \
-  if (civoff >= 0) {                                                  \
+#define PVEC4_ALLOCATE_FIN                                           \
+do {                                                                 \
+  if (civoff >= 0) {                                                 \
     emit_pop(mrb, coi, eax);			/* POP __objcache__ */ \
-  }                                                                   \
-                                                                      \
-  emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);               \
+  }                                                                  \
+                                                                     \
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);              \
   emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (cpu_word_t)c); \
-  emit_load_literal(mrb, coi, reg_tmp1, 4);                           \
+  emit_load_literal(mrb, coi, reg_tmp1, 4);                          \
   emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, len), reg_tmp1); \
-  outLocalLabel();                                                    \
-                                                                      \
-  dinfo->type = MRB_TT_ARRAY;                                         \
-  dinfo->klass = c;                                                   \
-  dinfo->constp = 0;                                                  \
+  outLocalLabel();                                                   \
+                                                                     \
+  dinfo->type = MRB_TT_ARRAY;                                        \
+  dinfo->klass = c;                                                  \
+  dinfo->constp = 0;                                                 \
 } while(0)
 
 mrb_value
