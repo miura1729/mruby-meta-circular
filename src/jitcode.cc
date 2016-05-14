@@ -94,7 +94,7 @@ static const void *
 mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 		     MRBJitCode *code, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code **ppc = status->pc;
   const void *rc;
   const void *rc2 = NULL;

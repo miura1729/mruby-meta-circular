@@ -81,7 +81,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_pvec4_new_impl(mrb_state *mrb, mrb_value proc,
 				       mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
@@ -128,7 +128,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
 				       mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
@@ -192,7 +192,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
 				       mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);

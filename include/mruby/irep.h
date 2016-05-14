@@ -83,7 +83,6 @@ typedef struct mrbjit_vmstatus {
   mrb_code **pc;
   mrb_value **pool;
   mrb_sym **syms;
-  mrb_value **regs;
   int *ai;
   struct mrbjit_vmstatus *status;
   void **optable;

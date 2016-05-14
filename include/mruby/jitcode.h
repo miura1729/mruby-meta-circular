@@ -350,7 +350,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   void 
     gen_type_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi)
   {
-    enum mrb_vtype tt = (enum mrb_vtype) mrb_type((*status->regs)[regpos]);
+    enum mrb_vtype tt = (enum mrb_vtype) mrb_type((mrb->c->stack)[regpos]);
     mrbjit_reginfo *rinfo = &coi->reginfo[regpos];
     mrb_irep *irep = *status->irep;
 
@@ -366,12 +366,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Get type tag */
     emit_local_var_type_read(mrb, coi, reg_tmp0, regpos);
     rinfo->type = tt;
-    rinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
+    rinfo->klass = mrb_class(mrb, (mrb->c->stack)[regpos]);
     if (rinfo->regplace > MRBJIT_REG_VMREG0) {
       int orgno = rinfo->regplace - MRBJIT_REG_VMREG0;
       mrbjit_reginfo *oinfo = &coi->reginfo[orgno];
       oinfo->type = tt;
-      oinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
+      oinfo->klass = mrb_class(mrb, (mrb->c->stack)[regpos]);
     }
     /* Input reg_tmp0 for type tag */
     if (tt == MRB_TT_FLOAT) {
@@ -429,7 +429,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_class_guard(mrb_state *mrb, int regpos, mrbjit_vmstatus *status, mrb_code *pc, mrbjit_code_info *coi, struct RClass *c, int rc)
   {
     enum mrb_vtype tt;
-    mrb_value v = (*status->regs)[regpos];
+    mrb_value v = (mrb->c->stack)[regpos];
     mrbjit_reginfo *rinfo = &coi->reginfo[regpos];
 
     tt = (enum mrb_vtype)mrb_type(v);
@@ -441,7 +441,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	int orgno = rinfo->regplace - MRBJIT_REG_VMREG0;
 	mrbjit_reginfo *oinfo = &coi->reginfo[orgno];
 	oinfo->type = tt;
-	oinfo->klass = mrb_class(mrb, (*status->regs)[regpos]);
+	oinfo->klass = mrb_class(mrb, (mrb->c->stack)[regpos]);
       }
 
       emit_local_var_type_read(mrb, coi, reg_tmp0, regpos);
@@ -556,7 +556,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_push(mrb, coi, reg_tmp1);
     emit_push(mrb, coi, reg_tmp0);
     emit_cfunc_start(mrb, coi);
-    emit_arg_push(mrb, coi, 3, reg_regs);
+    //emit_arg_push(mrb, coi, 3, reg_regs);
     // load_vm_var_read(reg_tmp0, VMSOffsetOf(pc));
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)(*(status->pc)));
     emit_arg_push(mrb, coi, 2, reg_tmp0);
@@ -733,7 +733,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       
     L("@@");
 
-    emit_vm_var_write(mrb, coi, VMSOffsetOf(regs), reg_regs);
 
     if (irep->jit_inlinep == 0 || 1) {
       gen_set_jit_entry(mrb, pc, coi, irep);
@@ -889,7 +888,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int a = GETARG_A(**ppc);
     const cpu_word_t dstno = a;
     mrbjit_reginfo *dinfo = &coi->reginfo[a];
-    mrb_value self = *status->regs[0];
+    mrb_value self = mrb->c->stack[0];
 
     dinfo->type = (mrb_vtype)mrb_type(self);
     dinfo->klass = mrb->c->ci->target_class;
@@ -1187,7 +1186,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const cpu_word_t dstno = GETARG_A(**ppc);
     const int sympos = GETARG_Bx(**ppc);
     mrb_irep *irep = *status->irep;
-    mrb_value *regs = *status->regs;
+    mrb_value *regs = mrb->c->stack;
     const mrb_value v = mrb_const_get(mrb, regs[GETARG_A(**ppc)], irep->syms[sympos]);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
     dinfo->type = (mrb_vtype)mrb_type(v);
@@ -1426,7 +1425,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     ent_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_code *pc = *status->pc;
-    mrb_value *regs = *status->regs;
+    mrb_value *regs = mrb->c->stack;
     mrb_sym *syms = *status->syms;
     int i = *pc;
     int a = GETARG_A(i);
@@ -1511,7 +1510,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     ent_tailcall(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_code *pc = *status->pc;
-    mrb_value *regs = *status->regs;
+    mrb_value *regs = mrb->c->stack;
     mrb_sym *syms = *status->syms;
     int i = *pc;
     int j;
@@ -1638,7 +1637,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const void *code = getCurr();
     mrbjit_reginfo *selfinfo = &coi->reginfo[0];
     mrb_code *pc = *status->pc;
-    mrb_value *regs = *status->regs;
+    mrb_value *regs = mrb->c->stack;
     int i;
 
     if (irep->block_lambda) {
@@ -1710,7 +1709,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       if (argc-m1-o-m2 == 1) {
 	mrb_irep *irep = *status->irep;
-	mrb_irep *nirep = (mrb_irep *)((uint32_t)mrb + mrb_fixnum(irep->pool[0]));
+	mrb_irep *nirep = (mrb_irep *) mrb;
+
+	if (irep->pool) {
+	  nirep = (mrb_irep *)((uint32_t)mrb + mrb_fixnum(irep->pool[0]));
+	}
 	if (nirep != (mrb_irep *)mrb) {
 	  npc = nirep->iseq + 1;
 	}
@@ -1788,7 +1791,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       /* Restore Regs */
       emit_move(mrb, coi, reg_regs, reg_tmp1, OffsetOf(mrb_callinfo, stackent));
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(regs), reg_regs);
 
       /* Restore c->stack */
       emit_move(mrb, coi, reg_context, OffsetOf(mrb_context, stack), reg_regs);
@@ -1828,7 +1830,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_exit(mrb, NULL, 0, 0, status, coi);
       L("@@");
 
-      emit_vm_var_read(mrb, coi, reg_regs, VMSOffsetOf(regs));
+      emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
       emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
     }
 
@@ -1855,7 +1857,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_code *pc = *status->pc;
 
 #if 0
-    mrb_value *regs = *status->regs;
+    mrb_value *regs = mrb->c->stack;
     mrb_code i = *pc;
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
     mrb_value sclass = mrb_obj_value(mrb, mrb_obj_class(mrb, regs[0]));
@@ -1894,7 +1896,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Restore Regs */
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
     emit_move(mrb, coi, reg_regs, reg_tmp1, OffsetOf(mrb_callinfo, stackent));
-    emit_vm_var_write(mrb, coi, VMSOffsetOf(regs), reg_regs);
 
     /* Restore c->stack */
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_context, stack), reg_regs);

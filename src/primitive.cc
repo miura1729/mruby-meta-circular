@@ -32,7 +32,7 @@ MRBJitCode::mrbjit_prim_num_cmp_impl(mrb_state *mrb, mrb_value proc,
 				     mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
@@ -146,7 +146,7 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
@@ -193,7 +193,7 @@ MRBJitCode::mrbjit_prim_fix_and_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
@@ -232,7 +232,7 @@ MRBJitCode::mrbjit_prim_fix_or_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
@@ -271,7 +271,7 @@ MRBJitCode::mrbjit_prim_fix_lshift_impl(mrb_state *mrb, mrb_value proc,
 					mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
@@ -312,7 +312,7 @@ MRBJitCode::mrbjit_prim_fix_rshift_impl(mrb_state *mrb, mrb_value proc,
 					mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
@@ -379,7 +379,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo)
 {
   mrb_code **ppc = status->pc;
-  mrb_value *regs  = *status->regs;
+  mrb_value *regs  = mrb->c->stack;
   void *code = NULL;
 
   COMP_GEN_JMP(setnz(al), setnz(al));
@@ -395,7 +395,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 {
   mrb_code **ppc = status->pc;
   int regno = GETARG_A(**ppc);
-  mrb_value *regs  = *status->regs;
+  mrb_value *regs  = mrb->c->stack;
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   dinfo->unboxedp = 0;
@@ -449,7 +449,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
   // No support 2 args or Index is not Fixnum
   if ((nargs > 1) ||
-      (mrb_type((*status->regs)[regno + 1]) != MRB_TT_FIXNUM)) {
+      (mrb_type((mrb->c->stack)[regno + 1]) != MRB_TT_FIXNUM)) {
     return mrb_nil_value();
   }
 
@@ -507,7 +507,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
-    mrb_value *regs = *status->regs;
+    mrb_value *regs = mrb->c->stack;
   const cpu_word_t aryno = regno;
   const cpu_word_t idxno = aryno + 1;
   const cpu_word_t valno = idxno + 1;
@@ -654,7 +654,7 @@ void
 MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
 				mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
@@ -754,7 +754,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
@@ -798,7 +798,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
@@ -904,7 +904,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
@@ -976,7 +976,7 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_sym *syms = *status->syms;
   int i = *pc;
   int a = GETARG_A(i);
@@ -1034,7 +1034,7 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int a = GETARG_A(i);
   struct RClass *c = mrb_class(mrb, regs[a]);
@@ -1062,7 +1062,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   int i = *pc;
   const int dst = GETARG_A(i);
@@ -1106,7 +1106,7 @@ mrb_value
 MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   mrb_code *pc = *status->pc;
   int i = *pc;
   const int dst = GETARG_A(i);

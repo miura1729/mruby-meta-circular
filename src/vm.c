@@ -1217,7 +1217,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   mrb_irep *irep = *status->irep;
   mrb_code **ppc = status->pc;
-  mrb_value *regs = *status->regs;
+  mrb_value *regs = mrb->c->stack;
   size_t n;
   mrbjit_code_info *ci;
   mrbjit_code_area cbase;
@@ -1313,7 +1313,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
 #endif
       irep = *status->irep;
-      regs = *status->regs;
+      regs = mrb->c->stack;
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
       n = ISEQ_OFFSET_OF(*ppc);
@@ -1610,7 +1610,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
 #endif
 
   mrbjit_vmstatus status = {
-    &irep, &proc, &pc, &pool, &syms, &regs, &ai, &status,
+    &irep, &proc, &pc, &pool, &syms, &ai, &status,
     optable, gototable, &prev_jmp
   };
 
@@ -3356,7 +3356,7 @@ RETRY_TRY_BLOCK:
 L_DISPATCH:
   gtptr = mrbjit_dispatch(mrb, &status);
   i=*pc;
-  CODE_FETCH_HOOK(mrb, irep, pc, regs);
+  CODE_FETCH_HOOK(mrb, irep, pc, mrb->c->stack);
   goto *gtptr;
 }
 
