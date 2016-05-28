@@ -1443,11 +1443,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->used > 0) {
-      if (prev_entry) {
-	//printf("patch %x %x \n", prev_entry, entry);
-	cbase = mrb->compile_info.code_base;
-	mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
-      }
       goto  skip;
     }
 
