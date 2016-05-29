@@ -570,6 +570,42 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 #endif
 
+  void
+    gen_stack_extend(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi,
+		     cpu_word_t room, cpu_word_t keep)
+  {
+    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, stend));
+    emit_sub(mrb, coi, reg_tmp1, room * sizeof(mrb_value));
+    emit_cmp(mrb, coi, reg_regs, reg_tmp1);
+    jb("@f");
+
+    if (addr_call_stack_extend == NULL) {
+      emit_load_label(mrb, coi, reg_tmp0, "@f");
+      emit_push(mrb, coi, reg_tmp0);
+      emit_load_literal(mrb, coi, reg_tmp1, room);
+      emit_load_literal(mrb, coi, reg_tmp0, keep);
+
+      addr_call_stack_extend = (void *)getCurr();
+
+      emit_cfunc_start(mrb, coi);
+      emit_arg_push(mrb, coi, 2, reg_tmp0);
+      emit_arg_push(mrb, coi, 1, reg_tmp1);
+      emit_arg_push(mrb, coi, 0, reg_mrb);
+      call((void *) mrbjit_stack_extend);
+      emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
+
+      emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
+      ret();
+    }
+    else {
+      emit_load_literal(mrb, coi, reg_tmp1, room);
+      emit_load_literal(mrb, coi, reg_tmp0, keep);
+      call(addr_call_stack_extend);
+    }
+      
+    L("@@");
+  }
+
   void 
     gen_send_mruby(mrb_state *mrb, struct RProc *m, mrb_sym mid, mrb_value recv, 
 		   struct RClass *c, mrbjit_vmstatus *status, mrb_code *pc, 
@@ -685,54 +721,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_add(mrb, coi, reg_context, OffsetOf(mrb_context, stack), reg_tmp0);
     emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
 
-    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, stend));
-    if (m->body.irep->nregs != 0) {
-      emit_sub(mrb, coi, reg_tmp1, (cpu_word_t)callee_nregs * sizeof(mrb_value));
+    if (n == CALL_MAXARGS) {
+      gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3);
     }
-
-    {
-      cpu_word_t room;
-      cpu_word_t keep;
-      
-      if (n == CALL_MAXARGS) {
-	room = (callee_nregs < 3) ? 3 : callee_nregs;
-	keep = 3;
-      }
-      else {
-	room = callee_nregs;
-	keep = n + 2;
-      }
-      emit_sub(mrb, coi, reg_tmp1, room * sizeof(mrb_value));
-      emit_cmp(mrb, coi, reg_regs, reg_tmp1);
-      jb("@f");
-
-      if (addr_call_stack_extend == NULL) {
-	emit_load_label(mrb, coi, reg_tmp0, "@f");
-	emit_push(mrb, coi, reg_tmp0);
-	emit_load_literal(mrb, coi, reg_tmp1, room);
-	emit_load_literal(mrb, coi, reg_tmp0, keep);
-
-	addr_call_stack_extend = (void *)getCurr();
-
-	emit_cfunc_start(mrb, coi);
-	emit_arg_push(mrb, coi, 2, reg_tmp0);
-	emit_arg_push(mrb, coi, 1, reg_tmp1);
-	emit_arg_push(mrb, coi, 0, reg_mrb);
-	call((void *) mrbjit_stack_extend);
-	emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
-
-	emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
-	ret();
-      }
-      else {
-	emit_load_literal(mrb, coi, reg_tmp1, room);
-	emit_load_literal(mrb, coi, reg_tmp0, keep);
-	call(addr_call_stack_extend);
-      }
+    else {
+      gen_stack_extend(mrb, status, coi, callee_nregs, n + 2);
     }
-      
-    L("@@");
-
 
     if (irep->jit_inlinep == 0 || 1) {
       gen_set_jit_entry(mrb, pc, coi, irep);
