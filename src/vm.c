@@ -2662,6 +2662,10 @@ RETRY_TRY_BLOCK:
         }
         stack = e->stack + 1;
       }
+      if (mrb_nil_p(stack[m1+r+m2])) {
+        localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
+        goto L_RAISE;
+      }
       regs[a] = stack[m1+r+m2];
       NEXT;
     }
