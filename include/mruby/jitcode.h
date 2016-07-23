@@ -1929,14 +1929,27 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int m2 = (bx>>4)&0x1f;
     int lv = (bx>>0)&0xf;
 
+
     if (lv == 0) {
+      if (mrb_nil_p(regs[m1 + r + m2 + 1])) {
+	return NULL;
+      }
       emit_local_var_read(mrb, coi, reg_dtmp0, m1 + r + m2 + 1);
       emit_local_var_write(mrb, coi, a, reg_dtmp0);
     }
     else {
       int i;
+      int up = lv - 1;
+      struct REnv *e = mrb->c->ci->proc->env;
 
-      return NULL;
+      while (up--) {
+	if (!e) return NULL;
+	e = (struct REnv*)e->c;
+      }
+
+      if (!e) {
+	return NULL;
+      }
       emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, ci));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, proc));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RProc, env));
