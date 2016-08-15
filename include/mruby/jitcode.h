@@ -2183,6 +2183,31 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     return code;
   }
 
+#define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
+#define OP_CMP_BODY(op,v1,v2) (v1(regs[regno]) op v2(regs[regno+1]))
+
+#define OP_CMP(op) ({				\
+      int result = 0;						\
+      /* need to check if - is overridden */			\
+      switch (TYPES2(mrb_type(regs[regno]),mrb_type(regs[regno+1]))) {	\
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):			\
+	result = OP_CMP_BODY(op,mrb_fixnum,mrb_fixnum);		\
+	break;							\
+      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):			\
+	result = OP_CMP_BODY(op,mrb_fixnum,mrb_float);		\
+	break;							\
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):			\
+	result = OP_CMP_BODY(op,mrb_float,mrb_fixnum);		\
+	break;							\
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):			\
+	result = OP_CMP_BODY(op,mrb_float,mrb_float);		\
+	break;							\
+      default:							\
+	break;							\
+      }								\
+      result;							\
+    })
+
 #define COMP_GEN_II(CMPINST)                                         \
 do {                                                                 \
     emit_local_var_value_read(mrb, coi, reg_tmp0, regno);	     \
@@ -2282,19 +2307,26 @@ do {                                                                 \
     COMP_BOOL_SET;                                                   \
 } while(0)
 
-#define COMP_GEN_JMP(CMPINSTI, CMPINSTF)                 	     \
+#define COMP_GEN_JMP(CMPINSTI, CMPINSTF, COP)                 	     \
 do {                                                                 \
-    int regno = GETARG_A(**ppc);	                             \
+  int regno = GETARG_A(**ppc);					     \
+  int cond;							     \
+  cond = OP_CMP(COP);						     \
                                                                      \
-    COMP_GEN_CMP(CMPINSTI, CMPINSTF);                                \
-    switch (GET_OPCODE(*(*ppc + 1))) {                               \
-    case OP_JMPIF:                                                   \
-    case OP_JMPNOT:                                                  \
-      /*      break;		*/				     \
-    default:							     \
-      COMP_BOOL_SET;                                                 \
-      return code;                                                   \
-    }                                                                \
+  COMP_GEN_CMP(CMPINSTI, CMPINSTF);				     \
+  switch (GET_OPCODE(*(*ppc + 1))) {				     \
+  case OP_JMPIF:						     \
+    ent_jmpif_inline(mrb, status, coi, cond);			     \
+    break;							     \
+                                                                     \
+  case OP_JMPNOT:						     \
+    ent_jmpnot_inline(mrb, status, coi, cond);			     \
+    break;							     \
+                                                                     \
+  default:							     \
+    COMP_BOOL_SET;						     \
+    return code;						     \
+  }								     \
  } while(0)
 
   const void *
@@ -2306,12 +2338,8 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
 #if 1
-    COMP_GEN_JMP(setz(al), setz(al));
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_AL;
-    dinfo->unboxedp = 1;
+    COMP_GEN_JMP(setz(al), setz(al), ==);
+
     return code;
 #endif
       
@@ -2333,12 +2361,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
 #if 1
-    COMP_GEN_JMP(setl(al), setb(al));
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_AL;
-    dinfo->unboxedp = 1;
+    COMP_GEN_JMP(setl(al), setb(al), <);
     return code;
 #endif
 
@@ -2359,7 +2382,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
 #if 1
-    COMP_GEN_JMP(setle(al), setbe(al));
+    COMP_GEN_JMP(setle(al), setbe(al), <=);
     dinfo->type = MRB_TT_TRUE;
     dinfo->klass = mrb->true_class;
     dinfo->constp = 0;
@@ -2385,12 +2408,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
 #if 1
-    COMP_GEN_JMP(setg(al), seta(al));
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_AL;
-    dinfo->unboxedp = 1;
+    COMP_GEN_JMP(setg(al), seta(al), >);
     return code;
 #endif
 
@@ -2411,12 +2429,7 @@ do {                                                                 \
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
 #if 1
-    COMP_GEN_JMP(setge(al), setae(al));
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_AL;
-    dinfo->unboxedp = 1;
+    COMP_GEN_JMP(setge(al), setae(al), >=);
     return code;
 #endif
 
@@ -2514,7 +2527,6 @@ do {                                                                 \
     int dstno = GETARG_A(**ppc);
     int srcno = GETARG_B(**ppc);
     int idx = GETARG_C(**ppc);
-    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
     if (!mrb_array_p(regs[srcno]) ||
 	idx < 0) {
@@ -2596,34 +2608,36 @@ do {                                                                 \
     return code;
   }
 
+  void
+    ent_jmpif_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_int cond)
+  {
+    mrb_code **ppc = status->pc;
+    mrb_irep **irepp = status->irep;
+    mrb_irep *irep = *irepp;
+
+    int n = ISEQ_OFFSET_OF(*ppc + 1);
+
+    irep->prof_info[n] = -1;
+    test(al, al);
+    if (cond) {
+      jnz("@f");
+      gen_exit(mrb, *ppc + 2, 3, 0, status, coi);
+      L("@@");
+    }
+    else {
+      jz("@f");
+      gen_exit(mrb, *ppc + GETARG_sBx(*(*ppc + 1)), 3, 0, status, coi);
+      L("@@");
+    }
+  }
+
   const void *
     ent_jmpif(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
-    mrbjit_reginfo *rinfo = &coi->reginfo[cond];
 
-#if 1
-    if (rinfo->regplace == MRBJIT_REG_AL) {
-      rinfo->regplace = MRBJIT_REG_MEMORY;
-      test(al, al);
-      if (mrb_test(regs[cond])) {
-	jnz("@f");
-	gen_exit(mrb, *ppc + 1, 3, 0, status, coi);
-	L("@@");
-      }
-      else {
-	jz("@f");
-	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
-	L("@@");
-      }
-      gen_flush_regs(mrb, *ppc, status, coi, 1);
-
-      return code;
-    }
-#endif
-    
     emit_local_var_type_read(mrb, coi, reg_tmp0, cond);
     if (mrb_test(regs[cond])) {
       gen_bool_guard(mrb, 1, cond, *ppc + 1, status, coi);
@@ -2635,33 +2649,36 @@ do {                                                                 \
     return code;
   }
 
+  void
+    ent_jmpnot_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_int cond)
+  {
+    mrb_code **ppc = status->pc;
+    mrb_irep **irepp = status->irep;
+    mrb_irep *irep = *irepp;
+
+    int n = ISEQ_OFFSET_OF(*ppc + 1);
+
+    irep->prof_info[n] = -1;
+
+    test(al, al);
+    if (!cond) {
+      jz("@f");
+      gen_exit(mrb, *ppc + 2, 3, 0, status, coi);
+      L("@@");
+    }
+    else {
+      jnz("@f");
+      gen_exit(mrb, *ppc + GETARG_sBx(*(*ppc + 1)), 3, 0, status, coi);
+      L("@@");
+    }
+  }
+
   const void *
     ent_jmpnot(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_value *regs)
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
     const int cond = GETARG_A(**ppc);
-    mrbjit_reginfo *rinfo = &coi->reginfo[cond];
-
-#if 1
-    if (rinfo->regplace == MRBJIT_REG_AL) {
-      rinfo->regplace = MRBJIT_REG_MEMORY;
-      test(al, al);
-      if (!mrb_test(regs[cond])) {
-	jz("@f");
-	gen_exit(mrb, *ppc + 1, 3, 0, status, coi);
-	L("@@");
-      }
-      else {
-	jnz("@f");
-	gen_exit(mrb, *ppc + GETARG_sBx(**ppc), 3, 0, status, coi);
-	L("@@");
-      }
-      gen_flush_regs(mrb, *ppc, status, coi, 1);
-
-      return code;
-    }
-#endif
 
     emit_local_var_type_read(mrb, coi, reg_tmp0, cond);
     if (!mrb_test(regs[cond])) {

@@ -150,7 +150,6 @@ MRBJitCode::mrbjit_prim_fix_mod_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -197,7 +196,6 @@ MRBJitCode::mrbjit_prim_fix_and_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -236,7 +234,6 @@ MRBJitCode::mrbjit_prim_fix_or_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -275,7 +272,6 @@ MRBJitCode::mrbjit_prim_fix_lshift_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -316,7 +312,6 @@ MRBJitCode::mrbjit_prim_fix_rshift_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int regno = GETARG_A(i);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
-  mrbjit_reginfo *d2info = &coi->reginfo[regno + 1];
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
@@ -382,7 +377,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
   mrb_value *regs  = mrb->c->stack;
   void *code = NULL;
 
-  COMP_GEN_JMP(setnz(al), setnz(al));
+  COMP_GEN_JMP(setnz(al), setnz(al), !=);
   dinfo->regplace = MRBJIT_REG_AL;
   dinfo->unboxedp = 1;
 
