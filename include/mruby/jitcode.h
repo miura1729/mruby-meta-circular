@@ -2279,13 +2279,13 @@ do {                                                                 \
                                                                      \
           COMP_GEN_II(CMPINSTI);                                     \
     }                                                                \
-    else if (mrb_type(regs[regno]) == MRB_TT_STRING &&               \
+    /*    else if (mrb_type(regs[regno]) == MRB_TT_STRING &&	     \
              mrb_type(regs[regno + 1]) == MRB_TT_STRING) {           \
           gen_type_guard(mrb, regno, status, *ppc, coi);	     \
           gen_type_guard(mrb, regno + 1, status, *ppc, coi);	     \
                                                                      \
           COMP_GEN_SS(CMPINSTI);                                     \
-    }                                                                \
+	  } */							     \
     else {                                                           \
       return ent_send(mrb, status, coi);			     \
     }                                                                \
@@ -2295,7 +2295,7 @@ do {                                                                 \
 do {								     \
     emit_bool_boxing(mrb, coi, reg_tmp0s);                           \
     emit_local_var_type_write(mrb, coi, regno, reg_tmp0s);	     \
-    emit_load_literal(mrb, coi, reg_tmp0s, 1 - (cpu_word_t)mrb);     \
+    emit_load_literal(mrb, coi, reg_tmp0s, 1);                       \
     emit_local_var_value_write(mrb, coi, regno, reg_tmp0s);	     \
   } while(0)
 
@@ -2339,7 +2339,6 @@ do {                                                                 \
 
 #if 1
     COMP_GEN_JMP(setz(al), setz(al), ==);
-
     return code;
 #endif
       
@@ -2383,11 +2382,6 @@ do {                                                                 \
 
 #if 1
     COMP_GEN_JMP(setle(al), setbe(al), <=);
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
-    dinfo->regplace = MRBJIT_REG_AL;
-    dinfo->unboxedp = 1;
     return code;
 #endif
 

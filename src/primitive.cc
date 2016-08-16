@@ -378,8 +378,6 @@ MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
   void *code = NULL;
 
   COMP_GEN_JMP(setnz(al), setnz(al), !=);
-  dinfo->regplace = MRBJIT_REG_AL;
-  dinfo->unboxedp = 1;
 
   return NULL;
 }
