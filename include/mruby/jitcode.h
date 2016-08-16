@@ -2626,7 +2626,7 @@ do {                                                                 \
     }
     else {
       jz("@f");
-      gen_exit(mrb, *ppc + GETARG_sBx(*(*ppc + 1)), 3, 0, status, coi);
+      gen_exit(mrb, *ppc + GETARG_sBx(*(*ppc + 1)) + 1, 3, 0, status, coi);
       L("@@");
     }
   }
@@ -2668,7 +2668,7 @@ do {                                                                 \
     }
     else {
       jnz("@f");
-      gen_exit(mrb, *ppc + GETARG_sBx(*(*ppc + 1)), 3, 0, status, coi);
+      gen_exit(mrb, *ppc + GETARG_sBx(*(*ppc + 1)) + 1, 3, 0, status, coi);
       L("@@");
     }
   }

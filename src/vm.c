@@ -1487,7 +1487,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
 
-  if (cbase && irep->prof_info[n] &&
+  if (cbase && irep->prof_info[n] > 0 &&
       entry == NULL &&
       GET_OPCODE(*irep->iseq) != OP_CALL &&
       !mrb->compile_info.force_compile) {
