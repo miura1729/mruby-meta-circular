@@ -152,6 +152,13 @@ MRuby::Build.new('bench') do |conf|
   conf.cxx.include_paths << "#{root}/xbyak"
   conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
   conf.linker.libraries << "stdc++"
+  # Gets set by the VS command prompts.
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    toolchain :gcc
+    conf.cc.flags << '-O3'
+  end
 
   conf.gembox 'default'
 end
