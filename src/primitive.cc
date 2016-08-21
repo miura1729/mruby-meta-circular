@@ -377,7 +377,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
   mrb_value *regs  = mrb->c->stack;
   void *code = NULL;
 
-  COMP_GEN_JMP(setnz(al), setnz(al), !=);
+  COMP_GEN(setnz(al), setnz(al));
 
   return NULL;
 }
@@ -397,12 +397,11 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   switch (tt) {
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
-  case MRB_TT_STRING:
-    if (mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi, dinfo) == NULL) {
-      dinfo->type = MRB_TT_TRUE;
-      dinfo->klass = mrb->true_class;
-      dinfo->constp = 0;
-    }
+    /*case MRB_TT_STRING:*/
+    mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi, dinfo);
+    dinfo->type = MRB_TT_TRUE;
+    dinfo->klass = mrb->true_class;
+    dinfo->constp = 0;
 
     return mrb_true_value();
 
