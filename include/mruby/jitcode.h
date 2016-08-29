@@ -841,13 +841,30 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
+    mrb_irep *irep = *status->irep;
+
     const cpu_word_t src = GETARG_sBx(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    int n = ISEQ_OFFSET_OF(*ppc + 1);
 
     dinfo->value = mrb_fixnum_value(src);
     dinfo->type =  MRB_TT_FIXNUM;
     dinfo->regplace = MRBJIT_REG_IMMIDATE;
-    gen_flush_literal(mrb, coi, GETARG_A(**ppc));
+    switch (GET_OPCODE(*(*ppc + 1))) {
+    case OP_EQ:
+    case OP_LT:
+    case OP_LE:
+    case OP_GT:
+    case OP_GE:
+    case OP_SEND:
+      irep->prof_info[n] += (COMPILE_THRESHOLD + 1); /* force compile */
+      break;
+
+    default:
+      gen_flush_literal(mrb, coi, GETARG_A(**ppc));
+      break;
+    }
+
     return code;
   }
 
