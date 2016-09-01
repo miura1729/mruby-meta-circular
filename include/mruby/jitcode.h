@@ -2155,8 +2155,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 \
     if (atype == MRB_TT_FIXNUM) {                                       \
       emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);		\
-      emit_load_literal(mrb, coi, reg_tmp1s, y);                        \
-      AINST(mrb, coi, reg_tmp0s, reg_tmp1s);				\
+      AINST(mrb, coi, reg_tmp0s, y);				        \
       OVERFLOW_CHECK_I_GEN(AINST);                                      \
       if (drp != MRBJIT_REG_MEMORY) {                                   \
         emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);\
