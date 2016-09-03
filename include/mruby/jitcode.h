@@ -2622,12 +2622,9 @@ do {                                                                 \
     ent_jmpif_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_int cond)
   {
     mrb_code **ppc = status->pc;
-    mrb_irep **irepp = status->irep;
-    mrb_irep *irep = *irepp;
 
-    int n = ISEQ_OFFSET_OF(*ppc + 1);
+    mrb->compile_info.ignor_inst_cnt = 2;
 
-    irep->prof_info[n] = -1;
     test(al, al);
     if (cond) {
       jnz("@f");
@@ -2663,12 +2660,8 @@ do {                                                                 \
     ent_jmpnot_inline(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_int cond)
   {
     mrb_code **ppc = status->pc;
-    mrb_irep **irepp = status->irep;
-    mrb_irep *irep = *irepp;
 
-    int n = ISEQ_OFFSET_OF(*ppc + 1);
-
-    irep->prof_info[n] = -1;
+    mrb->compile_info.ignor_inst_cnt = 2;
 
     test(al, al);
     if (!cond) {

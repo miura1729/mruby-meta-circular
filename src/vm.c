@@ -1501,6 +1501,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
  skip:
 
+  if (mrb->compile_info.ignor_inst_cnt > 0) {
+    mrb->compile_info.ignor_inst_cnt--;
+  }
   mrb->c->ci->prev_pc = *ppc;
   mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {

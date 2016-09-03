@@ -43,6 +43,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb->compile_info.disable_jit = 0;
   mrb->compile_info.force_compile = 0;
   mrb->compile_info.nest_level = 0;
+  mrb->compile_info.ignor_inst_cnt = 0;
   mrb_gc_init(mrb, &mrb->gc);
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *mrb->c = mrb_context_zero;

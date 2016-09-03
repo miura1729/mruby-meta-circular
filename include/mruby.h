@@ -129,6 +129,7 @@ typedef struct mrbjit_comp_info {
   int disable_jit;
   int force_compile;
   int nest_level;
+  int ignor_inst_cnt;
 } mrbjit_comp_info;
 
 typedef struct {

@@ -76,7 +76,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       emit_local_var_type_write(mrb, coi, regno, reg_tmp0);          \
       rinfo->regplace = MRBJIT_REG_MEMORY;                           \
     }                                                                \
-    (rinfo->regplace > MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
+    (rinfo->regplace >= MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
   })
 
 
