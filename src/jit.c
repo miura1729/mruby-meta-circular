@@ -282,7 +282,7 @@ mrbjit_exec_extend_callinfo(mrb_state *mrb, struct mrb_context *cxt, int size)
 
   cxt->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
   sci = cxt->cibase;
-  cxt->cibase = (mrb_callinfo *)(((int)(cxt->cibase_org) + 63) & (~(64 - 1)));
+  cxt->cibase = (mrb_callinfo *)(((uintptr_t)(cxt->cibase_org) + 63) & (~(64 - 1)));
   for (dci = cxt->cibase; sci <= cxt->ci; sci++, dci++) {
     *dci = *sci;
   }
@@ -317,7 +317,7 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
     size_t size = ci - cxt->cibase;
 
     cxt->cibase_org = (mrb_callinfo *)mrb_realloc(mrb, cxt->cibase_org, sizeof(mrb_callinfo)*size*2 + 64);
-    cxt->cibase = (mrb_callinfo *)((((int)(cxt->cibase_org)) & (~(64 - 1))) + 64);
+    cxt->cibase = (mrb_callinfo *)((((uintptr_t)(cxt->cibase_org)) & (~(64 - 1))) + 64);
     cxt->ci = cxt->cibase + size;
     cxt->ciend = cxt->cibase + size * 2;
   }

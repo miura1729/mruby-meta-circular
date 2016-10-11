@@ -96,7 +96,7 @@ stack_init(mrb_state *mrb)
 
   /* mrb_assert(ci == NULL); */
   c->cibase_org = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE + 2, sizeof(mrb_callinfo));
-  c->cibase = (mrb_callinfo *)((((int)(c->cibase_org)) & (~(64 - 1))) + 64);
+  c->cibase = (mrb_callinfo *)((((uintptr_t)(c->cibase_org)) & (~(64 - 1))) + 64);
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
   c->ci->target_class = mrb->object_class;
@@ -362,7 +362,7 @@ cipush(mrb_state *mrb)
 
     c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
     sci = c->cibase;
-    c->cibase = (mrb_callinfo *)(((int)(c->cibase_org) + 63) & (~(64 - 1)));
+    c->cibase = (mrb_callinfo *)(((uintptr_t)(c->cibase_org) + 63) & (~(64 - 1)));
     for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
       *dci = *sci;
     }
@@ -400,7 +400,7 @@ mrbjit_cipush(mrb_state *mrb)
 
     c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
     sci = c->cibase;
-    c->cibase = (mrb_callinfo *)(((int)(c->cibase_org) + 63) & (~(64 - 1)));
+    c->cibase = (mrb_callinfo *)(((uintptr_t)(c->cibase_org) + 63) & (~(64 - 1)));
     for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
       *dci = *sci;
     }
