@@ -2028,7 +2028,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dstno = get_dst_regno(mrb, status, coi, reg0pos);			\
     dinfo = &coi->reginfo[dstno];					\
     dinfo->unboxedp = 0;                                              \
-    drp = dinfo->regplace;						\
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);			\
     gen_exit(mrb, *status->pc + 1, 1, 2, status, coi);			\
     L("@@");                                                            \
@@ -2042,7 +2041,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);   \
     int dstno;								\
     mrbjit_reginfo *dinfo;						\
-    enum mrbjit_regplace drp;						\
 \
     if (r0type == MRB_TT_FIXNUM && r1type == MRB_TT_FIXNUM) {           \
 \
@@ -2053,12 +2051,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_value_read(mrb, coi, reg_tmp1s, reg1pos);		\
       AINST(mrb, coi, reg_tmp0s, reg_tmp1s);				\
       OVERFLOW_CHECK_GEN(AINST);                                        \
-      if (drp != MRBJIT_REG_MEMORY) {                                   \
+      if (dinfo->regplace != MRBJIT_REG_MEMORY ||			\
+          dinfo->type != MRB_TT_FIXNUM || 1) {				\
         emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);\
         emit_local_var_type_write(mrb, coi, dstno, reg_tmp1s);          \
       }                                                                 \
       emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);		\
       if ((*status->irep)->may_overflow == 0) {                         \
+	dinfo->regplace = MRBJIT_REG_MEMORY;				\
         dinfo->type = MRB_TT_FIXNUM;					\
         dinfo->klass = mrb->fixnum_class; 				\
       }                                                                 \
@@ -2171,7 +2171,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				\
     dstno = get_dst_regno(mrb, status, coi, regno);			\
     dinfo = &coi->reginfo[dstno];					\
-    drp = dinfo->regplace;						\
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);			\
     gen_exit(mrb, *status->pc + 1, 1, 2, status, coi);			\
     L("@@");                                                            \
@@ -2183,7 +2182,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     enum mrb_vtype atype = (enum mrb_vtype) mrb_type(regs[regno]);      \
     int dstno;								\
     mrbjit_reginfo *dinfo;						\
-    enum mrbjit_regplace drp;						\
 \
     gen_type_guard(mrb, regno, status, *ppc, coi);			\
 \
@@ -2191,12 +2189,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);		\
       AINST(mrb, coi, reg_tmp0s, y);				        \
       OVERFLOW_CHECK_I_GEN(AINST);                                      \
-      if (drp != MRBJIT_REG_MEMORY) {                                   \
+      if (dinfo->regplace != MRBJIT_REG_MEMORY ||			\
+          dinfo->type != MRB_TT_FIXNUM || 1) {				\
         emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);\
         emit_local_var_type_write(mrb, coi, dstno, reg_tmp1s);          \
       }                                                                 \
       emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);		\
       if ((*status->irep)->may_overflow == 0) {                         \
+	dinfo->regplace = MRBJIT_REG_MEMORY;				\
         dinfo->type = MRB_TT_FIXNUM;					\
         dinfo->klass = mrb->fixnum_class; 				\
       }                                                                 \
