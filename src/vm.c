@@ -96,7 +96,7 @@ stack_init(mrb_state *mrb)
 
   /* mrb_assert(ci == NULL); */
   c->cibase_org = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE + 2, sizeof(mrb_callinfo));
-  c->cibase = (mrb_callinfo *)((((int)(c->cibase_org)) & (~(64 - 1))) + 64);
+  c->cibase = (mrb_callinfo *)((((uintptr_t)(c->cibase_org)) & (~(64 - 1))) + 64);
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
   c->ci->target_class = mrb->object_class;
@@ -362,7 +362,7 @@ cipush(mrb_state *mrb)
 
     c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
     sci = c->cibase;
-    c->cibase = (mrb_callinfo *)(((int)(c->cibase_org) + 63) & (~(64 - 1)));
+    c->cibase = (mrb_callinfo *)(((uintptr_t)(c->cibase_org) + 63) & (~(64 - 1)));
     for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
       *dci = *sci;
     }
@@ -400,7 +400,7 @@ mrbjit_cipush(mrb_state *mrb)
 
     c->cibase_org = (mrb_callinfo *)mrb_malloc(mrb, sizeof(mrb_callinfo)*size*2 + 64);
     sci = c->cibase;
-    c->cibase = (mrb_callinfo *)(((int)(c->cibase_org) + 63) & (~(64 - 1)));
+    c->cibase = (mrb_callinfo *)(((uintptr_t)(c->cibase_org) + 63) & (~(64 - 1)));
     for (dci = c->cibase; sci <= c->ci; sci++, dci++) {
       *dci = *sci;
     }
@@ -1487,7 +1487,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
 
-  if (cbase && 
+  if (cbase && irep->prof_info[n] > 0 &&
       entry == NULL &&
       GET_OPCODE(*irep->iseq) != OP_CALL &&
       !mrb->compile_info.force_compile) {
@@ -1501,6 +1501,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
  skip:
 
+  if (mrb->compile_info.ignor_inst_cnt > 0) {
+    mrb->compile_info.ignor_inst_cnt--;
+  }
   mrb->c->ci->prev_pc = *ppc;
   mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {

@@ -98,13 +98,13 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_code **ppc = status->pc;
   const void *rc;
   const void *rc2 = NULL;
+  const void *entry;
 
   if (code == NULL) {
     code = the_code;
     //    printf("%x \n", code->getCurr());
     mrb->compile_info.code_base = code;
   }
-  const void *entry;
 
   if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
@@ -121,6 +121,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   }
 #endif
 
+  if (mrb->compile_info.ignor_inst_cnt > 0) {
+    return code->ent_nop(mrb, status, coi);
+  }
+    
   switch(GET_OPCODE(**ppc)) {
   case OP_NOP:
     rc =code->ent_nop(mrb, status, coi);
