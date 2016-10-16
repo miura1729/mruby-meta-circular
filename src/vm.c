@@ -1418,8 +1418,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
 
     if (ci->reginfo == NULL) {
-      ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs, sizeof(mrbjit_reginfo));
-      for (i = 0; i < irep->nregs; i++) {
+      ci->reginfo = (mrbjit_reginfo *)mrb_calloc(mrb, irep->nregs + 1, sizeof(mrbjit_reginfo));
+      for (i = 0; i < irep->nregs + 1; i++) {
 	ci->reginfo[i].type = MRB_TT_FREE;
 	ci->reginfo[i].klass = NULL;
 	ci->reginfo[i].constp = 0;
@@ -1437,7 +1437,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     if (prev_coi && prev_coi->reginfo) {
       mrbjit_reginfo *prev_rinfo = prev_coi->reginfo;
 
-      for (i = 0; i < irep->nregs; i++) {
+      for (i = 0; i < irep->nregs + 1; i++) {
 	ci->reginfo[i] = prev_rinfo[i];
       }
     }
