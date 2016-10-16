@@ -78,6 +78,20 @@ mrbjit_gen_load_patch(mrbjit_code_area coderaw, mrb_state *mrb, void *dst, void 
 }
 
 void
+mrbjit_dump_code(mrb_state *mrb)
+{
+  const void *p = the_code->getCode();
+  const void *ep = the_code->getCurr();
+  FILE *fp;
+
+  // objdump -b binary --adjust-vma=0xabcd1000 -D file.bin
+  printf("%x \n", p);
+  fp = fopen("output", "w");
+  fwrite(p, (int)ep - (int)p, 1, fp);
+  fclose(fp);
+}
+
+void
 mrbjit_gen_align(mrbjit_code_area coderaw, unsigned align)
 {
   MRBJitCode *code;
