@@ -7,7 +7,11 @@
 #ifndef MRUBY_JITCOD_H
 #define MRUBY_JITCODE_H
 
+#ifdef __i386__
 #include "jit_x86.h"
+#elif __x86_64__
+#include "jit_x64.h"
+#endif
 
 extern "C" {
 #include "mruby.h"
