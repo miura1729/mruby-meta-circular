@@ -1,13 +1,21 @@
 #!env ruby
 
 addrtab = Hash.new(0)
+symtab = {}
 File.foreach('report') do |lin|
   if /^#/ =~ lin then
     next
   end
 
-  addr = lin.split[4]
+  sp = lin.split
+  addr = sp[4]
   addrtab[addr] += 1
+  sym = sp[5] + " " + sp[6]
+  symtab[addr] = sym
+end
+
+addrtab.sort_by {|e| -e[1]}.each do |addr, cnt|
+  printf("%-14s    %5d     %s\n", addr, cnt, symtab[addr])
 end
 
 File.foreach('dis') do |lin|
