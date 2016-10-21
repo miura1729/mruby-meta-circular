@@ -1075,9 +1075,9 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_read(mrb, coi, xmm0, src);
-    sqrtsd(xmm0, xmm0);
-    emit_local_var_write(mrb, coi, dst, xmm0);
+    emit_local_var_read(mrb, coi, reg_dtmp0, src);
+    sqrtsd(reg_dtmp1, reg_dtmp0);
+    emit_local_var_write(mrb, coi, dst, reg_dtmp1);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
 
@@ -1085,9 +1085,9 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   }
   else if (mrb_type(regs[src]) == MRB_TT_FIXNUM) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_int_value_read(mrb, coi, xmm0, src);
-    sqrtsd(xmm0, xmm0);
-    emit_local_var_write(mrb, coi, dst, xmm0);
+    emit_local_var_int_value_read(mrb, coi, reg_dtmp0, src);
+    sqrtsd(reg_dtmp1, reg_dtmp0);
+    emit_local_var_write(mrb, coi, dst, reg_dtmp1);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
 
@@ -1119,10 +1119,10 @@ MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
 
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
-    emit_local_var_read(mrb, coi, xmm0, src);
-    emit_sub(mrb, coi, xmm1, xmm1);
-    emit_sub(mrb, coi, xmm1, xmm0);
-    emit_local_var_write(mrb, coi, dst, xmm1);
+    emit_local_var_read(mrb, coi, reg_dtmp0, src);
+    emit_sub(mrb, coi, reg_dtmp1, reg_dtmp1);
+    emit_sub(mrb, coi, reg_dtmp1, reg_dtmp0);
+    emit_local_var_write(mrb, coi, dst, reg_dtmp1);
     dinfo->type = MRB_TT_FLOAT;
     dinfo->klass = mrb->float_class;
 
