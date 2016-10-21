@@ -110,6 +110,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 {
   mrb_value *regs = mrb->c->stack;
   mrb_code **ppc = status->pc;
+  mrb_irep *irep = *status->irep;
   const void *rc;
   const void *rc2 = NULL;
   const void *entry;
@@ -127,6 +128,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     mrb->compile_info.nest_level++;
   }
 
+  printf("%x %s_%d\n", code->getCurr(), mrb_sym2name(mrb, mrb->c->ci->mid), ISEQ_OFFSET_OF(*ppc));
   entry = code->gen_entry(mrb, status);
 
 #ifdef ENABLE_DEBUG
