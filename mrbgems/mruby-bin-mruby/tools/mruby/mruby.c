@@ -189,6 +189,7 @@ main(int argc, char **argv)
     return n;
   }
 
+  mrb->logfp = fopen("sym", "w");
   ARGV = mrb_ary_new_capa(mrb, args.argc);
   for (i = 0; i < args.argc; i++) {
     char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);

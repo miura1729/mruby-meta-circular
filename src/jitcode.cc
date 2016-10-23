@@ -85,7 +85,6 @@ mrbjit_dump_code(mrb_state *mrb)
   FILE *fp;
 
   // objdump -b binary --adjust-vma=0xabcd1000 -D file.bin
-  printf("%x \n", p);
   fp = fopen("output", "w");
   fwrite(p, (int)ep - (int)p, 1, fp);
   fclose(fp);
@@ -128,7 +127,11 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     mrb->compile_info.nest_level++;
   }
 
-  printf("%x %s_%d\n", code->getCurr(), mrb_sym2name(mrb, mrb->c->ci->mid), ISEQ_OFFSET_OF(*ppc));
+  if (mrb->logfp) {
+    fprintf(mrb->logfp, "%x %s_%d\n", code->getCurr(), 
+	    mrb_sym2name(mrb, mrb->c->ci->mid), 
+	    ISEQ_OFFSET_OF(*ppc));
+  }
   entry = code->gen_entry(mrb, status);
 
 #ifdef ENABLE_DEBUG

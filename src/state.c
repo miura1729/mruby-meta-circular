@@ -35,6 +35,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
+
   mrb->allocf_ud = ud;
   mrb->allocf = f;
   mrb->atexit_stack_len = 0;
@@ -257,7 +258,10 @@ mrb_close(mrb_state *mrb)
   void mrbjit_dump_code(mrb_state *);
 
   if (!mrb) return;
-  mrbjit_dump_code(mrb);
+  if (mrb->logfp) {
+    fclose(mrb->logfp);
+    mrbjit_dump_code(mrb);
+  }
   if (mrb->atexit_stack_len > 0) {
     mrb_int i;
     for (i = mrb->atexit_stack_len; i > 0; --i) {

@@ -273,6 +273,8 @@ typedef struct mrb_state {
   mrb_int atexit_stack_len;
 
   void *vmstatus;
+
+  FILE *logfp;
 } mrb_state;
 
 
