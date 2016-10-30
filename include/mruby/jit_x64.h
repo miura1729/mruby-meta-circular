@@ -296,7 +296,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   void emit_arg_push_nan(mrb_state *mrb, mrbjit_code_info *coi, int no, Xbyak::Reg64 tmpreg, cpu_word_t regno)
   {
     emit_local_var_read(mrb, coi, tmpreg, regno);
-    push(tmpreg);
+    mov(argpos2reg[no], tmpreg);
   }
 
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 reg)

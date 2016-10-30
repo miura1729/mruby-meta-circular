@@ -2850,15 +2850,9 @@ do {                                                                 \
     emit_cfunc_start(mrb, coi);
 
     emit_load_literal(mrb, coi, reg_tmp0, exelp);
-    emit_arg_push(mrb, coi, 5, reg_tmp0);
-    emit_local_var_type_read(mrb, coi, reg_tmp0s, srcno1);
-    emit_arg_push(mrb, coi, 4, reg_tmp0s);
-    emit_local_var_value_read(mrb, coi, reg_tmp0, srcno1);
     emit_arg_push(mrb, coi, 3, reg_tmp0);
-    emit_local_var_type_read(mrb, coi, reg_tmp0, srcno0);
-    emit_arg_push(mrb, coi, 2, reg_tmp0);
-    emit_local_var_value_read(mrb, coi, reg_tmp0, srcno0);
-    emit_arg_push(mrb, coi, 1, reg_tmp0);
+    emit_arg_push_nan(mrb, coi, 2, reg_tmp0, srcno1);
+    emit_arg_push_nan(mrb, coi, 1, reg_tmp0, srcno0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     call((void *) mrb_range_new);
     
