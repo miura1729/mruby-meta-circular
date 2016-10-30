@@ -861,10 +861,17 @@ mrbjit_reset_caller()
   struct RProc *p;
   mrb_irep *irep;
 
+#ifdef __i386__
   asm volatile("mov %%esi, %0\n\t"
 	       : "=c"(mrb));
   asm volatile("mov %%ebx, %0\n\t"
 	       : "=c"(status.pc));
+#elif __x86_64__
+  asm volatile("mov %%r13, %0\n\t"
+	       : "=c"(mrb));
+  asm volatile("mov %%rbx, %0\n\t"
+	       : "=c"(status.pc));
+#endif
   p = mrb->c->ci[-1].proc;
   irep = p->body.irep;
   status.irep = &irep;

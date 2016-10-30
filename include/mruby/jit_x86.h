@@ -233,7 +233,6 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     push(reg);
   }
 
-
   void emit_arg_push(mrb_state *mrb, mrbjit_code_info *coi, int no, cpu_word_t val)
   {
     push(val);
