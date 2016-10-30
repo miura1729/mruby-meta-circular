@@ -17,7 +17,7 @@ typedef Xbyak::uint64 cpu_word_t;
  * r14   -- pointer to mrb->c             */
 
 class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
-  static Xbyak::Reg64 argpos2reg[6];
+  Xbyak::Reg64 argpos2reg[6];
 
  public:
   Xbyak::Reg64 reg_regs;	/* r12 */
@@ -86,7 +86,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   void emit_local_var_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, int regno)
   {
     regno = DEREF_REGNO(regno);
-    mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+    movsd(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
   }
 
   void emit_local_var_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, int regno)
@@ -333,6 +333,15 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
+  void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg64 base, cpu_word_t offset) {
+    if (offset == 0) {
+      mov(dst, ptr [base]);
+    }
+    else {
+      mov(dst, ptr [base + offset]);
+    }
+  }
+
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 base, cpu_word_t offset, Xbyak::Reg64 src) {
     if (offset == 0) {
       mov(ptr [base], src);
@@ -470,6 +479,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 src) {
+    add(dst, src);
+  }
+
+  void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, Xbyak::Reg64 src) {
     add(dst, src);
   }
 
