@@ -552,7 +552,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_arg_push(mrb, coi, 1, reg_tmp1);
   emit_arg_push(mrb, coi, 0, reg_mrb);
-  call((void *)mrb_field_write_barrier);
+  emit_call(mrb, coi, (void *)mrb_field_write_barrier);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
   emit_jmp(mrb, coi, ".exit");
@@ -570,7 +570,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   emit_arg_push(mrb, coi, 0, reg_mrb);
 
-  call((void *)mrb_ary_set);
+  emit_call(mrb, coi, (void *)mrb_ary_set);
   emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + 2 * sizeof(mrb_value));
 
   L(".exit");
@@ -778,7 +778,7 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass)));
   emit_arg_push(mrb, coi, 1, reg_tmp0);
   emit_arg_push(mrb, coi, 0, reg_mrb);
-  call((void *)mrbjit_instance_alloc);
+  emit_call(mrb, coi, (void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
   // regs[a] = obj;
@@ -836,7 +836,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_cfunc_start(mrb, coi);
   emit_arg_push_nan(mrb, coi, 1, reg_tmp0, a);
   emit_arg_push(mrb, coi, 0, reg_mrb);
-  call((void *)mrbjit_instance_alloc);
+  emit_call(mrb, coi, (void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
   emit_local_var_write_from_cfunc(mrb, coi, a);
   jmp(".allocend");
@@ -873,7 +873,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_write_barrier);
+    emit_call(mrb, coi, (void *)mrb_write_barrier);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
   }
 
@@ -922,7 +922,7 @@ MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
   emit_cfunc_start(mrb, coi);
   emit_arg_push(mrb, coi, 1, reg_tmp0);
   emit_arg_push(mrb, coi, 0, reg_mrb);
-  call((void *)mrb_write_barrier);
+  emit_call(mrb, coi, (void *)mrb_write_barrier);
   emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);
@@ -1168,7 +1168,7 @@ MRBJitCode::mrbjit_prim_str_plus_impl(mrb_state *mrb, mrb_value proc,
   emit_arg_push_nan(mrb, coi, 2, reg_tmp0, srcno);
   emit_arg_push_nan(mrb, coi, 1, reg_tmp0, dstno);
   emit_arg_push(mrb, coi, 0, reg_mrb);
-  call((void *)mrb_str_plus);
+  emit_call(mrb, coi, (void *)mrb_str_plus);
   emit_cfunc_end(mrb, coi, sizeof(mrb_value)*2 + sizeof(mrb_state *));
 
   emit_local_var_write_from_cfunc(mrb, coi, dstno);

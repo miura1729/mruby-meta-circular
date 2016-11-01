@@ -333,7 +333,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     size_t dstsize = (unsigned char *)dst - code;
 
     setSize(dstsize);
-    call((void *)mrbjit_reset_caller);
+    emit_call(mrb, coi, (void *)mrbjit_reset_caller);
     gen_exit(mrb, pc, 1, 0, status, coi);
     setSize(cursize);
   }
@@ -567,7 +567,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)(*(status->irep)));
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb->code_fetch_hook);
+    emit_call(mrb, coi, (void *)mrb->code_fetch_hook);
     emit_cfunc_end(mrb, coi, sizeof(void *) * 4);
     emit_pop(mrb, coi, reg_tmp0);
     emit_pop(mrb, coi, reg_tmp1);
@@ -595,7 +595,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_arg_push(mrb, coi, 2, reg_tmp0);
       emit_arg_push(mrb, coi, 1, reg_tmp1);
       emit_arg_push(mrb, coi, 0, reg_mrb);
-      call((void *) mrbjit_stack_extend);
+      emit_call(mrb, coi, (void *) mrbjit_stack_extend);
       emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
 
       emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
@@ -604,7 +604,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     else {
       emit_load_literal(mrb, coi, reg_tmp1, room);
       emit_load_literal(mrb, coi, reg_tmp0, keep);
-      call(addr_call_stack_extend);
+      emit_call(mrb, coi, addr_call_stack_extend);
     }
       
     L("@@");
@@ -649,13 +649,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_tmp0, reg_mrb, OffsetOf(mrb_state, c));
       emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
-      call((void *) mrbjit_exec_extend_callinfo);
+      emit_call(mrb, coi, (void *)mrbjit_exec_extend_callinfo);
       emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
       //emit_move(mrb, coi, reg_context, reg_mrb, OffsetOf(mrb_state, c));
       ret();
     }
     else {
-      call(addr_call_extend_callinfo);
+      emit_call(mrb, coi, addr_call_extend_callinfo);
     }
 
     L("@@");
@@ -1000,7 +1000,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_cfunc_start(mrb, coi);
     emit_arg_push(mrb, coi, 1, (cpu_word_t)irep->syms[idpos]);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_gv_get);
+    emit_call(mrb, coi, (void *)mrb_gv_get);
     emit_cfunc_end(mrb, coi, argsize);
     emit_local_var_write_from_cfunc(mrb, coi, dstno);
 
@@ -1023,7 +1023,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)irep->syms[idpos]);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_gv_set);
+    emit_call(mrb, coi, (void *)mrb_gv_set);
     emit_cfunc_end(mrb, coi, argsize);
 
     return code;
@@ -1102,7 +1102,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)id);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_vm_iv_set);
+    emit_call(mrb, coi, (void *)mrb_vm_iv_set);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(cpu_word_t) + sizeof(mrb_value));
 
     if (ivoff != -1) {
@@ -1115,7 +1115,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_cfunc_start(mrb, coi);
       emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
-      call((void *)mrb_write_barrier);
+      emit_call(mrb, coi, (void *)mrb_write_barrier);
       emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
       emit_pop(mrb, coi, reg_tmp0);
       if (ivoff == -2) {
@@ -1160,7 +1160,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)irep->syms[idpos]);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_vm_cv_get);
+    emit_call(mrb, coi, (void *)mrb_vm_cv_get);
     emit_cfunc_end(mrb, coi, argsize);
     emit_local_var_write_from_cfunc(mrb, coi, dstno);
 
@@ -1183,7 +1183,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)irep->syms[idpos]);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_vm_cv_set);
+    emit_call(mrb, coi, (void *)mrb_vm_cv_set);
     emit_cfunc_end(mrb, coi, argsize);
 
     return code;
@@ -1274,7 +1274,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)(*status->pc)); \
 \
     emit_arg_push(mrb, coi, 0, reg_mrb);			     \
-    call((void *)func_name);                                         \
+    emit_call(mrb, coi, (void *)func_name);			     \
     emit_cfunc_end(mrb, coi, (auxargs + 2) * 4);	             \
 \
     test(reg_tmp0, reg_tmp0);					     \
@@ -1292,7 +1292,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)(*status->pc)); \
 \
     emit_arg_push(mrb, coi, 0, reg_mrb);			     \
-    call((void *)func_name);                                         \
+    emit_call(mrb, coi, (void *)func_name);			     \
     emit_cfunc_end(mrb, coi, (auxargs + 2) * 4);	             \
 \
     emit_vm_var_read(mrb, coi, reg_tmp1, VMSOffsetOf(pc));           \
@@ -1400,7 +1400,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_cfunc_start(mrb, coi);
 	emit_arg_push(mrb, coi, 1, reg_tmp1);
 	emit_arg_push(mrb, coi, 0, reg_mrb);
-	call((void *)mrb_write_barrier);
+	emit_call(mrb, coi, (void *)mrb_write_barrier);
 	emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
 
 	return 1;
@@ -1857,10 +1857,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
       if (can_use_fast) {
-	call((void *)mrbjit_exec_return_fast);
+	emit_call(mrb, coi, (void *)mrbjit_exec_return_fast);
       }
       else {
-	call((void *)mrbjit_exec_return);
+	emit_call(mrb, coi, (void *)mrbjit_exec_return);
       }
       emit_cfunc_end(mrb, coi, 2 * 4);
 
@@ -2298,7 +2298,7 @@ do {                                                                 \
     emit_arg_push_nan(mrb, coi, 2, reg_vars, regno + 1);             \
     emit_arg_push_nan(mrb, coi, 1, reg_vars, regno);                 \
     emit_arg_push(mrb, coi, 0, reg_mrb);			     \
-    call((void *)mrb_str_cmp);                                       \
+    emit_call(mrb, coi, (void *)mrb_str_cmp);			     \
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2); \
     test(reg_tmp0, reg_tmp0);                                                  \
     CMPINST;    						     \
@@ -2509,7 +2509,7 @@ do {                                                                 \
     emit_load_literal(mrb, coi, reg_tmp0, siz);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_ary_new_from_values);
+    emit_call(mrb, coi, (void *)mrb_ary_new_from_values);
     
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(int) + sizeof(mrb_value *));
 
@@ -2539,7 +2539,7 @@ do {                                                                 \
 
     emit_arg_push_nan(mrb, coi, 1, reg_tmp0, srcno);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_ary_splat);
+    emit_call(mrb, coi, (void *)mrb_ary_splat);
 
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
 
@@ -2553,7 +2553,7 @@ do {                                                                 \
 
     /* mrb */
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_ary_concat);
+    emit_call(mrb, coi, (void *)mrb_ary_concat);
     
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
@@ -2643,7 +2643,7 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp1, idxpos * sizeof(mrb_value), reg_dtmp0);
 
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *)mrb_write_barrier);
+    emit_call(mrb, coi, (void *)mrb_write_barrier);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
 
     return code;
@@ -2798,7 +2798,7 @@ do {                                                                 \
 		  emit_local_var_value_read(mrb, coi, reg_tmp0s, dstno);
 		  push(reg_tmp0s);
 		  push(reg_mrb);
-		  call((void *)mrb_p);
+		  emit_call(mrb, coi, (void *)mrb_p);
 		  emit_cfunc_end(mrb, coi, 12);
 	  */
 	  return code;
@@ -2811,10 +2811,10 @@ do {                                                                 \
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     if (flags & OP_L_CAPTURE) {
-      call((void *) mrb_closure_new);
+      emit_call(mrb, coi, (void *)mrb_closure_new);
     }
     else {
-      call((void *) mrb_proc_new);
+      emit_call(mrb, coi, (void *)mrb_proc_new);
     }
     emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
     emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_PROC);
@@ -2854,7 +2854,7 @@ do {                                                                 \
     emit_arg_push_nan(mrb, coi, 2, reg_tmp0, srcno1);
     emit_arg_push_nan(mrb, coi, 1, reg_tmp0, srcno0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_range_new);
+    emit_call(mrb, coi, (void *)mrb_range_new);
     
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2 + sizeof(int));
 
@@ -2890,7 +2890,7 @@ do {                                                                 \
       emit_move(mrb, coi, reg_tmp1, reg_tmp0, 0);
       emit_arg_push(mrb, coi, 1, reg_tmp1);
       emit_arg_push(mrb, coi, 0, reg_mrb);
-      call((void *) mrb_str_dup);
+      emit_call(mrb, coi, (void *)mrb_str_dup);
     
       emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value));
     }
@@ -2918,7 +2918,7 @@ do {                                                                 \
     emit_arg_push_nan(mrb, coi, 1, reg_tmp0, dstno);
 
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_str_concat);
+    emit_call(mrb, coi, (void *)mrb_str_concat);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
     return code;
@@ -2944,7 +2944,7 @@ do {                                                                 \
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)num);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
-    call((void *) mrb_hash_new_capa);
+    emit_call(mrb, coi, (void *)mrb_hash_new_capa);
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(int));
 
     for (i = 0; i < num * 2; i+= 2) {
@@ -2964,7 +2964,7 @@ do {                                                                 \
       /* mrb */
       emit_arg_push(mrb, coi, 0, reg_mrb);
 
-      call((void *)mrb_hash_set);
+      emit_call(mrb, coi, (void *)mrb_hash_set);
 
       emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 3);
       emit_pop(mrb, coi, reg_tmp1);

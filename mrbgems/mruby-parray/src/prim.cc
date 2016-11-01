@@ -35,7 +35,7 @@ do {                                                                 \
     emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)c);            \
     emit_arg_push(mrb, coi, 1, reg_tmp1);                            \
     emit_arg_push(mrb, coi, 0, esi);                                 \
-    call((void *)mrb_write_barrier);                                 \
+    emit_call(mrb, coi, (void *)mrb_write_barrier); 		     \
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *)); \
     jmp(".ee");                                                      \
     L(".setnil");                                                    \
@@ -54,7 +54,7 @@ do {                                                                 \
   emit_load_literal(mrb, coi, reg_tmp0, 4);                          \
   emit_arg_push(mrb, coi, 1, reg_tmp0);                              \
   emit_arg_push(mrb, coi, 0, reg_mrb);                               \
-  call((void *)mrb_ary_new_capa);                                    \
+  emit_call(mrb, coi, (void *)mrb_ary_new_capa);		     \
   emit_cfunc_end(mrb, coi, 2 * sizeof(void *));                      \
                                                                      \
   L("@@");                                                           \
@@ -333,7 +333,7 @@ MRBJitCode::mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_value_read(mrb, coi, reg_tmp1, aryno);
   emit_arg_push(mrb, coi, 1, reg_tmp1);
   emit_arg_push(mrb, coi, 0, esi);
-  call((void *)mrb_field_write_barrier);
+  emit_call(mrb, coi, (void *)mrb_field_write_barrier);
   emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + sizeof(mrb_value));*/
 
   return mrb_true_value();
