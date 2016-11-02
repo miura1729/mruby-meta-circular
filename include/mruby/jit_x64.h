@@ -14,7 +14,8 @@ typedef Xbyak::uint64 cpu_word_t;
  * r12   -- pointer to regs               *
  * rbx   -- pointer to status->pc         *
  * r13   -- pointer to mrb                *
- * r14   -- pointer to mrb->c             */
+ * r14   -- pointer to mrb->c             *
+ * r15   -- address of mrbjit_instance_alloc */
 
 class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg64 argpos2reg[6];
@@ -301,7 +302,9 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_call(mrb_state *mrb, mrbjit_code_info *coi, void *addr)
   {
-    call(addr);
+    offset_t off;
+    off = ((uintptr_t)addr) - ((uintptr_t)mrbjit_instance_alloc);
+    call(r15 + addr);
   }
 
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 reg)

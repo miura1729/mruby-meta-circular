@@ -43,6 +43,7 @@ mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_
 void disp_type(mrb_state *, mrbjit_reginfo *rinfo);
 void mrbjit_reset_proc(mrb_state *, mrbjit_vmstatus *, struct RProc *);
 void mrbjit_reset_caller();
+mrb_value mrbjit_instance_alloc(mrb_state *, mrb_value);
 
 #define ISEQ_OFFSET_OF(pc) ((size_t)((pc) - irep->iseq))
 
