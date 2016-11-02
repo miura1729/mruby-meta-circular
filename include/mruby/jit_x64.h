@@ -12,7 +12,7 @@ typedef Xbyak::uint64 cpu_word_t;
 
 /* Regs Map                               *
  * r12   -- pointer to regs               *
- * ebx   -- pointer to status->pc         *
+ * rbx   -- pointer to status->pc         *
  * r13   -- pointer to mrb                *
  * r14   -- pointer to mrb->c             */
 
