@@ -604,7 +604,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     else {
       emit_load_literal(mrb, coi, reg_tmp1, room);
       emit_load_literal(mrb, coi, reg_tmp0, keep);
-      emit_call(mrb, coi, addr_call_stack_extend);
+      call(addr_call_stack_extend);
     }
       
     L("@@");
@@ -622,6 +622,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int n = GETARG_C(i);
     int is_block_call = (m->body.irep->ilen == 1 && 
 			 GET_OPCODE(m->body.irep->iseq[0]) == OP_CALL);
+    int cisize = 6 + (sizeof(mrb_callinfo) > 6);
 
     callee_nregs = m->body.irep->nregs;
 
@@ -644,7 +645,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_cfunc_start(mrb, coi);
       emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, cibase));
       emit_sub(mrb, coi, reg_tmp1, reg_tmp0);
-      shr(reg_tmp1, 6);		/* sizeof mrb_callinfo */
+      shr(reg_tmp1, cisize);		/* sizeof mrb_callinfo */
       emit_arg_push(mrb, coi, 2, reg_tmp1);
       emit_move(mrb, coi, reg_tmp0, reg_mrb, OffsetOf(mrb_state, c));
       emit_arg_push(mrb, coi, 1, reg_tmp0);
@@ -655,7 +656,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       ret();
     }
     else {
-      emit_call(mrb, coi, addr_call_extend_callinfo);
+      call(addr_call_extend_callinfo);
     }
 
     L("@@");
@@ -1809,7 +1810,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Update pc */
     emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)(*status->pc));
 
-    if (can_inline) {
+    if (can_inline && 0) {
       /* Check must copy env */
       emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
       /*      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, env));

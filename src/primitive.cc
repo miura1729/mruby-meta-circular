@@ -477,7 +477,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
     test(reg_tmp1, reg_tmp1);
     jz(".retnil");
-    movsd(reg_dtmp0, ptr [reg_tmp1 + reg_tmp0s * sizeof(mrb_value)]);
+    movsd(reg_dtmp0, ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, aryno, reg_dtmp0);
     emit_jmp(mrb, coi, ".exit");
 

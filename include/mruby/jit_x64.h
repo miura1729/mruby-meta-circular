@@ -62,7 +62,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   {
     mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
 
-    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)dinfo->value.f);
+    emit_load_literal(mrb, coi, reg_tmp0, *reinterpret_cast<cpu_word_t *>(&dinfo->value.f));
     emit_local_var_write(mrb, coi, dstno, reg_tmp0);
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
@@ -143,7 +143,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
     else {
       regno = DEREF_REGNO(regno);
-      mov(dst, ptr [reg_regs + regno * sizeof(mrb_value)]);
+      movsxd(dst, dword [reg_regs + regno * sizeof(mrb_value)]);
       add(dst, reg_mrb);
     }
   }
@@ -262,20 +262,24 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_load_literal_noopt(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, cpu_word_t src) {
-    mov(dst, src);
+    const int idx = dst.getIdx();
+    int code = 176 | 1 << 3;
+    db(dst.getRex());
+    db(code | (idx & 7));
+    db(src, 8);
   }
 
   void emit_cfunc_start(mrb_state *mrb, mrbjit_code_info *coi)
   {
-    push(ecx);
-    push(ebx);
+    push(r12);
+    push(rbx);
   }
 
   void emit_cfunc_end(mrb_state *mrb, mrbjit_code_info *coi, int unwindsize)
   {
-    add(esp, unwindsize);
-    pop(ebx);
-    pop(ecx);
+    //    add(rsp, unwindsize);
+    pop(rbx);
+    pop(r12);
   }
 
   void emit_arg_push(mrb_state *mrb, mrbjit_code_info *coi, int no, Xbyak::Reg64 reg)
@@ -302,9 +306,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_call(mrb_state *mrb, mrbjit_code_info *coi, void *addr)
   {
-    offset_t off;
+    intptr_t off;
     off = ((uintptr_t)addr) - ((uintptr_t)mrbjit_instance_alloc);
-    call(r15 + addr);
+    lea(rax, ptr [r15 + off]);
+    call(rax);
   }
 
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 reg)

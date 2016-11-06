@@ -46,13 +46,21 @@ mrbjit_invoke(mrb_value *regs, mrb_code **pc, mrb_state *mrb,
 	       : "g"(regs),
 		 "g"(pc),
 		 "g"(mrb),
-		 "g"(c)
+		 "g"(c),
 		 "g"(mrbjit_instance_alloc)
 	       : "%r12",
 		 "%rbx",
 		 "%r13",
 		 "%r14",
 		 "%r15",
+		 "%rdi",
+		 "%rsi",
+		 "%rdx",
+		 "%rcx",
+		 "%r8",
+		 "%r9",
+		 "%r10", 
+		 "%r11", 
 		 "memory");
 
   asm volatile("call *%0\n\t"
