@@ -1810,7 +1810,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Update pc */
     emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)(*status->pc));
 
-    if (can_inline && 0) {
+    if (can_inline) {
       /* Check must copy env */
       emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
       /*      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, env));
@@ -2516,8 +2516,8 @@ do {                                                                 \
 
     emit_local_var_write_from_cfunc(mrb, coi, dstno);
     
-    emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_tmp0s, reg_vars, VMSOffsetOf(ai));
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0s);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
@@ -2558,8 +2558,8 @@ do {                                                                 \
     
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
-    emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_tmp0s, reg_vars, VMSOffsetOf(ai));
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0s);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
@@ -2828,8 +2828,8 @@ do {                                                                 \
     emit_sub(mrb, coi, reg_tmp0, reg_mrb);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
 
-    emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_tmp0s, reg_vars, VMSOffsetOf(ai));
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0s);
     return code;
   }
 

@@ -2323,7 +2323,7 @@ RETRY_TRY_BLOCK:
 	  //disasm_irep(mrb, irep);
 	  if (rnum == 1 && oargc >= 0) {
 	    int ipos = 0;
-	    mrb_irep *nirep = (mrb_irep *)((uint32_t)mrb + mrb_fixnum(irep->pool[ipos]));
+	    mrb_irep *nirep = (mrb_irep *)((uintptr_t)mrb + mrb_fixnum(irep->pool[ipos]));
 	    struct RProc *p;
 
 	    if (nirep == (mrb_irep *)mrb) {
@@ -2340,7 +2340,7 @@ RETRY_TRY_BLOCK:
 		p->body.irep->refcnt++;
 		p->env = proc->env;
 		p->target_class = proc->target_class;
-		irep->pool[ipos] = mrb_fixnum_value((uint32_t)cirep - (uint32_t)mrb);
+		irep->pool[ipos] = mrb_fixnum_value((uintptr_t)cirep - (uintptr_t)mrb);
 		mrb->c->ci->proc = proc = p;
 		irep = cirep;
 		pc = cirep->iseq;
