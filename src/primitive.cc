@@ -536,7 +536,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   emit_local_var_read(mrb, coi, reg_dtmp0, valno);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
-  movsd(ptr [reg_tmp1 + reg_tmp0s * sizeof(mrb_value)], reg_dtmp0);
+  movsd(ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)], reg_dtmp0);
 
   emit_local_var_type_read(mrb, coi, reg_tmp0s, valno);
   xor(reg_tmp0s, 0xfff00000);

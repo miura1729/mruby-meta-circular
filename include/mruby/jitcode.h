@@ -1099,8 +1099,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     L(".nivset");
     /* Normal instance variable set (not define iv yet) */
     emit_cfunc_start(mrb, coi);
-    emit_arg_push_nan(mrb, coi, 1, reg_tmp0, srcno);
-    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)id);
+    emit_arg_push_nan(mrb, coi, 2, reg_tmp0, srcno);
+    emit_load_literal(mrb, coi, reg_tmp0s, (uint32_t)id);
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     emit_call(mrb, coi, (void *)mrb_vm_iv_set);
@@ -1128,7 +1128,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_add(mrb, coi, reg_tmp0,  OffsetOf(iv_tbl, last_len), 1);
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
 	movsd(ptr [reg_tmp0 + ivoff * sizeof(mrb_value)], reg_dtmp0);
-	emit_move(mrb, coi, reg_tmp0,  MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym), (cpu_word_t)id);
+	emit_move(mrb, coi, reg_tmp0,  MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym), (uint32_t)id);
       }
       else {
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RObject, iv));
@@ -2558,8 +2558,8 @@ do {                                                                 \
     
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
-    emit_move(mrb, coi, reg_tmp0s, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0s);
+    emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
