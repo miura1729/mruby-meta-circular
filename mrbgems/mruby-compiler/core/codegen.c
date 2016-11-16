@@ -1710,7 +1710,7 @@ codegen(codegen_scope *s, node *tree, int val)
       node *t = tree->cdr, *p;
       int rhs = cursp();
 
-      if ((intptr_t)t->car == NODE_ARRAY && nosplat(t->cdr)) {
+      if ((intptr_t)t->car == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
         /* fixed rhs */
         t = t->cdr;
         while (t) {
@@ -1720,11 +1720,21 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         tree = tree->car;
         if (tree->car) {                /* pre */
+          int first = TRUE;
           t = tree->car;
           n = 0;
           while (t) {
-            gen_assignment(s, t->car, rhs+n, NOVAL);
-            n++;
+            if (n < len) {
+              gen_assignment(s, t->car, rhs+n, NOVAL);
+              n++;
+            }
+            else {
+              if (first) {
+                genop(s, MKOP_A(OP_LOADNIL, rhs+n));
+                first = FALSE;
+              }
+              gen_assignment(s, t->car, rhs+n, NOVAL);
+            }
             t = t->cdr;
           }
         }
@@ -2962,6 +2972,9 @@ loop_break(codegen_scope *s, node *tree)
     }
     else {
       s->simple_lambda = -1;
+      if (!tree) {
+        genop(s, MKOP_A(OP_LOADNIL, cursp()));
+      }
       genop(s, MKOP_AB(OP_RETURN, cursp(), OP_R_BREAK));
     }
   }

@@ -27,7 +27,7 @@
 #include "value_array.h"
 #include <mruby/throw.h>
 
-#ifndef MRB_DISABLE_STDIO
+#ifdef MRB_DISABLE_STDIO
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -1527,6 +1527,13 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
 #endif
 
+#ifdef MRB_BYTECODE_DECODE_OPTION
+#define BYTECODE_DECODER(x) ((mrb)->bytecode_decoder)?(mrb)->bytecode_decoder((mrb), (x)):(x)
+#else
+#define BYTECODE_DECODER(x) (x)
+#endif
+
+
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define DIRECT_THREADED
 #endif
@@ -1534,7 +1541,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 #ifndef DIRECT_THREADED
 
 /* You can not execute by JIT sorry... */
-#define INIT_DISPATCH for (;;) { i = *pc; CODE_FETCH_HOOK(mrb, irep, pc, regs);switch (GET_OPCODE(i)) {
+#define INIT_DISPATCH for (;;) { i = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs);switch (GET_OPCODE(i)) {
 #define CASE(op) case op:
 #define NEXT pc++; break
 #define JUMP break
@@ -1920,14 +1927,22 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci;
       mrb_value recv, result;
       mrb_sym mid = syms[GETARG_B(i)];
+      int bidx;
 
       recv = regs[a];
+      if (n == CALL_MAXARGS) {
+        bidx = a+2;
+      }
+      else {
+        bidx = a+n+1;
+      }
       if (GET_OPCODE(i) != OP_SENDB) {
-        if (n == CALL_MAXARGS) {
-          SET_NIL_VALUE(regs[a+2]);
-        }
-        else {
-          SET_NIL_VALUE(regs[a+n+1]);
+        SET_NIL_VALUE(regs[bidx]);
+      }
+      else {
+        mrb_value blk = regs[bidx];
+        if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+          regs[bidx] = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         }
       }
       c = mrb_class(mrb, recv);
@@ -2265,9 +2280,6 @@ RETRY_TRY_BLOCK:
       int len = m1 + o + r + m2;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
 
-      if (!mrb_nil_p(*blk) && mrb_type(*blk) != MRB_TT_PROC) {
-        *blk = mrb_convert_type(mrb, *blk, MRB_TT_PROC, "Proc", "to_proc");
-      }
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
         argv = ary->ptr;
@@ -2404,7 +2416,8 @@ RETRY_TRY_BLOCK:
     CASE(OP_RETURN) {
       /* A B     return R(A) (B=normal,in-block return/break) */
       if (mrb->exc) {
-        mrb_callinfo *ci = mrb->c->ci;
+        mrb_callinfo *ci;
+        mrb_value *stk;
         int eidx;
 
       L_RAISE:
@@ -2416,6 +2429,7 @@ RETRY_TRY_BLOCK:
           if (ci->ridx == 0) goto L_STOP;
           goto L_RESCUE;
         }
+        stk = mrb->c->stack;
         while (ci[0].ridx == ci[-1].ridx) {
           cipop(mrb);
           ci = mrb->c->ci;
@@ -2425,6 +2439,7 @@ RETRY_TRY_BLOCK:
             MRB_THROW(prev_jmp);
           }
           if (ci == mrb->c->cibase) {
+            mrb->c->stack = stk;
             while (eidx > 0) {
               ecall(mrb, --eidx);
             }
@@ -3223,6 +3238,9 @@ RETRY_TRY_BLOCK:
       mrb_value recv = regs[a];
       struct RProc *p;
 
+      /* prepare closure */
+      p = mrb_closure_new(mrb, irep->reps[GETARG_Bx(i)]);
+
       /* prepare stack */
       ci = cipush(mrb);
       ci->pc = pc + 1;
@@ -3235,7 +3253,7 @@ RETRY_TRY_BLOCK:
       /* prepare stack */
       mrb->c->stack += a;
 
-      p = mrb_proc_new(mrb, irep->reps[GETARG_Bx(i)]);
+      /* setup closure */
       p->target_class = ci->target_class;
       proc = ci->proc = p;
 
@@ -3362,7 +3380,7 @@ RETRY_TRY_BLOCK:
 
 L_DISPATCH:
   gtptr = mrbjit_dispatch(mrb, &status);
-  i=*pc;
+  i=BYTECODE_DECODER(*pc);
   CODE_FETCH_HOOK(mrb, irep, pc, mrb->c->stack);
   goto *gtptr;
 }
@@ -3383,6 +3401,7 @@ mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int sta
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   ci = cipush(mrb);
+  ci->mid = 0;
   ci->nregs = 1;   /* protect the receiver */
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;

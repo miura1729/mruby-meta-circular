@@ -176,6 +176,14 @@ MRB_API struct RClass*
 mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 {
   check_if_class_or_module(mrb, outer);
+  if (mrb_const_defined_at(mrb, outer, id)) {
+    mrb_value old = mrb_const_get(mrb, outer, id);
+
+    if (mrb_type(old) != MRB_TT_MODULE) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a module", mrb_inspect(mrb, old));
+    }
+    return mrb_class_ptr(old);
+  }
   return define_module(mrb, id, mrb_class_ptr(outer));
 }
 
@@ -257,6 +265,21 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     s = 0;
   }
   check_if_class_or_module(mrb, outer);
+  if (mrb_const_defined_at(mrb, outer, id)) {
+    mrb_value old = mrb_const_get(mrb, outer, id);
+
+    if (mrb_type(old) != MRB_TT_CLASS) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class", mrb_inspect(mrb, old));
+    }
+    c = mrb_class_ptr(old);
+    if (s) {
+      /* check super class */
+      if (mrb_class_real(c->super) != s) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %S", old);
+      }
+    }
+    return c;
+  }
   c = define_class(mrb, id, s, mrb_class_ptr(outer));
   mrb_class_inherited(mrb, mrb_class_real(c->super), c);
 
@@ -271,6 +294,16 @@ mrb_class_defined(mrb_state *mrb, const char *name)
     return FALSE;
   }
   return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), mrb_symbol(sym));
+}
+
+MRB_API mrb_bool
+mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
+{
+  mrb_value sym = mrb_check_intern_cstr(mrb, name);
+  if (mrb_nil_p(sym)) {
+    return FALSE;
+  }
+  return mrb_const_defined_at(mrb, mrb_obj_value(outer), mrb_symbol(sym));
 }
 
 MRB_API struct RClass *
@@ -990,24 +1023,6 @@ mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
-mrb_mod_prepend(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  mrb_int argc, i;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  for (i=0; i<argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
-  }
-  while (argc--) {
-    mrb_funcall(mrb, argv[argc], "prepend_features", 1, klass);
-    mrb_funcall(mrb, argv[argc], "prepended", 1, klass);
-  }
-
-  return klass;
-}
-
-static mrb_value
 mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
 {
   mrb_value klass;
@@ -1016,24 +1031,6 @@ mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
   mrb_get_args(mrb, "C", &klass);
   mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
   return mod;
-}
-
-static mrb_value
-mrb_mod_include(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value *argv;
-  mrb_int argc, i;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  for (i=0; i<argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
-  }
-  while (argc--) {
-    mrb_funcall(mrb, argv[argc], "append_features", 1, klass);
-    mrb_funcall(mrb, argv[argc], "included", 1, klass);
-  }
-
-  return klass;
 }
 
 /* 15.2.2.4.28 */
@@ -1614,7 +1611,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     }
     mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
   }
-  return path;
+  return mrb_str_dup(mrb, path);
 }
 
 MRB_API struct RClass *
@@ -1858,9 +1855,21 @@ mod_define_method(mrb_state *mrb, mrb_value self)
   struct RClass *c = mrb_class_ptr(self);
   struct RProc *p;
   mrb_sym mid;
+  mrb_value proc = mrb_undef_value();
   mrb_value blk;
 
-  mrb_get_args(mrb, "n&", &mid, &blk);
+  mrb_get_args(mrb, "n|o&", &mid, &proc, &blk);
+  switch (mrb_type(proc)) {
+    case MRB_TT_PROC:
+      blk = proc;
+      break;
+    case MRB_TT_UNDEF:
+      /* ignored */
+      break;
+    default:
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected Proc)", mrb_obj_value(mrb_obj_class(mrb, proc)));
+      break;
+  }
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
   }
@@ -2298,10 +2307,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "class_variable_set",      mrb_mod_cvar_set,         MRB_ARGS_REQ(2)); /* 15.2.2.4.18 */
   mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
-  mrb_define_method(mrb, mod, "prepend",                 mrb_mod_prepend,          MRB_ARGS_ANY());
   mrb_define_method(mrb, mod, "prepended",               mrb_bob_init,             MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mod, "prepend_features",        mrb_mod_prepend_features, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "include",                 mrb_mod_include,          MRB_ARGS_ANY());  /* 15.2.2.4.27 */
   mrb_define_method(mrb, mod, "include?",                mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
   mrb_define_method(mrb, mod, "append_features",         mrb_mod_append_features,  MRB_ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */

@@ -1089,7 +1089,7 @@ heredoc_end(parser_state *p)
 
 %token <id>  tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
 %token <nd>  tINTEGER tFLOAT tCHAR tXSTRING tREGEXP
-%token <nd>  tSTRING tSTRING_PART tSTRING_MID
+%token <nd>  tSTRING tSTRING_PART tSTRING_MID tLABEL_END
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
 
@@ -2090,7 +2090,7 @@ primary         : literal
                       $<stack>$ = p->cmdarg_stack;
                       p->cmdarg_stack = 0;
                     }
-                  expr {p->lstate = EXPR_ENDARG;} rparen
+                  stmt {p->lstate = EXPR_ENDARG;} rparen
                     {
                       p->cmdarg_stack = $<stack>2;
                       $$ = $3;
@@ -2972,7 +2972,7 @@ superclass      : /* term */
                   expr_value term
                     {
                       $$ = $3;
-                    } /* 
+                    } /*
                 | error term
                     {
                       yyerrok;
@@ -3240,6 +3240,18 @@ assoc           : arg_value tASSOC arg_value
                 | tLABEL arg_value
                     {
                       $$ = cons(new_sym(p, $1), $2);
+                    }
+                | tLABEL_END arg_value
+                    {
+                      $$ = cons(new_sym(p, new_strsym(p, $1)), $2);
+                    }
+                | tSTRING_BEG tLABEL_END arg_value
+                    {
+                      $$ = cons(new_sym(p, new_strsym(p, $2)), $3);
+                    }
+                | tSTRING_BEG string_rep tLABEL_END arg_value
+                    {
+                      $$ = cons(new_dsym(p, push($2, $3)), $4);
                     }
                 ;
 
@@ -3895,6 +3907,8 @@ parse_string(parser_state *p)
   int end = (intptr_t)p->lex_strterm->cdr->cdr->cdr;
   parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
 
+  if (beg == 0) beg = -3;       /* should never happen */
+  if (end == 0) end = -3;
   newtok(p);
   while ((c = nextc(p)) != end || nest_level != 0) {
     if (hinf && (c == '\n' || c < 0)) {
@@ -4080,8 +4094,13 @@ parse_string(parser_state *p)
 
     return tREGEXP;
   }
-
   yylval.nd = new_str(p, tok(p), toklen(p));
+  if (IS_LABEL_SUFFIX(0)) {
+    p->lstate = EXPR_BEG;
+    nextc(p);
+    return tLABEL_END;
+  }
+
   return tSTRING;
 }
 
@@ -5460,7 +5479,10 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
     p->lex_strterm = NULL;
 
     parser_init_cxt(p, c);
-    yyparse(p);
+    if (yyparse(p) != 0 || p->nerr > 0) {
+      p->tree = 0;
+      return;
+    }
     if (!p->tree) {
       p->tree = new_nil(p);
     }
@@ -5540,6 +5562,7 @@ mrbc_context_new(mrb_state *mrb)
 MRB_API void
 mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 {
+  mrb_free(mrb, cxt->filename);
   mrb_free(mrb, cxt->syms);
   mrb_free(mrb, cxt);
 }
@@ -5549,9 +5572,12 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     int len = strlen(s);
-    char *p = (char *)mrb_alloca(mrb, len + 1);
+    char *p = (char *)mrb_malloc(mrb, len + 1);
 
     memcpy(p, s, len + 1);
+    if (c->filename) {
+      mrb_free(mrb, c->filename);
+    }
     c->filename = p;
   }
   return c->filename;
@@ -6483,7 +6509,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_HEREDOC:
-    printf("NODE_HEREDOC:\n");
+    printf("NODE_HEREDOC (<<%s):\n", ((parser_heredoc_info*)tree)->term);
     mrb_parser_dump(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
     break;
 
