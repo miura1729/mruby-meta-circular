@@ -2575,7 +2575,8 @@ do {                                                                 \
     int idx = GETARG_C(**ppc);
 
     if (!mrb_array_p(regs[srcno]) ||
-	idx < 0) {
+	idx < 0 ||
+	mrb_ary_ptr(regs[srcno])->aux.capa <= idx) {
       return NULL;
     }
 
