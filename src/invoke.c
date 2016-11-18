@@ -9,8 +9,8 @@ mrbjit_invoke(mrb_value *regs, mrb_code **pc, mrb_state *mrb,
 {
   void *(*tmp)();
   void *rc;
-#if defined(__x86_64__)
-#elif defined(__i386__) || defined(__CYGWIN__)
+
+#if defined(__i386__) || defined(__CYGWIN__)
   asm volatile("mov %0, %%ecx\n\t"
 	       "mov %1, %%ebx\n\t"
 	       "mov %2, %%esi\n\t"
@@ -34,6 +34,43 @@ mrbjit_invoke(mrb_value *regs, mrb_code **pc, mrb_state *mrb,
   asm volatile("mov %%eax, %0\n\t"
 	       : "=c"(rc));
   asm volatile("mov %%edx, %0\n\t"
+	       : "=c"(tmp));
+
+#elif defined(__x86_64__)
+  asm volatile("mov %0, %%r12\n\t"
+	       "mov %1, %%rbx\n\t"
+	       "mov %2, %%r13\n\t"
+	       "mov %3, %%r14\n\t"
+	       "mov %4, %%r15\n\t"
+	       :
+	       : "g"(regs),
+		 "g"(pc),
+		 "g"(mrb),
+		 "g"(c),
+		 "g"(mrbjit_instance_alloc)
+	       : "%r12",
+		 "%rbx",
+		 "%r13",
+		 "%r14",
+		 "%r15",
+		 "%rdi",
+		 "%rsi",
+		 "%rdx",
+		 "%rcx",
+		 "%r8",
+		 "%r9",
+		 "%r10", 
+		 "%r11", 
+		 "memory");
+
+  asm volatile("call *%0\n\t"
+	       :
+	       : "g"(entry)
+	       : );
+
+  asm volatile("mov %%rax, %0\n\t"
+	       : "=c"(rc));
+  asm volatile("mov %%rdx, %0\n\t"
 	       : "=c"(tmp));
 #else
 #error "only i386 or x86-64 is supported"

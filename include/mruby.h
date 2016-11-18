@@ -151,7 +151,11 @@ typedef struct {
   int16_t prev_tentry_offset;
   uint16_t method_arg_ver;	/* for packking. not used. */
 
+#if defined(__i386__) || defined(__CYGWIN__)
   void *dummy[1];
+#elif defined(__x86_64__)
+  void *dummy[3];
+#endif
 } mrb_callinfo;
 
 enum mrb_fiber_state {
