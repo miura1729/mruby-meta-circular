@@ -11,6 +11,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/error.h>
+#include <mruby/istruct.h>
 
 #include "mruby/primitive.h"
 
@@ -302,6 +303,9 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_DATA:
     case MRB_TT_EXCEPTION:
       mrb_iv_copy(mrb, dest, obj);
+      break;
+    case MRB_TT_ISTRUCT:
+      mrb_istruct_copy(mrb, dest, obj);
       break;
 
     default:

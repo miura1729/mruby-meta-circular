@@ -1531,22 +1531,12 @@ mrb_str_hash_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_include(mrb_state *mrb, mrb_value self)
 {
-  mrb_int i;
   mrb_value str2;
-  mrb_bool include_p;
 
-  mrb_get_args(mrb, "o", &str2);
-  if (mrb_fixnum_p(str2)) {
-    include_p = (memchr(RSTRING_PTR(self), mrb_fixnum(str2), RSTRING_LEN(self)) != NULL);
-  }
-  else {
-    str2 = mrb_str_to_str(mrb, str2);
-    i = str_index(mrb, self, str2, 0);
-
-    include_p = (i != -1);
-  }
-
-  return mrb_bool_value(include_p);
+  mrb_get_args(mrb, "S", &str2);
+  if (str_index(mrb, self, str2, 0) < 0)
+    return mrb_bool_value(FALSE);
+  return mrb_bool_value(TRUE);
 }
 
 /* 15.2.10.5.22 */
@@ -2726,8 +2716,8 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_NONE()); /* 15.2.10.5.8  */
   mrb_define_method(mrb, s, "chomp",           mrb_str_chomp,           MRB_ARGS_ANY());  /* 15.2.10.5.9  */
   mrb_define_method(mrb, s, "chomp!",          mrb_str_chomp_bang,      MRB_ARGS_ANY());  /* 15.2.10.5.10 */
-  mrb_define_method(mrb, s, "chop",            mrb_str_chop,            MRB_ARGS_REQ(1)); /* 15.2.10.5.11 */
-  mrb_define_method(mrb, s, "chop!",           mrb_str_chop_bang,       MRB_ARGS_REQ(1)); /* 15.2.10.5.12 */
+  mrb_define_method(mrb, s, "chop",            mrb_str_chop,            MRB_ARGS_NONE()); /* 15.2.10.5.11 */
+  mrb_define_method(mrb, s, "chop!",           mrb_str_chop_bang,       MRB_ARGS_NONE()); /* 15.2.10.5.12 */
   mrb_define_method(mrb, s, "downcase",        mrb_str_downcase,        MRB_ARGS_NONE()); /* 15.2.10.5.13 */
   mrb_define_method(mrb, s, "downcase!",       mrb_str_downcase_bang,   MRB_ARGS_NONE()); /* 15.2.10.5.14 */
   mrb_define_method(mrb, s, "empty?",          mrb_str_empty_p,         MRB_ARGS_NONE()); /* 15.2.10.5.16 */

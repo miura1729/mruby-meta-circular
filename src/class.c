@@ -14,6 +14,7 @@
 #include <mruby/variable.h>
 #include <mruby/error.h>
 #include <mruby/data.h>
+#include <mruby/istruct.h>
 
 #include "mruby/primitive.h"
 
@@ -533,6 +534,7 @@ to_sym(mrb_state *mrb, mrb_value ss)
     b:      Boolean        [mrb_bool]
     n:      Symbol         [mrb_sym]
     d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
+    I:      Inline struct  [void*]
     &:      Block          [mrb_value]
     *:      rest argument  [mrb_value*,mrb_int]   Receive the rest of the arguments as an array.
     |:      optional                              Next argument of '|' and later are optional.
@@ -740,6 +742,24 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           a = mrb_ary_ptr(aa);
           *pb = a->ptr;
           *pl = a->len;
+          i++;
+        }
+      }
+      break;
+    case 'I':
+      {
+        void* *p;
+        mrb_value ss;
+
+        p = va_arg(ap, void**);
+        if (i < argc) {
+          ss = ARGV[arg_i];
+          if (mrb_type(ss) != MRB_TT_ISTRUCT)
+          {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%S is not inline struct", ss);
+          }
+          *p = mrb_istruct_ptr(mrb, ss);
+          arg_i++;
           i++;
         }
       }
@@ -2338,7 +2358,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "constants",               mrb_mod_constants,        MRB_ARGS_OPT(1)); /* 15.2.2.4.24 */
   mrb_define_method(mrb, mod, "remove_const",            mrb_mod_remove_const,     MRB_ARGS_REQ(1)); /* 15.2.2.4.40 */
   mrb_define_method(mrb, mod, "const_missing",           mrb_mod_const_missing,    MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  MRB_ARGS_NONE()); /* 15.2.2.4.19 */
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, mod, "constants",         mrb_mod_s_constants,      MRB_ARGS_ANY());  /* 15.2.2.3.1 */
