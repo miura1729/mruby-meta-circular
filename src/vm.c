@@ -1586,6 +1586,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
   int ai = mrb_gc_arena_save(mrb);
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
+  int orgdisflg = mrb->compile_info.disable_jit;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -1992,7 +1993,7 @@ RETRY_TRY_BLOCK:
       mrb->c->stack += a;
 
       if (MRB_PROC_CFUNC_P(m)) {
-        int orgdisflg = mrb->compile_info.disable_jit;
+	orgdisflg = mrb->compile_info.disable_jit;
         if (n == CALL_MAXARGS) {
           ci->argc = -1;
           ci->nregs = 3;
@@ -2074,7 +2075,7 @@ RETRY_TRY_BLOCK:
 
       /* prepare stack */
       if (MRB_PROC_CFUNC_P(m)) {
-	int orgdisflg = mrb->compile_info.disable_jit;
+	orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
 	mrb->vmstatus = (void *)&status;
 	recv = m->body.func(mrb, recv);
@@ -2166,7 +2167,7 @@ RETRY_TRY_BLOCK:
       mrb->c->stack[0] = recv;
 
       if (MRB_PROC_CFUNC_P(m)) {
-	int orgdisflg = mrb->compile_info.disable_jit;
+	orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
         ci->nregs = 0;
         if (n == CALL_MAXARGS) {
@@ -2635,7 +2636,7 @@ RETRY_TRY_BLOCK:
       value_move(regs, &regs[a], n+2);
 
       if (MRB_PROC_CFUNC_P(m)) {
-	int orgdisflg = mrb->compile_info.disable_jit;
+	orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
 	mrb->vmstatus = (void *)&status;
         mrb->c->stack[0] = m->body.func(mrb, recv);
@@ -3258,7 +3259,7 @@ RETRY_TRY_BLOCK:
       proc = ci->proc = p;
 
       if (MRB_PROC_CFUNC_P(p)) {
-        int orgdisflg = mrb->compile_info.disable_jit;
+	orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
         ci->nregs = 0;
 	mrb->vmstatus = (void *)&status;
@@ -3373,6 +3374,8 @@ RETRY_TRY_BLOCK:
 
   }
   MRB_CATCH(&c_jmp) {
+    mrb->compile_info.disable_jit = orgdisflg;
+
     exc_catched = TRUE;
     goto RETRY_TRY_BLOCK;
   }
