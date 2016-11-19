@@ -510,6 +510,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   return status->gototable[6]; /* goto L_DISPATCH */
 }
 
+void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 void *
 mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 {
@@ -590,15 +591,15 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       if ((*status->proc)->env && !MRB_PROC_STRICT_P(*status->proc)) {
 	struct REnv *e = mrbjit_top_env(mrb, *status->proc);
 
-	if (!MRB_ENV_STACK_SHARED_P(e)) {
+	/*	if (!MRB_ENV_STACK_SHARED_P(e)) {
 	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
-	}
+	  }*/
 	ci = mrb->c->cibase + e->cioff;
-	if (ci == mrb->c->cibase) {
+	/*if (ci == mrb->c->cibase) {
 	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
-	}
+	  }*/
 	//rc = status->optable[GET_OPCODE(*ci->pc)];
 	mrb->c->stack = mrb->c->ci->stackent;
 	mrb->c->ci = ci;
@@ -606,14 +607,14 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     case OP_R_NORMAL:
       if (ci == mrb->c->cibase) {
-	if (!mrb->c->prev) { /* toplevel return */
-	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-	  goto L_RAISE;
-	}
+	//	if (!mrb->c->prev) { /* toplevel return */
+	//	  localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+	//	  return status->gototable[0];	/* goto L_RAISE; */
+	//}
 	if (mrb->c->prev->ci == mrb->c->prev->cibase) {
 	  mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
-	  mrb->exc = mrb_obj_ptr(exc);
-	  goto L_RAISE;
+	  mrb_exc_set(mrb, exc);
+	  return status->gototable[0];	/* goto L_RAISE; */
 	}
 	/* automatic yield at the end */
 	mrb->c->status = MRB_FIBER_TERMINATED;
@@ -623,10 +624,10 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       ci = mrb->c->ci;
       break;
     case OP_R_BREAK:
-      if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
+      /*if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
 	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
 	goto L_RAISE;
-      }
+	}*/
       /* break from fiber block */
       if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
 	struct mrb_context *c = mrb->c;
@@ -659,12 +660,12 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     mrbjit_cipop(mrb);
     acc = ci->acc;
-    *status->pc = ci->pc;
     mrb->c->stack = ci->stackent;
     if (acc == CI_ACC_SKIP) {
       mrb->jmp = *status->prev_jmp;
       return rc;		/* return v */
     }
+    *status->pc = ci->pc;
     DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
     *status->proc = mrb->c->ci->proc;
     *status->irep = (*status->proc)->body.irep;
@@ -748,6 +749,33 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     int acc;
     int eidx = mrb->c->ci->eidx;
     mrb_value v = (c->stack)[GETARG_A(i)];
+
+    if (ci == mrb->c->cibase) {
+      //      if (!mrb->c->prev) { /* toplevel return */
+      //	localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+      //	return status->gototable[0];	/* goto L_RAISE; */
+      //      }
+      if (mrb->c->prev->ci == mrb->c->prev->cibase) {
+	mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
+	mrb_exc_set(mrb, exc);
+	return status->gototable[0];	/* goto L_RAISE; */
+      }
+      /* automatic yield at the end */
+      mrb->c->status = MRB_FIBER_TERMINATED;
+      mrb->c = mrb->c->prev;
+      mrb->c->status = MRB_FIBER_RUNNING;
+    }
+    ci = mrb->c->ci;
+
+    while (eidx > c->ci->eidx) {
+      mrbjit_ecall(mrb, --eidx);
+    }
+    if (mrb->c->vmexec && !mrb->c->ci->target_class) {
+      mrb->c->vmexec = FALSE;
+      mrb->jmp = *status->prev_jmp;
+      return rc;
+    }
+
     if (mrb->c->ci->env) {
       mrbjit_cipop(mrb);
     }
@@ -755,15 +783,13 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
       c->ci--;
     }
     acc = ci->acc;
-    *status->pc = ci->pc;
     c->stack = ci->stackent;
-    while (eidx > c->ci->eidx) {
-      mrbjit_ecall(mrb, --eidx);
-    }
     if (acc == CI_ACC_SKIP) {
       mrb->jmp = *status->prev_jmp;
-      return rc;		/* return v */
+      c->stack[(*status->irep)->nlocals] = v;
+      return status->gototable[5]; /* L_HALT */
     }
+    *status->pc = ci->pc;
     DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
     *status->proc = c->ci->proc;
     *status->irep = (*status->proc)->body.irep;
