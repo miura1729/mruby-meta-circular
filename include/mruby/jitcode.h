@@ -693,9 +693,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_context, stack));
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, stackent), reg_tmp0);
 
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c);
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), reg_tmp0);
 
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, pc), (cpu_word_t)(pc + 1));
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)(pc + 1));
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, pc), reg_tmp0);
 
     if (is_block_call) {
       /* Block call */
@@ -1608,7 +1610,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
 
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, mid), (cpu_word_t)mid);
-    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, target_class), (cpu_word_t)c);
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), reg_tmp0);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, proc), reg_tmp0);
@@ -1683,7 +1686,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (irep->block_lambda) {
       inLocalLabel();
       emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
-      emit_cmp(mrb, coi, reg_tmp0, (cpu_word_t)irep);
+      emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)irep);
+      emit_cmp(mrb, coi, reg_tmp0, reg_tmp1);
       jz(".gend");
 
       gen_flush_regs(mrb, *status->pc, status, coi, 1);
@@ -1788,8 +1792,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 			GETARG_B(i) == OP_R_NORMAL &&
 			(c->ci->env == 0 || 
 			 c->ci->proc->body.irep->shared_lambda == 1));
-    int can_inline = (can_use_fast && 
-		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
+    int can_inline = (can_use_fast &&
+		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0)) && 0;
 
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
     mrbjit_reginfo *dinfo = &coi->reginfo[0];
@@ -2579,8 +2583,7 @@ do {                                                                 \
     int idx = GETARG_C(**ppc);
 
     if (!mrb_array_p(regs[srcno]) ||
-	idx < 0 ||
-	mrb_ary_ptr(regs[srcno])->aux.capa <= idx) {
+	idx < 0) {
       return NULL;
     }
 
