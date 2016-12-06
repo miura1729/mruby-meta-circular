@@ -9,6 +9,13 @@ mrbjit_gen_exit(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_co
   code->gen_exit(mrb, *ppc, 1, 0, status, coi);
 }
 
+void
+mrbjit_gen_exit2(mrbjit_code_area coderaw, mrb_state *mrb, mrb_irep *irep, mrb_code **ppc, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  MRBJitCode *code = (MRBJitCode *) coderaw;
+  code->gen_exit(mrb, *ppc, 0, 1, status, coi);
+}
+
 const void *
 mrbjit_gen_jump_block(mrbjit_code_area coderaw, mrb_state *mrb, void *entry, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_code_info *prevcoi)
 {

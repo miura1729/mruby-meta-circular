@@ -536,7 +536,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	return status->gototable[4]; /* L_STOP */
       }
       else {
-	return status->gototable[2]; /* L_RESCUE */
+	goto L_RESCUE;
       }
     }
     while (eidx > ci[-1].eidx) {
@@ -565,11 +565,12 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 
 	  mrb->c = c->prev;
 	  c->prev = NULL;
-	  return status->gototable[0];	/* goto L_RAISE; */
+	  goto L_RAISE;
 	}
 	break;
       }
     }
+  L_RESCUE:
     if (ci->ridx == 0) {
       return status->gototable[4]; /* L_STOP */
     }
@@ -607,10 +608,10 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     case OP_R_NORMAL:
       if (ci == mrb->c->cibase) {
-	//	if (!mrb->c->prev) { /* toplevel return */
-	//	  localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-	//	  return status->gototable[0];	/* goto L_RAISE; */
-	//}
+	if (!mrb->c->prev) { /* toplevel return */
+	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+	  return status->gototable[0];	/* goto L_RAISE; */
+	}
 	if (mrb->c->prev->ci == mrb->c->prev->cibase) {
 	  mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
 	  mrb_exc_set(mrb, exc);
@@ -691,6 +692,9 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     mrb_callinfo *ci;
     int eidx;
 
+  L_RAISE:
+    disasm_irep(mrb, *(status->irep));
+    printf("fast %x \n", *status->pc - (*status->irep)->iseq);
     ci = mrb->c->ci;
     mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, *status->pc));
     mrb_obj_iv_set(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
@@ -700,7 +704,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 	return status->gototable[4]; /* L_STOP */
       }
       else {
-	return status->gototable[2]; /* L_RESCUE */
+	goto L_RESCUE;
       }
     }
     while (eidx > ci[-1].eidx) {
@@ -729,11 +733,12 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 
 	  mrb->c = c->prev;
 	  c->prev = NULL;
-	  return status->gototable[0];	/* goto L_RAISE; */
+	  goto L_RAISE;
 	}
 	break;
       }
     }
+  L_RESCUE:
     if (ci->ridx == 0) {
       return status->gototable[4]; /* L_STOP */
     }
@@ -758,7 +763,7 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
       if (mrb->c->prev->ci == mrb->c->prev->cibase) {
 	mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
 	mrb_exc_set(mrb, exc);
-	return status->gototable[0];	/* goto L_RAISE; */
+	goto L_RAISE;
       }
       /* automatic yield at the end */
       mrb->c->status = MRB_FIBER_TERMINATED;

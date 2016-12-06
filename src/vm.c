@@ -925,6 +925,7 @@ mrbjit_argnum_error(mrb_state *mrb, int num)
 extern const void *mrbjit_get_curr(mrb_state *);
 extern const void *mrbjit_emit_code(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_exit(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *, mrbjit_code_info *);
+extern void mrbjit_gen_exit2(mrbjit_code_area, mrb_state *, mrb_irep *, mrb_code **, mrbjit_vmstatus *, mrbjit_code_info *);
 extern const void *mrbjit_gen_jump_block(mrbjit_code_area, mrb_state *, void *, mrbjit_vmstatus *, mrbjit_code_info *, mrbjit_code_info *);
 extern void mrbjit_gen_jmp_patch(mrb_state *mrb, mrbjit_code_area, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
 extern void mrbjit_gen_load_patch(mrbjit_code_area, mrb_state *, void *, void *, mrbjit_vmstatus *, mrbjit_code_info *);
@@ -2422,6 +2423,13 @@ RETRY_TRY_BLOCK:
         int eidx;
 
       L_RAISE:
+	//disasm_once(mrb, irep, *pc);
+	/* Avoid Instruction JIT compile that happend exception */
+	if (mrb->compile_info.code_base) {
+	  mrbjit_gen_exit2(mrb->compile_info.code_base, mrb, irep, &pc, &status, NULL);
+	  mrb->compile_info.code_base = NULL;
+	}
+
         ci = mrb->c->ci;
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, pc));
         mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
@@ -2437,6 +2445,7 @@ RETRY_TRY_BLOCK:
           mrb->c->stack = ci[1].stackent;
           if (ci[1].acc == CI_ACC_SKIP && prev_jmp) {
             mrb->jmp = prev_jmp;
+	    mrb->compile_info.disable_jit = orgdisflg;
             MRB_THROW(prev_jmp);
           }
           if (ci == mrb->c->cibase) {
@@ -2457,6 +2466,7 @@ RETRY_TRY_BLOCK:
                 goto L_RAISE;
               }
             }
+	    mrb->compile_info.disable_jit = orgdisflg;
             break;
           }
           /* call ensure only when we skip this callinfo */
@@ -2466,13 +2476,22 @@ RETRY_TRY_BLOCK:
             }
           }
         }
+
       L_RESCUE:
+	if (mrb->compile_info.code_base) {
+	  mrbjit_gen_exit2(mrb->compile_info.code_base, mrb, irep, &pc, &status, NULL);
+	  mrb->compile_info.code_base = NULL;
+	}
         if (ci->ridx == 0) goto L_STOP;
+	if (ci->acc > 0) {
+	  mrb->compile_info.disable_jit = orgdisflg;
+	}
         proc = ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
         mrb->c->stack = ci[1].stackent;
+	mrb->c->ci->prev_pc = NULL;
         pc = mrb->c->rescue[--ci->ridx];
       }
       else {
@@ -3374,8 +3393,6 @@ RETRY_TRY_BLOCK:
 
   }
   MRB_CATCH(&c_jmp) {
-    mrb->compile_info.disable_jit = orgdisflg;
-
     exc_catched = TRUE;
     goto RETRY_TRY_BLOCK;
   }

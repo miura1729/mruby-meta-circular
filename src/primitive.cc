@@ -435,6 +435,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
+  mrb_value *regs = mrb->c->stack;
   const cpu_word_t aryno = regno;
   const cpu_word_t idxno = aryno + 1;
   mrbjit_reginfo *ainfo = &coi->reginfo[regno];
@@ -442,7 +443,8 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
   // No support 2 args or Index is not Fixnum
   if ((nargs > 1) ||
-      (mrb_type((mrb->c->stack)[regno + 1]) != MRB_TT_FIXNUM)) {
+      (mrb_type(regs[idxno]) != MRB_TT_FIXNUM) ||
+      mrb_ary_ptr(regs[aryno])->aux.capa <= mrb_fixnum(regs[idxno])) {
     return mrb_nil_value();
   }
 
