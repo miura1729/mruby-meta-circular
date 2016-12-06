@@ -146,6 +146,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   result = m->body.func(mrb, recv);
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
+
   if (mrb->exc) {
     ci->mid = mid;
     ci->proc = m;

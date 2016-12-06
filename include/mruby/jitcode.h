@@ -2399,7 +2399,7 @@ do {                                                                 \
     int regno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
-#if 1
+#if 0
     COMP_GEN_JMP(setz(al), setz(al), ==);
     return code;
 #endif
@@ -2421,7 +2421,7 @@ do {                                                                 \
     int regno = GETARG_A(**ppc);
     mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
-#if 1
+#if 0
     COMP_GEN_JMP(setl(al), setb(al), <);
     return code;
 #endif
@@ -2442,7 +2442,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-#if 1
+#if 0
     COMP_GEN_JMP(setle(al), setbe(al), <=);
     return code;
 #endif
@@ -2463,7 +2463,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-#if 1
+#if 0
     COMP_GEN_JMP(setg(al), seta(al), >);
     return code;
 #endif
@@ -2484,7 +2484,7 @@ do {                                                                 \
     mrb_code **ppc = status->pc;
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-#if 1
+#if 0
     COMP_GEN_JMP(setge(al), setae(al), >=);
     return code;
 #endif
