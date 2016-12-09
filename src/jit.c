@@ -694,8 +694,6 @@ mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
     int eidx;
 
   L_RAISE:
-    disasm_irep(mrb, *(status->irep));
-    printf("fast %x \n", *status->pc - (*status->irep)->iseq);
     ci = mrb->c->ci;
     mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, *status->pc));
     mrb_obj_iv_set(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
