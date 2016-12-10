@@ -17,18 +17,18 @@ do {                                                                 \
   if (civoff >= 0) {                                                 \
     emit_move(mrb, coi, reg_tmp0, eax, OffsetOf(struct RObject, iv)); \
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);                      \
-    emit_push(mrb, coi, eax);			/* PUSH __objcache__ */ \
+    emit_push(mrb, coi, reg_tmp0);			/* PUSH __objcache__ */ \
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value) + 4); \
     emit_move(mrb, coi, reg_tmp0, reg_tmp0, civoff * sizeof(mrb_value)); \
-    test(eax, eax);                                                  \
+    test(reg_tmp0, reg_tmp0);                                                  \
     jz(".empty");                                                    \
-    push(eax);                                                       \
-    push(edx);                                                       \
+    push(reg_tmp0);                                                       \
+    push(reg_tmp1);                                                       \
     emit_add(mrb, coi, reg_tmp0, reg_mrb);                           \
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RObject, c));  \
     test(reg_tmp1, reg_tmp1);                                        \
     jz(".setnil");                                                   \
-    emit_move(mrb, coi, reg_tmp0, esp, 8);                           \
+    emit_move(mrb, coi, reg_tmp0, reg_sp, 8);                           \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1); \
                                                                      \
     emit_cfunc_start(mrb, coi);                                      \
@@ -39,13 +39,13 @@ do {                                                                 \
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *)); \
     jmp(".ee");                                                      \
     L(".setnil");                                                    \
-    emit_move(mrb, coi, reg_tmp0, esp, 8);                           \
+    emit_move(mrb, coi, reg_tmp0, reg_sp, 8);                           \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1); \
     emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_FALSE); \
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1); \
     L(".ee");                                                        \
-    pop(edx);                                                        \
-    pop(eax);                                                        \
+    pop(reg_tmp1);                                                        \
+    pop(reg_tmp0);                                                        \
     jmp("@f");                                                       \
     L(".empty");                                                     \
   }                                                                  \
@@ -63,7 +63,7 @@ do {                                                                 \
 #define PVEC4_ALLOCATE_FIN                                           \
 do {                                                                 \
   if (civoff >= 0) {                                                 \
-    emit_pop(mrb, coi, eax);			/* POP __objcache__ */ \
+    emit_pop(mrb, coi, reg_tmp0);			/* POP __objcache__ */ \
   }                                                                  \
                                                                      \
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);              \
@@ -106,10 +106,10 @@ MRBJitCode::mrbjit_prim_pvec4_new_impl(mrb_state *mrb, mrb_value proc,
 
   emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
 
-  movupd(xmm0, ptr [ecx + (a + 1) * sizeof(mrb_value)]);
+  movupd(xmm0, ptr [reg_regs + (a + 1) * sizeof(mrb_value)]);
   movupd(ptr [reg_tmp0], xmm0);
-  movupd(xmm0, ptr [ecx + (a + 3) * sizeof(mrb_value)]);
-  movupd(ptr [reg_tmp0 + 16], xmm0);
+  movupd(xmm0, ptr [reg_regs + (a + 3) * sizeof(mrb_value)]);
+  movupd(ptr [reg_tmp0 + 16], reg_dtmp0);
 
   PVEC4_ALLOCATE_FIN;
 
@@ -150,10 +150,10 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   /* reg_tmp0 store pointer to new vector */
 
-  emit_push(mrb, coi, ebx);
+  emit_push(mrb, coi, reg_vars);
 
-  emit_local_var_ptr_value_read(mrb, coi, ebx, a);
-  emit_move(mrb, coi, ebx, ebx, OffsetOf(struct RArray, ptr));
+  emit_local_var_ptr_value_read(mrb, coi, reg_vars, a);
+  emit_move(mrb, coi, reg_vars, reg_vars, OffsetOf(struct RArray, ptr));
 
   emit_local_var_value_write(mrb, coi, a, reg_tmp0);
   emit_add(mrb, coi, reg_tmp0, reg_mrb);
@@ -162,17 +162,17 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, a + 1);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
 
-  movupd(xmm0, ptr [ebx]);
+  movupd(xmm0, ptr [reg_vars]);
   movupd(xmm1, ptr [reg_tmp1]);
   addpd(xmm0, xmm1);
   movupd(ptr [reg_tmp0], xmm0);
 
-  movupd(xmm0, ptr [ebx + 16]);
+  movupd(xmm0, ptr [reg_vars + 16]);
   movupd(xmm1, ptr [reg_tmp1 + 16]);
   addpd(xmm0, xmm1);
   movupd(ptr [reg_tmp0 + 16], xmm0);
 
-  emit_pop(mrb, coi, ebx);
+  emit_pop(mrb, coi, reg_vars);
 
   PVEC4_ALLOCATE_FIN;
 
@@ -214,10 +214,10 @@ MRBJitCode::mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
   // regs[a] = obj;
   /* reg_tmp0 store pointer to new vector */
 
-  emit_push(mrb, coi, ebx);
+  emit_push(mrb, coi, reg_vars);
 
-  emit_local_var_ptr_value_read(mrb, coi, ebx, a);
-  emit_move(mrb, coi, ebx, ebx, OffsetOf(struct RArray, ptr));
+  emit_local_var_ptr_value_read(mrb, coi, reg_vars, a);
+  emit_move(mrb, coi, reg_vars, reg_vars, OffsetOf(struct RArray, ptr));
 
   emit_local_var_value_write(mrb, coi, a, reg_tmp0);
   emit_add(mrb, coi, reg_tmp0, reg_mrb);
@@ -226,17 +226,17 @@ MRBJitCode::mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, a + 1);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
 
-  movupd(xmm0, ptr [ebx]);
+  movupd(xmm0, ptr [reg_vars]);
   movupd(xmm1, ptr [reg_tmp1]);
   subpd(xmm0, xmm1);
   movupd(ptr [reg_tmp0], xmm0);
 
-  movupd(xmm0, ptr [ebx + 16]);
+  movupd(xmm0, ptr [reg_vars + 16]);
   movupd(xmm1, ptr [reg_tmp1 + 16]);
   subpd(xmm0, xmm1);
   movupd(ptr [reg_tmp0 + 16], xmm0);
 
-  emit_pop(mrb, coi, ebx);
+  emit_pop(mrb, coi, reg_vars);
 
   PVEC4_ALLOCATE_FIN;
 
@@ -266,7 +266,7 @@ MRBJitCode::mrbjit_prim_pvec4_aget_impl(mrb_state *mrb, mrb_value proc,
   if (iinfo->regplace == MRBJIT_REG_IMMIDATE) {
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
-    movsd(xmm0, ptr [edx + mrb_fixnum(iinfo->value) * sizeof(mrb_value)]);
+    movsd(xmm0, ptr [reg_tmp1 + mrb_fixnum(iinfo->value) * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, aryno, xmm0);
   }
   else {
@@ -312,7 +312,7 @@ MRBJitCode::mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
     emit_local_var_read(mrb, coi, xmm0, valno);
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
-    movsd(ptr [edx + mrb_fixnum(iinfo->value) * sizeof(mrb_value)], xmm0);
+    movsd(ptr [reg_tmp1 + mrb_fixnum(iinfo->value) * sizeof(mrb_value)], xmm0);
   }
   else {
     gen_flush_regs(mrb, pc, status, coi, 1);

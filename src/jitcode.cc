@@ -93,7 +93,7 @@ mrbjit_dump_code(mrb_state *mrb)
 
   // objdump -b binary --adjust-vma=0xabcd1000 -D file.bin
   fp = fopen("output", "w");
-  fwrite(p, (int)ep - (int)p, 1, fp);
+  fwrite(p, (intptr_t)ep - (intptr_t)p, 1, fp);
   fclose(fp);
 }
 
