@@ -25,7 +25,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg64 reg_vars;	/* rbx */
   Xbyak::Reg64 reg_mrb;		/* r13 */
   Xbyak::Reg64 reg_context;	/* r14 */
-  Xbyak::Reg32 reg_sp;	        /* rsp */
+  Xbyak::Reg64 reg_sp;	        /* rsp */
 
   Xbyak::Reg64 reg_tmp0;	/* rax */
   Xbyak::Reg64 reg_tmp1;	/* rdx */
