@@ -622,7 +622,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int n = GETARG_C(i);
     int is_block_call = (m->body.irep->ilen == 1 && 
 			 GET_OPCODE(m->body.irep->iseq[0]) == OP_CALL);
-    int cisize = 6 + (sizeof(mrb_callinfo) > 6);
+    int cisize = 6 + (sizeof(mrb_callinfo) > 64);
 
     callee_nregs = m->body.irep->nregs;
 
@@ -2585,7 +2585,7 @@ do {                                                                 \
     int idx = GETARG_C(**ppc);
 
     if (!mrb_array_p(regs[srcno]) ||
-	idx < 0) {
+	idx < RARRAY_LEN(regs[srcno])) {
       return NULL;
     }
 

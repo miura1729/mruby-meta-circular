@@ -595,12 +595,19 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
+  mrb_value *regs = mrb->c->stack;
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
 
   // No support 1 args only no args.
   if (nargs > 1) {
+    return mrb_nil_value();
+  }
+
+  /* Cant support zero array */
+  if (!mrb_array_p(regs[regno]) ||
+      RARRAY_LEN(regs[regno]) == 0) {
     return mrb_nil_value();
   }
 

@@ -300,6 +300,7 @@ mrb_top_self(mrb_state *mrb)
 {
   if (!mrb->top_self) {
     mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);
+    mrb->top_self->iv = &mrb->top_self->ivent;
     mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
     mrb_define_singleton_method(mrb, mrb->top_self, "to_s", inspect_main, MRB_ARGS_NONE());
   }
