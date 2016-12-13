@@ -1117,6 +1117,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "rindex",          mrb_ary_rindex_m,     MRB_ARGS_REQ(1)); /* 15.2.12.5.26 */
   mrb_define_method(mrb, a, "shift",           mrb_ary_shift,        MRB_ARGS_NONE()); /* 15.2.12.5.27 */
   mrb_define_method(mrb, a, "size",            mrb_ary_size,         MRB_ARGS_NONE()); /* 15.2.12.5.28 */
+  mrbjit_define_primitive(mrb, a, "size", mrbjit_prim_ary_size);
+
   mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
   mrbjit_define_primitive(mrb, a, "slice", mrbjit_prim_ary_aget);
 
