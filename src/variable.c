@@ -506,7 +506,12 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   iv_tbl *t = obj->iv;
 
   if (!t) {
-    t = obj->iv = iv_new(mrb);
+    if (obj->tt == MRB_TT_OBJECT) {
+      t = obj->iv = &obj->ivent;
+    }
+    else {
+      t = obj->iv = iv_new(mrb);
+    }
   }
   mrb_write_barrier(mrb, (struct RBasic*)obj);
   iv_put(mrb, t, sym, v);
@@ -518,7 +523,12 @@ mrb_obj_iv_ifnone(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   iv_tbl *t = obj->iv;
 
   if (!t) {
-    t = obj->iv = iv_new(mrb);
+    if (obj->tt == MRB_TT_OBJECT) {
+      t = obj->iv = &obj->ivent;
+    }
+    else {
+      t = obj->iv = iv_new(mrb);
+    }
   }
   else if (iv_get(mrb, t, sym, &v)) {
     return;
@@ -589,11 +599,37 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
   struct RObject *d = mrb_obj_ptr(dest);
   struct RObject *s = mrb_obj_ptr(src);
 
+  if (d->tt == MRB_TT_OBJECT) {
+    if (s->iv) {
+      iv_tbl *t = s->iv;
+      segment *seg;
+      iv_tbl *t2;
+
+      size_t i;
+
+      seg = t->rootseg;
+      t2 = d->iv = &d->ivent;
+
+      while (seg != NULL) {
+	for (i=0; i<MRB_SEGMENT_SIZE; i++) {
+	  mrb_sym key = seg->key[i];
+	  mrb_value val = seg->val[i];
+
+	  if ((seg->next == NULL) && (i >= t->last_len)) {
+	    break;
+	  }
+	  iv_put(mrb, t2, key, val);
+	}
+	seg = seg->next;
+      }
+    }
+
+    return;
+  }
+
   if (d->iv && d->tt) {
     iv_free(mrb, d->iv, d->tt);
-    if (d->tt != MRB_TT_OBJECT) {
-      d->iv = 0;
-    }
+    d->iv = 0;
   }
   if (s->iv) {
     mrb_write_barrier(mrb, (struct RBasic*)d);
