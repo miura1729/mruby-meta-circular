@@ -54,7 +54,7 @@ typedef struct mrb_value {
 #define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
 
 #define mrb_tt(o)       (enum mrb_vtype)((o).value.ttt & 0xfffff)
-#define mrb_type(o)     ((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
+#define mrb_type(o)     ((((uint32_t)0xfff00000 < (o).value.ttt) && ((o).value.ttt != 0xfff80000)) ? mrb_tt(o) : MRB_TT_FLOAT)
 //#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
 #define mrb_ptr(o)      ((void *)((intptr_t)mrb + (o).value.p))
 #define mrb_float(o)    (o).f

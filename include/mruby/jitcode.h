@@ -381,6 +381,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (tt == MRB_TT_FLOAT) {
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000);
       jb("@f");
+      emit_cmp(mrb, coi, reg_tmp0s, 0xfff80000);
+      jz("@f");
     } 
     else {
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000 | tt);
@@ -453,6 +455,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       if (tt == MRB_TT_FLOAT) {
 	emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000);
 	jb("@f", T_NEAR);
+	emit_cmp(mrb, coi, reg_tmp0s, 0xfff80000);
+	jz("@f");
       }
       else {
 	emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000 | tt);
