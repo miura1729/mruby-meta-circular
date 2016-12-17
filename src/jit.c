@@ -903,7 +903,10 @@ mrbjit_reset_caller()
 	       : "=c"(status.pc));
 #endif
   p = mrb->c->ci[-1].proc;
-  irep = p->body.irep;
-  status.irep = &irep;
-  mrbjit_reset_caller_aux(mrb, &status);
+  /*  If current proc is still alive ... */
+  if (p->tt == MRB_TT_PROC) {
+    irep = p->body.irep;
+    status.irep = &irep;
+    mrbjit_reset_caller_aux(mrb, &status);
+  }
 }
