@@ -776,16 +776,17 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
   dinfo->unboxedp = 0;
 
+  if (mrb_class_ptr(klass)->tt == MRB_TT_SCLASS) {
+    return mrb_nil_value();
+  }
+
   gen_flush_regs(mrb, pc, status, coi, 1);
 
   // TODO add guard of class
   
   // obj = mrbjit_instance_alloc(mrb, klass);
   emit_cfunc_start(mrb, coi);
-  emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass) + 1));
-  emit_arg_push(mrb, coi, 2, reg_tmp0);
-  emit_load_literal(mrb, coi, reg_tmp0, *((cpu_word_t *)(&klass)));
-  emit_arg_push(mrb, coi, 1, reg_tmp0);
+  emit_arg_push_nan(mrb, coi, 1, reg_tmp0, a);
   emit_arg_push(mrb, coi, 0, reg_mrb);
   emit_call(mrb, coi, (void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
