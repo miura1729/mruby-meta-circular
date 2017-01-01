@@ -404,7 +404,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
 
-    if (rinfo->constp && 0) {
+    if (rinfo->constp) {
       if (b && rinfo->type != MRB_TT_FALSE) {
 	return;
       }
@@ -828,7 +828,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       *dinfo = *sinfo;
     }
     if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
-	     srcno < dstno) {
+	     srcno < dstno && 0) {
       /* Arg pram. set */
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
@@ -1800,7 +1800,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 			(c->ci->env == 0 || 
 			 c->ci->proc->body.irep->shared_lambda == 1));
     int can_inline = (can_use_fast &&
-		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0)) && 0;
+		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
 
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
     mrbjit_reginfo *dinfo = &coi->reginfo[0];

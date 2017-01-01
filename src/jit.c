@@ -35,7 +35,7 @@ mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
 {
   int i;
 
-  if (irep->ilen >= NO_INLINE_METHOD_LEN) {
+  if (irep->ilen >= NO_INLINE_METHOD_LEN || 1) {
     return 0;
   }
 
