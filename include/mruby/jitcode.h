@@ -715,6 +715,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (cpu_word_t)m->body.irep);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), (cpu_word_t)m);
+      mrb_gc_register(mrb, mrb_obj_value(m));
     }
 
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)mid);
@@ -1526,6 +1527,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
       emit_arg_push(mrb, coi, 2, reg_tmp0);
       CALL_CFUNC_STATUS(mrbjit_exec_send_c, 2);
+      mrb_gc_register(mrb, mrb_obj_value(m));
 
       /* Restore c->stack to reg_regs and update reg_context for fiber */
       emit_move(mrb, coi, reg_context, reg_mrb, OffsetOf(mrb_state, c));
@@ -1620,6 +1622,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, proc), reg_tmp0);
     emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), reg_tmp0);
+    mrb_gc_register(mrb, mrb_obj_value(m));
     if (n == CALL_MAXARGS) {
       emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, argc), -1);
     }

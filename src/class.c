@@ -380,7 +380,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
     if (k != kh_end(h)) {
       op = kh_value(h, k);
       if (op && !MRB_PROC_CFUNC_P(op) && mrb->vmstatus) {
-	mrbjit_reset_proc(mrb, mrb->vmstatus, op);
+	if (p == NULL || op->body.irep != p->body.irep) {
+	  mrbjit_reset_proc(mrb, mrb->vmstatus, op);
+	}
       }
     }
   }
