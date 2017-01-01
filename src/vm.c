@@ -1310,6 +1310,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       asm volatile("mov %%edx, %0\n\t"
 		   : "=c"(prev_entry));
 #else
+      assert((*status->proc)->body.irep->ilen == (*status->irep)->ilen);
       rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, entry, &prev_entry);
 
 #endif
