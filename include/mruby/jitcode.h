@@ -390,7 +390,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     /* Guard fail exit code */
-    gen_exit(mrb, pc, 1, 0, status, coi);
+    gen_exit(mrb, pc, 2, 0, status, coi);
 
     L("@@");
   }
