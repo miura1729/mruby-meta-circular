@@ -1300,7 +1300,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     L("@@");                                                         \
   }while (0)
 
-#define CALL_CFUNC_JMP(func_name, auxargs, off)			     \
+#define CALL_CFUNC_JMP(func_name, auxargs, npc)			     \
   do {                                                               \
     lea(reg_tmp0, dword [reg_vars + VMSOffsetOf(status)]);           \
     emit_arg_push(mrb, coi, 1, reg_tmp0);			     \
