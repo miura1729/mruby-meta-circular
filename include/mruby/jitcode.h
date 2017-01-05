@@ -472,8 +472,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Import from class.h */
     switch (tt) {
     case MRB_TT_FALSE:
-      emit_local_var_value_read(mrb, coi, reg_tmp0, regpos);
-      emit_cmp(mrb, coi, reg_tmp0, (cpu_word_t)v.value.i);
+      emit_local_var_value_read(mrb, coi, reg_tmp0s, regpos);
+      emit_cmp(mrb, coi, reg_tmp0s, (cpu_word_t)v.value.i);
       jz("@f", T_NEAR);
       /* Guard fail exit code */
       gen_exit(mrb, pc, rc, 0, status, coi);
