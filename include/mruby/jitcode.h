@@ -807,7 +807,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	dstno = GETARG_A(ncode);
 	rinfo->regplace = (enum mrbjit_regplace)(dstno + MRBJIT_REG_VMREG0);
 
-	mrb->compile_info.ignor_inst_cnt = 2;
+	mrb->compile_info.ignor_inst_cnt = 1;
       }
     }
 
