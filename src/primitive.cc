@@ -539,6 +539,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_read(mrb, coi, reg_dtmp0, valno);
   emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
   movsd(ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)], reg_dtmp0);
+  emit_local_var_write(mrb, coi, regno, reg_dtmp0);
 
   emit_local_var_type_read(mrb, coi, reg_tmp0s, valno);
   xor(reg_tmp0s, 0xfff00000);
@@ -574,6 +575,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
 
   emit_call(mrb, coi, (void *)mrb_ary_set);
   emit_cfunc_end(mrb, coi, 2 * sizeof(void *) + 2 * sizeof(mrb_value));
+  emit_local_var_write_from_cfunc(mrb, coi, regno);
 
   L(".exit");
 
