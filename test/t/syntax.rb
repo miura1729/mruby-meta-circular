@@ -242,7 +242,7 @@ assert('multiple assignment (rest+post)') do
 end
 
 assert('multiple assignment (nosplat array rhs)') do
-  a, *b = []
+#  a, *b = []
   *c, d = [0]
   e, *f, g = [1, 2]
 

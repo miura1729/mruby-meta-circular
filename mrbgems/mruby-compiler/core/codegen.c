@@ -1470,7 +1470,8 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       genop(s, MKOPCODE(OP_NOP));
       pos = genop(s, MKOP_AsBx(OP_JMPNOT, cursp(), 0));
-      codegen(s, tree->cdr, val);
+      codegen(s, tree->cdr, val); 
+      genop(s, MKOPCODE(OP_NOP));
       dispatch(s, pos);
     }
     break;
@@ -1484,6 +1485,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop(s, MKOPCODE(OP_NOP));
       pos = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), 0));
       codegen(s, tree->cdr, val);
+      genop(s, MKOPCODE(OP_NOP));
       dispatch(s, pos);
     }
     break;

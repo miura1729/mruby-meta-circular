@@ -133,7 +133,6 @@ assert('BS Block 12') do
   end
 end
 
-assert('BS Block 13') do
   def iter1
     iter2{
       yield
@@ -144,6 +143,7 @@ assert('BS Block 13') do
     yield
   end
 
+assert('BS Block 13') do
   assert_equal(3) do
     iter1{
       jb = 2
@@ -407,7 +407,6 @@ assert('BS Block 32') do
   assert_equal NilClass, r.class
 end
 
-assert('BS Block [ruby-core:14395]') do
   class Controller
     def respond_to(&block)
       responder = Responder.new
@@ -442,6 +441,7 @@ assert('BS Block [ruby-core:14395]') do
       @response.call
     end
   end
+assert('BS Block [ruby-core:14395]') do
   t = Controller.new
   assert_true t.test_for_bug
 end

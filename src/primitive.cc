@@ -275,7 +275,8 @@ MRBJitCode::mrbjit_prim_fix_lshift_impl(mrb_state *mrb, mrb_value proc,
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
-      mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
+      mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM ||
+      mrb_fixnum(regs[regno + 1]) < 0) {
     return mrb_nil_value();
   }
   gen_flush_regs(mrb, pc, status, coi, 1);
@@ -315,7 +316,8 @@ MRBJitCode::mrbjit_prim_fix_rshift_impl(mrb_state *mrb, mrb_value proc,
   dinfo->unboxedp = 0;
 
   if (mrb_type(regs[regno]) != MRB_TT_FIXNUM ||
-      mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM) {
+      mrb_type(regs[regno + 1]) != MRB_TT_FIXNUM ||
+      mrb_fixnum(regs[regno + 1]) < 0) {
     return mrb_nil_value();
   }
   gen_flush_regs(mrb, pc, status, coi, 1);

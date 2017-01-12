@@ -15,7 +15,6 @@ assert('Class#initialize', '15.2.3.3.1') do
   assert_equal(c.test, :test)
 end
 
-assert('Class#initialize_copy', '15.2.3.3.2') do
   class TestClass
     attr_accessor :n
     def initialize(n)
@@ -26,6 +25,7 @@ assert('Class#initialize_copy', '15.2.3.3.2') do
     end
   end
 
+assert('Class#initialize_copy', '15.2.3.3.2') do
   c1 = TestClass.new('Foo')
   c2 = c1.dup
   c3 = TestClass.new('Bar')
@@ -36,7 +36,7 @@ end
 
 assert('Class#new', '15.2.3.3.3') do
   assert_raise(TypeError, 'Singleton should raise TypeError') do
-    "a".singleton_class.new
+      "a".singleton_class.new
   end
 
   class TestClass

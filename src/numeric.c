@@ -1203,9 +1203,9 @@ mrb_init_numeric(mrb_state *mrb)
   mrbjit_define_primitive(mrb, fixnum, "|", mrbjit_prim_fix_or);
   mrb_define_method(mrb, fixnum,  "^",        fix_xor,           MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
-  mrbjit_define_primitive(mrb, fixnum, "<<", mrbjit_prim_fix_lshift);
+  //  mrbjit_define_primitive(mrb, fixnum, "<<", mrbjit_prim_fix_lshift);
   mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,        MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrbjit_define_primitive(mrb, fixnum, ">>", mrbjit_prim_fix_rshift);
+  //mrbjit_define_primitive(mrb, fixnum, ">>", mrbjit_prim_fix_rshift);
   mrb_define_method(mrb, fixnum,  "[]",       fix_bitfetch,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fixnum,  "eql?",     fix_eql,           MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
   mrb_define_method(mrb, fixnum,  "hash",     flo_hash,          MRB_ARGS_NONE()); /* 15.2.8.3.18 */
