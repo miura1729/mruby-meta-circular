@@ -2618,7 +2618,7 @@ do {                                                                 \
     int idx = GETARG_C(**ppc);
 
     if (!mrb_array_p(regs[srcno]) ||
-	idx < RARRAY_LEN(regs[srcno])) {
+	idx >= RARRAY_LEN(regs[srcno])) {
       return NULL;
     }
 
