@@ -2170,7 +2170,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     enum mrb_vtype r0type = (enum mrb_vtype) mrb_type(regs[reg0pos]);
     enum mrb_vtype r1type = (enum mrb_vtype) mrb_type(regs[reg1pos]);
     mrbjit_reginfo *dinfo = &coi->reginfo[reg0pos];
-
+    if ((r0type != MRB_TT_FIXNUM && r0type != MRB_TT_FLOAT) ||
+	(r1type != MRB_TT_FIXNUM && r1type != MRB_TT_FLOAT)) {
+      return NULL;
+    }
     gen_type_guard(mrb, reg0pos, status, *ppc, coi);
     gen_type_guard(mrb, reg1pos, status, *ppc, coi);
 
