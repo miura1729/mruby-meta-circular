@@ -182,7 +182,7 @@ mrbjit_stack_extend(mrb_state *mrb, int room, int keep)
   if (mrb->c->stack + room >= mrb->c->stend) {
     stack_extend_alloc(mrb, room, keep);
   }
-  init_new_stack_space(mrb, room, keep);
+  //  init_new_stack_space(mrb, room, keep);
 }
 
 static inline struct REnv*
