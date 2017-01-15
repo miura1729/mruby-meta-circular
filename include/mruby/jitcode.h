@@ -589,8 +589,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
   void
     gen_stack_extend(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi,
-		     cpu_word_t room, cpu_word_t keep)
+		     cpu_word_t room, cpu_word_t keep, cpu_word_t nlocal)
   {
+    int i;
+
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, stend));
     emit_sub(mrb, coi, reg_tmp1, room * sizeof(mrb_value));
     emit_cmp(mrb, coi, reg_regs, reg_tmp1);
@@ -621,6 +623,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
       
     L("@@");
+    /* Registor clear */
+    if (keep < nlocal) {
+      // printf("%d %d %d \n", keep, room, nlocal);
+      emit_load_literal(mrb, coi, reg_tmp0s, 0);
+      emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FALSE);
+      for (i = keep; i < nlocal; i++) {
+	emit_local_var_value_write(mrb, coi, i, reg_tmp0s);
+	emit_local_var_type_write(mrb, coi, i, reg_tmp1s);
+      }
+    }
   }
 
   void 
@@ -629,6 +641,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 		   mrbjit_code_info *coi)
   {
     int callee_nregs;
+    int callee_nlocals;
     mrb_irep *irep = *status->irep;
     int i = *pc;
     int a = GETARG_A(i);
@@ -638,6 +651,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int cisize = 6 + (sizeof(mrb_callinfo) > 64);
 
     callee_nregs = m->body.irep->nregs;
+    callee_nlocals = m->body.irep->nlocals;
 
     /* Reg map */
     /*    old ci  reg_tmp1 */
@@ -715,6 +729,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (is_block_call) {
       /* Block call */
       callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
+      callee_nlocals = mrb_proc_ptr(recv)->body.irep->nlocals;
     }
     else {
       /* normal call */
@@ -743,10 +758,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
 
     if (n == CALL_MAXARGS) {
-      gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3);
+      gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
+		       (callee_nlocals < 3) ? 3 : callee_nlocals);
     }
     else {
-      gen_stack_extend(mrb, status, coi, callee_nregs, n + 2);
+      gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
     }
 
     if (irep->jit_inlinep == 0) {
