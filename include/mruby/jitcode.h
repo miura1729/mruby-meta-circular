@@ -823,7 +823,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	dstno = GETARG_A(ncode);
 	rinfo->regplace = (enum mrbjit_regplace)(dstno + MRBJIT_REG_VMREG0);
 
-	mrb->compile_info.ignor_inst_cnt = 1;
+	//mrb->compile_info.ignor_inst_cnt = 1;
       }
     }
 
@@ -853,7 +853,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       *dinfo = *sinfo;
     }
     if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
-	     srcno < dstno && 0) {
+	srcno < dstno && dstno > (*status->irep)->nlocals && 0) {
       /* Arg pram. set */
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
