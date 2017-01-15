@@ -1090,7 +1090,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "*",               mrb_ary_times,        MRB_ARGS_REQ(1)); /* 15.2.12.5.2  */
   mrb_define_method(mrb, a, "<<",              mrb_ary_push_m,       MRB_ARGS_REQ(1)); /* 15.2.12.5.3  */
   mrb_define_method(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
-  //  mrbjit_define_primitive(mrb, a, "[]", mrbjit_prim_ary_aget);
+  mrbjit_define_primitive(mrb, a, "[]", mrbjit_prim_ary_aget);
 
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */
   mrbjit_define_primitive(mrb, a, "[]=", mrbjit_prim_ary_aset);

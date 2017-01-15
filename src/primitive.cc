@@ -451,6 +451,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
+  gen_type_guard(mrb, idxno, status, pc, coi);
   gen_flush_regs(mrb, pc, status, coi, 1);
   //gen_flush_one(mrb, status, coi, aryno);
 
@@ -526,6 +527,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   }
 
   inLocalLabel();
+  gen_type_guard(mrb, idxno, status, pc, coi);
   gen_flush_regs(mrb, pc, status, coi, 1);
 #if 1
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
