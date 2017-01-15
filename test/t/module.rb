@@ -102,12 +102,11 @@ assert('Module#attr', '15.2.2.4.11') do
   assert_false AttrTest.respond_to?(:cattr=)
   assert_false test.respond_to?(:iattr=)
 
-#  test.iattr_val = 'test'
-#r
-y  assert_equal 'test', test.iattr
+  test.iattr_val = 'test'
+  assert_equal 'test', test.iattr
 
-#  AttrTest.cattr_val = 'test'
-#  assert_equal 'test', AttrTest.cattr
+  AttrTest.cattr_val = 'test'
+  assert_equal 'test', AttrTest.cattr
 end
 
   class AttrTestAccessor
