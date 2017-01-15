@@ -1440,6 +1440,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
+    if (!MRB_PROC_CFUNC_P(m)) {
+      m->body.irep->method_kind = NORMAL;
+    }
     return 0;
   }
 
