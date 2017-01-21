@@ -2616,8 +2616,8 @@ do {                                                                 \
     
     emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(mrb_value) * 2);
 
-    emit_move(mrb, coi, reg_tmp0, reg_vars, VMSOffsetOf(ai));
-    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0);
+    emit_move(mrb, coi, reg_tmp0s, reg_vars, VMSOffsetOf(ai));
+    emit_move(mrb, coi, reg_mrb, OffsetOf(mrb_state, gc.arena_idx), reg_tmp0s);
 
     dinfo->type = MRB_TT_ARRAY;
     dinfo->klass = mrb->array_class;
