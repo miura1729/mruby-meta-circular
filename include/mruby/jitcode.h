@@ -629,7 +629,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_load_literal(mrb, coi, reg_tmp0s, 0);
       emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FALSE);
       for (i = keep; i < nlocal; i++) {
-	emit_local_var_value_write(mrb, coi, i, reg_tmp0s);
+	emit_local_var_value_write_noopt(mrb, coi, i, reg_tmp0s);
 	emit_local_var_type_write(mrb, coi, i, reg_tmp1s);
       }
     }
