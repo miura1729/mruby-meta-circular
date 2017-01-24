@@ -976,6 +976,7 @@ MRBJitCode::mrbjit_prim_fiber_resume_impl(mrb_state *mrb, mrb_value proc,
 {
   mrb_code *pc = *status->pc;
 
+  gen_flush_regs(mrb, pc, status, coi, 1);
   gen_exit(mrb, pc, 1, 1, status, coi);
   return mrb_true_value();
 }
@@ -1133,6 +1134,7 @@ MRBJitCode::mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
   dinfo->unboxedp = 0;
 
+  gen_flush_regs(mrb, pc, status, coi, 1);
   if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
     gen_type_guard(mrb, src, status, pc, coi);
     emit_local_var_read(mrb, coi, reg_dtmp0, src);
