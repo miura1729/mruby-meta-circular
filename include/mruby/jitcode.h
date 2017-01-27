@@ -959,7 +959,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrb_value self = mrb->c->stack[0];
 
     dinfo->type = (mrb_vtype)mrb_type(self);
-    dinfo->klass = mrb->c->ci->target_class;
+    dinfo->klass = mrb_class(mrb, self);
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
 
@@ -1748,9 +1748,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
       /* + 1 means block */
       if (mrb->c->ci->argc != 127) {
-	for (i = 1; i <= mrb->c->ci->argc + 1; i++) {
+	for (i = 0; i <= mrb->c->ci->argc + 1; i++) {
 	  gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
 	}
+	//gen_class_guard(mrb, 0, status, pc, coi, mrb_class(mrb, regs[i]), 2);
       }
     }
 #endif
