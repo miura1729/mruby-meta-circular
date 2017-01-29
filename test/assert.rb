@@ -47,7 +47,7 @@ def assert(str = 'Assertion failed', iso = '')
     40.times do
       yield
     end
-    if(!yield || $mrbtest_assert.size > 0)
+    if($mrbtest_assert.size > 0)
       $asserts.push(assertion_string('Fail: ', str, iso, nil))
       $ko_test += 1
       t_print('F')
@@ -235,7 +235,7 @@ end
 ##
 # Performs fuzzy check for equality on methods returning floats
 def check_float(a, b)
-  tolerance = 1e-12
+  tolerance = Mrbtest::FLOAT_TOLERANCE
   a = a.to_f
   b = b.to_f
   if a.finite? and b.finite?

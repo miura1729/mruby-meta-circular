@@ -320,6 +320,20 @@ mrb_class_get(mrb_state *mrb, const char *name)
 }
 
 MRB_API struct RClass *
+mrb_exc_get(mrb_state *mrb, const char *name)
+{
+  struct RClass *exc = mrb_class_get_under(mrb, mrb->object_class, name);
+  struct RClass *e = exc;
+
+  while (e) {
+    if (e == mrb->eException_class)
+      return exc;
+    e = e->super;
+  }
+  return mrb->eException_class;
+}
+
+MRB_API struct RClass *
 mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return module_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
@@ -372,6 +386,12 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, struct RPro
   MRB_CLASS_ORIGIN(c);
   h = c->mt;
 
+  if (MRB_FROZEN_P(c)) {
+    if (c->tt == MRB_TT_MODULE)
+      mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen module");
+    else
+      mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen class");
+  }
   if (!h) h = c->mt = kh_init(mt, mrb);
   else {
     struct RProc *op;
@@ -939,7 +959,9 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
 static void
 boot_initmod(mrb_state *mrb, struct RClass *mod)
 {
-  mod->mt = kh_init(mt, mrb);
+  if (!mod->mt) {
+    mod->mt = kh_init(mt, mrb);
+  }
 }
 
 static struct RClass*
@@ -1396,6 +1418,9 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
     mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
 
   if (ttype == 0) ttype = MRB_TT_OBJECT;
+  if (ttype <= MRB_TT_CPTR) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't create instance of %S", cv);
+  }
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);
   if (ttype == MRB_TT_OBJECT) {
     o->iv = &o->ivent;
@@ -1612,7 +1637,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     if (sym == 0) {
       return mrb_nil_value();
     }
-    else if (outer && outer != mrb->object_class) {
+    else if (outer && outer != c && outer != mrb->object_class) {
       mrb_value base = mrb_class_path(mrb, outer);
       path = mrb_str_buf_new(mrb, 0);
       if (mrb_nil_p(base)) {
@@ -1631,7 +1656,9 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
       name = mrb_sym2name_len(mrb, sym, &len);
       path = mrb_str_new(mrb, name, len);
     }
-    mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
+    if (!MRB_FROZEN_P(c)) {
+      mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
+    }
   }
   return mrb_str_dup(mrb, path);
 }
@@ -1865,7 +1892,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    undef_method(mrb, c, mrb_symbol(*argv));
+    undef_method(mrb, c, to_sym(mrb, *argv));
     argv++;
   }
   return mrb_nil_value();
@@ -2119,7 +2146,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    remove_method(mrb, mod, mrb_symbol(*argv));
+    remove_method(mrb, mod, to_sym(mrb, *argv));
     argv++;
   }
   return mod;

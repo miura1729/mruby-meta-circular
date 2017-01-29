@@ -98,9 +98,9 @@ static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 static inline mrb_value
 mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 {
-  if (mrb_string_p(key) && !RSTR_FROZEN_P(mrb_str_ptr(key))) {
+  if (mrb_string_p(key) && !MRB_FROZEN_P(mrb_str_ptr(key))) {
     key = mrb_str_dup(mrb, key);
-    RSTR_SET_FROZEN_FLAG(mrb_str_ptr(key));
+    MRB_SET_FROZEN_FLAG(mrb_str_ptr(key));
   }
   return key;
 }
@@ -172,11 +172,8 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
   }
 
   /* not found */
-  if (MRB_RHASH_DEFAULT_P(hash)) {
-    /* xxx mrb_funcall_tailcall(mrb, hash, "default", 1, key); */
-    return mrb_funcall(mrb, hash, "default", 1, key);
-  }
-  return mrb_nil_value();
+  /* xxx mrb_funcall_tailcall(mrb, hash, "default", 1, key); */
+  return mrb_funcall(mrb, hash, "default", 1, key);
 }
 
 MRB_API mrb_value
@@ -228,6 +225,7 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
   struct RHash* ret;
   khash_t(ht) *h, *ret_h;
   khiter_t k, ret_k;
+  mrb_value ifnone, vret;
 
   h = RHASH_TBL(hash);
   ret = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
@@ -246,7 +244,18 @@ mrb_hash_dup(mrb_state *mrb, mrb_value hash)
     }
   }
 
-  return mrb_obj_value(ret);
+  if (MRB_RHASH_DEFAULT_P(hash)) {
+    ret->flags |= MRB_HASH_DEFAULT;
+  }
+  if (MRB_RHASH_PROCDEFAULT_P(hash)) {
+    ret->flags |= MRB_HASH_PROC_DEFAULT;
+  }
+  vret = mrb_obj_value(ret);
+  ifnone = RHASH_IFNONE(hash);
+  if (!mrb_nil_p(ifnone)) {
+      mrb_iv_set(mrb, vret, mrb_intern_lit(mrb, "ifnone"), ifnone);
+  }
+  return vret;
 }
 
 MRB_API mrb_value
@@ -269,6 +278,9 @@ mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
+  if (MRB_FROZEN_P(mrb_hash_ptr(hash))) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen hash");
+  }
   mrb_hash_tbl(mrb, hash);
 }
 
@@ -542,6 +554,7 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
   mrb_value key;
 
   mrb_get_args(mrb, "o", &key);
+  mrb_hash_modify(mrb, self);
   return mrb_hash_delete_key(mrb, self, key);
 }
 
@@ -608,6 +621,7 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   khash_t(ht) *h = RHASH_TBL(hash);
 
+  mrb_hash_modify(mrb, hash);
   if (h) kh_clear(ht, mrb, h);
   return hash;
 }

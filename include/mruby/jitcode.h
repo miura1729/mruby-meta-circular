@@ -1237,7 +1237,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
 
-    if (mrb_type(v) == MRB_TT_STRING) {
+    switch (mrb_type(v)) {
+    case MRB_TT_FALSE:
+    case MRB_TT_TRUE:
+    case MRB_TT_UNDEF:
+    case MRB_TT_FIXNUM:
+    case MRB_TT_SYMBOL: 
+      break;
+    default:
       mrb_gc_unregister(mrb, v);
       mrb_gc_register(mrb, v);
     }
@@ -1265,6 +1272,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = mrb_class(mrb, v);
     dinfo->constp = 1;
 
+    switch (mrb_type(v)) {
+    case MRB_TT_FALSE:
+    case MRB_TT_TRUE:
+    case MRB_TT_UNDEF:
+    case MRB_TT_FIXNUM:
+    case MRB_TT_SYMBOL: 
+      break;
+    default:
+      mrb_gc_unregister(mrb, v);
+      mrb_gc_register(mrb, v);
+    }
     emit_load_literal(mrb, coi, reg_tmp0s, mrb_fixnum(v));
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
     emit_load_literal(mrb, coi, reg_tmp0s, v.value.ttt);

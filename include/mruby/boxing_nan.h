@@ -62,6 +62,12 @@ typedef struct mrb_value {
 #define mrb_fixnum(o)   (o).value.i
 #define mrb_symbol(o)   (o).value.sym
 
+#ifdef MRB_64BIT
+#define BOXNAN_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
+#else
+#define BOXNAN_SHIFT_LONG_POINTER(v) 0
+#endif
+
 #define BOXNAN_SET_VALUE(o, tt, attr, v) do {\
   (o).value.ttt = (0xfff00000|(tt));	     \
   switch (tt) {\
@@ -72,6 +78,11 @@ typedef struct mrb_value {
   case MRB_TT_SYMBOL: (o).attr = (mrb_int)((intptr_t)v); break;		\
   default: (o).value.p = ((int32_t)((intptr_t)(v) - (intptr_t)mrb));break; \
   }\
+} while (0)
+
+#define BOXNAN_SET_OBJ_VALUE(o, tt, v) do {\
+    (o).value.p = ((int32_t)((intptr_t)(v) - (intptr_t)mrb));	\
+    (o).value.ttt = (0xfff00000|(tt));	   \
 } while (0)
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
@@ -88,8 +99,8 @@ typedef struct mrb_value {
 #define SET_BOOL_VALUE(r,b) BOXNAN_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
 #define SET_INT_VALUE(r,n) BOXNAN_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
-#define SET_OBJ_VALUE(r,v) BOXNAN_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
-#define SET_CPTR_VALUE(mrb,r,v) BOXNAN_SET_VALUE(r, MRB_TT_CPTR, value.p, v)
+#define SET_OBJ_VALUE(r,v) BOXNAN_SET_OBJ_VALUE(r, (((struct RObject*)(v))->tt), (v))
+#define SET_CPTR_VALUE(mrb,r,v) BOXNAN_SET_OBJ_VALUE(r, MRB_TT_CPTR, v)
 #define SET_UNDEF_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
 
 #endif  /* MRUBY_BOXING_NAN_H */

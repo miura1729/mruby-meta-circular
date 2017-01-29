@@ -29,7 +29,8 @@ iv_new(mrb_state *mrb)
 {
   iv_tbl *t;
 
-  t = mrb_malloc(mrb, sizeof(iv_tbl));
+  t = (iv_tbl*)mrb_malloc(mrb, sizeof(iv_tbl));
+  //t->size = 0;
   t->rootseg =  NULL;
   t->last_len = 0;
 
@@ -84,7 +85,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
     return;
   }
 
-  seg = mrb_malloc(mrb, sizeof(segment));
+  seg = (segment*)mrb_malloc(mrb, sizeof(segment));
   if (!seg) return;
   seg->next = NULL;
   seg->key[0] = sym;
@@ -505,6 +506,9 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
   iv_tbl *t = obj->iv;
 
+  if (MRB_FROZEN_P(obj)) {
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "can't modify frozen %S", mrb_obj_value(obj));
+  }
   if (!t) {
     if (obj->tt == MRB_TT_OBJECT) {
       t = obj->iv = &obj->ivent;
