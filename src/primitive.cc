@@ -688,9 +688,9 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
   if (MRB_PROC_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
-    emit_arg_push(mrb, coi, 1, reg_tmp0);
+    emit_arg_push(mrb, coi, 3, reg_tmp0);
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)m);
-    emit_arg_push(mrb, coi, 0, reg_tmp0);
+    emit_arg_push(mrb, coi, 2, reg_tmp0);
     CALL_CFUNC_STATUS(mrbjit_exec_send_c_void, 2);
   }
   else {
