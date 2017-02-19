@@ -1008,6 +1008,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
       tab->body[i].entry = NULL;
       tab->body[i].prev_pc = NULL;
       tab->body[i].caller_pc = NULL;
+      tab->body[i].method_arg_ver = 0;
     }
   }
 
