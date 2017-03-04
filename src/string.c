@@ -520,6 +520,8 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   long len;
 
   check_frozen(mrb, s1);
+  s1->flags &= ~MRB_STR_NO_UTF;
+  s1->flags |= s2->flags&MRB_STR_NO_UTF;
   if (s1 == s2) return mrb_obj_value(s1);
   len = RSTR_LEN(s2);
   if (RSTR_SHARED_P(s1)) {
@@ -1772,7 +1774,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 
     mrb_str_modify(mrb, mrb_str_ptr(str));
     len = RSTRING_LEN(str);
-    buf = mrb_malloc(mrb, (size_t)len);
+    buf = (char*)mrb_malloc(mrb, (size_t)len);
     p = buf;
     e = buf + len;
 
@@ -2645,7 +2647,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     }
 #endif
     c = *p;
-    if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p, pend))) {
+    if (c == '"'|| c == '\\' || (c == '#' && IS_EVSTR(p+1, pend))) {
       buf[0] = '\\'; buf[1] = c;
       mrb_str_cat(mrb, result, buf, 2);
       continue;

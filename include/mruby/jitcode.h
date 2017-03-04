@@ -624,7 +624,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       
     L("@@");
     /* Registor clear */
-    if (keep < nlocal) {
+    if (keep < nlocal && 0) {
       // printf("%d %d %d \n", keep, room, nlocal);
       emit_load_literal(mrb, coi, reg_tmp0s, 0);
       emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FALSE);
@@ -728,8 +728,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (is_block_call) {
       /* Block call */
-      callee_nregs = mrb_proc_ptr(recv)->body.irep->nregs;
-      callee_nlocals = mrb_proc_ptr(recv)->body.irep->nlocals;
+      callee_nregs += mrb_proc_ptr(recv)->body.irep->nregs;
+      callee_nlocals += mrb_proc_ptr(recv)->body.irep->nlocals;
     }
     else {
       /* normal call */
@@ -756,13 +756,15 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     shl(reg_tmp0, 3);		/* * sizeof(mrb_value) */
     emit_add(mrb, coi, reg_context, OffsetOf(mrb_context, stack), reg_tmp0);
     emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
-
-    if (n == CALL_MAXARGS) {
-      gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
-		       (callee_nlocals < 3) ? 3 : callee_nlocals);
-    }
-    else {
-      gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
+    
+    if (!m->body.irep->block_lambda) {
+      if (n == CALL_MAXARGS) {
+	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
+			 (callee_nlocals < 3) ? 3 : callee_nlocals);
+      }
+      else {
+	gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
+      }
     }
 
     if (irep->jit_inlinep == 0) {
@@ -1737,6 +1739,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int i;
 
     if (irep->block_lambda) {
+      cpu_word_t room;
+      cpu_word_t keep;
+      cpu_word_t nlocal;
+      
       inLocalLabel();
       emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
       emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)irep);
@@ -1755,6 +1761,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       L(".gend");
       outLocalLabel();
+
+      keep = mrb->c->ci->argc;
+      room = irep->nregs;
+      nlocal = irep->nlocals;
+      if (keep == -1) {
+	gen_stack_extend(mrb, status, coi, room, 3, nlocal);
+      }
+      else {
+	gen_stack_extend(mrb, status, coi, room, keep, nlocal);
+      }
     }
 
     selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
