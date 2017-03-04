@@ -1755,7 +1755,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, iseq));
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);
-      emit_load_literal(mrb, coi, reg_tmp0, 0);
+      emit_load_literal(mrb, coi, reg_tmp0, 5); /* block guard fail */
       emit_load_label(mrb, coi, reg_tmp1, ".exitlab");
       ret();
 

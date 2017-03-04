@@ -1396,7 +1396,21 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	/* Guard JMPIF/JMPNOT fail */
 	method_arg_ver = mrb->c->ci->method_arg_ver;
 	mrb->c->ci->prev_tentry_offset = -1;
+
 	
+	rc = NULL;
+      }
+      else if (rc == (void *(*)())5) {
+	/* block guard fail need stack overflow check */
+	method_arg_ver = mrb->c->ci->method_arg_ver;
+	mrb->c->ci->prev_tentry_offset = -1;
+	
+	if (mrb->c->ci->argc == CALL_MAXARGS) {
+	  mrbjit_stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs,  3);
+	}
+	else {
+	  mrbjit_stack_extend(mrb, irep->nregs,  mrb->c->ci->argc + 2);
+	}
 	rc = NULL;
       }
       else if (GET_OPCODE(*(*ppc - 1)) == OP_SEND ||
