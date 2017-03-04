@@ -624,7 +624,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       
     L("@@");
     /* Registor clear */
-    if (keep < nlocal && 0) {
+    if (keep < nlocal) {
       // printf("%d %d %d \n", keep, room, nlocal);
       emit_load_literal(mrb, coi, reg_tmp0s, 0);
       emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FALSE);
@@ -757,7 +757,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_add(mrb, coi, reg_context, OffsetOf(mrb_context, stack), reg_tmp0);
     emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
     
-    if (!m->body.irep->block_lambda) {
+    if (!is_block_call) {
       if (n == CALL_MAXARGS) {
 	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
 			 (callee_nlocals < 3) ? 3 : callee_nlocals);
@@ -1765,11 +1765,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       keep = mrb->c->ci->argc;
       room = irep->nregs;
       nlocal = irep->nlocals;
-      if (keep == -1) {
-	gen_stack_extend(mrb, status, coi, room, 3, nlocal);
+      if (keep == CALL_MAXARGS) {
+	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
+			 nlocal < 3 ? 3 : nlocal);
       }
       else {
-	gen_stack_extend(mrb, status, coi, room, keep, nlocal);
+	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
       }
     }
 
