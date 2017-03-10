@@ -470,7 +470,7 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     beg += clen;
     if (beg < 0) return mrb_nil_value();
   }
-  if (beg + len > clen)
+  if (len > clen - beg)
     len = clen - beg;
   if (len <= 0) {
     len = 0;
@@ -960,8 +960,8 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
     else {
       mrb_value tmp = mrb_funcall(mrb, str2, "<=>", 1, str1);
 
-      if (mrb_nil_p(tmp)) return mrb_nil_value();
-      if (!mrb_fixnum(tmp)) {
+      if (!mrb_nil_p(tmp)) return mrb_nil_value();
+      if (!mrb_fixnum_p(tmp)) {
         return mrb_funcall(mrb, mrb_fixnum_value(0), "-", 1, tmp);
       }
       result = -mrb_fixnum(tmp);
@@ -1169,8 +1169,11 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 
   argc = mrb_get_args(mrb, "o|o", &a1, &a2);
   if (argc == 2) {
+    mrb_int n1, n2;
+
     mrb_regexp_check(mrb, a1);
-    return str_substr(mrb, str, mrb_fixnum(a1), mrb_fixnum(a2));
+    mrb_get_args(mrb, "ii", &n1, &n2);
+    return str_substr(mrb, str, n1, n2);
   }
   if (argc != 1) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1)", mrb_fixnum_value(argc));
@@ -1589,8 +1592,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 2) {
-    pos = mrb_fixnum(argv[1]);
-    sub = argv[0];
+    mrb_get_args(mrb, "oi", &sub, &pos);
   }
   else {
     pos = 0;
@@ -1607,7 +1609,7 @@ mrb_str_index(mrb_state *mrb, mrb_value str)
       return mrb_nil_value();
     }
   }
-  if (pos >= clen) return mrb_nil_value();
+  if (pos > clen) return mrb_nil_value();
   pos = chars2bytes(str, 0, pos);
 
   switch (mrb_type(sub)) {
@@ -1855,14 +1857,11 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
   mrb_value *argv;
   mrb_int argc;
   mrb_value sub;
-  mrb_value vpos;
   mrb_int pos, len = RSTRING_CHAR_LEN(str);
 
   mrb_get_args(mrb, "*", &argv, &argc);
   if (argc == 2) {
-    sub = argv[0];
-    vpos = argv[1];
-    pos = mrb_fixnum(vpos);
+    mrb_get_args(mrb, "oi", &sub, &pos);
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
