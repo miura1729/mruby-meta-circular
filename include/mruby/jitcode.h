@@ -623,6 +623,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
       
     L("@@");
+  }
+
+  void
+    gen_stack_clear(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, cpu_word_t keep, cpu_word_t nlocal)
+  {
+    int i;
+
     /* Registor clear */
     if (keep < nlocal) {
       // printf("%d %d %d \n", keep, room, nlocal);
@@ -760,10 +767,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (!is_block_call) {
       if (n == CALL_MAXARGS) {
 	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
-			 (callee_nlocals < 3) ? 3 : callee_nlocals);
+			 (callee_nlocals < 3) ? 3 : callee_nlocals + 1);
+	gen_stack_clear(mrb, status, coi, 3, (callee_nlocals < 3) ? 3 : callee_nlocals + 4);
       }
       else {
 	gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
+	gen_stack_clear(mrb, status, coi, n + 2, callee_nlocals + 4);
       }
     }
 
@@ -1765,12 +1774,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       keep = mrb->c->ci->argc;
       room = irep->nregs;
       nlocal = irep->nlocals;
-      if (keep == CALL_MAXARGS) {
+      if (keep == -1) {
 	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
 			 nlocal < 3 ? 3 : nlocal);
+	gen_stack_clear(mrb, status, coi, 3, nlocal < 3 ? 3 : nlocal);
       }
       else {
 	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
+	gen_stack_clear(mrb, status, coi, keep + 2, nlocal);
       }
     }
 
@@ -1782,7 +1793,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
 	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
       /* + 1 means block */
-      if (mrb->c->ci->argc != 127) {
+      if (mrb->c->ci->argc != -1) {
 	for (i = 0; i <= mrb->c->ci->argc + 1; i++) {
 	  gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
 	}

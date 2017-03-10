@@ -1405,7 +1405,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	method_arg_ver = mrb->c->ci->method_arg_ver;
 	mrb->c->ci->prev_tentry_offset = -1;
 	
-	if (mrb->c->ci->argc == CALL_MAXARGS) {
+	if (mrb->c->ci->argc == -1) {
 	  mrbjit_stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs,  3);
 	}
 	else {
