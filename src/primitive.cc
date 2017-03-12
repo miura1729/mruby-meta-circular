@@ -855,7 +855,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
   emit_call(mrb, coi, (void *)mrbjit_instance_alloc);
   emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
   emit_local_var_write_from_cfunc(mrb, coi, a);
-  jmp(".allocend");
+  emit_jmp(mrb, coi, ".allocend");
 
   L("@@");
   // regs[a] = obj;
@@ -877,7 +877,7 @@ MRBJitCode::mrbjit_prim_mmm_instance_new_impl(mrb_state *mrb, mrb_value proc,
     /*emit_load_literal(mrb, coi, reg_tmp1, 0xfff00000 | MRB_TT_OBJECT);
       emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value) + 4, reg_tmp1);*/
 
-    jmp(".update_end");
+    emit_jmp(mrb, coi, ".update_end");
     L(".freeobj_not_exist");
     emit_load_literal(mrb, coi, reg_tmp1, 0);
     emit_move(mrb, coi, reg_tmp0, civoff * sizeof(mrb_value), reg_tmp1);
@@ -951,7 +951,7 @@ MRBJitCode::mrbjit_prim_mmm_move_impl(mrb_state *mrb, mrb_value proc,
   and(reg_tmp1s, 0x7f);
   cmp(reg_tmp1s, MRB_TT_OBJECT);
   emit_load_literal(mrb, coi, reg_tmp1, 0);
-  jmp("@f");
+  emit_jmp(mrb, coi, "@f");
   emit_move(mrb, coi, reg_tmp1, reg_tmp0, civoff * sizeof(mrb_value));
   emit_add(mrb, coi, reg_tmp1, reg_mrb);
   L("@@");

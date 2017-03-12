@@ -1975,7 +1975,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_jmp(mrb, coi, reg_tmp0);
     }
     else {
-      jmp("@f");
+      emit_jmp(mrb, coi, "@f");
 
       L(".reg_vm");
       gen_exit(mrb, NULL, 1, 1, status, coi);
