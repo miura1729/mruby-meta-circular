@@ -19,6 +19,8 @@ typedef Xbyak::uint64 cpu_word_t;
 
 class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg64 argpos2reg[6];
+  Xbyak::Reg64 reg_itmp;	/* rdi */
+  Xbyak::Reg64 reg_itmps;	/* edi */
 
  public:
   Xbyak::Reg64 reg_regs;	/* r12 */
@@ -51,6 +53,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     reg_dtmp0 = xmm0;
     reg_dtmp1 = xmm1;
 
+    reg_itmp = rdi;
+    reg_itmps = edi;
     argpos2reg[0] = rdi;
     argpos2reg[1] = rsi;
     argpos2reg[2] = rdx;
@@ -64,8 +68,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   {
     mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
 
-    emit_load_literal(mrb, coi, reg_tmp0, *reinterpret_cast<cpu_word_t *>(&dinfo->value.f));
-    emit_local_var_write(mrb, coi, dstno, reg_tmp0);
+    emit_load_literal(mrb, coi, reg_itmp, *reinterpret_cast<cpu_word_t *>(&dinfo->value.f));
+    emit_local_var_write(mrb, coi, dstno, reg_itmp);
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
   }
@@ -78,8 +82,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       rinfo->regplace = MRBJIT_REG_MEMORY;	                     \
     }                                                                \
     if (rinfo->regplace == MRBJIT_REG_AL) {                          \
-      emit_bool_boxing(mrb, coi, reg_tmp0s);                          \
-      emit_local_var_type_write(mrb, coi, regno, reg_tmp0s);          \
+      emit_bool_boxing(mrb, coi, reg_itmps);                         \
+      emit_local_var_type_write(mrb, coi, regno, reg_itmps);         \
       rinfo->regplace = MRBJIT_REG_MEMORY;                           \
     }                                                                \
     (rinfo->regplace >= MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
@@ -193,8 +197,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_vm_var_write(mrb_state *mrb, mrbjit_code_info *coi, int regno, cpu_word_t src)
   {
-    mov(reg_tmp0, src);
-    mov(qword [reg_vars + regno], reg_tmp0);
+    mov(reg_itmp, src);
+    mov(qword [reg_vars + regno], reg_itmp);
   }
 
   void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, cpu_word_t src) {
@@ -391,8 +395,8 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       mov(qword [base + offset], reg_tmp0);
     }
     else {
-      mov(r8, src);
-      mov(qword [base + offset], r8);
+      mov(reg_itmp, src);
+      mov(qword [base + offset], reg_itmp);
     }
   }
 
