@@ -1312,6 +1312,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
   prev_pc = mrb->c->ci->prev_pc;
   method_arg_ver = mrb->c->ci->method_arg_ver;
+  if (mrb->compile_info.force_compile) {
+    irep->arg_ver_num++;
+    method_arg_ver = irep->arg_ver_num;
+  }
 
   if (irep->jit_inlinep) {
     caller_pc = mrb->c->ci->pc;
@@ -1411,7 +1415,9 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       else if (rc == (void *(*)())5) {
 	/* block guard fail need stack overflow check */
 	method_arg_ver = mrb->c->ci->method_arg_ver;
-	mrb->c->ci->prev_tentry_offset = -1;
+	//irep->arg_ver_num++;
+	//method_arg_ver = irep->arg_ver_num;
+	//mrb->c->ci->prev_tentry_offset = -1;
 	
 	if (mrb->c->ci->argc == -1) {
 	  mrbjit_stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs,  3);
@@ -1586,6 +1592,19 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb->c->ci->prev_pc = *ppc;
   mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {
+    if (ci->used > 0) {
+      if (prev_entry && ci->entry) {
+	//printf("patch %x %x \n", prev_entry, entry);
+	cbase = mrb->compile_info.code_base;
+	mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, entry, status, ci->entry);
+      }
+
+      if (ci->patch_pos) {
+	mrbjit_gen_load_patch(cbase, mrb, (void *)ci->patch_pos, ci->entry, status, ci);	
+	ci->patch_pos = NULL;
+      }
+    }
+
     mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
   }
   else {

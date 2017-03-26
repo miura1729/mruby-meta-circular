@@ -759,7 +759,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
     else {
       gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
     }
-    gen_exit(mrb, m->body.irep->iseq, 1, 0, status, coi);
+    gen_exit(mrb, pirep->iseq, 2, 0, status, coi);
   }
 
   dinfo->type = MRB_TT_OBJECT;
@@ -1025,8 +1025,8 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
 
   cirep = m->body.irep;
   nirep = mrb_add_irep(mrb);
-  disasm_irep(mrb, birep);
-  disasm_irep(mrb, cirep);
+  //  disasm_irep(mrb, birep);
+  //disasm_irep(mrb, cirep);
   nirep->flags = cirep->flags;
   nirep->iseq = cirep->iseq;
   nirep->ilen = cirep->ilen;

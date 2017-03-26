@@ -1567,6 +1567,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (GET_OPCODE(i) != OP_SENDB) {
       gen_setnilblock(mrb, a, n, coi);
     }
+    else {
+      gen_type_guard(mrb, a + n + 1, status, *status->pc, coi);
+      if (mrb_type(regs[a + n + 1]) != MRB_TT_PROC) {
+	gen_exit(mrb, *status->pc, 1, 1, status, coi);
+      }
+    }
 
     if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
       return code;
@@ -1833,7 +1839,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       int argc = mrb->c->ci->argc;
       mrb_code *npc = *status->pc + 1;
 
-      if (argc-m1-o-m2 == 1) {
+      if (argc-m1-o-m2 == 1 && argc >= 0) {
 	mrb_irep *irep = *status->irep;
 	mrb_irep *nirep = (mrb_irep *) mrb;
 
