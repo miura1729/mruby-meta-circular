@@ -710,18 +710,18 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
     /* Inherit eidx/ridx */
-    emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, eidx));
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, eidx), reg_tmp0);
-    emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, ridx));
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, ridx), reg_tmp0);
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(mrb_callinfo, eidx));
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, eidx), reg_tmp0s);
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(mrb_callinfo, ridx));
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, ridx), reg_tmp0s);
 
     if (n == CALL_MAXARGS) {
-      emit_load_literal(mrb, coi, reg_tmp0, -1);
+      emit_load_literal(mrb, coi, reg_tmp0s, -1);
     }
     else {
-      emit_load_literal(mrb, coi, reg_tmp0, n);
+      emit_load_literal(mrb, coi, reg_tmp0s, n);
     }
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, argc), reg_tmp0);
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, argc), reg_tmp0s);
 
     emit_move(mrb, coi, reg_tmp1, reg_mrb, OffsetOf(mrb_state, c));
     emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_context, stack));
@@ -749,14 +749,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       mrb_gc_register(mrb, mrb_obj_value(m));
     }
 
-    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)mid);
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, mid), reg_tmp0);
+    emit_load_literal(mrb, coi, reg_tmp0s, (uint32_t)mid);
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, mid), reg_tmp0s);
 
     emit_load_literal(mrb, coi, reg_tmp0, -1);
     emit_movew(mrb, coi, reg_context, OffsetOf(mrb_callinfo, prev_tentry_offset), ax);
 
-    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)a);
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, acc), reg_tmp0);
+    emit_load_literal(mrb, coi, reg_tmp0s, (uint32_t)a);
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, acc), reg_tmp0s);
 
     /*  mrb->c   reg_context  */
     emit_move(mrb, coi, reg_context, reg_mrb, OffsetOf(mrb_state, c));
@@ -793,16 +793,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, body.irep));
       emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), reg_tmp1);
 
-      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(mrb_irep, nregs));
-      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, nregs), reg_tmp1);
+      emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(mrb_irep, nregs));
+      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, nregs), reg_tmp1s);
 
       emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, 0); /* self */
       emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, env));
-      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct REnv, mid));
+      emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(struct REnv, mid));
       test(reg_tmp1, reg_tmp1);
       jz("@f");
 
-      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, mid), reg_tmp1);
+      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, mid), reg_tmp1s);
       
       L("@@");
 
@@ -1678,7 +1678,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* setup ci */
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
 
-    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, mid), (cpu_word_t)mid);
+    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, mid), (uint32_t)mid);
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), reg_tmp0);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
@@ -1732,7 +1732,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	rinfo->constp = 0;
       }
 
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (cpu_word_t)sirep->nregs);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (uint32_t)sirep->nregs);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (cpu_word_t)sirep);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pool), (cpu_word_t)sirep->pool);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(syms), (cpu_word_t)sirep->syms);
@@ -2851,16 +2851,16 @@ do {                                                                 \
     const void *code = getCurr();
     mrb_code **ppc = status->pc;
 
-    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, rsize));
+    emit_move(mrb, coi, reg_tmp1s, reg_context, OffsetOf(struct mrb_context, rsize));
     emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
-    emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
-    emit_cmp(mrb, coi, reg_tmp1, reg_tmp0);
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
+    emit_cmp(mrb, coi, reg_tmp1s, reg_tmp0s);
     ja("@f");
     gen_exit(mrb, NULL, 0, 1, status, coi);
     L("@@");
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, rescue));
     emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
-    emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
     lea(reg_tmp1, ptr [reg_tmp1 + reg_tmp0 * 4]);
     emit_move(mrb, coi, reg_tmp1, 0, (cpu_word_t)(*ppc + GETARG_sBx(**ppc)));
     emit_add(mrb, coi, reg_tmp0s, 1);
