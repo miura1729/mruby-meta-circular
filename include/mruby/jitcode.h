@@ -1777,7 +1777,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       L(".gend");
       outLocalLabel();
 
-      keep = mrb->c->ci->argc;
+      keep = mrb->c->ci->argc + 2;
       room = irep->nregs;
       nlocal = irep->nlocals;
       if (keep == -1) {
