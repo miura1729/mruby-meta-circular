@@ -392,6 +392,7 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   int regno = GETARG_A(**ppc);
   mrb_value *regs  = mrb->c->stack;
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
+  enum mrb_vtype tt2 = (enum mrb_vtype) mrb_type(regs[regno + 1]);
   mrbjit_reginfo *dinfo = &coi->reginfo[regno];
   dinfo->unboxedp = 0;
 
@@ -399,13 +400,17 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   switch (tt) {
   case MRB_TT_FIXNUM:
   case MRB_TT_FLOAT:
-    /*case MRB_TT_STRING:*/
-    mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi, dinfo);
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
 
-    return mrb_true_value();
+    switch (tt2) {
+    case MRB_TT_FIXNUM:
+    case MRB_TT_FLOAT:
+      mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi, dinfo);
+      dinfo->type = MRB_TT_TRUE;
+      dinfo->klass = mrb->true_class;
+      dinfo->constp = 0;
+
+      return mrb_true_value();
+    }
 
   default:
     dinfo->type = MRB_TT_TRUE;
