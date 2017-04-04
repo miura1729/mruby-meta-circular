@@ -1401,23 +1401,21 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	irep->arg_ver_num++;
 	method_arg_ver = irep->arg_ver_num;
 	//printf("new version %d \n", method_arg_ver);
-	rc = NULL;
 	mrb->c->ci->prev_tentry_offset = -1;
+	rc = NULL;
       }
       else if (rc == (void *(*)())3) {
 	/* Guard JMPIF/JMPNOT fail */
 	method_arg_ver = mrb->c->ci->method_arg_ver;
 	mrb->c->ci->prev_tentry_offset = -1;
-
-	
 	rc = NULL;
       }
       else if (rc == (void *(*)())5) {
 	/* block guard fail need stack overflow check */
-	method_arg_ver = mrb->c->ci->method_arg_ver;
-	//irep->arg_ver_num++;
-	//method_arg_ver = irep->arg_ver_num;
-	//mrb->c->ci->prev_tentry_offset = -1;
+	//method_arg_ver = mrb->c->ci->method_arg_ver;
+	irep->arg_ver_num++;
+	method_arg_ver = irep->arg_ver_num;
+	mrb->c->ci->prev_tentry_offset = -1;
 	
 	if (mrb->c->ci->argc == -1) {
 	  mrbjit_stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs,  3);
@@ -1527,11 +1525,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
 
-    if (ci->used > 0) {
-      goto  skip;
-    }
-
-    if (GET_OPCODE(*irep->iseq) != OP_CALL) {
+    if (GET_OPCODE(*irep->iseq) != OP_CALL && ci->used > 0) {
       int ioff;
       int toff;
       mrbjit_codetab *ctab;
@@ -1565,23 +1559,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	ci->used = -1;
 	// printf("%x %x %x\n", ci->entry, *ppc, ci);
       }
-      if (ci->patch_pos) {
-	mrbjit_gen_load_patch(cbase, mrb, (void *)ci->patch_pos, ci->entry, status, ci);	
-	ci->patch_pos = NULL;
-      }
     }
-  }
 
-  if (cbase && irep->prof_info[n] > 0 &&
-      entry == NULL &&
-      GET_OPCODE(*irep->iseq) != OP_CALL &&
-      !mrb->compile_info.force_compile) {
-    /* Finish compile */
-    mrbjit_gen_exit(cbase, mrb, irep, ppc, status, ci);
-    //mrbjit_gen_align(cbase, 16);
-    mrb->compile_info.code_base = NULL;
-    mrb->compile_info.nest_level = 0;
-    ci = NULL;
+    if (cbase && irep->prof_info[n] > 0 &&
+	entry == NULL &&
+	!mrb->compile_info.force_compile) {
+      /* Finish compile */
+      mrbjit_gen_exit(cbase, mrb, irep, ppc, status, ci);
+      //mrbjit_gen_align(cbase, 16);
+      mrb->compile_info.code_base = NULL;
+      mrb->compile_info.nest_level = 0;
+      ci = NULL;
+    }
   }
 
  skip:
@@ -1592,6 +1581,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb->c->ci->prev_pc = *ppc;
   mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {
+    if (ci->patch_pos && ci->used > 0) {
+      mrbjit_gen_load_patch(cbase, mrb, (void *)ci->patch_pos, ci->entry, status, ci);
+      ci->patch_pos = NULL;
+    }
     mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
   }
   else {
