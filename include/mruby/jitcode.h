@@ -767,12 +767,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (!is_block_call) {
       if (n == CALL_MAXARGS) {
 	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
-			 (callee_nlocals < 3) ? 3 : callee_nlocals + 1);
-	gen_stack_clear(mrb, status, coi, 3, (callee_nlocals < 3) ? 3 : callee_nlocals + 4);
+			 (callee_nlocals < 2) ? 3 : callee_nlocals + 1);
+	gen_stack_clear(mrb, status, coi, 3, (callee_nlocals < 1) ? 3 : callee_nlocals + 2);
       }
       else {
 	gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
-	gen_stack_clear(mrb, status, coi, n + 2, callee_nlocals + 4);
+	gen_stack_clear(mrb, status, coi, n + 2, callee_nlocals + 2);
       }
     }
 
@@ -1777,17 +1777,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       L(".gend");
       outLocalLabel();
 
-      keep = mrb->c->ci->argc + 2;
+      keep = mrb->c->ci->argc;
       room = irep->nregs;
       nlocal = irep->nlocals;
       if (keep == -1) {
 	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
-			 nlocal < 3 ? 3 : nlocal);
-	gen_stack_clear(mrb, status, coi, 3, nlocal < 3 ? 3 : nlocal);
+			 nlocal < 1 ? 3 : nlocal + 2);
+	gen_stack_clear(mrb, status, coi, 3, nlocal < 2 ? 3 : nlocal + 2);
       }
       else {
 	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
-	gen_stack_clear(mrb, status, coi, keep + 2, nlocal);
+	gen_stack_clear(mrb, status, coi, keep + 3, nlocal + 2);
       }
     }
 
