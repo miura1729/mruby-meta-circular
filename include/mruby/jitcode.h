@@ -1777,17 +1777,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       L(".gend");
       outLocalLabel();
 
-      keep = mrb->c->ci->argc;
-      room = irep->nregs;
-      nlocal = irep->nlocals;
-      if (keep == -1) {
-	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
-			 nlocal < 1 ? 3 : nlocal + 2);
-	gen_stack_clear(mrb, status, coi, 3, nlocal < 2 ? 3 : nlocal + 2);
-      }
-      else {
-	gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
-	gen_stack_clear(mrb, status, coi, keep + 3, nlocal + 2);
+      if (mrb->compile_info.force_compile) {
+	keep = mrb->c->ci->argc;
+	room = irep->nregs;
+	nlocal = irep->nlocals;
+	if (keep == -1) {
+	  gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
+			   nlocal < 1 ? 3 : nlocal + 2);
+	  gen_stack_clear(mrb, status, coi, 3, nlocal < 2 ? 3 : nlocal + 2);
+	}
+	else {
+	  gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
+	  gen_stack_clear(mrb, status, coi, keep + 2, nlocal + 2);
+	}
       }
     }
 
