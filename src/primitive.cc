@@ -410,6 +410,9 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
       dinfo->constp = 0;
 
       return mrb_true_value();
+
+    default:
+      break;
     }
 
   default:
