@@ -2697,9 +2697,14 @@ do {                                                                 \
     }
 
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, srcno);
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, len));
+    emit_cmp(mrb, coi, reg_tmp0s, idx);
+    jle("@f");
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
     movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+
+    L("@@");
 
     return code;
   }
