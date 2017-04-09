@@ -1199,20 +1199,29 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
       if (GETARG_B(ins) == drno) {
 	tdrno = GETARG_A(ins);
       }
-      else if (GETARG_A(ins) == drno) {
+      else if (GETARG_A(ins) == drno ||
+	       GETARG_B(ins) == tdrno) {
 	mrb_free(mrb, irep->iseq);
 	irep->iseq = oiseq;
 	return 0;
       }
     }
 
-    if (GET_OPCODE(ins) == OP_RETURN) {
+    switch (GET_OPCODE(ins)) {
+    case OP_RETURN:
+    case OP_SETIV:
+    case OP_SETCV:
+    case OP_SETGLOBAL:
       if (   GETARG_A(ins) == tdrno
 	  || GETARG_A(ins) == drno) {
 	mrb_free(mrb, irep->iseq);
 	irep->iseq = oiseq;
 	return 0;
       }
+      break;
+
+    default:
+      break;
     }
 
     if (GET_OPCODE(ins) == OP_SEND &&
@@ -1267,6 +1276,9 @@ mrb_patch_irep_var2fix(mrb_state *mrb, mrb_irep *irep, mrb_int drno)
 	  irep->iseq = oiseq;
 	  return 0;
 	}
+	break;
+
+      default:
 	break;
       }
     }
