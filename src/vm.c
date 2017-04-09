@@ -2335,9 +2335,10 @@ RETRY_TRY_BLOCK:
       mrb->c->stack[0] = recv;
 
       if (MRB_PROC_CFUNC_P(m)) {
+        mrb_value v;
+
 	orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
-        mrb_value v;
 
         if (n == CALL_MAXARGS) {
           ci->nregs = 3;
@@ -2849,10 +2850,12 @@ RETRY_TRY_BLOCK:
       value_move(regs, &regs[a], n+2);
 
       if (MRB_PROC_CFUNC_P(m)) {
+	mrb_value v;
+
 	orgdisflg = mrb->compile_info.disable_jit;
 	mrb->compile_info.disable_jit = 1;
 	mrb->vmstatus = (void *)&status;
-        mrb_value v = m->body.func(mrb, recv);
+        v = m->body.func(mrb, recv);
         mrb->c->stack[0] = v;
         mrb->compile_info.disable_jit = orgdisflg;
         mrb_gc_arena_restore(mrb, ai);
