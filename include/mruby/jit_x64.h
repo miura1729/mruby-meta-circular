@@ -20,7 +20,7 @@ typedef Xbyak::uint64 cpu_word_t;
 class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg64 argpos2reg[6];
   Xbyak::Reg64 reg_itmp;	/* rdi */
-  Xbyak::Reg64 reg_itmps;	/* edi */
+  Xbyak::Reg32 reg_itmps;	/* edi */
 
  public:
   Xbyak::Reg64 reg_regs;	/* r12 */
@@ -477,6 +477,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 src0, Xbyak::Reg64 src1) {
+    cmp(src0, src1);
+  }
+
+  void emit_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 src0, Xbyak::Reg32 src1) {
     cmp(src0, src1);
   }
 
