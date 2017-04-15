@@ -3164,6 +3164,10 @@ do {                                                                 \
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
 
   mrb_value
+    mrbjit_prim_kernel_block_given_p_impl(mrb_state *mrb, mrb_value proc,
+                              mrbjit_vmstatus *status, mrbjit_code_info *coi);
+
+  mrb_value
     mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 

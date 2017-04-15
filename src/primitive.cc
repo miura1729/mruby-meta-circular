@@ -1086,6 +1086,55 @@ mrbjit_prim_kernel_equal(mrb_state *mrb, mrb_value proc, void *status, void *coi
   return code->mrbjit_prim_kernel_equal_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+
+mrb_value
+MRBJitCode::mrbjit_prim_kernel_block_given_p_impl(mrb_state *mrb, mrb_value proc,
+			  mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_value *regs = mrb->c->stack;
+  int i = *pc;
+  int a = GETARG_A(i);
+  mrb_callinfo *ci = mrb->c->ci;
+  mrbjit_reginfo *dinfo = &coi->reginfo[a];
+
+  dinfo->type = MRB_TT_TRUE;
+  dinfo->klass = mrb->true_class;
+  dinfo->constp = 0;
+  dinfo->unboxedp = 0;
+  
+  if (ci == mrb->c->cibase ||
+      ci->proc->env) {
+    return mrb_nil_value();    	// not in toplevel of method or the toplevel env
+  }
+
+  emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
+  emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, argc));
+  
+  test(reg_tmp0, reg_tmp0);
+  jg("@f");
+  emit_load_literal(mrb, coi, reg_tmp0, 0);
+  L("@@");
+
+  inc(reg_tmp0);
+  emit_add(mrb, coi, reg_tmp0, reg_tmp0);
+  emit_add(mrb, coi, reg_tmp0, reg_tmp0);
+  emit_add(mrb, coi, reg_tmp0, reg_tmp0);
+  emit_add(mrb, coi, reg_tmp0, reg_regs);
+  emit_move(mrb, coi, reg_dtmp0, reg_tmp0, 0);
+  emit_local_var_write(mrb, coi, a, reg_dtmp0);
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_kernel_block_given_p(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_kernel_block_given_p_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
 mrb_value
 MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi)
