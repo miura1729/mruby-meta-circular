@@ -1143,28 +1143,26 @@ MRBJitCode::mrbjit_prim_math_sqrt_impl(mrb_state *mrb, mrb_value proc,
   mrbjit_reginfo *dinfo = &coi->reginfo[dst];
   dinfo->unboxedp = 0;
 
-  if (mrb_type(regs[src]) == MRB_TT_FLOAT) {
-    gen_type_guard(mrb, src, status, pc, coi);
+  gen_type_guard(mrb, src, status, pc, coi);
+  switch(mrb_type(regs[src])) {
+  case MRB_TT_FLOAT:
     emit_local_var_read(mrb, coi, reg_dtmp0, src);
-    sqrtsd(reg_dtmp1, reg_dtmp0);
-    emit_local_var_write(mrb, coi, dst, reg_dtmp1);
-    dinfo->type = MRB_TT_FLOAT;
-    dinfo->klass = mrb->float_class;
+    break;
 
-    return mrb_true_value();
-  }
-  else if (mrb_type(regs[src]) == MRB_TT_FIXNUM) {
-    gen_type_guard(mrb, src, status, pc, coi);
+  case MRB_TT_FIXNUM:
     emit_local_var_int_value_read(mrb, coi, reg_dtmp0, src);
-    sqrtsd(reg_dtmp1, reg_dtmp0);
-    emit_local_var_write(mrb, coi, dst, reg_dtmp1);
-    dinfo->type = MRB_TT_FLOAT;
-    dinfo->klass = mrb->float_class;
+    break;
 
-    return mrb_true_value();
+  default:
+    return mrb_nil_value();
   }
 
-  return mrb_nil_value();
+  sqrtsd(reg_dtmp1, reg_dtmp0);
+  emit_local_var_write(mrb, coi, dst, reg_dtmp1);
+  dinfo->type = MRB_TT_FLOAT;
+  dinfo->klass = mrb->float_class;
+
+  return mrb_true_value();
 }
   
 extern "C" mrb_value
