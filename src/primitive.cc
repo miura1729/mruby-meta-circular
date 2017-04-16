@@ -377,7 +377,6 @@ MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
 {
   mrb_code **ppc = status->pc;
   mrb_value *regs  = mrb->c->stack;
-  void *code = NULL;
 
   COMP_GEN(setnz(al), setnz(al));
 
@@ -1016,7 +1015,6 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   int blk = (a + n + 1);
   mrb_irep *cirep;
   mrb_irep *nirep;
-  mrb_irep *birep;
   mrbjit_reginfo *binfo = &coi->reginfo[blk];
 
   if (mrb_type(regs[blk]) != MRB_TT_PROC) {
@@ -1025,7 +1023,6 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   if (binfo->constp == 0) {
     return mrb_nil_value();    	// block is not literal
   }
-  birep = mrb_proc_ptr(regs[blk])->body.irep;
 
   recv = regs[a];
   c = mrb_class(mrb, recv);
@@ -1092,7 +1089,6 @@ MRBJitCode::mrbjit_prim_kernel_block_given_p_impl(mrb_state *mrb, mrb_value proc
 			  mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code *pc = *status->pc;
-  mrb_value *regs = mrb->c->stack;
   int i = *pc;
   int a = GETARG_A(i);
   mrb_callinfo *ci = mrb->c->ci;
