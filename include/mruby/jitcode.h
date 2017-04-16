@@ -519,7 +519,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   void 
     gen_set_jit_entry(mrb_state *mrb, mrb_code *pc, mrbjit_code_info *coi, mrb_irep *irep)
   {
-    int ioff;
+    unsigned int ioff;
     int toff;
     mrbjit_codetab *ctab;
 
@@ -591,8 +591,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     gen_stack_extend(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi,
 		     cpu_word_t room, cpu_word_t keep, cpu_word_t nlocal)
   {
-    int i;
-
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, stend));
     emit_sub(mrb, coi, reg_tmp1, room * sizeof(mrb_value));
     emit_cmp(mrb, coi, reg_regs, reg_tmp1);
@@ -628,7 +626,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   void
     gen_stack_clear(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, cpu_word_t keep, cpu_word_t nlocal)
   {
-    int i;
+    unsigned int i;
 
     /* Registor clear */
     if (keep < nlocal) {
@@ -1755,7 +1753,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     if (irep->block_lambda) {
       cpu_word_t room;
-      cpu_word_t keep;
+      int keep;
       cpu_word_t nlocal;
       
       inLocalLabel();
