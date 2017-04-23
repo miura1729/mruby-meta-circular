@@ -766,11 +766,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       if (n == CALL_MAXARGS) {
 	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
 			 (callee_nlocals < 2) ? 3 : callee_nlocals + 1);
-	gen_stack_clear(mrb, status, coi, 3, (callee_nlocals < 1) ? 3 : callee_nlocals + 2);
+	gen_stack_clear(mrb, status, coi, 3, (callee_nregs < 3) ? 3 : callee_nregs);
       }
       else {
 	gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
-	gen_stack_clear(mrb, status, coi, n + 2, callee_nlocals + 2);
+	gen_stack_clear(mrb, status, coi, n + 2, callee_nregs);
       }
     }
 
@@ -1782,11 +1782,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	if (keep == -1) {
 	  gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
 			   nlocal < 1 ? 3 : nlocal + 2);
-	  gen_stack_clear(mrb, status, coi, 3, nlocal < 2 ? 3 : nlocal + 2);
+	  gen_stack_clear(mrb, status, coi, 3, room < 2 ? 3 : room);
 	}
 	else {
 	  gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
-	  gen_stack_clear(mrb, status, coi, keep + 2, nlocal + 2);
+	  gen_stack_clear(mrb, status, coi, keep + 2, room);
 	}
       }
     }
