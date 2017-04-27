@@ -125,25 +125,44 @@ module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
-MRB_API struct RClass*
-mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
-{
-  mrb_value outer;
-
-  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"));
-  if (mrb_nil_p(outer)) return NULL;
-  return mrb_class_ptr(outer);
-}
-
-static void
-check_if_class_or_module(mrb_state *mrb, mrb_value obj)
+static mrb_bool
+class_ptr_p(mrb_value obj)
 {
   switch (mrb_type(obj)) {
   case MRB_TT_CLASS:
   case MRB_TT_SCLASS:
   case MRB_TT_MODULE:
-    return;
+    return TRUE;
   default:
+    return FALSE;
+  }
+}
+
+MRB_API struct RClass*
+mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
+{
+  mrb_value outer;
+  struct RClass *cls;
+
+  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"));
+  if (mrb_nil_p(outer)) return NULL;
+  cls = mrb_class_ptr(outer);
+  if (cls->tt == MRB_TT_SCLASS)
+  {
+    mrb_value klass;
+    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
+                           mrb_intern_lit(mrb, "__attached__"));
+    if (class_ptr_p(klass)) {
+      cls = mrb_class_ptr(klass);
+    }
+  }
+  return cls;
+}
+
+static void
+check_if_class_or_module(mrb_state *mrb, mrb_value obj)
+{
+  if (!class_ptr_p(obj)) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a class/module", mrb_inspect(mrb, obj));
   }
 }
@@ -643,14 +662,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           mrb_value ss;
 
           ss = ARGV[arg_i++];
-          switch (mrb_type(ss)) {
-          case MRB_TT_CLASS:
-          case MRB_TT_MODULE:
-          case MRB_TT_SCLASS:
-            break;
-          default:
+          if (!class_ptr_p(ss)) {
             mrb_raisef(mrb, E_TYPE_ERROR, "%S is not class/module", ss);
-            break;
           }
           *p = ss;
           i++;
@@ -727,7 +740,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           if (i < argc && mrb_nil_p(ARGV[arg_i])) {
             *ps = NULL;
             *pl = 0;
-            i++;
+            i++; arg_i++;
             break;
           }
         }
@@ -1806,15 +1819,11 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 
     str = mrb_str_new_lit(mrb, "#<Class:");
 
-    switch (mrb_type(v)) {
-      case MRB_TT_CLASS:
-      case MRB_TT_MODULE:
-      case MRB_TT_SCLASS:
-        mrb_str_cat_str(mrb, str, mrb_inspect(mrb, v));
-        break;
-      default:
-        mrb_str_cat_str(mrb, str, mrb_any_to_s(mrb, v));
-        break;
+    if (class_ptr_p(v)) {
+      mrb_str_cat_str(mrb, str, mrb_inspect(mrb, v));
+    }
+    else {
+      mrb_str_cat_str(mrb, str, mrb_any_to_s(mrb, v));
     }
     return mrb_str_cat_lit(mrb, str, ">");
   }

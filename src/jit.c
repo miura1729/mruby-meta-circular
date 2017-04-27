@@ -349,7 +349,7 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   irep = *status->irep = m->body.irep;
   ci->nregs = irep->nregs;
   if (mrb->c->stack + irep->nregs >= mrb->c->stend) {
-    mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
+    mrbjit_stack_extend(mrb, irep->nregs);
   }
   *status->pc = irep->iseq;
 
@@ -817,9 +817,6 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   ci->proc = m;
   ci->nregs = irep->nregs;
 
-  if (env->mid) {
-    ci->mid = env->mid;
-  }
   stack[0] = env->stack[0];
 
   /* setup environment for calling method */

@@ -600,16 +600,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_load_label(mrb, coi, reg_tmp0, "@f");
       emit_push(mrb, coi, reg_tmp0);
       emit_load_literal(mrb, coi, reg_tmp1, room);
-      emit_load_literal(mrb, coi, reg_tmp0, keep);
 
       addr_call_stack_extend = (void *)getCurr();
 
       emit_cfunc_start(mrb, coi);
-      emit_arg_push(mrb, coi, 2, reg_tmp0);
       emit_arg_push(mrb, coi, 1, reg_tmp1);
       emit_arg_push(mrb, coi, 0, reg_mrb);
       emit_call(mrb, coi, (void *) mrbjit_stack_extend);
-      emit_cfunc_end(mrb, coi, 3 * sizeof(void *));
+      emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
 
       emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
       ret();
@@ -793,16 +791,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(mrb_irep, nregs));
       emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, nregs), reg_tmp1s);
-
-      emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, 0); /* self */
-      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, env));
-      emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(struct REnv, mid));
-      test(reg_tmp1, reg_tmp1);
-      jz("@f");
-
-      emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, mid), reg_tmp1s);
-      
-      L("@@");
 
       emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, 0); /* self */
       emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RProc, body.irep));
