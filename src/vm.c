@@ -94,6 +94,24 @@ stack_clear(mrb_state *mrb, mrb_value *from, size_t count)
 #endif
 }
 
+void
+mrbjit_stack_clear(mrb_state *mrb, mrb_value *from, size_t count)
+{
+  assert(count < 10000);
+#ifndef MRB_NAN_BOXING
+  const mrb_value mrb_value_zero = { { 0 } };
+
+  while (count-- > 0) {
+    *from++ = mrb_value_zero;
+  }
+#else
+  while (count-- > 0) {
+    SET_NIL_VALUE(*from);
+    from++;
+  }
+#endif
+}
+
 static inline void
 stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {

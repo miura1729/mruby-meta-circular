@@ -404,7 +404,6 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     argc = mrb_ary_ptr(argv[0])->len;
     argv = mrb_ary_ptr(argv[0])->ptr;
   }
-  mrb->c->ci->argc = len;
   if (argc < len) {
     int mlen = m2;
     if (argc < m1+m2) {
@@ -418,8 +417,14 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     if (argv0 != argv) {
       value_move(&regs[1], argv, argc-mlen); /* m1 + o */
     }
+    if (argc < m1) {
+      mrbjit_stack_clear(mrb, &regs[argc+1], m1-argc);
+    }
     if (mlen) {
       value_move(&regs[len-m2+1], &argv[argc-mlen], mlen); /* m2 */
+    }
+    if (mlen < m2) {
+      mrbjit_stack_clear(mrb, &regs[len-m2+mlen+1], m2-mlen);
     }
     if (r) {                  /* r */
       regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
@@ -500,9 +505,15 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       regs[len+1] = *blk; /* move block */
     }
     *(status->pc) += o + 1;
-    if (o == 0) {
-      return NULL;
-    }
+  }
+
+  mrb->c->ci->argc = len;
+  /* clear local (but non-argument) variables */
+  if ((int)(irep->nlocals-len-2) > 0) {
+    mrbjit_stack_clear(mrb, &regs[len+2], irep->nlocals-len-2);
+  }
+  if (o == 0) {
+    return NULL;
   }
 
   return status->gototable[6]; /* goto L_DISPATCH */

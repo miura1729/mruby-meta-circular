@@ -30,6 +30,7 @@ void mrb_uvset(mrb_state *, int, int, mrb_value);
 mrb_callinfo* mrbjit_cipush(mrb_state *);
 void mrbjit_cipop(mrb_state *);
 void mrbjit_stack_extend(mrb_state *, int);
+void mrbjit_stack_clear(mrb_state *, mrb_value *, size_t);
 void mrbjit_argnum_error(mrb_state *, int);
 void mrbjit_ecall(mrb_state *, int);
 struct REnv* mrbjit_top_env(mrb_state *, struct RProc *);
