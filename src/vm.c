@@ -140,7 +140,7 @@ stack_init(mrb_state *mrb)
 }
 
 static inline void
-envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
+envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t size)
 {
   mrb_callinfo *ci = mrb->c->cibase;
   ptrdiff_t off;
@@ -149,20 +149,16 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
   off = newbase - oldbase;
   while (ci <= mrb->c->ci) {
     struct REnv *e = ci->env;
-    if (e && MRB_ENV_STACK_SHARED_P(e)) {
-      e->stack += off;
+    mrb_value *st;
+
+    if (e && MRB_ENV_STACK_SHARED_P(e) &&
+        (st = e->stack) && oldbase <= st && st < oldbase+size) {
+      ptrdiff_t off = e->stack - oldbase;
+
+      e->stack = newbase + off;
     }
     ci->stackent += off;
     ci++;
-  }
-}
-
-static inline void
-init_new_stack_space(mrb_state *mrb, int room, int keep)
-{
-  if (room > keep) {
-    /* do not leave uninitialized malloc region */
-    stack_clear(mrb, &(mrb->c->stack[keep]), room - keep);
   }
 }
 
@@ -198,7 +194,7 @@ stack_extend_alloc(mrb_state *mrb, int room)
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
   }
   stack_clear(mrb, &(newstack[oldsize]), size - oldsize);
-  envadjust(mrb, oldbase, newstack);
+  envadjust(mrb, oldbase, newstack, size);
   mrb->c->stbase = newstack;
   mrb->c->stack = mrb->c->stbase + off;
   mrb->c->stend = mrb->c->stbase + size;
@@ -224,7 +220,6 @@ mrbjit_stack_extend(mrb_state *mrb, int room)
   if (mrb->c->stack + room >= mrb->c->stend) {
     stack_extend_alloc(mrb, room);
   }
-  //  init_new_stack_space(mrb, room, keep);
 }
 
 static inline struct REnv*
@@ -514,7 +509,7 @@ ecall(mrb_state *mrb, int i)
   mrb_value *self = mrb->c->stack;
   struct RObject *exc;
   int orgdisflg = mrb->compile_info.disable_jit;
-  int cioff;
+  ptrdiff_t cioff;
 
   if (i<0) return;
   if (ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
@@ -2245,7 +2240,7 @@ RETRY_TRY_BLOCK:
         ci->nregs = irep->nregs;
         if (n == CALL_MAXARGS) {
           ci->argc = -1;
-	  stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
+          stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
         }
         else {
           ci->argc = n;

@@ -1850,6 +1850,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	ainfo->unboxedp = 0;
       }
     }
+    else {
+      int len = m1 + o + r + m2;
+      mrb_irep *irep = *status->irep;
+
+      if ((int)(irep->nlocals-len-2) > 0) {
+	gen_stack_clear(mrb, status, coi, len + 2, irep->nlocals);
+      }
+    }
 
     return code;
   }
