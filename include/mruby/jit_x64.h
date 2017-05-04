@@ -400,6 +400,15 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
+  void emit_moves(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, uint32_t src) {
+    if (offset == 0) {
+      mov(dword [base], src);
+    }
+    else {
+      mov(dword [base + offset], src);
+    }
+  }
+
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Reg64 base, cpu_word_t offset) {
     if (offset == 0) {
       movsd(dst, ptr [base]);

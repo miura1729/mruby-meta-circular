@@ -1155,7 +1155,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_add(mrb, coi, reg_tmp0,  OffsetOf(iv_tbl, last_len), 1);
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
 	movsd(ptr [reg_tmp0 + ivoff * sizeof(mrb_value)], reg_dtmp0);
-	emit_move(mrb, coi, reg_tmp0,  MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym), (uint32_t)id);
+	emit_moves(mrb, coi, reg_tmp0,  MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym), (uint32_t)id);
       }
       else {
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RObject, iv));
@@ -1662,7 +1662,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* setup ci */
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
 
-    emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, mid), (uint32_t)mid);
+    emit_moves(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, mid), (uint32_t)mid);
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, target_class), reg_tmp0);
     emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, env), 0);
@@ -1716,7 +1716,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	rinfo->constp = 0;
       }
 
-      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (uint32_t)sirep->nregs);
+      emit_moves(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, nregs), (uint32_t)sirep->nregs);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(irep), (cpu_word_t)sirep);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pool), (cpu_word_t)sirep->pool);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(syms), (cpu_word_t)sirep->syms);
