@@ -481,7 +481,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
     emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
     test(reg_tmp0s, reg_tmp0s);
     jge(".normal");
-    add(reg_tmp0, dword [reg_tmp1 + OffsetOf(struct RArray, len)]);
+    add(reg_tmp0s, dword [reg_tmp1 + OffsetOf(struct RArray, len)]);
     jl(".retnil");
     L(".normal");
     emit_cmp(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, len));
@@ -1105,9 +1105,9 @@ MRBJitCode::mrbjit_prim_kernel_block_given_p_impl(mrb_state *mrb, mrb_value proc
   }
 
   emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
-  emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(mrb_callinfo, argc));
+  emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(mrb_callinfo, argc));
   
-  test(reg_tmp0, reg_tmp0);
+  test(reg_tmp0s, reg_tmp0s);
   jg("@f");
   emit_load_literal(mrb, coi, reg_tmp0, 0);
   L("@@");

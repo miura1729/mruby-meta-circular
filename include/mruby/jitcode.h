@@ -380,13 +380,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Input reg_tmp0 for type tag */
     if (tt == MRB_TT_FLOAT) {
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000);
-      jb("@f");
+      jb("@f", T_NEAR);
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff80000);
-      jz("@f");
+      jz("@f", T_NEAR);
     } 
     else {
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000 | tt);
-      jz("@f");
+      jz("@f", T_NEAR);
     }
 
     /* Guard fail exit code */
@@ -415,10 +415,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     emit_cmp(mrb, coi, reg_tmp0s, 0xfff00001);
     if (b) {
-      jnz("@f");
+      jnz("@f", T_NEAR);
     } 
     else {
-      jz("@f");
+      jz("@f", T_NEAR);
     }
 
     /* Guard fail exit code */
@@ -454,13 +454,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       if (tt == MRB_TT_FLOAT) {
 	emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000);
-	jb("@f");
+	jb("@f", T_NEAR);
 	emit_cmp(mrb, coi, reg_tmp0s, 0xfff80000);
-	jz("@f");
+	jz("@f", T_NEAR);
       }
       else {
 	emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000 | tt);
-	jz("@f");
+	jz("@f", T_NEAR);
       }
 
       /* Guard fail exit code */
@@ -474,7 +474,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     case MRB_TT_FALSE:
       emit_local_var_value_read(mrb, coi, reg_tmp0s, regpos);
       emit_cmp(mrb, coi, reg_tmp0s, (cpu_word_t)v.value.i);
-      jz("@f");
+      jz("@f", T_NEAR);
       /* Guard fail exit code */
       gen_exit(mrb, pc, rc, 0, status, coi);
 
@@ -500,7 +500,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, regpos);
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RBasic, c));
 	emit_cmp(mrb, coi, reg_tmp0, (cpu_word_t)c);
-	jz("@f");
+	jz("@f", T_NEAR);
 	/* Guard fail exit code */
 	gen_exit(mrb, pc, rc, 0, status, coi);
 
@@ -736,7 +736,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
     else {
       /* normal call */
-      emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, nregs), (cpu_word_t)m->body.irep->nregs);
+      emit_moves(mrb, coi, reg_context, OffsetOf(mrb_callinfo, nregs), (uint32_t)m->body.irep->nregs);
 
       emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, proc), (cpu_word_t)m);
 
@@ -2121,7 +2121,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
 #define OVERFLOW_CHECK_GEN(AINST)                                       \
-    jno("@f");                                                          \
+    jno("@f", T_NEAR);							\
     emit_local_var_int_value_read(mrb, coi, reg_dtmp0, reg0pos);	\
     emit_local_var_int_value_read(mrb, coi, reg_dtmp1, reg1pos);	\
     AINST(mrb, coi, reg_dtmp0, reg_dtmp1);				\
@@ -2267,7 +2267,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
 #define OVERFLOW_CHECK_I_GEN(AINST)                                     \
-    jno("@f");                                                          \
+    jno("@f", T_NEAR);							\
     emit_local_var_int_value_read(mrb, coi, reg_dtmp0, regno);	        \
     emit_load_literal(mrb, coi, reg_tmp0, y);				\
     cvtsi2sd(reg_dtmp1, reg_tmp0);                                      \
@@ -2852,13 +2852,13 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
     emit_move(mrb, coi, reg_tmp0s, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
     emit_cmp(mrb, coi, reg_tmp1s, reg_tmp0s);
-    ja("@f");
+    ja("@f", T_NEAR);
     gen_exit(mrb, NULL, 0, 1, status, coi);
     L("@@");
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, rescue));
     emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));
     emit_move(mrb, coi, reg_tmp0s, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
-    lea(reg_tmp1, ptr [reg_tmp1 + reg_tmp0 * 4]);
+    lea(reg_tmp1, ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_code *)]);
     emit_move(mrb, coi, reg_tmp1, 0, (cpu_word_t)(*ppc + GETARG_sBx(**ppc)));
     emit_add(mrb, coi, reg_tmp0s, 1);
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, ci));

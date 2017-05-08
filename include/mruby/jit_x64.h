@@ -37,7 +37,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
 
   MRBGenericCodeGenerator() 
-    :CodeGenerator(1024 * 1024 * 10)
+    :CodeGenerator(1024 * 1024 * 40)
   {
     reg_regs = r12;
     reg_vars = rbx;
@@ -331,12 +331,12 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, const void *addr)
   {
-    jmp(addr);
+    jmp(addr, T_NEAR);
   }
 
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, const char *label)
   {
-    jmp(label);
+    jmp(label, T_NEAR);
   }
 
   void emit_push(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 reg)
@@ -400,7 +400,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
-  void emit_moves(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, uint32_t src) {
+  void emit_moves(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 base, cpu_word_t offset, uint32_t src) {
     if (offset == 0) {
       mov(dword [base], src);
     }
