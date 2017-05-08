@@ -117,8 +117,8 @@ MRuby::Build.new('host-debug') do |conf|
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"
 
-  conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32))
-  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
+  conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer))
+  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm))
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
@@ -137,8 +137,8 @@ MRuby::Build.new('test') do |conf|
   enable_debug
   conf.enable_bintest
   conf.enable_test
-  conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32))
-  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
+  conf.cc.flags << (ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer))
+  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm))
   conf.linker.libraries << "stdc++"
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
@@ -149,10 +149,10 @@ end
 MRuby::Build.new('bench') do |conf|
   toolchain :gcc
 
-  conf.cc.flags << %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer -m32)
+  conf.cc.flags << %w(-g -O3 -Wall -Werror-implicit-function-declaration -freg-struct-return -fomit-frame-pointer)
   conf.cxx.flags = conf.cc.flags + %w(-fno-operator-names)
   conf.cxx.include_paths << "#{root}/xbyak"
-  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm -m32))
+  conf.linker.flags << (ENV['LDFLAGS'] || %w(-lm))
   conf.linker.libraries << "stdc++"
   # Gets set by the VS command prompts.
   if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
