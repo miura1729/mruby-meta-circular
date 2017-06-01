@@ -152,7 +152,6 @@ typedef struct mrbjit_reginfo {
 } mrbjit_reginfo;
 
 typedef struct mrbjit_code_info {
-  mrbjit_code_area code_base;
   mrb_code *prev_pc;
   mrb_code *caller_pc;
   uint16_t method_arg_ver;

@@ -1561,7 +1561,6 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       ci->prev_pc = prev_pc;
       ci->method_arg_ver = method_arg_ver;
       ci->caller_pc = caller_pc;
-      ci->code_base = mrb->compile_info.code_base;
       ci->entry = NULL;
       ci->used = -1;
     }
