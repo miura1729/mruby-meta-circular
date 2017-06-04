@@ -19,5 +19,7 @@ extern mrb_value mrbjit_prim_enum_all(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_kernel_equal(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_kernel_block_given_p(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_math_sqrt(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_math_sin(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_math_cos(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_numeric_minus_at(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_str_plus(mrb_state *, mrb_value, void *, void *);

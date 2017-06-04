@@ -1,4 +1,5 @@
 #include "mruby/jitcode.h"
+#include "math.h"
 extern "C" {
 #include "mruby.h"
 #include "mruby/primitive.h"
@@ -1171,6 +1172,51 @@ mrbjit_prim_math_sqrt(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
   return code->mrbjit_prim_math_sqrt_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_math_callcfunc_impl(mrb_state *mrb, mrb_value proc,
+					    mrbjit_vmstatus *status, mrbjit_code_info *coi, void *func)
+{
+  mrb_value *regs = mrb->c->stack;
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  const int dst = GETARG_A(i);
+  const int src = dst + 1;
+  mrbjit_reginfo *dinfo = &coi->reginfo[dst];
+  dinfo->unboxedp = 0;
+
+  if (mrb_type(regs[src]) != MRB_TT_FLOAT) {
+    return mrb_nil_value();
+  }
+  gen_type_guard(mrb, src, status, pc, coi);
+
+  emit_cfunc_start(mrb, coi);
+  emit_arg_push_nan(mrb, coi, 0, reg_tmp0, src);
+  emit_call(mrb, coi, func);
+  emit_cfunc_end(mrb, coi, sizeof(double));
+  emit_local_var_write(mrb, coi, dst, reg_dtmp1);
+  dinfo->type = MRB_TT_FLOAT;
+  dinfo->klass = mrb->float_class;
+
+  return mrb_true_value();
+}
+  
+extern "C" mrb_value
+mrbjit_prim_math_sin(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_math_callcfunc_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi, (void *)sin);
+}
+
+
+extern "C" mrb_value
+mrbjit_prim_math_cos(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_math_callcfunc_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi, (void *)cos);
 }
 
 mrb_value

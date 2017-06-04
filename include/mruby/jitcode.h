@@ -3162,6 +3162,10 @@ do {                                                                 \
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 
   mrb_value
+    mrbjit_prim_math_callcfunc_impl(mrb_state *mrb, mrb_value proc,
+				    mrbjit_vmstatus *status, mrbjit_code_info *coi, void *);
+
+  mrb_value
     mrbjit_prim_numeric_minus_at_impl(mrb_state *mrb, mrb_value proc,
 			       mrbjit_vmstatus *status, mrbjit_code_info *coi);
 

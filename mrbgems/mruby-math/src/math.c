@@ -746,7 +746,9 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
 #endif
 
   mrb_define_module_function(mrb, mrb_math, "sin", math_sin, MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, ((struct RBasic *)mrb_math)->c, "sin", mrbjit_prim_math_sin);
   mrb_define_module_function(mrb, mrb_math, "cos", math_cos, MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, ((struct RBasic *)mrb_math)->c, "cos", mrbjit_prim_math_cos);
   mrb_define_module_function(mrb, mrb_math, "tan", math_tan, MRB_ARGS_REQ(1));
 
   mrb_define_module_function(mrb, mrb_math, "asin", math_asin, MRB_ARGS_REQ(1));
