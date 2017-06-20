@@ -1107,6 +1107,12 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
   goto retry;
 }
 
+mrbjit_code_info *
+mrbjit_add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
+{
+  add_codeinfo(mrb, tab, irep);
+}
+
 static void
 mrbjit_arth_overflow(mrb_state *mrb, mrb_irep *irep, mrbjit_code_area cbase, mrbjit_vmstatus *status)
 {
