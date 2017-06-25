@@ -239,7 +239,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_RETURN\tR%d", GETARG_A(c));
       switch (GETARG_B(c)) {
       case OP_R_NORMAL:
-        printf("\tnormal"); break;
+        printf("\tnormal\t"); break;
       case OP_R_RETURN:
         printf("\treturn\t"); break;
       case OP_R_BREAK:

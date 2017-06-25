@@ -696,7 +696,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_context, reg_mrb, OffsetOf(mrb_state, c));
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
     emit_add(mrb, coi, reg_context, OffsetOf(mrb_context, ci), (cpu_word_t)sizeof(mrb_callinfo));
+    emit_move(mrb, coi, reg_tmp0s, reg_context, OffsetOf(mrb_context, eidx));
     emit_move(mrb, coi, reg_context, reg_context, OffsetOf(mrb_context, ci));
+    /* ci->epos = c->eidx */
+    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, epos), reg_tmp0s);
 
     emit_load_literal(mrb, coi, reg_tmp0, 0);
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, env), reg_tmp0);
@@ -705,9 +708,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       //emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, jit_entry), reg_tmp0);
     }
 
-    /* Inherit eidx/ridx */
-    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(mrb_callinfo, eidx));
-    emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, eidx), reg_tmp0s);
+    /* Inherit ridx */
     emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(mrb_callinfo, ridx));
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, ridx), reg_tmp0s);
 
@@ -1873,7 +1874,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 			(c->ci->env == 0 || 
 			 c->ci->proc->body.irep->shared_lambda == 1));
     int can_inline = (can_use_fast &&
-		      (c->ci[-1].eidx == c->ci->eidx) && (c->ci[-1].acc >= 0));
+		      (c->ci[-1].epos == c->eidx) && (c->ci[-1].acc >= 0));
 
     mrbjit_reginfo *rinfo = &coi->reginfo[GETARG_A(i)];
     mrbjit_reginfo *dinfo = &coi->reginfo[0];
@@ -1941,7 +1942,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       lea(reg_tmp0, dword [reg_vars + VMSOffsetOf(status)]);
       emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
-      if (can_use_fast) {
+      if (can_use_fast && 0) {
 	emit_call(mrb, coi, (void *)mrbjit_exec_return_fast);
       }
       else {

@@ -34,6 +34,7 @@ void mrbjit_stack_clear(mrb_state *, mrb_value *, size_t);
 void mrbjit_argnum_error(mrb_state *, int);
 void mrbjit_ecall(mrb_state *, int);
 struct REnv* mrbjit_top_env(mrb_state *, struct RProc *);
+struct RBreak* mrbjit_break_new(mrb_state *, struct RProc *, mrb_value);
 void mrbjit_localjump_error(mrb_state *, localjump_error_kind);
 
 extern void mrbjit_gen_exit_patch(mrbjit_code_area, mrb_state *, void *, mrb_code *, mrbjit_vmstatus *, mrbjit_code_info *);

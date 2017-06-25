@@ -982,15 +982,17 @@ retry:
         }
         if (dots) PUSH("..", 2);
 
-        if (v < 0) {
-          char c = sign_bits(base, p);
-          FILL(c, prec - len);
+        if (prec > len) {
+          CHECK(prec - len);
+          if (v < 0) {
+            char c = sign_bits(base, p);
+            FILL(c, prec - len);
+          }
+          else if ((flags & (FMINUS|FPREC)) != FMINUS) {
+            char c = '0';
+            FILL(c, prec - len);
+          }
         }
-        else if ((flags & (FMINUS|FPREC)) != FMINUS) {
-          char c = '0';
-          FILL(c, prec - len);
-        }
-
         PUSH(s, len);
         if (width > 0) {
           FILL(' ', width);
@@ -1032,6 +1034,9 @@ retry:
           if ((flags & FWIDTH) && need < width)
             need = width;
 
+          if (need < 0) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
+          }
           FILL(' ', need);
           if (flags & FMINUS) {
             if (sign)

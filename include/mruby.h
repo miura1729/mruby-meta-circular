@@ -176,7 +176,7 @@ typedef struct {
   mrb_value *stackent;
   int nregs;
   int ridx;
-  int eidx;
+  int epos;
   struct REnv *env;
   mrb_code *err;                /* error position */
   int argc;
@@ -220,7 +220,7 @@ struct mrb_context {
   mrb_code **rescue;                      /* exception handler stack */
   int rsize;
   struct RProc **ensure;                  /* ensure handler stack */
-  int esize;
+  int esize, eidx;
 
   enum mrb_fiber_state status;
   mrb_bool vmexec;
@@ -236,14 +236,6 @@ enum gc_state {
 struct mrb_irep;
 struct mrb_jmpbuf;
 
-typedef struct {
-  const char *filename;
-  int lineno;
-  struct RClass *klass;
-  char sep;
-  mrb_sym method_id;
-} mrb_backtrace_entry;
-
 typedef void (*mrb_atexit_func)(struct mrb_state*);
 
 #define MRB_STATE_NO_REGEXP 1
@@ -258,15 +250,9 @@ typedef struct mrb_state {
 
   struct mrb_context *c;
   struct mrb_context *root_c;
+  struct iv_tbl *globals;                 /* global variable table */
 
   struct RObject *exc;                    /* exception */
-  struct {
-    struct RObject *exc;
-    int n;
-    int n_allocated;
-    mrb_backtrace_entry *entries;
-  } backtrace;
-  struct iv_tbl *globals;                 /* global variable table */
 
   struct RObject *top_self;
   struct RClass *object_class;            /* Object class */
@@ -1286,6 +1272,33 @@ MRB_API void mrb_show_version(mrb_state *mrb);
 MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
+
+#if 0
+/* memcpy and memset does not work with gdb reverse-next on my box */
+/* use naive memcpy and memset instead */
+#undef memcpy
+#undef memset
+static inline void*
+mrbmemcpy(void *dst, const void *src, size_t n)
+{
+  char *d = dst;
+  const char *s = src;
+  while (n--)
+    *d++ = *s++;
+  return d;
+}
+#define memcpy(a,b,c) mrbmemcpy(a,b,c)
+
+static inline void*
+mrbmemset(void *s, int c, size_t n)
+{
+  char *t = s;
+  while (n--)
+    *t++ = c;
+  return s;
+}
+#define memset(a,b,c) mrbmemset(a,b,c)
+#endif
 
 MRB_END_DECL
 
