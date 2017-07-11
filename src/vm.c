@@ -1673,6 +1673,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 
  skip:
 
+  /* This cause infinit loop in make test */
+  /*  if (prev_entry && ci && ci->used > 0) {
+    cbase = mrb->compile_info.code_base;
+    mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
+    }*/
+
   if (mrb->compile_info.ignor_inst_cnt > 0) {
     mrb->compile_info.ignor_inst_cnt--;
   }
