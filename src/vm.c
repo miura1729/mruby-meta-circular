@@ -1482,7 +1482,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       *(status->pool) = irep->pool;
       *(status->syms) = irep->syms;
       n = ISEQ_OFFSET_OF(*ppc);
-      assert(*status->pc >= irep->iseq);
+      assert(*status->pc >= irep->iseq && *status->pc <= irep->iseq + irep->ilen);
 
       if (prev_entry == (void *(*)())1) {
 	/* Overflow happened */
@@ -2830,7 +2830,7 @@ RETRY_TRY_BLOCK:
       L_RAISE:
 	//disasm_once(mrb, irep, *pc);
 	/* Avoid Instruction JIT compile that happend exception */
-	if (mrb->compile_info.code_base) {
+	if (mrb->compile_info.code_base && !mrb->compile_info.disable_jit) {
 	  mrbjit_gen_exit2(mrb->compile_info.code_base, mrb, irep, &pc, &status, NULL);
 	  mrb->compile_info.code_base = NULL;
 	}

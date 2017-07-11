@@ -118,11 +118,20 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_value recv, result;
   mrb_sym mid = syms[GETARG_B(i)];
   int orgdisflg = mrb->compile_info.disable_jit;
+  int bidx;
+  mrb_value blk;
 
   recv = regs[a];
+  if (n == CALL_MAXARGS) {
+    bidx = a+2;
+  }
+  else {
+    bidx = a+n+1;
+  }
+  blk = regs[bidx];
 
   // printf("C %d %x %x %x\n", m->body.func, regs, n);
-  // puts(mrb_sym2name(mrb, mid));
+  //puts(mrb_sym2name(mrb, mid));
 
   ci = mrbjit_cipush(mrb);
   ci->stackent = mrb->c->stack;
@@ -161,6 +170,15 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   }
   /* pop stackpos */
   ci = mrb->c->ci;
+  if (GET_OPCODE(i) == OP_SENDB) {
+    if (mrb_type(blk) == MRB_TT_PROC) {
+      struct RProc *p = mrb_proc_ptr(blk);
+
+      if (p && !MRB_PROC_STRICT_P(p) && p->env == ci[-1].env) {
+	p->flags |= MRB_PROC_ORPHAN;
+      }
+    }
+  }
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (ci->acc == CI_ACC_RESUMED) {
       mrb->jmp = *status->prev_jmp;
