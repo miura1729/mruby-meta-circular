@@ -404,7 +404,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrbjit_reginfo *rinfo = &coi->reginfo[cond];
 
-    if (rinfo->constp && 0) {
+    if (rinfo->constp) {
       if (b && rinfo->type != MRB_TT_FALSE) {
 	return;
       }
