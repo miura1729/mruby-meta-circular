@@ -101,6 +101,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       coi->reginfo[pos].regplace = MRBJIT_REG_AL;*/
       break;
        
+    case MRBJIT_REG_XMM0:
+    case MRBJIT_REG_XMM1:
+    case MRBJIT_REG_XMM2:
+    case MRBJIT_REG_XMM3:
+    case MRBJIT_REG_XMM4:
+    case MRBJIT_REG_XMM5:
+    case MRBJIT_REG_XMM6:
+    case MRBJIT_REG_XMM7:
+      {
+	gen_flush_xmm(mrb, coi, pos);
+      }
+      break;
+
     case MRBJIT_REG_VMREG0:
     case MRBJIT_REG_VMREG1:
     case MRBJIT_REG_VMREG2:
@@ -170,6 +183,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       coi->reginfo[pos].regplace = MRBJIT_REG_AL;*/
       break;
        
+    case MRBJIT_REG_XMM0:
+    case MRBJIT_REG_XMM1:
+    case MRBJIT_REG_XMM2:
+    case MRBJIT_REG_XMM3:
+    case MRBJIT_REG_XMM4:
+    case MRBJIT_REG_XMM5:
+    case MRBJIT_REG_XMM6:
+    case MRBJIT_REG_XMM7:
+      break;
+
     case MRBJIT_REG_VMREG0:
     case MRBJIT_REG_VMREG1:
     case MRBJIT_REG_VMREG2:
