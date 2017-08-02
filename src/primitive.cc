@@ -357,6 +357,9 @@ MRBJitCode::mrbjit_prim_fix_to_f_impl(mrb_state *mrb, mrb_value proc,
   dinfo->unboxedp = 0;
 
   emit_local_var_int_value_read(mrb, coi, reg_dtmp0, regno);
+  
+  regno = get_dst_regno(mrb, status, coi, regno);
+  dinfo = &coi->reginfo[regno];
   emit_local_var_write(mrb, coi, regno, reg_dtmp0);
   dinfo->type = MRB_TT_FLOAT;
   dinfo->klass = mrb->float_class;
