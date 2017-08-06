@@ -463,16 +463,17 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     tt = (enum mrb_vtype)mrb_type(v);
 
-    if (rinfo->type != tt || rc == 2) {
+    if (rinfo->regplace > MRBJIT_REG_VMREG0) {
+      int orgno = rinfo->regplace - MRBJIT_REG_VMREG0;
+      mrbjit_reginfo *oinfo = &coi->reginfo[orgno];
+
+      *rinfo = *oinfo;
+      rinfo->regplace = (enum mrbjit_regplace)(MRBJIT_REG_VMREG0 + orgno);
+    }
+
+    if (rinfo->type != tt || !rinfo->constp) {
 
       rinfo->type = tt;
-      if (rinfo->regplace > MRBJIT_REG_VMREG0) {
-	int orgno = rinfo->regplace - MRBJIT_REG_VMREG0;
-	mrbjit_reginfo *oinfo = &coi->reginfo[orgno];
-	oinfo->type = tt;
-	oinfo->klass = mrb_class(mrb, (mrb->c->stack)[regpos]);
-      }
-
       emit_local_var_type_read(mrb, coi, reg_tmp0s, regpos);
 
       if (tt == MRB_TT_FLOAT) {
@@ -487,7 +488,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
 
       /* Guard fail exit code */
-      gen_exit(mrb, pc, rc, 0, status, coi);
+      gen_exit(mrb, pc, 2, 0, status, coi);
 
       L("@@");
     }
@@ -499,7 +500,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_cmp(mrb, coi, reg_tmp0s, (cpu_word_t)v.value.i);
       jz("@f", T_NEAR);
       /* Guard fail exit code */
-      gen_exit(mrb, pc, rc, 0, status, coi);
+      gen_exit(mrb, pc, 2, 0, status, coi);
 
       L("@@");
       break;
@@ -508,6 +509,13 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     case MRB_TT_SYMBOL:
     case MRB_TT_FIXNUM:
     case MRB_TT_FLOAT:
+      //case MRB_TT_ARRAY:
+    case MRB_TT_STRING:
+    case MRB_TT_HASH:
+    case MRB_TT_RANGE:
+    case MRB_TT_PROC:
+    case MRB_TT_EXCEPTION:
+    case MRB_TT_FILE:
       /* DO NOTHING */
       break;
 
@@ -977,10 +985,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[a];
     mrb_value self = mrb->c->stack[0];
 
-    dinfo->type = (mrb_vtype)mrb_type(self);
-    dinfo->klass = mrb_class(mrb, self);
-    dinfo->constp = 1;
-    dinfo->unboxedp = 0;
+    *dinfo = coi->reginfo[0];
 
     emit_local_var_read(mrb, coi, reg_dtmp0, 0); /* self */
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
@@ -1799,10 +1804,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
-    selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
-    selfinfo->klass = mrb_class(mrb, regs[0]);
-    selfinfo->constp = 1;
-#if 1
+    if (GET_OPCODE(*pc) != OP_ENTER ||
+	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
+	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
+      gen_class_guard(mrb, 0, status, pc, coi, mrb_class(mrb, regs[0]), 2);
+      selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
+      selfinfo->klass = mrb_class(mrb, regs[0]);
+      selfinfo->constp = 1;
+      if (mrb->c->ci->argc != -1) {
+	int i = mrb->c->ci->argc + 1;
+	gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
+      }
+    }
+#if 0
     if (GET_OPCODE(*pc) != OP_ENTER ||
 	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
 	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
