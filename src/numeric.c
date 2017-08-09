@@ -189,7 +189,12 @@ flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *
   mrb_float mod;
 
   if (y == 0.0) {
-    div = INFINITY;
+    if (x == 0.0) {
+      div = NAN;
+    }
+    else {
+      div = INFINITY;
+    }
     mod = NAN;
   }
   else {
@@ -813,8 +818,10 @@ fix_divmod(mrb_state *mrb, mrb_value x)
     mrb_int div, mod;
 
     if (mrb_fixnum(y) == 0) {
-      return mrb_assoc_new(mrb, mrb_float_value(mrb, INFINITY),
-        mrb_float_value(mrb, NAN));
+      return mrb_assoc_new(mrb, ((mrb_fixnum(x) == 0) ?
+                                 mrb_float_value(mrb, NAN):
+                                 mrb_float_value(mrb, INFINITY)),
+                           mrb_float_value(mrb, NAN));
     }
     fixdivmod(mrb, mrb_fixnum(x), mrb_fixnum(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));
@@ -824,7 +831,7 @@ fix_divmod(mrb_state *mrb, mrb_value x)
     mrb_value a, b;
 
     flodivmod(mrb, (mrb_float)mrb_fixnum(x), mrb_to_flo(mrb, y), &div, &mod);
-    a = mrb_float_value(mrb, (mrb_int)div);
+    a = mrb_float_value(mrb, div);
     b = mrb_float_value(mrb, mod);
     return mrb_assoc_new(mrb, a, b);
   }
@@ -840,7 +847,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
   mrb_get_args(mrb, "o", &y);
 
   flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), &div, &mod);
-  a = mrb_float_value(mrb, (mrb_int)div);
+  a = mrb_float_value(mrb, div);
   b = mrb_float_value(mrb, mod);
   return mrb_assoc_new(mrb, a, b);
 }
@@ -964,15 +971,15 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
         (val   > (MRB_INT_MAX >> width))) {
       goto bit_overflow;
     }
+    return mrb_fixnum_value(val << width);
   }
   else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   < (MRB_INT_MIN >> width))) {
       goto bit_overflow;
     }
+    return mrb_fixnum_value(val * (1u << width));
   }
-
-  return mrb_fixnum_value(val << width);
 
 bit_overflow:
   {

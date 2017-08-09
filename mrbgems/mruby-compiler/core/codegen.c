@@ -3058,7 +3058,7 @@ loop_break(codegen_scope *s, node *tree)
       genop_peep(s, MKOP_A(OP_POPERR, 1), NOVAL);
       loop = loop->prev;
     }
-    while (loop && loop->type == LOOP_RESCUE) {
+    while (loop && (loop->type == LOOP_RESCUE || loop->type == LOOP_BEGIN)) {
       loop = loop->prev;
     }
     if (!loop) {
@@ -3091,10 +3091,10 @@ loop_break(codegen_scope *s, node *tree)
 static void
 loop_pop(codegen_scope *s, int val)
 {
-  dispatch_linked(s, s->loop->pc3);
   if (val) {
     genop(s, MKOP_A(OP_LOADNIL, cursp()));
   }
+  dispatch_linked(s, s->loop->pc3);
   s->loop = s->loop->prev;
   if (val) push();
 }

@@ -76,6 +76,7 @@ typedef struct mrb_irep {
   uint16_t arg_ver_num;
   mrbjit_codetab *jit_entry_tab;
   enum method_kind method_kind;
+  struct RProc *outer;      /* Refers outer scope */
 } mrb_irep;
 
 typedef struct mrbjit_vmstatus {

@@ -1184,7 +1184,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_add(mrb, coi, reg_tmp0,  OffsetOf(iv_tbl, last_len), 1);
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
 	movsd(ptr [reg_tmp0 + ivoff * sizeof(mrb_value)], reg_dtmp0);
-	emit_moves(mrb, coi, reg_tmp0,  MRB_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym), (uint32_t)id);
+	emit_moves(mrb, coi, reg_tmp0,  MRB_IV_SEGMENT_SIZE * sizeof(mrb_value) + ivoff * sizeof(mrb_sym), (uint32_t)id);
       }
       else {
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RObject, iv));
@@ -1587,9 +1587,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
-    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
+    /*    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
       return code;
-    }
+      }*/
 
     gen_flush_regs(mrb, pc, status, coi, 1);
 
@@ -2725,10 +2725,10 @@ do {                                                                 \
     }
 
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, srcno);
-    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, len));
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
     emit_cmp(mrb, coi, reg_tmp0s, idx);
     jle("@f");
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
     movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
 
@@ -2938,6 +2938,11 @@ do {                                                                 \
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
 
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)mirep);
+    emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(mrb_callinfo, proc));
+    emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_irep, outer), reg_tmp1);
+	  
     if (mirep->simple_lambda == 1 && c->proc_pool) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {

@@ -52,22 +52,36 @@ mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
   kh_destroy(mt, mrb, c->mt);
 }
 
-static void
-name_class(mrb_state *mrb, struct RClass *c, mrb_sym name)
+void
+mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
-  mrb_obj_iv_set(mrb, (struct RObject*)c,
-                 mrb_intern_lit(mrb, "__classid__"), mrb_symbol_value(name));
+  mrb_value name;
+  mrb_sym nsym = mrb_intern_lit(mrb, "__classname__");
+
+  if (mrb_obj_iv_defined(mrb, (struct RObject*)c, nsym)) return;
+  if (outer == NULL || outer == mrb->object_class) {
+    name = mrb_symbol_value(id);
+  }
+  else {
+    name = mrb_class_path(mrb, outer);
+    if (mrb_nil_p(name)) {      /* unnamed outer class */
+      if (outer != mrb->object_class) {
+        mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
+                       mrb_obj_value(outer));
+      }
+      return;
+    }
+    mrb_str_cat_cstr(mrb, name, "::");
+    mrb_str_cat_cstr(mrb, name, mrb_sym2name(mrb, id));
+  }
+  mrb_obj_iv_set(mrb, (struct RObject*)c, nsym, name);
 }
 
 static void
 setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
-  name_class(mrb, c, id);
+  mrb_class_name_class(mrb, outer, c, id);
   mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
-  if (outer != mrb->object_class) {
-    mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
-                   mrb_obj_value(outer));
-  }
 }
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
@@ -107,7 +121,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern_lit(mrb, "__attached__"), mrb_obj_value(o));
 }
 
-static struct RClass *
+static struct RClass*
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
@@ -116,7 +130,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
-static struct RClass *
+static struct RClass*
 module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(klass), id);
@@ -136,27 +150,6 @@ class_ptr_p(mrb_value obj)
   default:
     return FALSE;
   }
-}
-
-MRB_API struct RClass*
-mrb_class_outer_module(mrb_state *mrb, struct RClass *c)
-{
-  mrb_value outer;
-  struct RClass *cls;
-
-  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"));
-  if (mrb_nil_p(outer)) return NULL;
-  cls = mrb_class_ptr(outer);
-  if (cls->tt == MRB_TT_SCLASS)
-  {
-    mrb_value klass;
-    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
-                           mrb_intern_lit(mrb, "__attached__"));
-    if (class_ptr_p(klass)) {
-      cls = mrb_class_ptr(klass);
-    }
-  }
-  return cls;
 }
 
 static void
@@ -338,19 +331,19 @@ mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
   return mrb_const_defined_at(mrb, mrb_obj_value(outer), mrb_symbol(sym));
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return class_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_class_get(mrb_state *mrb, const char *name)
 {
   return mrb_class_get_under(mrb, mrb->object_class, name);
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_exc_get(mrb_state *mrb, const char *name)
 {
   struct RClass *exc, *e;
@@ -370,13 +363,13 @@ mrb_exc_get(mrb_state *mrb, const char *name)
   return mrb->eException_class;
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return module_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_module_get(mrb_state *mrb, const char *name)
 {
   return mrb_module_get_under(mrb, mrb->object_class, name);
@@ -398,7 +391,7 @@ mrb_module_get(mrb_state *mrb, const char *name)
  * \note if a class named \a name is already defined and its superclass is
  *       \a super, the function just returns the defined class.
  */
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super)
 {
   mrb_sym id = mrb_intern_cstr(mrb, name);
@@ -596,9 +589,9 @@ to_sym(mrb_state *mrb, mrb_value ss)
     d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
     I:      Inline struct  [void*]
     &:      Block          [mrb_value]
-    *:      rest argument  [mrb_value*,mrb_int]   Receive the rest of the arguments as an array.
-    |:      optional                              Next argument of '|' and later are optional.
-    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given.
+    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
+    |:      optional                              Following arguments are optional
+    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
  */
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
@@ -608,7 +601,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   va_list ap;
   int argc = mrb->c->ci->argc;
   int arg_i = 0;
-  mrb_bool array_argv;
+  mrb_value *array_argv;
   mrb_bool opt = FALSE;
   mrb_bool given = TRUE;
 
@@ -616,15 +609,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   if (argc < 0) {
     struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
 
-    argc = a->len;
-    array_argv = TRUE;
+    argc = ARY_LEN(a);
+    array_argv = ARY_PTR(a);
   }
   else {
-    array_argv = FALSE;
+    array_argv = NULL;
   }
 
 #define ARGV \
-  (array_argv ? mrb_ary_ptr(mrb->c->stack[1])->ptr : (mrb->c->stack + 1))
+  (array_argv ? array_argv : (mrb->c->stack + 1))
 
   while ((c = *format++)) {
     switch (c) {
@@ -795,8 +788,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           aa = to_ary(mrb, ARGV[arg_i++]);
           a = mrb_ary_ptr(aa);
-          *pb = a->ptr;
-          *pl = a->len;
+          *pb = ARY_PTR(a);
+          *pl = ARY_LEN(a);
           i++;
         }
       }
@@ -940,13 +933,25 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value **var;
         mrb_int *pl;
+        mrb_bool nocopy = array_argv ? TRUE : FALSE;
 
+        if (*format == '!') {
+          format++;
+          nocopy = TRUE;
+        }
         var = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
         if (argc > i) {
           *pl = argc-i;
           if (*pl > 0) {
-            *var = ARGV + arg_i;
+            if (nocopy) {
+              *var = ARGV+arg_i;
+            }
+            else {
+              mrb_value args = mrb_ary_new_from_values(mrb, *pl, ARGV+arg_i);
+              RARRAY(args)->c = NULL;
+              *var = RARRAY_PTR(args);
+            }
           }
           i = argc;
           arg_i += *pl;
@@ -1640,45 +1645,25 @@ MRB_API mrb_value
 mrb_class_path(mrb_state *mrb, struct RClass *c)
 {
   mrb_value path;
-  const char *name;
-  mrb_sym classpath = mrb_intern_lit(mrb, "__classpath__");
+  mrb_sym nsym = mrb_intern_lit(mrb, "__classname__");
 
-  path = mrb_obj_iv_get(mrb, (struct RObject*)c, classpath);
+  path = mrb_obj_iv_get(mrb, (struct RObject*)c, nsym);
   if (mrb_nil_p(path)) {
-    struct RClass *outer = mrb_class_outer_module(mrb, c);
-    mrb_sym sym = mrb_class_sym(mrb, c, outer);
+    /* no name (yet) */
+    return mrb_class_find_path(mrb, c);
+  }
+  else if (mrb_symbol_p(path)) {
+    /* topleve class/module */
+    const char *str;
     mrb_int len;
 
-    if (sym == 0) {
-      return mrb_nil_value();
-    }
-    else if (outer && outer != c && outer != mrb->object_class) {
-      mrb_value base = mrb_class_path(mrb, outer);
-      path = mrb_str_buf_new(mrb, 0);
-      if (mrb_nil_p(base)) {
-        mrb_str_cat_lit(mrb, path, "#<Class:");
-        mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, outer));
-        mrb_str_cat_lit(mrb, path, ">");
-      }
-      else {
-        mrb_str_concat(mrb, path, base);
-      }
-      mrb_str_cat_lit(mrb, path, "::");
-      name = mrb_sym2name_len(mrb, sym, &len);
-      mrb_str_cat(mrb, path, name, len);
-    }
-    else {
-      name = mrb_sym2name_len(mrb, sym, &len);
-      path = mrb_str_new(mrb, name, len);
-    }
-    if (!MRB_FROZEN_P(c)) {
-      mrb_obj_iv_set(mrb, (struct RObject*)c, classpath, path);
-    }
+    str = mrb_sym2name_len(mrb, mrb_symbol(path), &len);
+    return mrb_str_new(mrb, str, len);
   }
   return mrb_str_dup(mrb, path);
 }
 
-MRB_API struct RClass *
+MRB_API struct RClass*
 mrb_class_real(struct RClass* cl)
 {
   if (cl == 0)
@@ -2200,13 +2185,43 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
-mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
+mrb_const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
-  mrb_sym id;
-
-  mrb_get_args(mrb, "n", &id);
   check_const_name_sym(mrb, id);
   return mrb_const_get(mrb, mod, id);
+}
+
+static mrb_value
+mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value path;
+  mrb_sym id;
+  char *ptr;
+  mrb_int off, end, len;
+
+  mrb_get_args(mrb, "o", &path);
+
+  if (mrb_symbol_p(path)) {
+    /* const get with symbol */
+    id = mrb_symbol(path);
+    return mrb_const_get_sym(mrb, mod, id);
+  }
+
+  /* const get with class path string */
+  path = mrb_string_type(mrb, path);
+  ptr = RSTRING_PTR(path);
+  len = RSTRING_LEN(path);
+  off = 0;
+
+  while (off < len) {
+    end = mrb_str_index_lit(mrb, path, "::", off);
+    end = (end == -1) ? len : end;
+    id = mrb_intern(mrb, ptr+off, end-off);
+    mod = mrb_const_get_sym(mrb, mod, id);
+    off = (end == len) ? end : end+2;
+  }
+
+  return mod;
 }
 
 static mrb_value
@@ -2316,6 +2331,8 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 mrb_value mrb_obj_id_m(mrb_state *mrb, mrb_value self);
 /* implementation of instance_eval */
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
+/* implementation of Module.nesting */
+mrb_value mrb_mod_s_nesting(mrb_state*, mrb_value);
 
 void
 mrb_init_class(mrb_state *mrb)
@@ -2345,10 +2362,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_const(mrb, obj, "Class",       mrb_obj_value(cls));
 
   /* name each classes */
-  name_class(mrb, bob, mrb_intern_lit(mrb, "BasicObject"));
-  name_class(mrb, obj, mrb_intern_lit(mrb, "Object"));           /* 15.2.1 */
-  name_class(mrb, mod, mrb_intern_lit(mrb, "Module"));           /* 15.2.2 */
-  name_class(mrb, cls, mrb_intern_lit(mrb, "Class"));            /* 15.2.3 */
+  mrb_class_name_class(mrb, NULL, bob, mrb_intern_lit(mrb, "BasicObject"));
+  mrb_class_name_class(mrb, NULL, obj, mrb_intern_lit(mrb, "Object")); /* 15.2.1 */
+  mrb_class_name_class(mrb, NULL, mod, mrb_intern_lit(mrb, "Module")); /* 15.2.2 */
+  mrb_class_name_class(mrb, NULL, cls, mrb_intern_lit(mrb, "Class"));  /* 15.2.3 */
 
   mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);  /* 15.2.17 */
   MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
@@ -2412,6 +2429,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "class_variables",         mrb_mod_class_variables,  MRB_ARGS_NONE()); /* 15.2.2.4.19 */
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, mod, "constants",         mrb_mod_s_constants,      MRB_ARGS_ANY());  /* 15.2.2.3.1 */
+  mrb_define_class_method(mrb, mod, "nesting",           mrb_mod_s_nesting,        MRB_ARGS_REQ(0)); /* 15.2.2.3.2 */
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");

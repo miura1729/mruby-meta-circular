@@ -69,7 +69,7 @@ do {                                                                 \
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, a);              \
   emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, c), (cpu_word_t)c); \
   emit_load_literal(mrb, coi, reg_tmp1, 4);                          \
-  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, len), reg_tmp1); \
+  emit_move(mrb, coi, reg_tmp0, OffsetOf(struct RArray, as.heap.len), reg_tmp1); \
   outLocalLabel();                                                   \
                                                                      \
   dinfo->type = MRB_TT_ARRAY;                                        \
@@ -104,7 +104,7 @@ MRBJitCode::mrbjit_prim_pvec4_new_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_write_from_cfunc(mrb, coi, a);
   emit_add(mrb, coi, reg_tmp0, reg_mrb);
 
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, as.heap.ptr));
 
   movupd(xmm0, ptr [reg_regs + (a + 1) * sizeof(mrb_value)]);
   movupd(ptr [reg_tmp0], xmm0);
@@ -153,14 +153,14 @@ MRBJitCode::mrbjit_prim_pvec4_add_impl(mrb_state *mrb, mrb_value proc,
   emit_push(mrb, coi, reg_vars);
 
   emit_local_var_ptr_value_read(mrb, coi, reg_vars, a);
-  emit_move(mrb, coi, reg_vars, reg_vars, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_vars, reg_vars, OffsetOf(struct RArray, as.heap.ptr));
 
   emit_local_var_value_write(mrb, coi, a, reg_tmp0s);
   emit_add(mrb, coi, reg_tmp0, reg_mrb);
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, as.heap.ptr));
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, a + 1);
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
 
   movupd(xmm0, ptr [reg_vars]);
   movupd(xmm1, ptr [reg_tmp1]);
@@ -217,14 +217,14 @@ MRBJitCode::mrbjit_prim_pvec4_sub_impl(mrb_state *mrb, mrb_value proc,
   emit_push(mrb, coi, reg_vars);
 
   emit_local_var_ptr_value_read(mrb, coi, reg_vars, a);
-  emit_move(mrb, coi, reg_vars, reg_vars, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_vars, reg_vars, OffsetOf(struct RArray, as.heap.ptr));
 
   emit_local_var_value_write(mrb, coi, a, reg_tmp0s);
   emit_add(mrb, coi, reg_tmp0, reg_mrb);
-  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RArray, as.heap.ptr));
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, a + 1);
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
 
   movupd(xmm0, ptr [reg_vars]);
   movupd(xmm1, ptr [reg_tmp1]);
@@ -265,7 +265,7 @@ MRBJitCode::mrbjit_prim_pvec4_aget_impl(mrb_state *mrb, mrb_value proc,
 
   if (iinfo->regplace == MRBJIT_REG_IMMIDATE) {
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
     movsd(xmm0, ptr [reg_tmp1 + mrb_fixnum(iinfo->value) * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, aryno, xmm0);
   }
@@ -273,7 +273,7 @@ MRBJitCode::mrbjit_prim_pvec4_aget_impl(mrb_state *mrb, mrb_value proc,
     gen_flush_regs(mrb, pc, status, coi, 1);
 
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
     emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
     movsd(xmm0, ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, aryno, xmm0);
@@ -311,7 +311,7 @@ MRBJitCode::mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
   if (iinfo->regplace == MRBJIT_REG_IMMIDATE) {
     emit_local_var_read(mrb, coi, xmm0, valno);
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
     movsd(ptr [reg_tmp1 + mrb_fixnum(iinfo->value) * sizeof(mrb_value)], xmm0);
   }
   else {
@@ -320,7 +320,7 @@ MRBJitCode::mrbjit_prim_pvec4_aset_impl(mrb_state *mrb, mrb_value proc,
     emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
 
     emit_local_var_read(mrb, coi, xmm0, valno);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, ptr));
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
     movsd(ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)], xmm0);
   }
 

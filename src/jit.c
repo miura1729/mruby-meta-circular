@@ -406,8 +406,8 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 
   if (argc < 0) {
     struct RArray *ary = mrb_ary_ptr(regs[1]);
-    argv = ary->ptr;
-    argc = ary->len;
+    argv = ARY_PTR(ary);
+    argc = ARY_LEN(ary);
     mrb_gc_protect(mrb, regs[1]);
   }
   if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
@@ -420,8 +420,8 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   }
   else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
     mrb_gc_protect(mrb, argv[0]);
-    argc = mrb_ary_ptr(argv[0])->len;
-    argv = mrb_ary_ptr(argv[0])->ptr;
+    argc = ARY_LEN(mrb_ary_ptr(argv[0]));
+    argv = ARY_PTR(mrb_ary_ptr(argv[0]));
   }
   if (argc < len) {
     int mlen = m2;

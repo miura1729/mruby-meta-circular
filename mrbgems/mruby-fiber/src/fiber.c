@@ -126,6 +126,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   ci = c->ci;
   ci->target_class = p->target_class;
   ci->proc = p;
+  mrb_field_write_barrier(mrb, (struct RBasic*)mrb_obj_ptr(self), (struct RBasic*)p);
   ci->pc = p->body.irep->iseq;
   ci->nregs = p->body.irep->nregs;
   ci[1] = ci[0];
@@ -253,7 +254,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   mrb_int len;
   mrb_bool vmexec = FALSE;
 
-  mrb_get_args(mrb, "*", &a, &len);
+  mrb_get_args(mrb, "*!", &a, &len);
   if (mrb->c->ci->acc < 0) {
     vmexec = TRUE;
   }
@@ -313,7 +314,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   mrb_int len;
 
   fiber_check_cfunc(mrb, mrb->c);
-  mrb_get_args(mrb, "*", &a, &len);
+  mrb_get_args(mrb, "*!", &a, &len);
 
   if (c == mrb->root_c) {
     mrb->c->status = MRB_FIBER_TRANSFERRED;
@@ -371,7 +372,7 @@ fiber_yield(mrb_state *mrb, mrb_value self)
   mrb_value *a;
   mrb_int len;
 
-  mrb_get_args(mrb, "*", &a, &len);
+  mrb_get_args(mrb, "*!", &a, &len);
   return mrb_fiber_yield(mrb, len, a);
 }
 

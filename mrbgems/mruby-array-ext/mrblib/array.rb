@@ -252,7 +252,7 @@ class Array
 
   # for efficiency
   def reverse_each(&block)
-    return to_enum :reverse_each unless block_given?
+    return to_enum :reverse_each unless block
 
     i = self.size - 1
     while i>=0
@@ -474,7 +474,7 @@ class Array
   #     scores.delete_if {|score| score < 80 }   #=> [97]
 
   def delete_if(&block)
-    return to_enum :delete_if unless block_given?
+    return to_enum :delete_if unless block
 
     idx = 0
     while idx < self.size do
@@ -503,7 +503,7 @@ class Array
   #  If no block is given, an Enumerator is returned instead.
 
   def reject!(&block)
-    return to_enum :reject! unless block_given?
+    return to_enum :reject! unless block
 
     len = self.size
     idx = 0
@@ -593,33 +593,60 @@ class Array
   #  undefined which value is actually picked up at each iteration.
 
   def bsearch(&block)
-    return to_enum :bsearch unless block_given?
+    return to_enum :bsearch unless block
+
+    if idx = bsearch_index(&block)
+      self[idx]
+    else
+      nil
+    end
+  end
+
+  ##
+  #  call-seq:
+  #     ary.bsearch_index {|x| block }  -> int or nil
+  #
+  #  By using binary search, finds an index of a value from this array which
+  #  meets the given condition in O(log n) where n is the size of the array.
+  #
+  #  It supports two modes, depending on the nature of the block and they are
+  #  exactly the same as in the case of #bsearch method with the only difference
+  #  being that this method returns the index of the element instead of the
+  #  element itself. For more details consult the documentation for #bsearch.
+
+  def bsearch_index(&block)
+    return to_enum :bsearch_index unless block
 
     low = 0
-    high = self.size
+    high = size
     satisfied = false
+
     while low < high
-      mid = low + ((high - low) / 2).truncate
-      val = self[mid]
-      v = block.call(val)
-      if v.is_a?(Integer)
-        return val if v == 0
-        smaller = v < 0
-      elsif v == true
+      mid = ((low+high)/2).truncate
+      res = block.call self[mid]
+
+      case res
+      when 0 # find-any mode: Found!
+        return mid
+      when Numeric # find-any mode: Continue...
+        in_lower_half = res < 0
+      when true # find-min mode
+        in_lower_half = true
         satisfied = true
-        smaller = true
-      elsif v == false || v.nil?
-        smaller = false
+      when false, nil # find-min mode
+        in_lower_half = false
+      else
+        raise TypeError, 'invalid block result (must be numeric, true, false or nil)'
       end
-      if smaller
+
+      if in_lower_half
         high = mid
       else
         low = mid + 1
       end
     end
-    return nil if low == self.size
-    return nil unless satisfied
-    self[low]
+
+    satisfied ? low : nil
   end
 
   ##
@@ -640,7 +667,7 @@ class Array
   #     scores.delete_if {|score| score < 80 }   #=> [97]
 
   def delete_if(&block)
-    return to_enum :delete_if unless block_given?
+    return to_enum :delete_if unless block
 
     idx = 0
     while idx < self.size do
@@ -669,7 +696,7 @@ class Array
   #     a.keep_if { |val| val > 3 } #=> [4, 5]
 
   def keep_if(&block)
-    return to_enum :keep_if unless block_given?
+    return to_enum :keep_if unless block
 
     idx = 0
     len = self.size
@@ -698,7 +725,7 @@ class Array
   #  If no block is given, an Enumerator is returned instead.
 
   def select!(&block)
-    return to_enum :select! unless block_given?
+    return to_enum :select! unless block
 
     result = []
     self.each do |x|
