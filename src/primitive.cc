@@ -477,9 +477,15 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
   if(iinfo->regplace == MRBJIT_REG_IMMIDATE &&
      iinfo->type == MRB_TT_FIXNUM) {
     mrb_int idx = mrb_fixnum(iinfo->value);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
-    movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
-    emit_local_var_write(mrb, coi, aryno, reg_dtmp0);
+
+    
+    if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
+    }
+    else {
+      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+      movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
+      emit_local_var_write(mrb, coi, aryno, reg_dtmp0);
+    }
   }
   else {
     emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
@@ -540,7 +546,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   inLocalLabel();
   gen_type_guard(mrb, idxno, status, pc, coi);
   gen_flush_regs(mrb, pc, status, coi, 1);
-#if 1
+#if 0
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
   test(reg_tmp0s, reg_tmp0s);
@@ -667,13 +673,19 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
     /* read flags */
     emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+    and(reg_tmp0s, MRB_ARY_EMBED_MASK);
+    jnz("@f");
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
+    inc(reg_tmp0s);
+    L("@@");
+    dec(reg_tmp0s);
   }
   else {
-    emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
   }
-  emit_local_var_value_write(mrb, coi, regno, reg_tmp1s);
-  emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);
-  emit_local_var_type_write(mrb, coi, regno, reg_tmp1s);
+  emit_local_var_value_write(mrb, coi, regno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FIXNUM);
+  emit_local_var_type_write(mrb, coi, regno, reg_tmp0s);
   
   return mrb_true_value();
 }
