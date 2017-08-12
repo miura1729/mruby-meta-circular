@@ -460,7 +460,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     enum mrb_vtype tt;
     mrb_value v = (mrb->c->stack)[regpos];
     mrbjit_reginfo *rinfo = &coi->reginfo[regpos];
+    const void *exitpos = NULL;
 
+    inLocalLabel();
     tt = (enum mrb_vtype)mrb_type(v);
 
     if (rinfo->regplace > MRBJIT_REG_VMREG0) {
@@ -488,6 +490,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
 
       /* Guard fail exit code */
+      exitpos = getCurr();
+      L(".exitpos");
       gen_exit(mrb, pc, 2, 0, status, coi);
 
       L("@@");
@@ -498,9 +502,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     case MRB_TT_FALSE:
       emit_local_var_value_read(mrb, coi, reg_tmp0s, regpos);
       emit_cmp(mrb, coi, reg_tmp0s, (cpu_word_t)v.value.i);
-      jz("@f", T_NEAR);
       /* Guard fail exit code */
-      gen_exit(mrb, pc, 2, 0, status, coi);
+      if (exitpos)  {
+	jnz(".exitpos");
+      }
+      else {
+	jz("@f", T_NEAR);
+	gen_exit(mrb, pc, 2, 0, status, coi);
+      }
 
       L("@@");
       break;
@@ -531,14 +540,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, regpos);
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RBasic, c));
 	emit_cmp(mrb, coi, reg_tmp0, (cpu_word_t)c);
-	jz("@f", T_NEAR);
 	/* Guard fail exit code */
-	gen_exit(mrb, pc, rc, 0, status, coi);
+	if (exitpos)  {
+	  jnz(".exitpos");
+	}
+	else {
+	  jz("@f", T_NEAR);
+	  gen_exit(mrb, pc, 2, 0, status, coi);
+	}
 
 	L("@@");
       }
       break;
     }
+    outLocalLabel();
   }
   
   void
