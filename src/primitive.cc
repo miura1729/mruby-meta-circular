@@ -654,6 +654,7 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
+  mrb_value *regs = mrb->c->stack;
 
   // No support 1 args only no args.
   if (nargs > 0) {
@@ -663,7 +664,13 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   gen_flush_regs(mrb, pc, status, coi, 1);
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
-  emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
+  if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
+    /* read flags */
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+  }
+  else {
+    emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
+  }
   emit_local_var_value_write(mrb, coi, regno, reg_tmp1s);
   emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_FIXNUM);
   emit_local_var_type_write(mrb, coi, regno, reg_tmp1s);
