@@ -26,12 +26,12 @@ struct RArray {
   MRB_OBJECT_HEADER;
   union {
     struct {
+      mrb_value *ptr;
       mrb_int len;
       union {
         mrb_int capa;
         mrb_shared_array *shared;
       } aux;
-      mrb_value *ptr;
     } heap;
     mrb_value embed[MRB_ARY_EMBED_LEN_MAX];
   } as;

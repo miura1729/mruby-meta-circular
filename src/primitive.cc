@@ -440,6 +440,23 @@ mrbjit_prim_obj_not_equal_m(mrb_state *mrb, mrb_value proc, void *status, void *
   return code->mrbjit_prim_obj_not_equal_m_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+/* Generate get Array ptr
+   in
+   reg_tmp1 <- RArray*
+   out
+   reg_tmp1 <- array ptr 
+   destroy reg_tmp0  */
+void
+MRBJitCode::gen_ary_ptr(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  /* read embed flag in flags */
+  emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+  lea(reg_tmp1, ptr [reg_tmp1 + OffsetOf(struct RArray, as.heap.ptr)]);
+  shr(reg_tmp0s, 11);
+  and(reg_tmp0s, MRB_ARY_EMBED_MASK);
+  cmovz(reg_tmp1, ptr [reg_tmp1]);
+}
+
 mrb_value
 MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
@@ -480,12 +497,13 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 
     
     if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
+      gen_ary_ptr(mrb, status, coi);
     }
     else {
       emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
-      movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
-      emit_local_var_write(mrb, coi, aryno, reg_dtmp0);
     }
+    movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
+    emit_local_var_write(mrb, coi, aryno, reg_dtmp0);
   }
   else {
     emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
@@ -496,7 +514,14 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
     L(".normal");
     emit_cmp(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
     jge(".retnil");
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+    if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
+      emit_push(mrb, coi, reg_tmp0);
+      gen_ary_ptr(mrb, status, coi);
+      emit_pop(mrb, coi, reg_tmp0);
+    }
+    else {
+      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+    }
     test(reg_tmp1, reg_tmp1);
     jz(".retnil");
     movsd(reg_dtmp0, ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)]);
@@ -546,7 +571,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   inLocalLabel();
   gen_type_guard(mrb, idxno, status, pc, coi);
   gen_flush_regs(mrb, pc, status, coi, 1);
-#if 0
+#if 1
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   emit_local_var_value_read(mrb, coi, reg_tmp0s, idxno);
   test(reg_tmp0s, reg_tmp0s);
@@ -558,7 +583,14 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   jge(".retnil");
 
   emit_local_var_read(mrb, coi, reg_dtmp0, valno);
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+  if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
+    emit_push(mrb, coi, reg_tmp0);
+    gen_ary_ptr(mrb, status, coi);
+    emit_pop(mrb, coi, reg_tmp0);
+  }
+  else {
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+  }
   movsd(ptr [reg_tmp1 + reg_tmp0 * sizeof(mrb_value)], reg_dtmp0);
   emit_local_var_write(mrb, coi, regno, reg_dtmp0);
 
@@ -637,7 +669,12 @@ MRBJitCode::mrbjit_prim_ary_first_impl(mrb_state *mrb, mrb_value proc,
   gen_flush_regs(mrb, pc, status, coi, 1);
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
-  emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+  if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
+    gen_ary_ptr(mrb, status, coi);
+  }
+  else {
+    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+  }
   emit_move(mrb, coi, reg_dtmp0, reg_tmp1, 0);
   emit_local_var_write(mrb, coi, regno, reg_dtmp0);
   
@@ -673,6 +710,7 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   if (ARY_EMBED_P(mrb_ary_ptr(regs[regno]))) {
     /* read flags */
     emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+    shr(reg_tmp0s, 11);
     and(reg_tmp0s, MRB_ARY_EMBED_MASK);
     jnz("@f");
     emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));

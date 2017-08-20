@@ -1602,9 +1602,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
-    /*    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
+    if (gen_send_primitive(mrb, c, mid, m, status, coi)) {
       return code;
-      }*/
+    }
 
     gen_flush_regs(mrb, pc, status, coi, 1);
 
@@ -3190,6 +3190,7 @@ do {                                                                 \
   mrb_value 
     mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 				     mrbjit_vmstatus *status, mrbjit_code_info *coi);
+  void gen_ary_ptr(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
   mrb_value 
     mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);
