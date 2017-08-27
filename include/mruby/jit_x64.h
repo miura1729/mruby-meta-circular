@@ -35,6 +35,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg32 reg_tmp1s;	/* edx (32bit version)*/
   Xbyak::Xmm reg_dtmp0;		/* xmm0 */
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
+  Xbyak::Xmm xmmtab[8];
 
   MRBGenericCodeGenerator() 
     :CodeGenerator(1024 * 1024 * 40)
@@ -61,6 +62,14 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     argpos2reg[3] = rcx;
     argpos2reg[4] = r8;
     argpos2reg[5] = r9;
+    xmmtab[0] = xmm0;
+    xmmtab[1] = xmm1;
+    xmmtab[2] = xmm2;
+    xmmtab[3] = xmm3;
+    xmmtab[4] = xmm4;
+    xmmtab[5] = xmm5;
+    xmmtab[6] = xmm6;
+    xmmtab[7] = xmm7;
   }
   
   void
@@ -74,12 +83,28 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     dinfo->unboxedp = 0;
   }
 
+  void
+    gen_flush_xmm(mrb_state *mrb, mrbjit_code_info *coi, const cpu_word_t dstno) 
+  {
+    mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
+
+    movsd(ptr [reg_regs + dstno * sizeof(mrb_value)],
+	  xmmtab[dinfo->regplace - MRBJIT_REG_XMM0]);
+    dinfo->constp = 1;
+    dinfo->unboxedp = 0;
+  }
+
 #define DEREF_REGNO(regno)                                           \
   ({								     \
     mrbjit_reginfo *rinfo = &coi->reginfo[regno];                    \
     if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {		     \
       gen_flush_literal(mrb, coi, regno);			     \
       rinfo->regplace = MRBJIT_REG_MEMORY;	                     \
+    }                                                                \
+    if (MRBJIT_REG_XMM1 <= rinfo->regplace &&                        \
+        rinfo->regplace <= MRBJIT_REG_XMM7) {                        \
+      movsd(ptr [reg_regs + regno * sizeof(mrb_value)],              \
+	    xmmtab[rinfo->regplace - MRBJIT_REG_XMM0]);		     \
     }                                                                \
     if (rinfo->regplace == MRBJIT_REG_AL) {                          \
       emit_bool_boxing(mrb, coi, reg_itmps);                         \
@@ -88,7 +113,6 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }                                                                \
     (rinfo->regplace >= MRBJIT_REG_VMREG0) ? rinfo->regplace - MRBJIT_REG_VMREG0 : regno; \
   })
-
 
   void emit_local_var_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, int regno)
   {
