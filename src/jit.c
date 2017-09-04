@@ -481,8 +481,8 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	    }
 	    p->flags = proc->flags;
 	    p->body.irep->refcnt++;
-	    p->target_class = proc->target_class;
 	    p->env = proc->env;
+	    p->target_class = proc->target_class;
 	    (*status->irep)->pool[ipos] = mrb_fixnum_value(((intptr_t)cirep - (intptr_t)mrb));
 	    mrb->c->ci->proc = proc = p;
 	    *status->irep = cirep;

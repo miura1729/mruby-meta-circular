@@ -872,6 +872,39 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     return dstno;
   }
 
+  /* Generate get Array ptr
+     in
+     reg_tmp1 <- RArray*
+     out
+     reg_tmp1 <- array ptr 
+     destroy reg_tmp0  */
+  void
+    gen_ary_ptr(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    /* read embed flag in flags */
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+    lea(reg_tmp1, ptr [reg_tmp1 + OffsetOf(struct RArray, as.embed)]);
+    shr(reg_tmp0s, 11);
+    and(reg_tmp0s, (uint32_t)MRB_ARY_EMBED_MASK);
+    cmovz(reg_tmp1, ptr [reg_tmp1]);
+  }
+
+  /* Generate get Array ptr
+     in
+     reg_tmp1 <- RArray*
+     out
+     reg_tmp0s <- array s */
+  void
+    gen_ary_size(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    /* read embed flag in flags */
+    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+    shr(reg_tmp0s, 11);
+    and(reg_tmp0s, (uint32_t)MRB_ARY_EMBED_MASK);
+    dec(reg_tmp0s);
+    cmovs(reg_tmp0s, ptr [reg_tmp1 + OffsetOf(struct RArray, as.heap.len)]);
+  }
+
   const void *
     ent_nop(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
@@ -2740,10 +2773,10 @@ do {                                                                 \
     }
 
     emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, srcno);
-    emit_move(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
+    gen_ary_size(mrb, status, coi);
     emit_cmp(mrb, coi, reg_tmp0s, idx);
     jle("@f");
-    emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RArray, as.heap.ptr));
+    gen_ary_ptr(mrb, status, coi);
     movsd(reg_dtmp0, ptr [reg_tmp1 + idx * sizeof(mrb_value)]);
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
 
@@ -3190,8 +3223,6 @@ do {                                                                 \
   mrb_value 
     mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 				     mrbjit_vmstatus *status, mrbjit_code_info *coi);
-  void gen_ary_ptr(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
-  void gen_ary_size(mrb_state *, mrbjit_vmstatus *, mrbjit_code_info *);
   mrb_value 
     mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 			      mrbjit_vmstatus *status, mrbjit_code_info *coi);

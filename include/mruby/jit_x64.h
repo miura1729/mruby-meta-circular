@@ -373,6 +373,17 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     pop(reg);
   }
 
+
+  void emit_push(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 reg)
+  {
+    push(reg);
+  }
+
+  void emit_pop(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 reg)
+  {
+    pop(reg);
+  }
+
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, Xbyak::Reg64 base, cpu_word_t offset) {
     if (offset == 0) {
       mov(dst, ptr [base]);
