@@ -303,9 +303,9 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->ent_arycat(mrb, status, coi, regs);
     break;
     
-    /*  case OP_AREF:
+  case OP_AREF:
     rc =code->ent_aref(mrb, status, coi, regs);
-    break;*/
+    break;
 
   case OP_GETUPVAR:
     rc =code->ent_getupvar(mrb, status, coi);
