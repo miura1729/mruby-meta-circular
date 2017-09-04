@@ -440,39 +440,6 @@ mrbjit_prim_obj_not_equal_m(mrb_state *mrb, mrb_value proc, void *status, void *
   return code->mrbjit_prim_obj_not_equal_m_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
-/* Generate get Array ptr
-   in
-   reg_tmp1 <- RArray*
-   out
-   reg_tmp1 <- array ptr 
-   destroy reg_tmp0  */
-void
-MRBJitCode::gen_ary_ptr(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
-{
-  /* read embed flag in flags */
-  emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
-  lea(reg_tmp1, ptr [reg_tmp1 + OffsetOf(struct RArray, as.embed)]);
-  shr(reg_tmp0s, 11);
-  and(reg_tmp0s, (uint32_t)MRB_ARY_EMBED_MASK);
-  cmovz(reg_tmp1, ptr [reg_tmp1]);
-}
-
-/* Generate get Array ptr
-   in
-   reg_tmp1 <- RArray*
-   out
-   reg_tmp0s <- array s */
-void
-MRBJitCode::gen_ary_size(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
-{
-  /* read embed flag in flags */
-  emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
-  shr(reg_tmp0s, 11);
-  and(reg_tmp0s, (uint32_t)MRB_ARY_EMBED_MASK);
-  dec(reg_tmp0s);
-  cmovs(reg_tmp0s, ptr [reg_tmp1 + OffsetOf(struct RArray, as.heap.len)]);
-}
-
 mrb_value
 MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
 				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
