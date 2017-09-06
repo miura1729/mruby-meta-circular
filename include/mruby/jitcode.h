@@ -1174,6 +1174,45 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   const void *
+    ent_getiv2(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    const void *code = getCurr();
+    mrb_code **ppc = status->pc;
+    const int idpos = GETARG_Bx(**ppc);
+    mrb_irep *irep = *status->irep;
+    mrb_sym id = irep->syms[idpos];
+    const cpu_word_t dstno = GETARG_A(**ppc);
+    mrb_value self = mrb->c->stack[dstno];
+    const int ivoff = mrbjit_iv_off(mrb, self, id);
+    mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
+    dinfo->type = MRB_TT_FREE;
+    dinfo->klass = NULL;
+    dinfo->constp = 0;
+    dinfo->unboxedp = 0;
+
+    if (ivoff < 0) {
+      return NULL;
+    }
+
+    gen_flush_regs(mrb, *status->pc, status, coi, 1);
+    /* You can not change class of self in Ruby */
+    if (mrb_type(self) == MRB_TT_OBJECT) {
+      emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, dstno);
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0,  OffsetOf(struct RObject, ivent.rootseg));
+      movsd(reg_dtmp0, ptr [reg_tmp0 + ivoff * sizeof(mrb_value)]);
+    }
+    else {
+      emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, dstno);
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct RObject, iv));
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0, 0);
+      emit_move(mrb, coi, reg_dtmp0, reg_tmp0, ivoff * sizeof(mrb_value));
+    }
+    emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
+
+    return code;
+  }
+
+  const void *
     ent_setiv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     const void *code = getCurr();

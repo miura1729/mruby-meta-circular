@@ -200,6 +200,10 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     rc =code->ent_getiv(mrb, status, coi);
     break;
 
+  case OP_GETIV2:
+    rc =code->ent_getiv2(mrb, status, coi);
+    break;
+
   case OP_SETIV:
     rc =code->ent_setiv(mrb, status, coi);
     break;

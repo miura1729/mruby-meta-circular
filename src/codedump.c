@@ -556,8 +556,19 @@ disasm_once(mrb_state *mrb, mrb_irep *irep, mrb_code c)
 	   mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
     print_lv(mrb, irep, c, RA);
     break;
+  case OP_GETIV2:
+    printf("OP_GETIV2\tR%d\t%s", GETARG_A(c),
+	   mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]));
+    print_lv(mrb, irep, c, RA);
+    break;
   case OP_SETIV:
     printf("OP_SETIV\t%s\tR%d",
+	   mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
+	   GETARG_A(c));
+    print_lv(mrb, irep, c, RA);
+    break;
+  case OP_SETIV2:
+    printf("OP_SETIV2\t%s\tR%d",
 	   mrb_sym2name(mrb, irep->syms[GETARG_Bx(c)]),
 	   GETARG_A(c));
     print_lv(mrb, irep, c, RA);
