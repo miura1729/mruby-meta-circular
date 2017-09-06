@@ -1997,11 +1997,28 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_GETIV2) {
+      /* A Bx   R(A) := ivget(Bx) of R(A) */
+      int a = GETARG_A(i);
+      int bx = GETARG_Bx(i);
+      mrb_value val = mrb_iv_get(mrb, regs[a], syms[bx]);
+      regs[a] = val;
+      NEXT;
+    }
+
     CASE(OP_SETIV) {
       /* A Bx   ivset(Syms(Bx),R(A)) */
       int a = GETARG_A(i);
       int bx = GETARG_Bx(i);
       mrb_vm_iv_set(mrb, syms[bx], regs[a]);
+      NEXT;
+    }
+
+    CASE(OP_SETIV2) {
+      /* A Bx   ivset(Syms(Bx),R(A)) of R(A) */
+      int a = GETARG_A(i);
+      int bx = GETARG_Bx(i);
+      mrb_iv_set(mrb, regs[a], syms[bx], regs[a]);
       NEXT;
     }
 

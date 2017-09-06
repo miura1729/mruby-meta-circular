@@ -70,7 +70,9 @@ enum {
   OP_GETSPECIAL,/*A Bx    R(A) := Special[Bx]                             */
   OP_SETSPECIAL,/*A Bx    Special[Bx] := R(A)                             */
   OP_GETIV,/*     A Bx    R(A) := ivget(Syms(Bx))                         */
+  OP_GETIV2,/*    A Bx    R(A) := ivget(Syms(Bx)) of R(A)                 */
   OP_SETIV,/*     A Bx    ivset(Syms(Bx),R(A))                            */
+  OP_SETIV2,/*    A Bx    ivset(Syms(Bx),R(A)) of R(A)                    */
   OP_GETCV,/*     A Bx    R(A) := cvget(Syms(Bx))                         */
   OP_SETCV,/*     A Bx    cvset(Syms(Bx),R(A))                            */
   OP_GETCONST,/*  A Bx    R(A) := constget(Syms(Bx))                      */
