@@ -929,10 +929,9 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
 }
 
 void
-mrbjit_reset_proc(mrb_state *mrb, mrbjit_vmstatus *status, struct RProc *p)
+mrbjit_reset_irep(mrb_state *mrb, mrbjit_vmstatus *status, mrb_irep *irep)
 {
   /* Disable JIT output code for redefined method */
-  mrb_irep *irep = p->body.irep;
   mrbjit_codetab *tab = irep->jit_entry_tab;
   mrbjit_code_info *entry;
   int i;
