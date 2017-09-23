@@ -1,3 +1,7 @@
+class Range
+  include Inline
+#  make_inline_method  :all?
+end
 
 def is_prime? n
   (2...n).all? { |i| n % i != 0 }
