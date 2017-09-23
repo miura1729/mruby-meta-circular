@@ -865,7 +865,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	dstno = GETARG_A(ncode);
 	rinfo->regplace = (enum mrbjit_regplace)(dstno + MRBJIT_REG_VMREG0);
 
-	//mrb->compile_info.ignor_inst_cnt = 1;
+	mrb->compile_info.ignor_inst_cnt = 2;
       }
     }
 
@@ -922,19 +922,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *sinfo = &coi->reginfo[GETARG_B(**ppc)];
     mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(**ppc)];
 
-    if (sinfo->regplace == MRBJIT_REG_IMMIDATE ||
-	(sinfo->regplace >= MRBJIT_REG_VMREG0 &&
-	 sinfo->regplace < MRBJIT_REG_VMREGMAX)) {
-      *dinfo = *sinfo;
-    }
     if (srcno < MRBJIT_REG_VMREGMAX - MRBJIT_REG_VMREG0 &&
 	srcno < dstno && dstno > (*status->irep)->nlocals) {
+      if (sinfo->regplace == MRBJIT_REG_IMMIDATE ||
+	  (sinfo->regplace >= MRBJIT_REG_VMREG0 &&
+	   sinfo->regplace < MRBJIT_REG_VMREGMAX)) {
+	*dinfo = *sinfo;
+      }
       /* Arg pram. set */
       dinfo->regplace = (enum mrbjit_regplace)(srcno + MRBJIT_REG_VMREG0);
     }
     else {
       if (coi && coi->reginfo) {
-	gen_flush_one(mrb, status, coi, GETARG_B(**ppc));
+	gen_flush_one(mrb, status, coi, srcno);
       }
       sinfo->regplace = MRBJIT_REG_MEMORY;
       sinfo->unboxedp = 0;
@@ -2314,6 +2314,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo = &coi->reginfo[dstno];					\
       dinfo->unboxedp = 0;                                              \
       emit_local_var_write(mrb, coi, dstno, reg_dtmp0);			\
+      dinfo->regplace = MRBJIT_REG_MEMORY;				\
       dinfo->type = MRB_TT_FLOAT;                                       \
       dinfo->klass = mrb->float_class;                                  \
     }                                                                   \
