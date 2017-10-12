@@ -15,7 +15,6 @@
 
 extern "C" {
 #include "mruby.h"
-#include "opcode.h"
 
 #include "mruby/irep.h"
 #include "mruby/value.h"
@@ -27,6 +26,7 @@ extern "C" {
 #include "mruby/hash.h"
 #include "mruby/class.h"
 #include "mruby/jit.h"
+#include <mruby/opcode.h>
 
 void *mrbjit_exec_send_c(mrb_state *, mrbjit_vmstatus *, 
 		      struct RProc *, struct RClass *);
@@ -1031,7 +1031,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int a = GETARG_A(**ppc);
     const cpu_word_t dstno = a;
     mrbjit_reginfo *dinfo = &coi->reginfo[a];
-    mrb_value self = mrb->c->stack[0];
 
     *dinfo = coi->reginfo[0];
 
@@ -1629,9 +1628,16 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     ent_send(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     mrb_code *pc = *status->pc;
+
+    return ent_send2(mrb, status, coi, *pc);
+  }
+
+  const void *
+    ent_send2(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, mrb_code i)
+  {
+    mrb_code *pc = *status->pc;
     mrb_value *regs = mrb->c->stack;
     mrb_sym *syms = *status->syms;
-    int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
     struct RProc *m;
@@ -1851,7 +1857,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *selfinfo = &coi->reginfo[0];
     mrb_code *pc = *status->pc;
     mrb_value *regs = mrb->c->stack;
-    int i;
 
     if (irep->block_lambda) {
       cpu_word_t room;
@@ -2442,7 +2447,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       dinfo->klass = mrb->float_class;  				\
     }                                                                   \
     else {                                                              \
-      gen_exit(mrb, *ppc, 1, 0, status, coi);				\
+      dstno = regno + 1;						\
+      emit_load_literal(mrb, coi, reg_tmp0s, y);			\
+      emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);		\
+      emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FIXNUM); \
+      emit_local_var_type_write(mrb, coi, dstno, reg_tmp0s);		\
+      return ent_send2(mrb, status, coi, MKOP_ABC(OP_SEND, regno, GETARG_B(**ppc), 1)); \
     }                                                                   \
 } while(0)
     

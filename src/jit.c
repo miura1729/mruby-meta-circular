@@ -929,6 +929,23 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
 }
 
 void
+mrbjit_reset_irep_mild(mrb_state *mrb, mrbjit_vmstatus *status, mrb_irep *irep)
+{
+  /* Disable JIT output code for redefined method */
+  mrbjit_codetab *tab = irep->jit_entry_tab;
+  mrbjit_code_info *entry;
+  int i;
+
+  for (i = 0; i < tab->size; i++) {
+    entry = tab->body + i;
+    if (entry->used > 0) {
+      mrbjit_code_area cbase = mrb->compile_info.code_base;
+      mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+    }
+  }
+}
+
+void
 mrbjit_reset_irep(mrb_state *mrb, mrbjit_vmstatus *status, mrb_irep *irep)
 {
   /* Disable JIT output code for redefined method */

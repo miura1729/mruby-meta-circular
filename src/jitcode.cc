@@ -117,6 +117,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_value *regs = mrb->c->stack;
   mrb_code **ppc = status->pc;
   mrb_irep *irep = *status->irep;
+  const void *org;
   const void *rc;
   const void *rc2 = NULL;
   const void *entry;
@@ -127,6 +128,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     mrb->compile_info.code_base = code;
   }
 
+  org = code->getCurr();
   if (mrb->compile_info.ignor_inst_cnt > 0) {
     return code->ent_nop(mrb, status, coi);
   }
@@ -381,7 +383,9 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   if (rc2) {
     if (rc == NULL) {
-      code->gen_exit(mrb, *ppc, 1, 0, status, coi);
+      size_t orgoff = ((unsigned char *)org) - code->getCode();
+      code->setSize(orgoff);
+      return NULL;
     }
     return rc2;
   }
