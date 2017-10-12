@@ -43,6 +43,7 @@ extern void mrbjit_gen_exit_patch2(mrbjit_code_area, mrb_state *, void *, mrb_co
 mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *, uint16_t);
 
 void disp_type(mrb_state *, mrbjit_reginfo *rinfo);
+void mrbjit_reset_irep_mild(mrb_state *, mrbjit_vmstatus *, struct mrb_irep *);
 void mrbjit_reset_irep(mrb_state *, mrbjit_vmstatus *, struct mrb_irep *);
 void mrbjit_reset_caller();
 mrb_value mrbjit_instance_alloc(mrb_state *, mrb_value);

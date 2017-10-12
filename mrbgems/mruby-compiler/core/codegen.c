@@ -2963,7 +2963,7 @@ mrbjit_make_jit_entry_tab(mrb_state *mrb, mrb_irep *irep, int ilen)
 {
   int i;
 
-  irep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, ilen, sizeof(mrbjit_codetab));
+  irep->jit_entry_tab = (mrbjit_codetab *)mrb_malloc(mrb, ilen * sizeof(mrbjit_codetab));
   for (i = 0; i < ilen; i++) {
     irep->jit_entry_tab[i].size = 2;
     irep->jit_entry_tab[i].body = 
