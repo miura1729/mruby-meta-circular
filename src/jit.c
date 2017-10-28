@@ -993,13 +993,21 @@ mrbjit_reset_caller_aux(mrb_state *mrb, mrbjit_vmstatus *status)
       }
     }
   }
-  for (j = 0; j < irep->ilen; j++) {
-    for (i = 0; i < tab[j].size; i++) {
-      entry = tab[j].body + i;
-      entry->entry = NULL;
-      entry->used = -1;
+  if (irep->jit_entry_tab) {
+    int i;
+    int j;
+
+    for (i = 0; i < irep->ilen; i++) {
+      for (j = 0; j < irep->jit_entry_tab[i].size; j++) {
+	if (irep->jit_entry_tab[i].body[j].reginfo) {
+	  mrb_free(mrb, irep->jit_entry_tab[i].body[j].reginfo);
+	}
+      }
     }
+    mrb_free(mrb, irep->jit_entry_tab->body);
+    mrb_free(mrb, irep->jit_entry_tab);
   }
+  irep->jit_entry_tab = NULL;
 }
 
 void
