@@ -1716,7 +1716,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
  skip:
 
   /* This cause infinit loop in make test */
-  if (prev_entry && ci && ci->used > 0) {
+  if (prev_entry && ci && ci->used > 0 && prev_entry != ci->entry) {
     cbase = mrb->compile_info.code_base;
     mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
   }
@@ -1732,6 +1732,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       ci->patch_pos = NULL;
     }
     mrb->c->ci->prev_tentry_offset = ci - (irep->jit_entry_tab + ISEQ_OFFSET_OF(*ppc))->body;
+    assert(mrb->c->ci->prev_tentry_offset >= 0);
   }
   else {
     mrb->c->ci->prev_tentry_offset = -1;
