@@ -121,6 +121,13 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   int bidx;
   mrb_value blk;
 
+  /* from OP_ADDI, OP_SUBI */
+  switch (GET_OPCODE(i)) {
+  case OP_ADDI:
+  case OP_SUBI:
+    n = 1;
+  }
+
   recv = regs[a];
   if (n == CALL_MAXARGS) {
     bidx = a+2;
