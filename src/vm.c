@@ -1209,6 +1209,7 @@ mrbjit_arth_overflow(mrb_state *mrb, mrb_irep *irep, mrbjit_code_area cbase, mrb
       }
     }
   }
+  irep->entry = NULL;
 }
 
 extern void disasm_once(mrb_state *, mrb_irep *, mrb_code);

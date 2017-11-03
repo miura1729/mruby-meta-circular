@@ -1862,12 +1862,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       cpu_word_t room;
       int keep;
       cpu_word_t nlocal;
-      
+
       inLocalLabel();
       emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
-      emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)irep);
-      emit_cmp(mrb, coi, reg_tmp0, reg_tmp1);
-      jz(".gend");
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, entry));
+      test(reg_tmp0, reg_tmp0);
+      jnz(".gend");
 
       gen_flush_regs(mrb, *status->pc, status, coi, 1);
 
@@ -1876,11 +1876,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, iseq));
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);
       emit_load_literal(mrb, coi, reg_tmp0, 5); /* block guard fail */
-      emit_load_label(mrb, coi, reg_tmp1, ".exitlab");
+      emit_load_literal(mrb, coi, reg_tmp1, 0);
       ret();
 
       L(".gend");
       outLocalLabel();
+
+      emit_jmp(mrb, coi, reg_tmp0);
+      irep->entry = getCurr();
 
       if (mrb->compile_info.force_compile) {
 	keep = mrb->c->ci->argc;
@@ -1908,6 +1911,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
       }
     }
+
 #if 0
     if (GET_OPCODE(*pc) != OP_ENTER ||
 	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&

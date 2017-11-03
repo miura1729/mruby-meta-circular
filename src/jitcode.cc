@@ -136,7 +136,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     return code->ent_nop(mrb, status, coi);
   }
     
-  if ((*status->irep)->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
+  if (irep->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
     /* Top of iseq */
     rc2 = code->ent_block_guard(mrb, status, coi);
     mrb->compile_info.force_compile = 0;
@@ -381,6 +381,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
 
   if (rc == NULL) {
     /* delete fetch hook */
+    irep->entry = NULL;
     code->set_entry(entry);
   }
 

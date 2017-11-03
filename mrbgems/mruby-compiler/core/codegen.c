@@ -3019,6 +3019,7 @@ scope_finish(codegen_scope *s)
   irep->block_lambda = 0;
   irep->may_overflow = 0;
   irep->proc_obj = NULL;
+  irep->entry = NULL;
 
   mrb_gc_arena_restore(mrb, s->ai);
   mrb_pool_close(s->mpool);

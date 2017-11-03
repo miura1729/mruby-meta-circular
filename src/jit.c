@@ -961,6 +961,7 @@ mrbjit_reset_irep(mrb_state *mrb, mrbjit_vmstatus *status, mrb_irep *irep)
   mrbjit_code_info *entry;
   int i;
 
+  irep->entry = NULL;
   for (i = 0; i < tab->size; i++) {
     entry = tab->body + i;
     if (entry->used > 0) {
@@ -981,18 +982,21 @@ mrbjit_reset_caller_aux(mrb_state *mrb, mrbjit_vmstatus *status)
   int i;
   int j;
 
-  for (i = 0; i < tab->size; i++) {
-    entry = tab->body + i;
-    if (entry->used > 0) {
-      mrbjit_code_area cbase = mrb->compile_info.code_base;
-      if (irep->block_lambda) {
-	mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, NULL, status, NULL);
-      }
-      else {
-	mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+  if (tab) {
+    for (i = 0; i < tab->size; i++) {
+      entry = tab->body + i;
+      if (entry->used > 0) {
+	mrbjit_code_area cbase = mrb->compile_info.code_base;
+	if (irep->block_lambda) {
+	  mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, NULL, status, NULL);
+	}
+	else {
+	  mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+	}
       }
     }
   }
+  irep->entry = NULL;
   if (irep->jit_entry_tab) {
     int i;
     int j;
@@ -1006,8 +1010,8 @@ mrbjit_reset_caller_aux(mrb_state *mrb, mrbjit_vmstatus *status)
     }
     mrb_free(mrb, irep->jit_entry_tab->body);
     mrb_free(mrb, irep->jit_entry_tab);
+    irep->jit_entry_tab = NULL;
   }
-  irep->jit_entry_tab = NULL;
 }
 
 void
