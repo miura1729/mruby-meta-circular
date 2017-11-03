@@ -357,7 +357,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
     setSize(dstsize);
     emit_call(mrb, coi, (void *)mrbjit_reset_caller);
-    gen_exit(mrb, pc, 1, 0, status, coi);
+    gen_exit(mrb, pc, 1, 1, status, coi);
     setSize(cursize);
   }
 
@@ -1872,9 +1872,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_flush_regs(mrb, *status->pc, status, coi, 1);
 
       L(".exitlab");
-      emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
+      /*      emit_vm_var_read(mrb, coi, reg_tmp0, VMSOffsetOf(irep));
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, iseq));
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);*/
       emit_load_literal(mrb, coi, reg_tmp0, 5); /* block guard fail */
       emit_load_literal(mrb, coi, reg_tmp1, 0);
       ret();

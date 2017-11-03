@@ -1684,6 +1684,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	//printf("patch %x %x \n", prev_entry, entry);
 	cbase = mrb->compile_info.code_base;
 	mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, entry, status, ci);
+	prev_entry = NULL;
       }
 
       if (entry && mrb->compile_info.ignor_inst_cnt == 0) {
