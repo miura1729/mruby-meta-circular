@@ -776,12 +776,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)(pc + 1));
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, pc), reg_tmp0);
 
-    if (is_block_call) {
-      /* Block call */
-      callee_nregs += mrb_proc_ptr(recv)->body.irep->nregs;
-      callee_nlocals += mrb_proc_ptr(recv)->body.irep->nlocals;
-    }
-    else {
+    if (!is_block_call) {
       /* normal call */
       emit_moves(mrb, coi, reg_context, OffsetOf(mrb_callinfo, nregs), (uint32_t)m->body.irep->nregs);
 
@@ -960,6 +955,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = mrb_class(mrb, val);
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
 
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)irep->pool + srcoff);
     movsd(reg_dtmp0, ptr [reg_tmp0]);
@@ -1014,6 +1010,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     dinfo->klass = mrb->symbol_class;
     dinfo->constp = 1;
     dinfo->unboxedp = 0;
+    dinfo->regplace = MRBJIT_REG_MEMORY;
 
     emit_load_literal(mrb, coi, reg_tmp0s, src);
     emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
@@ -1033,6 +1030,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *dinfo = &coi->reginfo[a];
 
     *dinfo = coi->reginfo[0];
+    dinfo->regplace = MRBJIT_REG_MEMORY;
 
     emit_local_var_read(mrb, coi, reg_dtmp0, 0); /* self */
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
@@ -1713,6 +1711,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	mrbjit_reginfo *rinfo = &coi->reginfo[a + j];
 
 	rinfo->unboxedp = 0;
+	dinfo->regplace = MRBJIT_REG_MEMORY;
 	rinfo->type = MRB_TT_FREE;
 	rinfo->klass = NULL;
 	rinfo->constp = 0;
@@ -1720,6 +1719,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       gen_send_mruby(mrb, m, mid, recv, c, status, pc, coi);
     }
 
+    dinfo->regplace = MRBJIT_REG_MEMORY;
     return code;
   }
 
@@ -1857,6 +1857,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     mrbjit_reginfo *selfinfo = &coi->reginfo[0];
     mrb_code *pc = *status->pc;
     mrb_value *regs = mrb->c->stack;
+    int i;
 
     if (irep->block_lambda) {
       cpu_word_t room;
@@ -1899,6 +1900,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
 
+#if 1
     if (GET_OPCODE(*pc) != OP_ENTER ||
 	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
 	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
@@ -1911,6 +1913,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
       }
     }
+#endif
 
 #if 0
     if (GET_OPCODE(*pc) != OP_ENTER ||
@@ -1939,22 +1942,25 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     const void *code = getCurr();
     mrb_code *pc = *status->pc;
     mrb_code ins = *pc;
+    mrb_value *regs = mrb->c->stack;
     /* Ax             arg setup according to flags (23=5:5:1:5:5:1:1) */
     /* number of optional arguments times OP_JMP should follow */
+    int argc = mrb->c->ci->argc;
     mrb_aspec ax = GETARG_Ax(ins);
     int m1 = MRB_ASPEC_REQ(ax);
     int o  = MRB_ASPEC_OPT(ax);
     int r  = MRB_ASPEC_REST(ax);
     int m2 = MRB_ASPEC_POST(ax);
+    int len = m1 + o + r + m2;
     /* unused
        int k  = (ax>>2)&0x1f;
        int kd = (ax>>1)&0x1;
        int b  = (ax>>0)& 0x1;
     */
 
-    if (mrb->c->ci->argc < 0 || (ax & ((1 << 18) - 1)) != 0 ||
-	m1 > mrb->c->ci->argc) {
-      int argc = mrb->c->ci->argc;
+    if (argc < 0 || (ax & ((1 << 18) - 1)) != 0 ||
+	len > mrb->c->ci->argc || r || m2 || o ||
+	(len > 1 && argc == 1 && mrb_array_p(regs[1]))) {
       mrb_code *npc = *status->pc + 1;
 
       if (argc-m1-o-m2 == 1 && argc >= 0) {
@@ -1985,7 +1991,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
     }
     else {
-      int len = m1 + o + r + m2;
       mrb_irep *irep = *status->irep;
 
       if ((int)(irep->nlocals-len-2) > 0) {
@@ -2005,7 +2010,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int can_use_fast = (c->ci != c->cibase &&
 			GETARG_B(i) == OP_R_NORMAL &&
 			(c->ci->env == 0 || 
-			 c->ci->proc->body.irep->shared_lambda == 1));
+			 c->ci->proc->body.irep->shared_lambda == 1) && 0);
     int can_inline = (can_use_fast &&
 		      (c->ci[-1].epos == c->eidx) && (c->ci[-1].acc >= 0));
 
