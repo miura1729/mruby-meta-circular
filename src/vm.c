@@ -911,7 +911,8 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
     c = 0;
     break;
   default:
-    cv = mrb_singleton_class(mrb, self);
+    //cv = mrb_singleton_class(mrb, self);
+    cv = self;
     c = mrb_class_ptr(cv);
     break;
   }
