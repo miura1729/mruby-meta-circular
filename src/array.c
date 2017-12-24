@@ -16,7 +16,7 @@
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
-#define ARY_MAX_SIZE ((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? (mrb_int)ARY_C_MAX_SIZE : MRB_INT_MAX-1)
+#define ARY_MAX_SIZE ((mrb_int)((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? ARY_C_MAX_SIZE : MRB_INT_MAX-1))
 
 static struct RArray*
 ary_new_capa(mrb_state *mrb, mrb_int capa)
@@ -31,8 +31,7 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
 
   a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
   if (capa <= MRB_ARY_EMBED_LEN_MAX) {
-    //ARY_SET_EMBED_FLAG(a);
-    ARY_SET_EMBED_LEN(a, 0); 
+    ARY_SET_EMBED_LEN(a, 0);
   }
   else {
     a->as.heap.ptr = (mrb_value *)mrb_malloc(mrb, blen);
@@ -467,12 +466,20 @@ static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
-  mrb_int len;
+  mrb_int len, len2, alen;
+  struct RArray *a;
 
-  mrb_get_args(mrb, "*!", &argv, &len);
-  while (len--) {
-    mrb_ary_push(mrb, self, *argv++);
+  mrb_get_args(mrb, "*!", &argv, &alen);
+  a = mrb_ary_ptr(self);
+  ary_modify(mrb, a);
+  len = ARY_LEN(a);
+  len2 = len + alen;
+  if (ARY_CAPA(a) < len2) {
+    ary_expand_capa(mrb, a, len2);
   }
+  array_copy(ARY_PTR(a)+len, argv, alen);
+  ARY_SET_LEN(a, len2);
+  mrb_write_barrier(mrb, (struct RBasic*)a);
 
   return self;
 }
@@ -565,6 +572,10 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_int alen, len;
 
   mrb_get_args(mrb, "*!", &vals, &alen);
+  if (alen == 0) {
+    ary_modify_check(mrb, a);
+    return self;
+  }
   len = ARY_LEN(a);
   if (alen > ARY_MAX_SIZE - len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
@@ -573,12 +584,11 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
       && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
       && a->as.heap.ptr - a->as.heap.aux.shared->ptr >= alen) /* there's room for unshifted item */ {
     ary_modify_check(mrb, a);
-    a->as.heap.ptr -= len;
+    a->as.heap.ptr -= alen;
     ptr = a->as.heap.ptr;
   }
   else {
     ary_modify(mrb, a);
-    if (alen == 0) return self;
     if (ARY_CAPA(a) < len + alen)
       ary_expand_capa(mrb, a, len + alen);
     ptr = ARY_PTR(a);
@@ -759,9 +769,11 @@ aget_index(mrb_state *mrb, mrb_value index)
   if (mrb_fixnum_p(index)) {
     return mrb_fixnum(index);
   }
+#ifndef MRB_WITHOUT_FLOAT
   else if (mrb_float_p(index)) {
     return (mrb_int)mrb_float(index);
   }
+#endif
   else {
     mrb_int i, argc;
     mrb_value *argv;
@@ -931,9 +943,10 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int size, alen = ARY_LEN(a);
 
-  if (mrb_get_args(mrb, "|i", &size) == 0) {
+  if (mrb_get_argc(mrb) == 0) {
     return (alen > 0)? ARY_PTR(a)[0]: mrb_nil_value();
   }
+  mrb_get_args(mrb, "|i", &size);
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
@@ -1050,7 +1063,6 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   else if (!ARY_EMBED_P(a)){
     mrb_free(mrb, a->as.heap.ptr);
   }
-  //  ARY_SET_EMBED_FLAG(a);
   ARY_SET_EMBED_LEN(a, 0);
 
   return self;
@@ -1076,7 +1088,10 @@ mrb_ary_entry2(struct mrb_state *mrb, mrb_value ary, mrb_int offset)
   if (offset < 0) {
     offset += RARRAY_LEN(ary);
   }
-  return ary_elt2(mrb, ary, offset);
+  if (offset < 0 || RARRAY_LEN(ary) <= offset) {
+    return mrb_nil_value();
+  }
+  return RARRAY_PTR(ary)[offset];
 }
 
 static mrb_value
@@ -1094,7 +1109,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
   mrb_ary_push(mrb, list, ary);
 
-  result = mrb_str_buf_new(mrb, 64);
+  result = mrb_str_new_capa(mrb, 64);
 
   for (i=0; i<RARRAY_LEN(ary); i++) {
     if (i > 0 && !mrb_nil_p(sep)) {

@@ -28,6 +28,8 @@ typedef struct iv_tbl {
   size_t last_len;
 } iv_tbl;
 
+/* flags bits >= 18 is reserved */
+#define MRB_FLAG_IS_FROZEN (1 << 18)
 #define MRB_FROZEN_P(o) ((o)->flags & MRB_FLAG_IS_FROZEN)
 #define MRB_SET_FROZEN_FLAG(o) ((o)->flags |= MRB_FLAG_IS_FROZEN)
 #define MRB_UNSET_FROZEN_FLAG(o) ((o)->flags &= ~MRB_FLAG_IS_FROZEN)

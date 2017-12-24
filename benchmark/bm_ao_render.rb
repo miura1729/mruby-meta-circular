@@ -75,7 +75,7 @@ class Vec
   def vnormalize
     len = vlength
     v = Vec.new(@x, @y, @z)
-    if len > 1.0e-17 then
+    if len > 1.0e-17
       v.x = v.x / len
       v.y = v.y / len
       v.z = v.z / len
@@ -100,10 +100,10 @@ class Sphere
     b = rs.vdot(ray.dir)
     c = rs.vdot(rs) - (@radius * @radius)
     d = b * b - c
-    if d > 0.0 then
+    if d > 0.0
       t = - b - Math.sqrt(d)
 
-      if t > 0.0 and t < isect.t then
+      if t > 0.0 and t < isect.t
         isect.t = t
         isect.hit = true
         isect.pl = Vec.new(ray.org.x + ray.dir.x * t,
@@ -126,16 +126,16 @@ class Plane
     d = -@p.vdot(@n)
     v = ray.dir.vdot(@n)
     v0 = v
-    if v < 0.0 then
+    if v < 0.0
       v0 = -v
     end
-    if v0 < 1.0e-17 then
+    if v0 < 1.0e-17
       return
     end
 
     t = -(ray.org.vdot(@n) + d) / v
 
-    if t > 0.0 and t < isect.t then
+    if t > 0.0 and t < isect.t
       isect.hit = true
       isect.t = t
       isect.n = @n
@@ -178,10 +178,10 @@ end
 
 def clamp(f)
   i = f * 255.5
-  if i > 255.0 then
+  if i > 255.0
     i = 255.0
   end
-  if i < 0.0 then
+  if i < 0.0
     i = 0.0
   end
   i.to_i
@@ -191,11 +191,11 @@ def otherBasis(basis, n)
   basis[2] = Vec.new(n.x, n.y, n.z)
   basis[1] = Vec.new(0.0, 0.0, 0.0)
 
-  if n.x < 0.6 and n.x > -0.6 then
+  if n.x < 0.6 and n.x > -0.6
     basis[1].x = 1.0
-  elsif n.y < 0.6 and n.y > -0.6 then
+  elsif n.y < 0.6 and n.y > -0.6
     basis[1].y = 1.0
-  elsif n.z < 0.6 and n.z > -0.6 then
+  elsif n.z < 0.6 and n.z > -0.6
     basis[1].z = 1.0
   else
     basis[1].x = 1.0
@@ -229,12 +229,19 @@ class Scene
     p0 = Vec.new(isect.pl.x + eps * isect.n.x,
                 isect.pl.y + eps * isect.n.y,
                 isect.pl.z + eps * isect.n.z)
+<<<<<<< HEAD
     nphi.times do |j|
       ntheta.times do |i|
 #        r = Rand::rand
         r = $rand.rand
 #        phi = 2.0 * 3.14159265 * Rand::rand
         phi = 2.0 * 3.14159265 * $rand.rand
+=======
+    nphi.times do
+      ntheta.times do
+        r = Rand::rand
+        phi = 2.0 * 3.14159265 * Rand::rand
+>>>>>>> FETCH_HEAD
         x = Math.cos(phi) * Math.sqrt(1.0 - r)
         y = Math.sin(phi) * Math.sqrt(1.0 - r)
         z = Math.sqrt(r)
@@ -251,7 +258,7 @@ class Scene
         @spheres[1].intersect(ray, occisect)
         @spheres[2].intersect(ray, occisect)
         @plane.intersect(ray, occisect)
-        if occisect.hit then
+        if occisect.hit
           occlusion = occlusion + 1.0
         else
           0.0
@@ -293,7 +300,7 @@ class Scene
             @spheres[1].intersect(ray, isect)
             @spheres[2].intersect(ray, isect)
             @plane.intersect(ray, isect)
-            if isect.hit then
+            if isect.hit
               col = ambient_occlusion(isect)
               rad.x = rad.x + col.x
               rad.y = rad.y + col.y

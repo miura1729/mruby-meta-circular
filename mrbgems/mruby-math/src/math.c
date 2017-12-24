@@ -487,7 +487,7 @@ static mrb_value
 math_log(mrb_state *mrb, mrb_value obj)
 {
   mrb_float x, base;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "f|f", &x, &base);
   if (x < 0.0) {
@@ -658,7 +658,7 @@ math_ldexp(mrb_state *mrb, mrb_value obj)
   mrb_int   i;
 
   mrb_get_args(mrb, "fi", &x, &i);
-  x = ldexp(x, i);
+  x = ldexp(x, (int)i);
 
   return mrb_float_value(mrb, x);
 }

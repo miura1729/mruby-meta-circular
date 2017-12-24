@@ -81,11 +81,7 @@ class Array
   #
   def uniq(&block)
     ary = self.dup
-    if block
-      ary.uniq!(&block)
-    else
-      ary.uniq!
-    end
+    ary.uniq!(&block)
     ary
   end
 
@@ -105,8 +101,19 @@ class Array
 
     hash = {}
     array = []
-    elem.each { |x| hash[x] = true }
-    self.each { |x| array << x unless hash[x] }
+    idx = 0
+    len = elem.size
+    while idx < len
+      hash[elem[idx]] = true
+      idx += 1
+    end
+    idx = 0
+    len = size
+    while idx < len
+      v = self[idx]
+      array << v unless hash[v]
+      idx += 1
+    end
     array
   end
 
@@ -141,12 +148,21 @@ class Array
 
     hash = {}
     array = []
-    elem.each{|v| hash[v] = true }
-    self.each do |v|
+    idx = 0
+    len = elem.size
+    while idx < len
+      hash[elem[idx]] = true
+      idx += 1
+    end
+    idx = 0
+    len = size
+    while idx < len
+      v = self[idx]
       if hash[v]
         array << v
         hash.delete v
       end
+      idx += 1
     end
     array
   end
@@ -169,15 +185,9 @@ class Array
   #    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
   #
   def flatten(depth=nil)
-    ar = []
-    self.each do |e|
-      if e.is_a?(Array) && (depth.nil? || depth > 0)
-        ar += e.flatten(depth.nil? ? nil : depth - 1)
-      else
-        ar << e
-      end
-    end
-    ar
+    res = dup
+    res.flatten! depth
+    res
   end
 
   ##
@@ -200,13 +210,17 @@ class Array
   def flatten!(depth=nil)
     modified = false
     ar = []
-    self.each do |e|
+    idx = 0
+    len = size
+    while idx < len
+      e = self[idx]
       if e.is_a?(Array) && (depth.nil? || depth > 0)
         ar += e.flatten(depth.nil? ? nil : depth - 1)
         modified = true
       else
         ar << e
       end
+      idx += 1
     end
     if modified
       self.replace(ar)
@@ -728,10 +742,14 @@ class Array
     return to_enum :select! unless block
 
     result = []
-    self.each do |x|
-      result << x if block.call(x)
+    idx = 0
+    len = size
+    while idx < len
+      elem = self[idx]
+      result << elem if block.call(elem)
+      idx += 1
     end
-    return nil if self.size == result.size
+    return nil if len == result.size
     self.replace(result)
   end
 
@@ -753,8 +771,9 @@ class Array
 
     if block
       idx = 0
-      self.each do |*e|
-        return idx if block.call(*e)
+      len = size
+      while idx < len
+        return idx if block.call self[idx]
         idx += 1
       end
     else
@@ -787,6 +806,130 @@ class Array
       n&.dig(*args)
     else
       n
+    end
+  end
+
+  ##
+  # call-seq:
+  #    ary.permutation { |p| block }          -> ary
+  #    ary.permutation                        -> Enumerator
+  #    ary.permutation(n) { |p| block }       -> ary
+  #    ary.permutation(n)                     -> Enumerator
+  #
+  # When invoked with a block, yield all permutations of length +n+ of the
+  # elements of the array, then return the array itself.
+  #
+  # If +n+ is not specified, yield all permutations of all elements.
+  #
+  # The implementation makes no guarantees about the order in which the
+  # permutations are yielded.
+  #
+  # If no block is given, an Enumerator is returned instead.
+  #
+  # Examples:
+  #
+  #  a = [1, 2, 3]
+  #  a.permutation.to_a    #=> [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]
+  #  a.permutation(1).to_a #=> [[1],[2],[3]]
+  #  a.permutation(2).to_a #=> [[1,2],[1,3],[2,1],[2,3],[3,1],[3,2]]
+  #  a.permutation(3).to_a #=> [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]
+  #  a.permutation(0).to_a #=> [[]] # one permutation of length 0
+  #  a.permutation(4).to_a #=> []   # no permutations of length 4
+  def permutation(n=self.size, &block)
+    size = self.size
+    return to_enum(:permutation, n) unless block
+    return if n > size
+    if n == 0
+       yield []
+    else
+      i = 0
+      while i<size
+        result = [self[i]]
+        if n-1 > 0
+          ary = self[0...i] + self[i+1..-1]
+          ary.permutation(n-1) do |c|
+            yield result + c
+          end
+        else
+          yield result
+        end
+        i += 1
+      end
+    end
+  end
+
+  ##
+  # call-seq:
+  #    ary.combination(n) { |c| block }    -> ary
+  #    ary.combination(n)                  -> Enumerator
+  #
+  # When invoked with a block, yields all combinations of length +n+ of elements
+  # from the array and then returns the array itself.
+  #
+  # The implementation makes no guarantees about the order in which the
+  # combinations are yielded.
+  #
+  # If no block is given, an Enumerator is returned instead.
+  #
+  # Examples:
+  #
+  #    a = [1, 2, 3, 4]
+  #    a.combination(1).to_a  #=> [[1],[2],[3],[4]]
+  #    a.combination(2).to_a  #=> [[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]]
+  #    a.combination(3).to_a  #=> [[1,2,3],[1,2,4],[1,3,4],[2,3,4]]
+  #    a.combination(4).to_a  #=> [[1,2,3,4]]
+  #    a.combination(0).to_a  #=> [[]] # one combination of length 0
+  #    a.combination(5).to_a  #=> []   # no combinations of length 5
+
+  def combination(n, &block)
+    size = self.size
+    return to_enum(:combination, n) unless block
+    return if n > size
+    if n == 0
+       yield []
+    elsif n == 1
+      i = 0
+      while i<size
+        yield [self[i]]
+        i += 1
+      end
+    else
+      i = 0
+      while i<size
+        result = [self[i]]
+        self[i+1..-1].combination(n-1) do |c|
+          yield result + c
+        end
+        i += 1
+      end
+    end
+  end
+
+  ##
+  # call-seq:
+  #    ary.transpose -> new_ary
+  #
+  # Assumes that self is an array of arrays and transposes the rows and columns.
+  #
+  # If the length of the subarrays don’t match, an IndexError is raised.
+  #
+  # Examples:
+  #
+  #    a = [[1,2], [3,4], [5,6]]
+  #    a.transpose   #=> [[1, 3, 5], [2, 4, 6]]
+
+  def transpose
+    return [] if empty?
+
+    column_count = nil
+    self.each do |row|
+      raise TypeError unless row.is_a?(Array)
+      column_count ||= row.count
+      raise IndexError, 'element size differs' unless column_count == row.count
+    end
+
+    Array.new(column_count) do |column_index|
+      self.map { |row| row[column_index] }
     end
   end
 end

@@ -58,8 +58,8 @@ typedef struct mrb_irep {
   uint16_t *lines;
   struct mrb_irep_debug_info* debug_info;
 
-  size_t ilen, plen, slen, rlen, refcnt;
 
+  int ilen, plen, slen, rlen, refcnt;
   mrb_int is_method_cache_used;
 
   /* Lambda optimize */
@@ -98,9 +98,11 @@ typedef struct mrbjit_vmstatus {
 MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
 MRB_API mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
 MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
-MRB_API void mrb_irep_free(mrb_state*, struct mrb_irep*);
-MRB_API void mrb_irep_incref(mrb_state*, struct mrb_irep*);
-MRB_API void mrb_irep_decref(mrb_state*, struct mrb_irep*);
+
+void mrb_irep_free(mrb_state*, struct mrb_irep*);
+void mrb_irep_incref(mrb_state*, struct mrb_irep*);
+void mrb_irep_decref(mrb_state*, struct mrb_irep*);
+void mrb_irep_cutref(mrb_state*, struct mrb_irep*);
 void mrbjit_make_jit_entry_tab(mrb_state *, mrb_irep *, int);
 
 MRB_END_DECL
