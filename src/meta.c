@@ -156,13 +156,13 @@ mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
   irep = mrb_add_irep(mrb);
 
   irep->flags = 0;
-  irep->ilen = mrb_ary_ptr(iseq)->len;
+  irep->ilen = RARRAY_LEN(iseq);
   irep->iseq = (mrb_code*)mrb_malloc(mrb, irep->ilen * sizeof(mrb_value));
   for (i = 0; i < irep->ilen; i++) {
     irep->iseq[i] = mrb_fixnum(mrb_ary_entry(iseq, i));
   }
 
-  irep->plen = mrb_ary_ptr(pool)->len;
+  irep->plen = RARRAY_LEN(pool);
   irep->pool = (mrb_value *)mrb_malloc(mrb, irep->plen * sizeof(mrb_value));
   for (i = 0; i < irep->plen; i++) {
     mrb_value val = mrb_ary_entry(pool, i);
@@ -175,7 +175,7 @@ mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
     }
   }
 
-  irep->slen = mrb_ary_ptr(syms)->len;
+  irep->slen = RARRAY_LEN(syms);
   irep->syms = (mrb_sym *)mrb_malloc(mrb, irep->slen * sizeof(mrb_value));
   for (i = 0; i < irep->slen; i++) {
     irep->syms[i] = mrb_symbol(mrb_ary_entry(syms, i));
@@ -208,7 +208,7 @@ mrb_env_get_proc_env(mrb_state *mrb, mrb_value self)
     level = 0;
   }
 
-  e = mrb_proc_ptr(proc)->env;
+  e = MRB_PROC_ENV(mrb_proc_ptr(proc));
 
   for (i = 0; i < level; i++) {
     e = (struct REnv *)e->c;
@@ -248,10 +248,9 @@ mrb_env_get_current_env(mrb_state *mrb, mrb_value self)
   }
 
   if (!ci->env) {
-    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)ci->proc->env);
-    MRB_SET_ENV_STACK_LEN(e, ci->proc->body.irep->nregs);
-    e->mid = ci->mid;
-    e->cioff = ci - mrb->c->cibase;
+    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)MRB_PROC_ENV(ci->proc));
+    MRB_ENV_SET_STACK_LEN(e, ci->proc->body.irep->nregs);
+    e->cxt = mrb->c;
     e->stack = mrb->c->ci[-level].stackent;
     ci->env = e;
   }
@@ -299,7 +298,7 @@ mrb_irep_set_iseq(mrb_state *mrb, mrb_value self)
   }
 
   irep->flags = 0;
-  irep->ilen = mrb_ary_ptr(src)->len;
+  irep->ilen = RARRAY_LEN(src);
   irep->iseq = (mrb_code*)mrb_malloc(mrb, irep->ilen * sizeof(mrb_value));
   for (i = 0; i < irep->ilen; i++) {
     irep->iseq[i] = mrb_fixnum(mrb_ary_entry(src, i));
@@ -341,7 +340,7 @@ mrb_irep_set_pool(mrb_state *mrb, mrb_value self)
     mrb_free(mrb, irep->pool);
   }
 
-  irep->plen = mrb_ary_ptr(src)->len;
+  irep->plen = RARRAY_LEN(src);
   irep->pool = (mrb_value *)mrb_malloc(mrb, irep->plen * sizeof(mrb_value));
   for (i = 0; i < irep->plen; i++) {
     mrb_value val = mrb_ary_entry(src, i);
@@ -385,7 +384,7 @@ mrb_irep_set_syms(mrb_state *mrb, mrb_value self)
     mrb_free(mrb, irep->syms);
   }
     
-  irep->slen = mrb_ary_ptr(src)->len;
+  irep->slen = RARRAY_LEN(src);
   irep->syms = (mrb_sym *)mrb_malloc(mrb, irep->slen * sizeof(mrb_value));
   for (i = 0; i < irep->slen; i++) {
     irep->syms[i] = mrb_symbol(mrb_ary_entry(src, i));
@@ -516,16 +515,15 @@ mrb_irep_to_proc(mrb_state *mrb, mrb_value self)
   struct REnv *e;
 
   if (!mrb->c->ci->env) {
-    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)mrb->c->ci->proc->env);
-    e->flags= (unsigned int)mrb->c->ci->proc->body.irep->nlocals;
-    e->mid = mrb->c->ci->mid;
-    e->cioff = mrb->c->ci - mrb->c->cibase;
-    e->stack = mrb->c->stack;
+    e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, (struct RClass*)MRB_PROC_ENV(mrb->c->ci[-1].proc));
+    e->flags= (unsigned int)mrb->c->ci[-1].proc->body.irep->nlocals;
+    e->cxt = mrb->c;
+    e->stack = mrb->c->ci[-1].stackent;
   }
   else {
     e = mrb->c->ci->env;
   }
-  p->env = e;
+  p->e.env = e;
 
   return mrb_obj_value(p);
 }

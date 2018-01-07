@@ -9,16 +9,19 @@ module CodeGen
   #      :
   #   @max_using_reg
 
-  SYMS = [:@stack, :@sp, :@pc, :+, :-, :[], :[]=, :p, :==]
+  SYMS = [:@stack, :@sp, :@pc, :@callinfo, :@irep, @irepid, :+, :-, :[], :[]=, :p, :==]
   STACK_SYM = 0
   SP_SYM = 1
   PC_SYM = 2
-  ADD_SYM = 3
-  SUB_SYM = 4
-  AREF_SYM = 5
-  ASET_SYM = 6
-  P_SYM = 7
-  EQ_SYM = 8
+  CALLINFO_SYM = 3
+  IREP_SYM = 4
+  IREPID_SYM = 5
+  ADD_SYM = 6
+  SUB_SYM = 7
+  AREF_SYM = 8
+  ASET_SYM = 9
+  P_SYM = 10
+  EQ_SYM = 11
   OPTABLE_CODE = Irep::OPTABLE_CODE
   OPTABLE_SYM = Irep::OPTABLE_SYM
 
@@ -29,9 +32,8 @@ module CodeGen
     tmp2 = tmp1 + 1
     [
       mkop_ABx(OPTABLE_CODE[:GETIV], tmp0, STACK_SYM),
-      mkop_AsBx(OPTABLE_CODE[:LOADI], tmp1, src),
-      mkop_ABx(OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
-      mkop_ABC(OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp1, SP_SYM),
+      mkop_ABC(OPTABLE_CODE[:ADDI], tmp1, ADD_SYM, src),
       mkop_ABC(OPTABLE_CODE[:SEND], tmp0, AREF_SYM, 1),
       mkop_AB(OPTABLE_CODE[:MOVE], dst, tmp0),
     ]
@@ -44,11 +46,26 @@ module CodeGen
     tmp2 = tmp1 + 1
     [
       mkop_ABx(OPTABLE_CODE[:GETIV], tmp0, STACK_SYM),
-      mkop_AsBx(OPTABLE_CODE[:LOADI], tmp1, dst),
-      mkop_ABx(OPTABLE_CODE[:GETIV], tmp2, SP_SYM),
-      mkop_ABC(OPTABLE_CODE[:ADD], tmp1, ADD_SYM, 1),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp1, SP_SYM),
+      mkop_ABC(OPTABLE_CODE[:ADDI], tmp1, ADD_SYM, dst),
       mkop_AB(OPTABLE_CODE[:MOVE], tmp2, val),
       mkop_ABC(OPTABLE_CODE[:SEND], tmp0, ASET_SYM, 2),
+    ]
+  end
+
+  #　stack, spに値をpushする
+  def gen_push_reg(stack, sp, val)
+    tmp0 = @max_using_reg
+    tmp1 = tmp0 + 1
+    tmp2 = tmp1 + 1
+    [
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp0, stack),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp1, sp),
+      mkop_AB(OPTABLE_CODE[:MOVE], tmp2, val),
+      mkop_ABC(OPTABLE_CODE[:SEND], tmp0, ASET_SYM, 2),
+      mkop_ABx(OPTABLE_CODE[:GETIV], tmp1, sp),
+      mkop_ABC(OPTABLE_CODE[:ADDI], tmp1, ADD_SYM, 1),
+      mkop_ABx(OPTABLE_CODE[:SETIV], tmp1, sp),
     ]
   end
 
@@ -135,7 +152,7 @@ class FibVM
           stop_compile
         end
         # コード実行
-        @proc_tab[@irepid][@pc].call(self)
+        a.call(self)
       end
 
       # コードを取り込む。コンパイルされたコードを実行すると@pcが変化する
@@ -235,6 +252,14 @@ class FibVM
             end
             @max_using_reg -= 1
 
+          when :SEND2
+            a = getarg_a(cop)
+            mid = @irep.syms[getarg_b(cop)]
+            newirep = Irep::get_irep(@stack[@sp + a], mid)
+            p newirep
+
+            stop_compile
+
           else
             # サポートされていない命令
             stop_compile
@@ -286,7 +311,6 @@ class FibVM
         a = getarg_a(cop)
         mid = @irep.syms[getarg_b(cop)]
 #        p "SEND #{@stack[@sp + a + 1]}"
-        n = getarg_c(cop)
         newirep = Irep::get_irep(@stack[@sp + a], mid)
         if newirep then
           @callinfo[@cp] = @sp
@@ -304,6 +328,7 @@ class FibVM
 
           next
         else
+          n = getarg_c(cop)
           args = []
           n.times do |i|
             args.push @stack[@sp + a + i + 1]
@@ -351,4 +376,4 @@ end
 a = Irep::get_irep(self, :fibt)
 vm = FibVM.new
 p vm.eval(a)
-p fibt
+#p fibt

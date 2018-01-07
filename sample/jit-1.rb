@@ -133,10 +133,10 @@ def fib(n)
 end
 
 def fibt
-  fib(20)
+  fib(24)
 end
 
 a = Irep::get_irep(self, :fibt)
 vm = FibVM.new
 p vm.eval(a)
-p fibt
+#p fibt
