@@ -350,7 +350,7 @@ void mrb_prepare_singleton_class(mrb_state *, struct RBasic *);
 }
 
 #define mrb_define_dmethod_id(mrb, c, mid, func, aspec)  {       \
-  static void *tab_## func = func;                               \
+  static void *tab_## func = (void *)func;			 \
   mrb_method_t m;                                                \
   int ai = mrb_gc_arena_save(mrb);                               \
                                                                  \
