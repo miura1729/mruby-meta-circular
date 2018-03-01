@@ -106,7 +106,9 @@ assert("File.readlink") do
 end
 
 assert("File.readlink fails with non-symlink") do
+  skip "readlink is not supported on this platform" if MRubyIOTestUtil.win?
   begin
+    e2 = nil
     assert_raise(RuntimeError) {
       begin
         File.readlink($mrbtest_io_rfname)
@@ -115,15 +117,14 @@ assert("File.readlink fails with non-symlink") do
           raise RuntimeError, "SystemCallError converted to RuntimeError"
         end
         raise e
+      rescue NotImplementedError => e
+        e2 = e
       end
     }
+    raise e2 if e2
   rescue NotImplementedError => e
     skip e.message
   end
-end
-
-assert('File TEST CLEANUP') do
-  assert_nil MRubyIOTestUtil.io_test_cleanup
 end
 
 assert('File.expand_path') do
@@ -169,11 +170,15 @@ assert('File.symlink') do
   if !File.exist?(target_name)
     skip("target directory of File.symlink is not found")
   else
-    assert_equal 0, File.symlink(target_name, symlink_name)
     begin
-      assert_equal true, File.symlink?(symlink_name)
-    ensure
-      File.delete symlink_name
+      assert_equal 0, File.symlink(target_name, symlink_name)
+      begin
+        assert_equal true, File.symlink?(symlink_name)
+      ensure
+        File.delete symlink_name
+      end
+    rescue NotImplementedError => e
+      skip e.message
     end
   end
 end
@@ -185,4 +190,8 @@ assert('File.chmod') do
   ensure
     File.delete('chmod-test')
   end
+end
+
+assert('File TEST CLEANUP') do
+  assert_nil MRubyIOTestUtil.io_test_cleanup
 end

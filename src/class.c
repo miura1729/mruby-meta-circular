@@ -85,10 +85,10 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
   mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
 }
 
-#define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
+#define make_metaclass(mrb, c) mrb_prepare_singleton_class((mrb), (struct RBasic*)(c))
 
-static void
-prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
+void
+mrb_prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 {
   struct RClass *sc, *c;
 
@@ -115,7 +115,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   }
   else {
     sc->super = o->c;
-    prepare_singleton_class(mrb, (struct RBasic*)sc);
+    mrb_prepare_singleton_class(mrb, (struct RBasic*)sc);
   }
   o->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)o, (struct RBasic*)sc);
@@ -424,7 +424,7 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
-  struct RProc *p;
+  struct RProc *p = NULL;
   khash_t(mt) *h;
   khiter_t k;
   MRB_CLASS_ORIGIN(c);
@@ -432,29 +432,29 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
   if (MRB_FROZEN_P(c)) {
     if (c->tt == MRB_TT_MODULE)
-      mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen module");
+      mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen module");
     else
-      mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen class");
+      mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen class");
+  }
+  if (m && !MRB_METHOD_CFUNC_P(m) && !MRB_DMETHOD_FUNC_P(m)) {
+    p = MRB_METHOD_PROC(m);
+    p->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, p->body.irep);
   }
   if (!h) h = c->mt = kh_init(mt, mrb);
   else {
-    mrb_method_t *op;
+    mrb_method_t op;
 
     k = kh_get(mt, mrb, h, mid);
     if (k != kh_end(h)) {
       op = kh_value(h, k);
-      if (op && !MRB_PROC_CFUNC_P(op->proc) && mrb->vmstatus) {
-	if (p == NULL || op->proc->body.irep != p->body.irep) {
-	  mrbjit_reset_irep(mrb, mrb->vmstatus, op->proc->body.irep);
+      if (op && (op & (MRB_METHOD_FUNC_FL | MRB_DMETHOD_FUNC_FL)) == 0 && mrb->vmstatus) {
+	if (p == NULL || MRB_METHOD_PROC(op)->body.irep != p->body.irep) {
+	  mrbjit_reset_irep(mrb, mrb->vmstatus, MRB_METHOD_PROC(op)->body.irep);
 	}
       }
     }
   }
 
-  if (m && !MRB_PROC_CFUNC_P(m)) {
-    p = MRB_METHOD_PROC(m);
-    p->body.irep->jit_inlinep = mrbjit_check_inlineble(mrb, p->body.irep);
-  }
   k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = m;
   if (MRB_METHOD_PROC_P(m) && !MRB_METHOD_UNDEF_P(m)) {
@@ -463,13 +463,14 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     p->flags |= MRB_PROC_SCOPE;
     p->c = NULL;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
-    MRB_PROC_SET_TARGET_CLASS(p, c);
-    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)c);
+    if (!MRB_PROC_ENV_P(p)) {
+      MRB_PROC_SET_TARGET_CLASS(p, c);
+    }
   }
   mc_clear_by_id(mrb, c, mid);
 }
 
-MRB_API void
+/*MRB_API void
 mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_method_t m;
@@ -484,7 +485,7 @@ MRB_API void
 mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
-}
+}*/
 
 void
 mrbjit_define_primitive_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrbjit_prim_func_t func)
@@ -493,7 +494,7 @@ mrbjit_define_primitive_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrbjit
   int ai = mrb_gc_arena_save(mrb);
 
   p = mrb_proc_new_cfunc(mrb, (mrb_func_t)func);
-  p->target_class = c;
+  p->e.target_class = c;
   mrb_obj_iv_set(mrb, (struct RObject*)c, mid, mrb_obj_value(p));
   mrb_gc_arena_restore(mrb, ai);
 }
@@ -507,7 +508,7 @@ mrbjit_define_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbj
 void
 mrbjit_define_class_primitive(mrb_state *mrb, struct RClass *c, const char *name, mrbjit_prim_func_t func)
 {
-  prepare_singleton_class(mrb, (struct RBasic*)c);
+  mrb_prepare_singleton_class(mrb, (struct RBasic*)c);
   mrbjit_define_primitive_id(mrb, c->c, mrb_intern_cstr(mrb, name), func);
 }  
 
@@ -612,51 +613,17 @@ mrb_get_argv(mrb_state *mrb)
   return array_argv;
 }
 
-/*
-  retrieve arguments from mrb_state.
-
-  mrb_get_args(mrb, format, ...)
-
-  returns number of arguments parsed.
-
-  format specifiers:
-
-    string  mruby type     C type                 note
-    ----------------------------------------------------------------------------------------------
-    o:      Object         [mrb_value]
-    C:      class/module   [mrb_value]
-    S:      String         [mrb_value]            when ! follows, the value may be nil
-    A:      Array          [mrb_value]            when ! follows, the value may be nil
-    H:      Hash           [mrb_value]            when ! follows, the value may be nil
-    s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
-    z:      String         [char*]                NUL terminated string; z! gives NULL for nil
-    a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
-    f:      Float          [mrb_float]
-    i:      Integer        [mrb_int]
-    b:      Boolean        [mrb_bool]
-    n:      Symbol         [mrb_sym]
-    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
-    I:      Inline struct  [void*]
-    &:      Block          [mrb_value]
-    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
-    |:      optional                              Following arguments are optional
-    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
- */
-MRB_API mrb_int
-mrb_get_args(mrb_state *mrb, const char *format, ...)
+static mrb_int
+  mrb_get_args_aux(mrb_state *mrb, mrb_int argc, mrb_value *array_argv, const char *format, va_list ap)
 {
   const char *fmt = format;
   char c;
   mrb_int i = 0;
-  va_list ap;
-  mrb_int argc = mrb_get_argc(mrb);
   mrb_int arg_i = 0;
-  mrb_value *array_argv = mrb_get_argv(mrb);
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
 
-  va_start(ap, format);
 
 #define ARGV \
   (array_argv ? array_argv : (mrb->c->stack + 1))
@@ -1041,8 +1008,64 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   if (!c && argc > i) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
-  va_end(ap);
+
   return i;
+}
+
+/*
+  retrieve arguments from mrb_state.
+
+  mrb_get_args(mrb, format, ...)
+
+  returns number of arguments parsed.
+
+  format specifiers:
+
+    string  mruby type     C type                 note
+    ----------------------------------------------------------------------------------------------
+    o:      Object         [mrb_value]
+    C:      class/module   [mrb_value]
+    S:      String         [mrb_value]            when ! follows, the value may be nil
+    A:      Array          [mrb_value]            when ! follows, the value may be nil
+    H:      Hash           [mrb_value]            when ! follows, the value may be nil
+    s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
+    z:      String         [char*]                NUL terminated string; z! gives NULL for nil
+    a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
+    f:      Float          [mrb_float]
+    i:      Integer        [mrb_int]
+    b:      Boolean        [mrb_bool]
+    n:      Symbol         [mrb_sym]
+    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
+    I:      Inline struct  [void*]
+    &:      Block          [mrb_value]
+    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
+    |:      optional                              Following arguments are optional
+    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
+ */
+MRB_API mrb_int
+mrb_get_args(mrb_state *mrb, const char *format, ...)
+{
+  va_list ap;
+  mrb_int rc;
+
+  va_start(ap, format);
+  rc = mrb_get_args_aux(mrb, mrb_get_argc(mrb), mrb_get_argv(mrb), format, ap);
+  va_end(ap);
+
+  return rc;
+}
+
+MRB_API mrb_int
+mrb_get_args_direct(mrb_state *mrb, mrb_int argc, mrb_value *argv, const char *format, ...)
+{
+  va_list ap;
+  mrb_int rc;
+
+  va_start(ap, format);
+  rc = mrb_get_args_aux(mrb, argc, argv + 1, format, ap);
+  va_end(ap);
+
+  return rc;
 }
 
 static struct RClass*
@@ -1354,21 +1377,21 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
   case MRB_TT_FIXNUM:
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
+#endif
     mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
     return mrb_nil_value();    /* not reached */
-#endif
   default:
     break;
   }
   obj = mrb_basic_ptr(v);
-  prepare_singleton_class(mrb, obj);
+  mrb_prepare_singleton_class(mrb, obj);
   return mrb_obj_value(obj->c);
 }
 
-MRB_API void
+/*MRB_API void
 mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
-  prepare_singleton_class(mrb, (struct RBasic*)o);
+  mrb_prepare_singleton_class(mrb, (struct RBasic*)o);
   mrb_define_method_id(mrb, o->c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
@@ -1383,7 +1406,7 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 {
   mrb_define_class_method(mrb, c, name, func, aspec);
   mrb_define_method(mrb, c, name, func, aspec);
-}
+  }*/
 
 #ifdef MRB_METHOD_CACHE
 static void
@@ -2471,7 +2494,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     rclass = mrb_class_ptr(mod);
     m = mrb_method_search(mrb, rclass, mid);
 
-    prepare_singleton_class(mrb, (struct RBasic*)rclass);
+    mrb_prepare_singleton_class(mrb, (struct RBasic*)rclass);
     ai = mrb_gc_arena_save(mrb);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);

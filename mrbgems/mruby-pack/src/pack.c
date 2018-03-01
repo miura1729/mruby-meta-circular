@@ -104,9 +104,9 @@ make_base64_dec_tab(void)
 }
 
 static mrb_value
-str_len_ensure(mrb_state *mrb, mrb_value str, int len)
+str_len_ensure(mrb_state *mrb, mrb_value str, mrb_int len)
 {
-  int n = RSTRING_LEN(str);
+  mrb_int n = RSTRING_LEN(str);
   if (len > n) {
     do {
       n *= 2;
@@ -121,7 +121,7 @@ static int
 pack_c(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 1);
-  RSTRING_PTR(str)[sidx] = mrb_fixnum(o);
+  RSTRING_PTR(str)[sidx] = (char)mrb_fixnum(o);
   return 1;
 }
 
@@ -138,10 +138,10 @@ unpack_c(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned in
 static int
 pack_s(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  unsigned short n;
+  uint16_t n;
 
   str = str_len_ensure(mrb, str, sidx + 2);
-  n = mrb_fixnum(o);
+  n = (uint16_t)mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = n % 256;
     RSTRING_PTR(str)[sidx+1] = n / 256;
@@ -172,19 +172,20 @@ unpack_s(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  unsigned long n;
+  uint32_t n;
+
   str = str_len_ensure(mrb, str, sidx + 4);
-  n = mrb_fixnum(o);
+  n = (uint32_t)mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = n & 0xff;
-    RSTRING_PTR(str)[sidx+1] = n >> 8;
-    RSTRING_PTR(str)[sidx+2] = n >> 16;
-    RSTRING_PTR(str)[sidx+3] = n >> 24;
+    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
   } else {
-    RSTRING_PTR(str)[sidx+0] = n >> 24;
-    RSTRING_PTR(str)[sidx+1] = n >> 16;
-    RSTRING_PTR(str)[sidx+2] = n >> 8;
-    RSTRING_PTR(str)[sidx+3] = n & 0xff;
+    RSTRING_PTR(str)[sidx+0] = (char)(n >> 24);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+3] = (char)(n & 0xff);
   }
   return 4;
 }
@@ -192,7 +193,9 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
+#ifndef MRB_INT64
   char msg[60];
+#endif
   uint32_t ul;
   mrb_int n;
 
@@ -209,16 +212,20 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   if (flags & PACK_FLAG_SIGNED) {
     int32_t sl = ul;
+#ifndef MRB_INT64
     if (!FIXABLE(sl)) {
       snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %ld", (long)sl);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
+#endif
     n = sl;
   } else {
+#ifndef MRB_INT64
     if (!POSFIXABLE(ul)) {
       snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lu", (unsigned long)ul);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
+#endif
     n = ul;
   }
   mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
@@ -228,27 +235,28 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 static int
 pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  unsigned long long n;
+  uint64_t n;
+
   str = str_len_ensure(mrb, str, sidx + 8);
-  n = mrb_fixnum(o);
+  n = (uint64_t)mrb_fixnum(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = n & 0xff;
-    RSTRING_PTR(str)[sidx+1] = n >> 8;
-    RSTRING_PTR(str)[sidx+2] = n >> 16;
-    RSTRING_PTR(str)[sidx+3] = n >> 24;
-    RSTRING_PTR(str)[sidx+4] = n >> 32;
-    RSTRING_PTR(str)[sidx+5] = n >> 40;
-    RSTRING_PTR(str)[sidx+6] = n >> 48;
-    RSTRING_PTR(str)[sidx+7] = n >> 56;
+    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
+    RSTRING_PTR(str)[sidx+4] = (char)(n >> 32);
+    RSTRING_PTR(str)[sidx+5] = (char)(n >> 40);
+    RSTRING_PTR(str)[sidx+6] = (char)(n >> 48);
+    RSTRING_PTR(str)[sidx+7] = (char)(n >> 56);
   } else {
-    RSTRING_PTR(str)[sidx+0] = n >> 56;
-    RSTRING_PTR(str)[sidx+1] = n >> 48;
-    RSTRING_PTR(str)[sidx+2] = n >> 40;
-    RSTRING_PTR(str)[sidx+3] = n >> 32;
-    RSTRING_PTR(str)[sidx+4] = n >> 24;
-    RSTRING_PTR(str)[sidx+5] = n >> 16;
-    RSTRING_PTR(str)[sidx+6] = n >> 8;
-    RSTRING_PTR(str)[sidx+7] = n & 0xff;
+    RSTRING_PTR(str)[sidx+0] = (char)(n >> 56);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 48);
+    RSTRING_PTR(str)[sidx+2] = (char)(n >> 40);
+    RSTRING_PTR(str)[sidx+3] = (char)(n >> 32);
+    RSTRING_PTR(str)[sidx+4] = (char)(n >> 24);
+    RSTRING_PTR(str)[sidx+5] = (char)(n >> 16);
+    RSTRING_PTR(str)[sidx+6] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+7] = (char)(n & 0xff);
   }
   return 8;
 }
@@ -291,6 +299,7 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   return 8;
 }
 
+#ifndef MRB_WITHOUT_FLOAT
 static int
 pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
@@ -357,7 +366,7 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
   float f;
   uint8_t *buffer = (uint8_t *)&f;
   str = str_len_ensure(mrb, str, sidx + 4);
-  f = mrb_float(o);
+  f = (float)mrb_float(o);
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
 #ifdef MRB_ENDIAN_BIG
@@ -408,18 +417,21 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
 
   return 4;
 }
+#endif
 
 static int
 pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, unsigned int flags)
 {
   char utf8[4];
   int len = 0;
-  unsigned long c = 0;
+  uint32_t c = 0;
 
+#ifndef MRB_WITHOUT_FLOAT
   if (mrb_float_p(o)) {
     goto range_error;
   }
-  c = mrb_fixnum(o);
+#endif
+  c = (uint32_t)mrb_fixnum(o);
 
   /* Unicode character */
   /* from mruby-compiler gem */
@@ -446,7 +458,9 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
     len = 4;
   }
   else {
+#ifndef MRB_WITHOUT_FLOAT
 range_error:
+#endif
     mrb_raise(mrb, E_RANGE_ERROR, "pack(U): value out of range");
   }
 
@@ -533,7 +547,7 @@ unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary
 static int
 pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
-  int copylen, slen, padlen;
+  mrb_int copylen, slen, padlen;
   char *dptr, *dptr0, pad, *sptr;
 
   sptr = RSTRING_PTR(src);
@@ -565,7 +579,7 @@ pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     *dptr++ = pad;
   }
 
-  return dptr - dptr0;
+  return (int)(dptr - dptr0);
 }
 
 static int
@@ -573,7 +587,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 {
   mrb_value dst;
   const char *cp, *sptr;
-  long copylen;
+  int copylen;
 
   sptr = (const char *)src;
   if (count != -1 && count < slen)  {
@@ -583,7 +597,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 
   if (flags & PACK_FLAG_Z) {  /* "Z" */
     if ((cp = (const char *)memchr(sptr, '\0', slen)) != NULL) {
-      copylen = cp - sptr;
+      copylen = (int)(cp - sptr);
       if (count == -1) {
         slen = copylen + 1;
       }
@@ -594,7 +608,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
     }
   }
 
-  dst = mrb_str_new(mrb, sptr, copylen);
+  dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
   mrb_ary_push(mrb, ary, dst);
   return slen;
 }
@@ -604,11 +618,11 @@ static int
 pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
 {
   unsigned int a, ashift, b, bshift;
-  int slen;
+  long slen;
   char *dptr, *dptr0, *sptr;
 
   sptr = RSTRING_PTR(src);
-  slen = RSTRING_LEN(src);
+  slen = (long)RSTRING_LEN(src);
 
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
@@ -641,7 +655,7 @@ pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     *dptr++ = (a << ashift) + (b << bshift);
   }
 
-  return dptr - dptr0;
+  return (int)(dptr - dptr0);
 }
 
 static int
@@ -688,7 +702,7 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
 
   dst = mrb_str_resize(mrb, dst, dptr - dptr0);
   mrb_ary_push(mrb, ary, dst);
-  return sptr - sptr0;
+  return (int)(sptr - sptr0);
 }
 
 
@@ -697,7 +711,7 @@ pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
 {
   mrb_int dstlen;
   unsigned long l;
-  int column, srclen;
+  mrb_int column, srclen;
   char *srcptr, *dstptr, *dstptr0;
 
   srcptr = RSTRING_PTR(src);
@@ -755,7 +769,7 @@ pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     *dstptr++ = '\n';
   }
 
-  return dstptr - dstptr0;
+  return (int)(dstptr - dstptr0);
 }
 
 static int
@@ -811,7 +825,7 @@ unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int 
 done:
   dst = mrb_str_resize(mrb, dst, dptr - dptr0);
   mrb_ary_push(mrb, ary, dst);
-  return sptr - sptr0;
+  return (int)(sptr - sptr0);
 }
 
 static int
@@ -849,11 +863,11 @@ has_tmpl(const struct tmpl *tmpl)
 }
 
 static void
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, long *countp, unsigned int *flagsp)
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, int *countp, unsigned int *flagsp)
 {
-  int ch, dir, t, tlen, type;
-  int size = 0;
-  long count = 1;
+  mrb_int t, tlen;
+  int ch, dir, type, size = 0;
+  int count = 1;
   unsigned int flags = 0;
   const char *tptr;
 
@@ -1041,8 +1055,8 @@ alias:
     } else if (ch == '*')  {
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
-      if (strchr("sSiIlLqQ", t) == NULL) {
-        char ch_str = ch;
+      if (strchr("sSiIlLqQ", (int)t) == NULL) {
+        char ch_str = (char)ch;
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlLqQ", mrb_str_new(mrb, &ch_str, 1));
       }
       if (ch == '_' || ch == '!') {
@@ -1075,7 +1089,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   mrb_value o, result;
   mrb_int aidx;
   struct tmpl tmpl;
-  long count;
+  int count;
   unsigned int flags;
   int dir, ridx, size, type;
 
@@ -1101,10 +1115,12 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       o = mrb_ary_ref(mrb, ary, aidx);
       if (type == PACK_TYPE_INTEGER) {
         o = mrb_to_int(mrb, o);
+#ifndef MRB_WITHOUT_FLOAT
       } else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
           o = mrb_funcall(mrb, o, "to_f", 0);
         }
+#endif
       } else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
           mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
@@ -1133,12 +1149,14 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_STR:
         ridx += pack_a(mrb, o, result, ridx, count, flags);
         break;
+#ifndef MRB_WITHOUT_FLOAT
       case PACK_DIR_DOUBLE:
         ridx += pack_double(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_FLOAT:
         ridx += pack_float(mrb, o, result, ridx, flags);
         break;
+#endif
       case PACK_DIR_UTF8:
         ridx += pack_utf8(mrb, o, result, ridx, count, flags);
         break;
@@ -1164,15 +1182,16 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 {
   mrb_value result;
   struct tmpl tmpl;
-  long count;
+  int count;
   unsigned int flags;
-  int dir, size, srcidx, srclen, type;
+  int dir, size, type;
+  int srcidx, srclen;
   const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
 
   srcidx = 0;
-  srclen = RSTRING_LEN(str);
+  srclen = (int)RSTRING_LEN(str);
 
   result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
@@ -1206,7 +1225,7 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
         break;
       }
 
-      sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
+      sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_CHAR:
         srcidx += unpack_c(mrb, sptr, srclen - srcidx, result, flags);
@@ -1223,12 +1242,14 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
       case PACK_DIR_BASE64:
         srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
         break;
+#ifndef MRB_WITHOUT_FLOAT
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_DOUBLE:
         srcidx += unpack_double(mrb, sptr, srclen - srcidx, result, flags);
         break;
+#endif
       case PACK_DIR_UTF8:
         srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, flags);
         break;

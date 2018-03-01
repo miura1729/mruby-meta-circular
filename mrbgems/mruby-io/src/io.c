@@ -25,13 +25,29 @@
   #include <io.h>
   #define open  _open
   #define close _close
+  #define dup _dup
+  #define dup2 _dup2
   #define read  _read
   #define write _write
   #define lseek _lseek
   #define isatty _isatty
+  #define WEXITSTATUS(x) (x)
+  typedef int fsize_t;
+  typedef long ftime_t;
+  typedef long fsuseconds_t;
+  typedef int fmode_t;
+
 #else
   #include <sys/wait.h>
   #include <unistd.h>
+  typedef size_t fsize_t;
+  typedef time_t ftime_t;
+  typedef suseconds_t fsuseconds_t;
+  typedef mode_t fmode_t;
+#endif
+
+#ifdef _MSC_VER
+typedef mrb_int pid_t;
 #endif
 
 #include <fcntl.h>
@@ -70,7 +86,6 @@ io_get_open_fptr(mrb_state *mrb, mrb_value self)
   return fptr;
 }
 
-#if !defined(_WIN32) && !defined(_WIN64)
 static void
 io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 {
@@ -91,7 +106,6 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
   }
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$?"), v);
 }
-#endif
 
 static int
 mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
@@ -258,6 +272,7 @@ mrb_io_alloc(mrb_state *mrb)
   fptr->readable = 0;
   fptr->writable = 0;
   fptr->sync = 0;
+  fptr->is_socket = 0;
   return fptr;
 }
 
@@ -265,7 +280,6 @@ mrb_io_alloc(mrb_state *mrb)
 #define NOFILE 64
 #endif
 
-#ifndef _WIN32
 static int
 option_to_fd(mrb_state *mrb, mrb_value obj, const char *key)
 {
@@ -276,9 +290,9 @@ option_to_fd(mrb_state *mrb, mrb_value obj, const char *key)
 
   switch (mrb_type(opt)) {
     case MRB_TT_DATA: /* IO */
-      return mrb_fixnum(mrb_io_fileno(mrb, opt));
+      return (int)mrb_fixnum(mrb_io_fileno(mrb, opt));
     case MRB_TT_FIXNUM:
-      return mrb_fixnum(opt);
+      return (int)mrb_fixnum(opt);
     default:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong exec redirect action");
       break;
@@ -286,6 +300,7 @@ option_to_fd(mrb_state *mrb, mrb_value obj, const char *key)
   return -1; /* never reached */
 }
 
+#ifndef _WIN32
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
@@ -420,7 +435,161 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   }
   return result;
 }
+#else
+mrb_value
+mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value cmd, io;
+  mrb_value mode = mrb_str_new_cstr(mrb, "r");
+  mrb_value opt  = mrb_hash_new(mrb);
+
+  struct mrb_io *fptr;
+  const char *pname;
+  int pid = 0, flags;
+  STARTUPINFO si;
+  PROCESS_INFORMATION pi;
+  SECURITY_ATTRIBUTES saAttr;
+
+  HANDLE ifd[2];
+  HANDLE ofd[2];
+
+  int doexec;
+  int opt_in, opt_out, opt_err;
+
+  ifd[0] = INVALID_HANDLE_VALUE;
+  ifd[1] = INVALID_HANDLE_VALUE;
+  ofd[0] = INVALID_HANDLE_VALUE;
+  ofd[1] = INVALID_HANDLE_VALUE;
+
+  mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
+  io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+
+  pname = mrb_string_value_cstr(mrb, &cmd);
+  flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
+
+  doexec = (strcmp("-", pname) != 0);
+  opt_in = option_to_fd(mrb, opt, "in");
+  opt_out = option_to_fd(mrb, opt, "out");
+  opt_err = option_to_fd(mrb, opt, "err");
+
+  saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+  saAttr.bInheritHandle = TRUE;
+  saAttr.lpSecurityDescriptor = NULL;
+
+  if (flags & FMODE_READABLE) {
+    if (!CreatePipe(&ofd[0], &ofd[1], &saAttr, 0)
+        || !SetHandleInformation(ofd[0], HANDLE_FLAG_INHERIT, 0)) {
+      mrb_sys_fail(mrb, "pipe");
+    }
+  }
+
+  if (flags & FMODE_WRITABLE) {
+    if (!CreatePipe(&ifd[0], &ifd[1], &saAttr, 0)
+        || !SetHandleInformation(ifd[1], HANDLE_FLAG_INHERIT, 0)) {
+      mrb_sys_fail(mrb, "pipe");
+    }
+  }
+
+  if (doexec) {
+    ZeroMemory(&pi, sizeof(pi));
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags |= STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    si.dwFlags |= STARTF_USESTDHANDLES;
+    if (flags & FMODE_READABLE) {
+      si.hStdOutput = ofd[1];
+      si.hStdError = ofd[1];
+    }
+    if (flags & FMODE_WRITABLE) {
+      si.hStdInput = ifd[0];
+    }
+    if (!CreateProcess(
+        NULL, (char*)pname, NULL, NULL,
+        TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &si, &pi)) {
+      CloseHandle(ifd[0]);
+      CloseHandle(ifd[1]);
+      CloseHandle(ofd[0]);
+      CloseHandle(ofd[1]);
+      mrb_raisef(mrb, E_IO_ERROR, "command not found: %S", cmd);
+    }
+    CloseHandle(pi.hThread);
+    CloseHandle(ifd[0]);
+    CloseHandle(ofd[1]);
+    pid = pi.dwProcessId;
+  }
+
+  mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+
+  fptr = mrb_io_alloc(mrb);
+  fptr->fd = _open_osfhandle((intptr_t)ofd[0], 0);
+  fptr->fd2 = _open_osfhandle((intptr_t)ifd[1], 0);
+  fptr->pid = pid;
+  fptr->readable = ((flags & FMODE_READABLE) != 0);
+  fptr->writable = ((flags & FMODE_WRITABLE) != 0);
+  fptr->sync = 0;
+
+  DATA_TYPE(io) = &mrb_io_type;
+  DATA_PTR(io)  = fptr;
+  return io;
+}
 #endif
+
+static int
+mrb_dup(mrb_state *mrb, int fd, mrb_bool *failed)
+{
+  int new_fd;
+
+  *failed = FALSE;
+  if (fd < 0)
+    return fd;
+
+  new_fd = dup(fd);
+  if (new_fd == -1) *failed = TRUE;
+  return new_fd;
+}
+
+mrb_value
+mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
+{
+  mrb_value orig;
+  mrb_value buf;
+  struct mrb_io *fptr_copy;
+  struct mrb_io *fptr_orig;
+  mrb_bool failed = TRUE;
+
+  mrb_get_args(mrb, "o", &orig);
+  fptr_copy = (struct mrb_io *)DATA_PTR(copy);
+  if (fptr_copy != NULL) {
+    fptr_finalize(mrb, fptr_copy, FALSE);
+    mrb_free(mrb, fptr_copy);
+  }
+  fptr_copy = (struct mrb_io *)mrb_io_alloc(mrb);
+  fptr_orig = io_get_open_fptr(mrb, orig);
+
+  DATA_TYPE(copy) = &mrb_io_type;
+  DATA_PTR(copy) = fptr_copy;
+
+  buf = mrb_iv_get(mrb, orig, mrb_intern_cstr(mrb, "@buf"));
+  mrb_iv_set(mrb, copy, mrb_intern_cstr(mrb, "@buf"), buf);
+
+  fptr_copy->fd = mrb_dup(mrb, fptr_orig->fd, &failed);
+  if (failed) {
+    mrb_sys_fail(mrb, 0);
+  }
+  fptr_copy->fd2 = mrb_dup(mrb, fptr_orig->fd2, &failed);
+  if (failed) {
+    close(fptr_copy->fd);
+    mrb_sys_fail(mrb, 0);
+  }
+  fptr_copy->pid = fptr_orig->pid;
+  fptr_copy->readable = fptr_orig->readable;
+  fptr_copy->writable = fptr_orig->writable;
+  fptr_copy->sync = fptr_orig->sync;
+  fptr_copy->is_socket = fptr_orig->is_socket;
+
+  return copy;
+}
 
 mrb_value
 mrb_io_initialize(mrb_state *mrb, mrb_value io)
@@ -454,7 +623,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   DATA_TYPE(io) = &mrb_io_type;
   DATA_PTR(io) = fptr;
 
-  fptr->fd = fd;
+  fptr->fd = (int)fd;
   fptr->readable = ((flags & FMODE_READABLE) != 0);
   fptr->writable = ((flags & FMODE_WRITABLE) != 0);
   fptr->sync = 0;
@@ -471,8 +640,18 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 
   if (fptr->fd > 2) {
-    if (close(fptr->fd) == -1) {
-      saved_errno = errno;
+#ifdef _WIN32
+    if (fptr->is_socket) {
+      if (closesocket(fptr->fd) != 0) {
+        saved_errno = WSAGetLastError();
+      }
+      fptr->fd = -1;
+    }
+#endif
+    if (fptr->fd != -1) {
+      if (close(fptr->fd) == -1) {
+        saved_errno = errno;
+      }
     }
     fptr->fd = -1;
   }
@@ -486,8 +665,8 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->fd2 = -1;
   }
 
-#if !defined(_WIN32) && !defined(_WIN64)
   if (fptr->pid != 0) {
+#if !defined(_WIN32) && !defined(_WIN64)
     pid_t pid;
     int status;
     do {
@@ -496,10 +675,17 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     if (!quiet && pid == fptr->pid) {
       io_set_process_status(mrb, pid, status);
     }
+#else
+    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, fptr->pid); 
+    DWORD status;
+    if (WaitForSingleObject(h, INFINITE) && GetExitCodeProcess(h, &status))
+      if (!quiet)
+        io_set_process_status(mrb, fptr->pid, (int)status);
+    CloseHandle(h);
+#endif
     fptr->pid = 0;
     /* Note: we don't raise an exception when waitpid(3) fails */
   }
-#endif
 
   if (!quiet && saved_errno != 0) {
     errno = saved_errno;
@@ -557,6 +743,7 @@ mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mo
 {
   mrb_value emsg;
   int fd, retry = FALSE;
+  char* fname = mrb_locale_from_utf8(pathname, -1);
 
 #ifdef O_CLOEXEC
   /* O_CLOEXEC is available since Linux 2.6.23.  Linux 2.6.18 silently ignore it. */
@@ -565,7 +752,7 @@ mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mo
   flags |= O_NOINHERIT;
 #endif
 reopen:
-  fd = open(pathname, (int)flags, mode);
+  fd = open(fname, (int)flags, (fmode_t)mode);
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
@@ -581,6 +768,7 @@ reopen:
     mrb_str_modify(mrb, mrb_str_ptr(emsg));
     mrb_sys_fail(mrb, RSTRING_PTR(emsg));
   }
+  mrb_utf8_free(fname);
 
   if (fd <= 2) {
     mrb_fd_cloexec(mrb, fd);
@@ -642,7 +830,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   if (!fptr->readable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
-  ret = read(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
+  ret = read(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen);
   switch (ret) {
     case 0: /* EOF */
       if (maxlen == 0) {
@@ -677,12 +865,16 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  pos = lseek(fptr->fd, offset, (int)whence);
+  pos = lseek(fptr->fd, (off_t)offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
   if (pos > MRB_INT_MAX) {
+#ifndef MRB_WITHOUT_FLOAT
     return mrb_float_value(mrb, (mrb_float)pos);
+#else
+    mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for MRB_WITHOUT_FLOAT");
+#endif
   } else {
     return mrb_fixnum_value(pos);
   }
@@ -712,7 +904,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   } else {
     fd = fptr->fd2;
   }
-  length = write(fd, RSTRING_PTR(buf), (size_t)RSTRING_LEN(buf));
+  length = write(fd, RSTRING_PTR(buf), (fsize_t)RSTRING_LEN(buf));
   if (length == -1) {
     mrb_sys_fail(mrb, 0);
   }
@@ -726,6 +918,17 @@ mrb_io_close(mrb_state *mrb, mrb_value self)
   struct mrb_io *fptr;
   fptr = io_get_open_fptr(mrb, self);
   fptr_finalize(mrb, fptr, FALSE);
+  return mrb_nil_value();
+}
+
+mrb_value
+mrb_io_close_write(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr;
+  fptr = io_get_open_fptr(mrb, self);
+  if (close((int)fptr->fd2) == -1) {
+    mrb_sys_fail(mrb, "close");
+  }
   return mrb_nil_value();
 }
 
@@ -761,14 +964,16 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   switch (mrb_type(time)) {
     case MRB_TT_FIXNUM:
-      t.tv_sec = (time_t)mrb_fixnum(time);
+      t.tv_sec = (ftime_t)mrb_fixnum(time);
       t.tv_usec = 0;
       break;
 
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
-      t.tv_sec = (time_t)mrb_float(time);
-      t.tv_usec = (mrb_float(time) - t.tv_sec) * 1000000.0;
+      t.tv_sec = (ftime_t)mrb_float(time);
+      t.tv_usec = (fsuseconds_t)((mrb_float(time) - t.tv_sec) * 1000000.0);
       break;
+#endif
 
     default:
       mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
@@ -1084,10 +1289,8 @@ mrb_init_io(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(io, MRB_TT_DATA);
 
   mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
-#ifndef _WIN32
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "_sysclose",  mrb_io_s_sysclose, MRB_ARGS_REQ(1));
-#endif
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
@@ -1096,6 +1299,7 @@ mrb_init_io(mrb_state *mrb)
 #endif
 
   mrb_define_method(mrb, io, "initialize", mrb_io_initialize, MRB_ARGS_ANY());    /* 15.2.20.5.21 (x)*/
+  mrb_define_method(mrb, io, "initialize_copy", mrb_io_initialize_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "_check_readable", mrb_io_check_readable, MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "isatty",     mrb_io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "sync",       mrb_io_sync,       MRB_ARGS_NONE());
@@ -1104,6 +1308,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "sysseek",    mrb_io_sysseek,    MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "syswrite",   mrb_io_syswrite,   MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "close",      mrb_io_close,      MRB_ARGS_NONE());   /* 15.2.20.5.1 */
+  mrb_define_method(mrb, io, "close_write",    mrb_io_close_write,       MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "close_on_exec=", mrb_io_set_close_on_exec, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "close_on_exec?", mrb_io_close_on_exec_p,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "closed?",    mrb_io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */

@@ -248,18 +248,9 @@ struct mrb_context {
 #endif
 
 typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value);
+typedef mrb_value (*mrb_dfunc_t)(struct mrb_state *mrb, mrb_value *, mrb_int);
 
-#ifdef MRB_METHOD_TABLE_INLINE
 typedef uintptr_t mrb_method_t;
-#else
-typedef struct {
-  mrb_bool func_p;
-  union {
-    struct RProc *proc;
-    mrb_func_t func;
-  };
-} mrb_method_t;
-#endif
 
 #ifdef MRB_METHOD_CACHE
 struct mrb_cache_entry {
@@ -417,6 +408,45 @@ MRB_API void mrb_include_module(mrb_state*, struct RClass*, struct RClass*);
  */
 MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
 
+/* declaration for function using in macros for define method */
+MRB_API void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, mrb_method_t);
+void mrb_prepare_singleton_class(mrb_state *, struct RBasic *);
+
+/* Utilty macros for METHOD */
+#define MRB_METHOD_FUNC_FL (1)
+#define MRB_DMETHOD_FUNC_FL (2)
+#define MRB_METHOD_FUNC_P(m) ((uintptr_t)(m)&MRB_METHOD_FUNC_FL)
+#define MRB_DMETHOD_FUNC_P(m) ((uintptr_t)(m)&MRB_DMETHOD_FUNC_FL)
+#define MRB_METHOD_FUNC(m) (*((mrb_func_t *)(((uintptr_t)(m))&(~MRB_METHOD_FUNC_FL))))
+#define MRB_DMETHOD_FUNC(m) (*(mrb_dfunc_t *)(((uintptr_t)(m))&(~MRB_DMETHOD_FUNC_FL)))
+#define MRB_METHOD_FROM_FUNC(m,fn) m=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_METHOD_FUNC_FL))
+#define MRB_DMETHOD_FROM_FUNC(m,fn) m=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_DMETHOD_FUNC_FL))
+#define MRB_METHOD_FROM_PROC(m,pr) m=(mrb_method_t)(struct RProc*)(pr)
+#define MRB_METHOD_PROC_P(m) (!(MRB_METHOD_FUNC_P(m) || MRB_DMETHOD_FUNC_P(m)))
+#define MRB_METHOD_PROC(m) ((struct RProc*)(m))
+#define MRB_METHOD_UNDEF_P(m) ((m)==0)
+
+#define mrb_define_method_id(mrb, c, mid, func, aspec)  {        \
+  static void *tab_## func = (void *)func;                       \
+  mrb_method_t m_;                                               \
+  int ai_ = mrb_gc_arena_save(mrb);                              \
+                                                                 \
+  MRB_METHOD_FROM_FUNC(m_, &tab_## func);                        \
+  mrb_define_method_raw(mrb, (c), (mid), m_);                    \
+  mrb_gc_arena_restore(mrb, ai_);                                \
+}
+
+#define mrb_define_dmethod_id(mrb, c, mid, func, aspec)  {       \
+  static void *tab_## func = (void *)func;			 \
+  mrb_method_t m;                                                \
+  int ai = mrb_gc_arena_save(mrb);                               \
+                                                                 \
+  MRB_DMETHOD_FROM_FUNC(m, &tab_## func);                        \
+  mrb_define_method_raw(mrb, c, mid, m);                         \
+  mrb_gc_arena_restore(mrb, ai);                                 \
+}
+
+
 /**
  * Defines a global function in ruby.
  *
@@ -442,7 +472,16 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  * @param [mrb_func_t] func The function pointer to the method definition.
  * @param [mrb_aspec] aspec The method parameters declaration.
  */
-MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
+/*MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);*/
+
+#define mrb_define_method(mrb,cla,name,func,aspec) {                   \
+    mrb_define_method_id(mrb, cla, mrb_intern_cstr(mrb, name), func, aspec); \
+}
+
+#define mrb_define_dmethod(mrb,cla,name,func,aspec) {                   \
+    mrb_define_dmethod_id(mrb, cla, mrb_intern_cstr(mrb, name), func, aspec); \
+}
+
 
 /**
  * Defines a class method.
@@ -469,8 +508,17 @@ MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *n
  * @param [mrb_func_t] mrb_func_t The function pointer to the class method definition.
  * @param [mrb_aspec] mrb_aspec The method parameters declaration.
  */
-MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);
-MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
+/*MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);*/
+#define mrb_define_singleton_method(mrb,o,name,func,aspec) {                 \
+  mrb_prepare_singleton_class(mrb, (struct RBasic*)o);                     \
+  mrb_define_method_id(mrb, o->c, mrb_intern_cstr(mrb, name), func, aspec); \
+}
+
+/*MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *, mrb_func_t, mrb_aspec);*/
+#define mrb_define_class_method(mrb,cla,name,func,aspec) {                 \
+  mrb_define_singleton_method(mrb, ((struct RObject *)cla), name, func, aspec); \
+}
+
 
 /**
  *  Defines a module fuction.
@@ -497,7 +545,11 @@ MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char
  *  @param [mrb_func_t] mrb_func_t The function pointer to the module function definition.
  *  @param [mrb_aspec] mrb_aspec The method parameters declaration.
  */
-MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);
+/*MRB_API void mrb_define_module_function(mrb_state*, struct RClass*, const char*, mrb_func_t, mrb_aspec);*/
+#define mrb_define_module_function(mrb,c,name,func,aspec) {                 \
+  mrb_define_class_method(mrb, c, name, func, aspec);                        \
+  mrb_define_method(mrb, c, name, func, aspec);                              \
+}
 
 /**
  *  Defines a constant.
@@ -957,6 +1009,7 @@ typedef const char *mrb_args_format;
  * @see mrb_args_format
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
+MRB_API mrb_int mrb_get_args_direct(mrb_state *mrb, mrb_int argc, mrb_value *argv, const char *format, ...);
 
 static inline mrb_sym
 mrb_get_mid(mrb_state *mrb) /* get method symbol */
@@ -1090,8 +1143,8 @@ char* mrb_locale_from_utf8(const char *p, int len);
 #define mrb_locale_free(p) free(p)
 #define mrb_utf8_free(p) free(p)
 #else
-#define mrb_utf8_from_locale(p, l) (p)
-#define mrb_locale_from_utf8(p, l) (p)
+#define mrb_utf8_from_locale(p, l) ((char*)p)
+#define mrb_locale_from_utf8(p, l) ((char*)p)
 #define mrb_locale_free(p)
 #define mrb_utf8_free(p)
 #endif
@@ -1255,6 +1308,7 @@ MRB_API void mrb_print_error(mrb_state *mrb);
 #define E_SYNTAX_ERROR              (mrb_exc_get(mrb, "SyntaxError"))
 #define E_LOCALJUMP_ERROR           (mrb_exc_get(mrb, "LocalJumpError"))
 #define E_REGEXP_ERROR              (mrb_exc_get(mrb, "RegexpError"))
+#define E_FROZEN_ERROR              (mrb_exc_get(mrb, "FrozenError"))
 
 #define E_NOTIMP_ERROR              (mrb_exc_get(mrb, "NotImplementedError"))
 #ifndef MRB_WITHOUT_FLOAT

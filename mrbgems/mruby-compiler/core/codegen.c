@@ -399,6 +399,14 @@ scope_error(codegen_scope *s)
   exit(EXIT_FAILURE);
 }
 
+static void
+distcheck(codegen_scope *s, int diff)
+{
+  if (diff > MAXARG_sBx || diff < -MAXARG_sBx) {
+    codegen_error(s, "too distant jump address");
+  }
+}
+
 static inline void
 dispatch(codegen_scope *s, int pc)
 {
@@ -420,9 +428,7 @@ dispatch(codegen_scope *s, int pc)
     scope_error(s);
     break;
   }
-  if (diff > MAXARG_sBx) {
-    codegen_error(s, "too distant jump address");
-  }
+  distcheck(s, diff);
   s->iseq[pc] = MKOP_AsBx(c, GETARG_A(i), diff);
 }
 
@@ -1063,13 +1069,9 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     genop_peep(s, MKOP_ABx(OP_SETCV, sp, idx), val);
     break;
   case NODE_CONST:
-<<<<<<< HEAD
     s->simple_lambda = -1;
     s->shared_lambda = -1;
-    idx = new_sym(s, sym(tree));
-=======
     idx = new_sym(s, nsym(tree));
->>>>>>> FETCH_HEAD
     genop_peep(s, MKOP_ABx(OP_SETCONST, sp, idx), val);
     break;
   case NODE_COLON2:
@@ -1407,6 +1409,7 @@ codegen(codegen_scope *s, node *tree, int val)
               pop();
               genop(s, MKOP_ABC(OP_RESCUE, exc, cursp(), 1));
             }
+            distcheck(s, pos2);
             tmp = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
             pos2 = tmp;
             if (n4) {
@@ -1424,6 +1427,7 @@ codegen(codegen_scope *s, node *tree, int val)
             codegen(s, n3->cdr->cdr->car, val);
             if (val) pop();
           }
+          distcheck(s, exend);
           tmp = genop(s, MKOP_sBx(OP_JMP, exend));
           exend = tmp;
           n2 = n2->cdr;
@@ -1596,6 +1600,7 @@ codegen(codegen_scope *s, node *tree, int val)
       dispatch(s, lp->pc1);
       codegen(s, tree->car, VAL);
       pop();
+      distcheck(s, lp->pc2 - s->pc);
       genop(s, MKOP_AsBx(OP_JMPIF, cursp(), lp->pc2 - s->pc));
 
       loop_pop(s, val);
@@ -1612,6 +1617,7 @@ codegen(codegen_scope *s, node *tree, int val)
       dispatch(s, lp->pc1);
       codegen(s, tree->car, VAL);
       pop();
+      distcheck(s, lp->pc2 - s->pc);
       genop(s, MKOP_AsBx(OP_JMPNOT, cursp(), lp->pc2 - s->pc));
 
       loop_pop(s, val);
@@ -1654,6 +1660,7 @@ codegen(codegen_scope *s, node *tree, int val)
           else {
             pop();
           }
+          distcheck(s, pos2);
           tmp = genop(s, MKOP_AsBx(OP_JMPIF, cursp(), pos2));
           pos2 = tmp;
           n = n->cdr;
@@ -1664,6 +1671,7 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         codegen(s, tree->car->cdr, val);
         if (val) pop();
+        distcheck(s, pos3);
         tmp = genop(s, MKOP_sBx(OP_JMP, pos3));
         pos3 = tmp;
         if (pos1) dispatch(s, pos1);
@@ -2164,6 +2172,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop_peep(s, MKOP_A(OP_EPOP, s->ensure_level - s->loop->ensure_level), NOVAL);
       }
       codegen(s, tree, NOVAL);
+      distcheck(s, s->loop->pc1 - s->pc);
       genop(s, MKOP_sBx(OP_JMP, s->loop->pc1 - s->pc));
     }
     else {
@@ -2187,6 +2196,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (s->ensure_level > s->loop->ensure_level) {
         genop_peep(s, MKOP_A(OP_EPOP, s->ensure_level - s->loop->ensure_level), NOVAL);
       }
+      distcheck(s, s->loop->pc2 - s->pc);
       genop(s, MKOP_sBx(OP_JMP, s->loop->pc2 - s->pc));
     }
     if (val) push();
@@ -2219,6 +2229,7 @@ codegen(codegen_scope *s, node *tree, int val)
           if (s->ensure_level > lp->ensure_level) {
             genop_peep(s, MKOP_A(OP_EPOP, s->ensure_level - lp->ensure_level), NOVAL);
           }
+          distcheck(s, s->loop->pc1 - s->pc);
           genop(s, MKOP_sBx(OP_JMP, lp->pc1 - s->pc));
         }
       }
@@ -2228,14 +2239,11 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_LVAR:
     if (val) {
-<<<<<<< HEAD
-      int idx = lv_idx(s, sym(tree));
+
+      int idx = lv_idx(s, nsym(tree));
       if (idx == block_reg(s->ainfo)) {
 	s->shared_lambda = -1;
       }
-=======
-      int idx = lv_idx(s, nsym(tree));
->>>>>>> FETCH_HEAD
 
       if (idx > 0) {
         genop_peep(s, MKOP_AB(OP_MOVE, cursp(), idx), NOVAL);
@@ -2247,13 +2255,9 @@ codegen(codegen_scope *s, node *tree, int val)
         while (up) {
           idx = lv_idx(up, nsym(tree));
           if (idx > 0) {
-<<<<<<< HEAD
 	    s->simple_lambda = -1;
 	    s->shared_lambda = -1;
-            genop(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv));
-=======
             genop_peep(s, MKOP_ABC(OP_GETUPVAR, cursp(), idx, lv), VAL);
->>>>>>> FETCH_HEAD
             break;
           }
           lv++;
@@ -3128,6 +3132,7 @@ loop_break(codegen_scope *s, node *tree)
       if (tree) {
         genop_peep(s, MKOP_AB(OP_MOVE, loop->acc, cursp()), NOVAL);
       }
+      distcheck(s, s->loop->pc3);
       tmp = genop(s, MKOP_sBx(OP_JMP, loop->pc3));
       loop->pc3 = tmp;
     }

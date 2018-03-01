@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <assert.h>
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
@@ -116,7 +117,7 @@ static void
 ary_modify_check(mrb_state *mrb, struct RArray *a)
 {
   if (MRB_FROZEN_P(a)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen array");
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen array");
   }
 }
 
@@ -811,13 +812,15 @@ aget_index(mrb_state *mrb, mrb_value index)
  */
 
 static mrb_value
-mrb_ary_aget(mrb_state *mrb, mrb_value self)
+mrb_ary_aget(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
+  mrb_value self = regs[0];
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int i, len, alen = ARY_LEN(a);
   mrb_value index;
 
-  if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
+    
+  if (mrb_get_args_direct(mrb, argc, regs, "o|i", &index, &len) == 1) {
     switch (mrb_type(index)) {
       /* a[n..m] */
     case MRB_TT_RANGE:
@@ -1222,9 +1225,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "+",               mrb_ary_plus,         MRB_ARGS_REQ(1)); /* 15.2.12.5.1  */
   mrb_define_method(mrb, a, "*",               mrb_ary_times,        MRB_ARGS_REQ(1)); /* 15.2.12.5.2  */
   mrb_define_method(mrb, a, "<<",              mrb_ary_push_m,       MRB_ARGS_REQ(1)); /* 15.2.12.5.3  */
-  mrb_define_method(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
+  mrb_define_dmethod(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
   mrbjit_define_primitive(mrb, a, "[]", mrbjit_prim_ary_aget);
-
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */
   mrbjit_define_primitive(mrb, a, "[]=", mrbjit_prim_ary_aset);
 
@@ -1252,10 +1254,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "shift",           mrb_ary_shift,        MRB_ARGS_NONE()); /* 15.2.12.5.27 */
   mrb_define_method(mrb, a, "size",            mrb_ary_size,         MRB_ARGS_NONE()); /* 15.2.12.5.28 */
   mrbjit_define_primitive(mrb, a, "size", mrbjit_prim_ary_size);
-
-  mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
+  mrb_define_dmethod(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
   mrbjit_define_primitive(mrb, a, "slice", mrbjit_prim_ary_aget);
-
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
   mrb_define_method(mrb, a, "prepend",         mrb_ary_unshift_m,    MRB_ARGS_ANY());
 

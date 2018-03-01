@@ -1,3 +1,5 @@
+unless SocketTest.win?
+
 assert('Socket.gethostname') do
   assert_true(Socket.gethostname.is_a? String)
 end
@@ -13,7 +15,7 @@ assert('Socket::getaddrinfo') do
   assert_equal "127.0.0.1",         a[3]
   assert_equal Socket::AF_INET,     a[4]
   assert_equal Socket::SOCK_DGRAM,  a[5]
-  assert_equal Socket::IPPROTO_UDP, a[6]
+  assert_equal Socket::IPPROTO_UDP, a[6] unless SocketTest.cygwin?
 end
 
 assert('Socket#recvfrom') do
@@ -32,3 +34,5 @@ assert('Socket#recvfrom') do
     c.close rescue nil
   end
 end
+
+end   # win?

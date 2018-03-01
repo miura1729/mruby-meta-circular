@@ -31,7 +31,7 @@ module Rand
 end
 
 class Vec
-  include Inline
+#  include Inline
   def initialize(x, y, z)
     @x = x
     @y = y
@@ -229,19 +229,12 @@ class Scene
     p0 = Vec.new(isect.pl.x + eps * isect.n.x,
                 isect.pl.y + eps * isect.n.y,
                 isect.pl.z + eps * isect.n.z)
-<<<<<<< HEAD
     nphi.times do |j|
       ntheta.times do |i|
 #        r = Rand::rand
         r = $rand.rand
 #        phi = 2.0 * 3.14159265 * Rand::rand
         phi = 2.0 * 3.14159265 * $rand.rand
-=======
-    nphi.times do
-      ntheta.times do
-        r = Rand::rand
-        phi = 2.0 * 3.14159265 * Rand::rand
->>>>>>> FETCH_HEAD
         x = Math.cos(phi) * Math.sqrt(1.0 - r)
         y = Math.sin(phi) * Math.sqrt(1.0 - r)
         z = Math.sqrt(r)

@@ -112,13 +112,23 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  khash_t(iv) *h = &t->h;
-  khiter_t k;
+  segment *seg;
+  size_t i;
+ 
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
+      mrb_sym key = seg->key[i];
 
-  k = kh_get(iv, mrb, h, sym);
-  if (k != kh_end(h)) {
-    if (vp) *vp = kh_value(h, k);
-    return TRUE;
+      if (!seg->next && i >= t->last_len) {
+        return FALSE;
+      }
+      if (key == sym) {
+        if (vp) *vp = seg->val[i];
+        return TRUE;
+      }
+    }
+    seg = seg->next;  
   }
   return FALSE;
 }
@@ -179,11 +189,14 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 	n =(*func)(mrb, key, seg->val[i], p);
 	if (n > 0) return FALSE;
 	if (n < 0) {
-          kh_del(iv, mrb, h, k);
+          t->last_len--;
+          seg->key[i] = 0;
 	}
       }
     }
+    seg = seg->next;
   }
+  return TRUE;
 }
 
 static size_t
@@ -208,7 +221,27 @@ iv_size(mrb_state *mrb, iv_tbl *t)
 static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
-  return (iv_tbl*)kh_copy(iv, mrb, &t->h);
+  segment *seg;
+  iv_tbl *t2;
+
+  size_t i;
+
+  seg = t->rootseg;
+  t2 = iv_new(mrb);
+
+  while (seg != NULL) {
+    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
+      mrb_sym key = seg->key[i];
+      mrb_value val = seg->val[i];
+
+      if ((seg->next == NULL) && (i >= t->last_len)) {
+        return t2;
+      }
+      iv_put(mrb, t2, key, val);
+    }
+    seg = seg->next;
+  }
+  return t2;
 }
 
 static void
@@ -363,7 +396,7 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   iv_tbl *t = obj->iv;
 
   if (MRB_FROZEN_P(obj)) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "can't modify frozen %S", mrb_obj_value(obj));
+    mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %S", mrb_obj_value(obj));
   }
   if (!t) {
     if (obj->tt == MRB_TT_OBJECT) {

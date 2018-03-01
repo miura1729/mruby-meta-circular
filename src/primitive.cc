@@ -671,7 +671,7 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
-  mrb_value *regs = mrb->c->stack;
+
 
   // No support 1 args only no args.
   if (nargs > 0) {
@@ -708,7 +708,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
   mrb_code ins = *pc;
   int a = GETARG_A(ins);
   //int nargs = GETARG_C(ins);
-  struct RProc *m;
+  mrb_method_t m;
   mrb_value klass = regs[a];
   struct RClass *c = mrb_class_ptr(klass);
   mrbjit_reginfo *dinfo = &coi->reginfo[GETARG_A(ins)];
@@ -716,7 +716,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
 
   m = mrb_method_search_vm(mrb, &c, mid);
 
-  if (MRB_PROC_CFUNC_P(m)) {
+  if (MRB_METHOD_CFUNC_P(m)) {
     CALL_CFUNC_BEGIN;
     emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)c);
     emit_arg_push(mrb, coi, 3, reg_tmp0);
@@ -726,13 +726,13 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
   }
   else {
     /* patch initialize method */
-    mrb_irep *pirep = m->body.irep;
+    mrb_irep *pirep = MRB_METHOD_PROC(m)->body.irep;
     mrb_code *piseq = pirep->iseq;
-    for (unsigned int i = 0; i < pirep->ilen; i++) {
+    for (int i = 0; i < pirep->ilen; i++) {
       if (GET_OPCODE(piseq[i]) == OP_RETURN && 
 	  (piseq[i] & ((1 << 23) - 1)) != piseq[i]) {
 	pirep->iseq = (mrb_code *)mrb_malloc(mrb, pirep->ilen *  sizeof(mrb_code));
-	for (unsigned int j = 0; j < pirep->ilen; j++) {
+	for (int j = 0; j < pirep->ilen; j++) {
 	  pirep->iseq[j] = piseq[j];
 	}
 	if (!(pirep->flags & MRB_ISEQ_NO_FREE)) {
@@ -743,7 +743,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
       }
     }
 
-    for (unsigned int i = 0; i < pirep->ilen; i++) {
+    for (int i = 0; i < pirep->ilen; i++) {
       if (GET_OPCODE(piseq[i]) == OP_RETURN) {
 	/* clear A argument (return self always) */
 	piseq[i] &= ((1 << 23) - 1);
@@ -788,7 +788,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)pirep->iseq);
     }
     else {
-      gen_send_mruby(mrb, m, mid, klass, mrb_class_ptr(klass), status, pc, coi);
+      gen_send_mruby(mrb, MRB_METHOD_PROC(m), mid, klass, mrb_class_ptr(klass), status, pc, coi);
     }
     gen_exit(mrb, pirep->iseq, 2, 0, status, coi);
   }
@@ -1032,7 +1032,7 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int a = GETARG_A(i);
   int n = GETARG_C(i);
-  struct RProc *m;
+  mrb_method_t m;
   struct RClass *c;
   mrb_value recv;
   mrb_sym mid = syms[GETARG_B(i)];
@@ -1052,7 +1052,7 @@ MRBJitCode::mrbjit_prim_enum_all_impl(mrb_state *mrb, mrb_value proc,
   c = mrb_class(mrb, recv);
   m = mrb_method_search_vm(mrb, &c, mid);
 
-  cirep = m->body.irep;
+  cirep = MRB_METHOD_PROC(m)->body.irep;
   nirep = mrb_add_irep(mrb);
   //  disasm_irep(mrb, birep);
   //disasm_irep(mrb, cirep);
@@ -1087,7 +1087,7 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
   int i = *pc;
   int a = GETARG_A(i);
   struct RClass *c = mrb_class(mrb, regs[a]);
-  struct RProc *m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "=="));
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, mrb_intern_cstr(mrb, "=="));
   mrbjit_reginfo *dinfo = &coi->reginfo[a];
 
   dinfo->type = MRB_TT_TRUE;
@@ -1096,7 +1096,7 @@ MRBJitCode::mrbjit_prim_kernel_equal_impl(mrb_state *mrb, mrb_value proc,
   dinfo->unboxedp = 0;
 
 
-  return mrb_obj_value(m);
+  return mrb_obj_value(MRB_METHOD_PROC(m));
 }
 
 extern "C" mrb_value
@@ -1124,7 +1124,7 @@ MRBJitCode::mrbjit_prim_kernel_block_given_p_impl(mrb_state *mrb, mrb_value proc
   dinfo->unboxedp = 0;
   
   if (ci == mrb->c->cibase ||
-      ci->proc->env) {
+      ci->proc->e.env) {
     return mrb_nil_value();    	// not in toplevel of method or the toplevel env
   }
 

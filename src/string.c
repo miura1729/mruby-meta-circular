@@ -495,7 +495,7 @@ static void
 check_frozen(mrb_state *mrb, struct RString *s)
 {
   if (MRB_FROZEN_P(s)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't modify frozen string");
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen string");
   }
 }
 
@@ -2838,8 +2838,8 @@ mrb_float_read(const char *string, char **endPtr)
     int sign, expSign = FALSE;
     double fraction, dblExp;
     const double *d;
-    register const char *p;
-    register int c;
+    const char *p;
+    int c;
     int exp = 0;                /* Exponent read from "EX" field. */
     int fracExp = 0;            /* Exponent that derives from the fractional
                                  * part.  Under normal circumstatnces, it is
