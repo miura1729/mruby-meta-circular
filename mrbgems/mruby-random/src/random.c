@@ -19,7 +19,7 @@ static const struct mrb_data_type mt_state_type = {
   MT_STATE_KEY, mrb_free,
 };
 
-static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value *regs, mrb_int argc);
 static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self);
 
 static void
@@ -104,11 +104,22 @@ get_random_state(mrb_state *mrb)
   return DATA_GET_PTR(mrb, random_val, &mt_state_type, mt_state);
 }
 
+static void mrb_random_rand_seed(mrb_state *mrb, mt_state *t);
 static mrb_value
-mrb_random_g_rand(mrb_state *mrb, mrb_value self)
+mrb_random_g_rand(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
-  mrb_value random = get_random(mrb);
-  return mrb_random_rand(mrb, random);
+  mrb_value self = get_random(mrb);
+  mrb_value max;
+  mt_state *t = DATA_GET_PTR(mrb, self, &mt_state_type, mt_state);
+
+  if (argc == 1) {
+    max = regs[1];
+  }
+  else {
+    max = mrb_nil_value();
+  }
+  mrb_random_rand_seed(mrb, t);
+  return mrb_random_mt_rand(mrb, t, max);
 }
 
 static mrb_value
@@ -160,12 +171,18 @@ mrb_random_rand_seed(mrb_state *mrb, mt_state *t)
 }
 
 static mrb_value
-mrb_random_rand(mrb_state *mrb, mrb_value self)
+mrb_random_rand(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
+  mrb_value self = regs[0];
   mrb_value max;
   mt_state *t = DATA_GET_PTR(mrb, self, &mt_state_type, mt_state);
 
-  max = get_opt(mrb);
+  if (argc == 1) {
+    max = regs[1];
+  }
+  else {
+    max = mrb_nil_value();
+  }
   mrb_random_rand_seed(mrb, t);
   return mrb_random_mt_rand(mrb, t, max);
 }
@@ -324,7 +341,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   struct RClass *random;
   struct RClass *array = mrb->array_class;
 
-  mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
+  mrb_define_dmethod(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
@@ -333,7 +350,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
+  mrb_define_dmethod(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
