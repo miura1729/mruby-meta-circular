@@ -665,11 +665,10 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
  *     b.kind_of? M       #=> true
  */
 static mrb_value
-mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
+mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
-  mrb_value arg;
-
-  mrb_get_args(mrb, "C", &arg);
+  mrb_value arg = regs[1];
+  mrb_value self = regs[0];
 
   return mrb_bool_value(mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg)));
 }
@@ -1239,9 +1238,9 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "instance_variable_get",      mrb_obj_ivar_get,                MRB_ARGS_REQ(1));    /* 15.3.1.3.21 */
   mrb_define_method(mrb, krn, "instance_variable_set",      mrb_obj_ivar_set,                MRB_ARGS_REQ(2));    /* 15.3.1.3.22 */
   mrb_define_method(mrb, krn, "instance_variables",         mrb_obj_instance_variables,      MRB_ARGS_NONE());    /* 15.3.1.3.23 */
-  mrb_define_method(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
+  mrb_define_dmethod(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
   mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
-  mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
+  mrb_define_dmethod(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method(mrb, krn, "local_variables",            mrb_local_variables,             MRB_ARGS_NONE());    /* 15.3.1.3.28 */
 #ifdef MRB_DEFAULT_METHOD_MISSING
   mrb_define_method(mrb, krn, "method_missing",             mrb_obj_missing,                 MRB_ARGS_ANY());     /* 15.3.1.3.30 */
