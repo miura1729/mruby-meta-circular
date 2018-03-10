@@ -774,7 +774,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, env), reg_tmp0);
     emit_move(mrb, coi, reg_context, OffsetOf(mrb_callinfo, err), reg_tmp0);
     if (irep->jit_inlinep == 0 || 1) {
-      //emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, jit_entry), reg_tmp0);
+      emit_move(mrb, coi, reg_tmp1, OffsetOf(mrb_callinfo, jit_entry), reg_tmp0);
     }
 
     /* Inherit ridx */
@@ -1517,7 +1517,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrb_sym ivid;
 
-    if (MRB_METHOD_CFUNC_P(m) && MRB_METHOD_FUNC(m) == mrbjit_attr_func[0]) {
+    if (MRB_METHOD_PROC_P(m) && MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m)) &&
+	MRB_PROC_CFUNC(MRB_METHOD_PROC(m)) == mrbjit_attr_func[0]) {
       return mrb_symbol(MRB_METHOD_PROC(m)->e.env->stack[0]);
     }
 
@@ -1534,10 +1535,10 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   {
     mrb_sym ivid;
 
-    if (MRB_METHOD_CFUNC_P(m) && MRB_METHOD_FUNC(m) == mrbjit_attr_func[1]) {
+    if (MRB_METHOD_PROC_P(m) && MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m)) &&
+	MRB_PROC_CFUNC(MRB_METHOD_PROC(m)) == mrbjit_attr_func[1]) {
       return mrb_symbol(MRB_METHOD_PROC(m)->e.env->stack[0]);
     }
-
     ivid = method_check(mrb, m, OP_SETIV);
     if (ivid) {
       MRB_METHOD_PROC(m)->body.irep->method_kind = IV_WRITER;
@@ -1698,7 +1699,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     if (gen_accessor(mrb, status, m, recv, a, coi)) {
       return code;
     }
-    
+
     if (GET_OPCODE(i) != OP_SENDB) {
       gen_setnilblock(mrb, a, n, coi);
     }

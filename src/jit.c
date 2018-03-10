@@ -140,6 +140,14 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   // printf("C %d %x %x %x\n", m->body.func, regs, n);
   //puts(mrb_sym2name(mrb, mid));
 
+  if (MRB_DMETHOD_CFUNC_P(m)) {
+    regs[a] = MRB_DMETHOD_CFUNC(m)(mrb, regs, n);
+
+    mrb_gc_arena_restore(mrb, ai);
+    if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+
+    return NULL;
+  }
   ci = mrbjit_cipush(mrb);
   ci->stackent = mrb->c->stack;
   if (n == CALL_MAXARGS) {
@@ -168,11 +176,11 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   //mrb_p(mrb, recv);
   mrb->compile_info.disable_jit = 1;
   mrb->vmstatus = (void *)status;
-  if (MRB_METHOD_CFUNC_P(m)) {
-    result = MRB_METHOD_CFUNC(m)(mrb, recv);
+  if (MRB_METHOD_PROC_P(m)) {
+    result = MRB_METHOD_PROC(m)->body.func(mrb, recv);
   }
   else {
-    result = (MRB_METHOD_PROC(m)->body.func)(mrb, recv);
+    result = MRB_METHOD_CFUNC(m)(mrb, recv);
   }
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
@@ -768,7 +776,6 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	MRB_THROW(*status->prev_jmp);
       }
       if (FALSE) {
-      L_BREAK:
 	v = ((struct RBreak*)mrb->exc)->val;
 	proc = ((struct RBreak*)mrb->exc)->proc;
 	mrb->exc = NULL;

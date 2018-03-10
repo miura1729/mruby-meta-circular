@@ -466,6 +466,7 @@ mrbjit_cipush(mrb_state *mrb)
     c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
   }
+  c->ci->jit_entry = NULL;
   ci = ++c->ci;
   ci->epos = mrb->c->eidx;
   ci->ridx = ridx;
@@ -508,7 +509,7 @@ cipop(mrb_state *mrb)
   struct REnv *env = c->ci->env;
 
   c->ci--;
-  if (env && c->ci->proc->body.irep->shared_lambda != 1) {
+  if (env) {
     mrb_env_unshare(mrb, env);
   }
   if (env) mrb_env_unshare(mrb, env);
@@ -834,6 +835,9 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
       ci->proc = MRB_METHOD_PROC(m);
     }
     return MRB_METHOD_CFUNC(m)(mrb, self);
+  }
+  else if (MRB_DMETHOD_CFUNC_P(m)) {
+    return MRB_DMETHOD_CFUNC(m)(mrb, regs, ci->argc);
   }
   return mrb_exec_irep(mrb, self, MRB_METHOD_PROC(m));
 }
@@ -3932,7 +3936,7 @@ RETRY_TRY_BLOCK:
       mrb->c->stack += a;
 
       /* setup block to call */
-      ci->proc = p;
+      proc = ci->proc = p;
 
       irep = p->body.irep;
       pool = irep->pool;
