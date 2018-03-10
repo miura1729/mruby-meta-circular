@@ -2060,7 +2060,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int can_use_fast = (c->ci != c->cibase &&
 			GETARG_B(i) == OP_R_NORMAL &&
 			(c->ci->env == 0 || 
-			 c->ci->proc->body.irep->shared_lambda == 1) && 0);
+			 c->ci->proc->body.irep->shared_lambda == 1));
     int can_inline = (can_use_fast &&
 		      (c->ci[-1].epos == c->eidx) && (c->ci[-1].acc >= 0));
 
@@ -2130,7 +2130,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       lea(reg_tmp0, dword [reg_vars + VMSOffsetOf(status)]);
       emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
-      if (can_use_fast && 0) {
+      if (can_use_fast) {
 	emit_call(mrb, coi, (void *)mrbjit_exec_return_fast);
       }
       else {

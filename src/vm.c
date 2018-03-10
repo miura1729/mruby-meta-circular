@@ -3844,7 +3844,7 @@ RETRY_TRY_BLOCK:
       int c = GETARG_c(i);
       mrb_irep *nirep = irep->reps[b];
 
-      if (nirep->shared_lambda == 1 && 0) {
+      if (nirep->shared_lambda == 1) {
 	p = get_local_proc(mrb, nirep);
 	p->e.env->stack = mrb->c->stack;
 	p->e.env->c = (struct RClass*)mrb->c->ci->proc->e.env;
