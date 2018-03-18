@@ -448,8 +448,10 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     if (k != kh_end(h)) {
       op = kh_value(h, k);
       if (op && (op & (MRB_METHOD_FUNC_FL | MRB_DMETHOD_FUNC_FL)) == 0 && mrb->vmstatus) {
-	if (p == NULL || MRB_METHOD_PROC(op)->body.irep != p->body.irep) {
-	  mrbjit_reset_irep(mrb, mrb->vmstatus, MRB_METHOD_PROC(op)->body.irep);
+	struct RProc *opp = MRB_METHOD_PROC(op);
+	if (!MRB_PROC_CFUNC_P(opp) &&
+	    (p == NULL || opp->body.irep != p->body.irep)) {
+	  mrbjit_reset_irep(mrb, mrb->vmstatus, opp->body.irep);
 	}
       }
     }
