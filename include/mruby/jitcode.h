@@ -685,14 +685,29 @@ class MRBJitCode: public MRBGenericCodeGenerator {
   }
 
   /* Get parent env. return to reg_tmp1, reg_tmp0 is break */
-  void
+  int
     gen_uvenv(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, int uppos)
   {
-    int off;
-    emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, ci));
-    off = mrbjit_uvoff(mrb, uppos);
-    emit_sub(mrb, coi, reg_tmp0, sizeof(mrb_callinfo) * off);
-    emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(mrb_callinfo, proc));
+    int off = mrbjit_uvoff(mrb, uppos);
+    if (off == 0) {
+      return -1;
+    }
+    
+    if (off == -2) {
+      int up = uppos;
+
+      emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, ci));
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(mrb_callinfo, proc));
+
+      while (up--) {
+	emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, upper));
+      }
+    }
+    else {
+      emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(mrb_context, ci));
+      emit_sub(mrb, coi, reg_tmp0, sizeof(mrb_callinfo) * off);
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(mrb_callinfo, proc));
+    }
 
     /* read envset flag in flags */
     emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
@@ -704,6 +719,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_sub(mrb, coi, reg_tmp0, sizeof(mrb_callinfo) * off);
     emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(mrb_callinfo, env));
     L("@@");
+
+    return 1;
   }
 
   void 
