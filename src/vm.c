@@ -279,13 +279,16 @@ mrbjit_uvoff(mrb_state *mrb, int up)
 {
   int off = 0;
   struct RProc *proc = mrb->c->ci->proc;
+  struct REnv *e;
   mrb_callinfo *ci = mrb->c->ci;
   mrb_callinfo *cb = mrb->c->cibase;
 
   while (up--) {
     proc = proc->upper;
-    if (!proc) return -1;
+    if (!proc) return 0;
   }
+  e = MRB_PROC_ENV(proc);
+  if (e) return -2;              /* proc has enclosed env */
 
   while (cb <= ci) {
     if (ci->proc == proc) {
@@ -295,7 +298,7 @@ mrbjit_uvoff(mrb_state *mrb, int up)
     off++;
   }
 
-  return -1;
+  return 0;
 }
 
 static inline struct RProc*
@@ -384,6 +387,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   p = &(c->proc_pool->proc);
   p->e.env->stack = mrb->c->stack;
   p->e.env->c = (struct RClass*)mrb->c->ci->proc->e.env;
+  p->flags = 0;
   c->proc_pool->proc.body.irep = mirep;
   mirep->block_lambda = 1;
   mirep->flags |= MRB_ISEQ_NO_FREE; /* Guard from gc  */
@@ -3844,7 +3848,7 @@ RETRY_TRY_BLOCK:
       int c = GETARG_c(i);
       mrb_irep *nirep = irep->reps[b];
 
-      if (nirep->shared_lambda == 1) {
+      if (nirep->shared_lambda == 1 && !(c & OP_L_CAPTURE)) {
 	p = get_local_proc(mrb, nirep);
 	p->e.env->stack = mrb->c->stack;
 	p->e.env->c = (struct RClass*)mrb->c->ci->proc->e.env;

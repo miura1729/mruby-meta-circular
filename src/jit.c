@@ -289,7 +289,12 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
 
   //mrb_p(mrb, recv);
   mrb->compile_info.disable_jit = 1;
-  result = MRB_METHOD_CFUNC(m)(mrb, recv);
+  if (MRB_METHOD_PROC_P(m)) {
+    result = MRB_METHOD_PROC(m)->body.func(mrb, recv);
+  }
+  else {
+    result = MRB_METHOD_CFUNC(m)(mrb, recv);
+  }
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
   if (mrb->exc) {

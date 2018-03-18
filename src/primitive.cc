@@ -788,7 +788,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
       emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), (cpu_word_t)pirep->iseq);
     }
     else {
-      gen_send_mruby(mrb, MRB_METHOD_PROC(m), mid, klass, mrb_class_ptr(klass), status, pc, coi);
+      gen_send_mruby(mrb, MRB_METHOD_PROC(m), mid, klass, c, status, pc, coi);
     }
     gen_exit(mrb, pirep->iseq, 2, 0, status, coi);
   }
