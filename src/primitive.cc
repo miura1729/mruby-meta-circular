@@ -728,6 +728,29 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
     /* patch initialize method */
     mrb_irep *pirep = MRB_METHOD_PROC(m)->body.irep;
     mrb_code *piseq = pirep->iseq;
+    int i;
+    int j;
+
+
+    if (pirep->jit_entry_tab && 0) {
+      for (i = 0; i < pirep->ilen; i++) {
+	for (j = 0; j < pirep->jit_entry_tab[i].size; j++) {
+	  if (pirep->jit_entry_tab[i].body[j].reginfo) {
+	    mrb_free(mrb, pirep->jit_entry_tab[i].body[j].reginfo);
+	  }
+	}
+	mrb_free(mrb, pirep->jit_entry_tab->body);
+	mrb_free(mrb, pirep->jit_entry_tab);
+      }
+    }
+
+    pirep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, pirep->ilen, sizeof(mrbjit_codetab));
+    for (i = 0; i < pirep->ilen; i++) {
+      pirep->jit_entry_tab[i].size = 2;
+      pirep->jit_entry_tab[i].body = 
+	(mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+    }
+
     for (int i = 0; i < pirep->ilen; i++) {
       if (GET_OPCODE(piseq[i]) == OP_RETURN && 
 	  (piseq[i] & ((1 << 23) - 1)) != piseq[i]) {

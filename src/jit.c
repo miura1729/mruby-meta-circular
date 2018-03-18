@@ -511,8 +511,16 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	struct RProc *p;
 
 	if (nirep == (mrb_irep *)mrb) {
+	  int i;
 	  mrb_irep *cirep = mrb_add_irep(mrb);
 	  *cirep = *irep;
+	  cirep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, irep->ilen, sizeof(mrbjit_codetab));
+	  for (i = 0; i < cirep->ilen; i++) {
+	    cirep->jit_entry_tab[i].size = 2;
+	    cirep->jit_entry_tab[i].body = 
+	      (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+	  }
+	  cirep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
 	  if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
 	    if (irep->shared_lambda == 1) {
 	      p = mrbjit_get_local_proc(mrb, cirep);
