@@ -2925,7 +2925,9 @@ do {                                                                 \
     dinfo->constp = 0;
     dinfo->unboxedp = 0;
 
-    gen_uvenv(mrb, status, coi, uppos);
+    if (gen_uvenv(mrb, status, coi, uppos) < 0) {
+      return NULL;
+    }
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct REnv, stack));
     emit_move(mrb, coi, reg_dtmp0, reg_tmp1, idxpos * sizeof(mrb_value));
     emit_local_var_write(mrb, coi, dstno, reg_dtmp0);
@@ -2942,7 +2944,9 @@ do {                                                                 \
     const cpu_word_t idxpos = GETARG_B(**ppc);
     const cpu_word_t valno = GETARG_A(**ppc);
 
-    gen_uvenv(mrb, status, coi, uppos);
+    if (gen_uvenv(mrb, status, coi, uppos) < 0) {
+      return NULL;
+    }
     emit_cfunc_start(mrb, coi);
     emit_arg_push(mrb, coi, 1, reg_tmp1);
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct REnv, stack));
