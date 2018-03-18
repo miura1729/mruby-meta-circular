@@ -731,7 +731,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     int callee_nregs;
     int callee_nlocals;
     mrb_irep *irep = *status->irep;
-    mrb_value *regs = mrb->c->stack;
     int i = *pc;
     int a = GETARG_A(i);
     int n = GETARG_C(i);
@@ -862,13 +861,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, proc), reg_tmp1);
       emit_vm_var_write(mrb, coi, VMSOffsetOf(proc), reg_tmp1);
 
-      if (MRB_PROC_ENV_P(mrb_proc_ptr(regs[0]))) {
-	emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, e.env));
-	emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct REnv, c));
-      }
-      else {
-	emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, e.target_class));
-      }
+      inLocalLabel();
+      emit_move(mrb, coi, reg_tmp1, reg_tmp1, 0);
+      and(reg_tmp1, MRB_PROC_ENVSET << 11);
+      emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, 0); /* self */
+      jz(".elseif");
+      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, e.env));
+      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct REnv, c));
+      emit_jmp(mrb, coi, ".endif");
+
+      L(".elseif");
+      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(struct RProc, e.target_class));
+      L(".endif");
+      outLocalLabel();
+
       emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, target_class), reg_tmp1);
 
       emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, 0); /* self */
@@ -3108,7 +3114,7 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(mrb_callinfo, proc));
     emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_irep, outer), reg_tmp1);
 	  
-    if (mirep->simple_lambda == 1 && c->proc_pool) {
+    if (mirep->simple_lambda == 1 && c->proc_pool&& !(flags & OP_L_CAPTURE)) {
       for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
 	if (c->proc_pool[i].proc.body.irep == mirep) {
 	  struct RProc *nproc = &c->proc_pool[i].proc;
