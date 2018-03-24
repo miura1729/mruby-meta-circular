@@ -78,12 +78,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     }
     if ((flags & FLAG_SRC_MALLOC) == 0 &&
         (flags & FLAG_BYTEORDER_NATIVE)) {
-      irep->iseq = (mrb_code*)src;
+      irep->org_iseq = irep->iseq = (mrb_code*)src;
       src += sizeof(uint32_t) * irep->ilen;
       irep->flags |= MRB_ISEQ_NO_FREE;
     }
     else {
-      irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
+      irep->org_iseq = irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
       if (flags & FLAG_BYTEORDER_NATIVE) {
         memcpy(irep->iseq, src, sizeof(uint32_t) * irep->ilen);
         src += sizeof(uint32_t) * irep->ilen;

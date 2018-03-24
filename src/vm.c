@@ -265,7 +265,7 @@ uvenv(mrb_state *mrb, int up)
     mrb_callinfo *cb = mrb->c->cibase;
 
     while (cb <= ci) {
-      if (ci->proc == proc) {
+      if (ci->proc->body.irep->org_iseq == proc->body.irep->org_iseq) {
         return ci->env;
       }
       ci--;
@@ -291,7 +291,7 @@ mrbjit_uvoff(mrb_state *mrb, int up)
   if (e) return -2;              /* proc has enclosed env */
 
   while (cb <= ci) {
-    if (ci->proc == proc) {
+    if (ci->proc->body.irep->org_iseq == proc->body.irep->org_iseq) {
       return off;
     }
     ci--;
@@ -2839,6 +2839,7 @@ RETRY_TRY_BLOCK:
 		p->flags = proc->flags;
 		p->body.irep->refcnt++;
 		p->e.env = proc->e.env;
+		p->upper = proc->upper;
 		irep->pool[ipos] = mrb_fixnum_value((uintptr_t)cirep - (uintptr_t)mrb);
 		mrb->c->ci->proc = proc = p;
 		irep = cirep;
@@ -2860,6 +2861,7 @@ RETRY_TRY_BLOCK:
 	      p->flags = proc->flags;
 	      p->body.irep->refcnt++;
 	      p->e.env = proc->e.env;
+	      p->upper = proc->upper;
 	      mrb->c->ci->proc = proc = p;
 	      irep = nirep;
 	      pc = nirep->iseq;
@@ -3035,7 +3037,7 @@ RETRY_TRY_BLOCK:
                 goto L_RAISE;
               }
             }
-            while (cibase <= ci && ci->proc != dst) {
+            while (cibase <= ci && ci->proc->body.irep->org_iseq != dst->body.irep->org_iseq) {
               if (ci->acc < 0) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
@@ -3091,7 +3093,7 @@ RETRY_TRY_BLOCK:
           else {
             struct REnv *e = MRB_PROC_ENV(proc);
 
-            if (e == mrb->c->cibase->env && proc != mrb->c->cibase->proc) {
+            if (e == mrb->c->cibase->env && proc->body.irep->org_iseq != mrb->c->cibase->proc->body.irep->org_iseq) {
               goto L_BREAK_ERROR;
             }
             if (e->cxt != mrb->c) {
@@ -3125,7 +3127,7 @@ RETRY_TRY_BLOCK:
           }
           mrb->c->stack = ci->stackent;
           proc = proc->upper;
-          while (mrb->c->cibase < ci &&  ci[-1].proc != proc) {
+          while (mrb->c->cibase < ci &&  ci[-1].proc->body.irep->org_iseq != proc->body.irep->org_iseq) {
             if (ci[-1].acc == CI_ACC_SKIP) {
               while (ci < mrb->c->ci) {
                 cipop(mrb);

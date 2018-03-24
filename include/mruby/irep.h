@@ -47,6 +47,7 @@ typedef struct mrb_irep {
   uint32_t flags;
 
   mrb_code *iseq;
+  mrb_code *org_iseq;
   mrb_value *pool;
   mrb_sym *syms;
   struct mrb_irep **reps;

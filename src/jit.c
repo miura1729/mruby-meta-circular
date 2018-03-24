@@ -145,8 +145,6 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc) return status->gototable[0]; /* L_RAISE */
-
-    return NULL;
   }
   ci = mrbjit_cipush(mrb);
   ci->stackent = mrb->c->stack;
@@ -184,31 +182,21 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   }
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
+  //mrb_gc_arena_shrink(mrb, ai);
 
-  if (mrb->exc) {
-    ci->mid = mid;
-    if (MRB_METHOD_PROC_P(m)) {
-      ci->proc = MRB_METHOD_PROC(m);
-    }
-    else {
-      ci->proc = NULL;
-    }
-    return status->gototable[0];	/* goto L_RAISE; */
-  }
-  if (ci != mrb->c->ci) {
-    /* OP_SEND like method ex. __send__  */
-    ci[-1].jit_entry = NULL;
-  }
-  /* pop stackpos */
+  if (mrb->exc) return status->gototable[0]; /* L_RAISE */
   ci = mrb->c->ci;
   if (GET_OPCODE(i) == OP_SENDB) {
     if (mrb_type(blk) == MRB_TT_PROC) {
       struct RProc *p = mrb_proc_ptr(blk);
-
-      if (p && !MRB_PROC_STRICT_P(p) && p->e.env == ci[-1].env) {
+      if (p && !MRB_PROC_STRICT_P(p) && MRB_PROC_ENV(p) == ci[-1].env) {
 	p->flags |= MRB_PROC_ORPHAN;
       }
     }
+  }
+  if (ci != mrb->c->ci) {
+    /* OP_SEND like method ex. __send__  */
+    ci[-1].jit_entry = NULL;
   }
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (ci->acc == CI_ACC_RESUMED) {
@@ -297,17 +285,14 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
   }
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
-  if (mrb->exc) {
-    ci->mid = mid;
-    ci->proc = MRB_METHOD_PROC(m);
-    return status->gototable[0];	/* goto L_RAISE; */
-  }
+  //mrb_gc_arena_shrink(mrb, ai);
+
+  if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+  ci = mrb->c->ci;
   if (ci != mrb->c->ci) {
     /* OP_SEND like method ex. __send__  */
     ci[-1].jit_entry = NULL;
   }
-  /* pop stackpos */
-  ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (ci->acc == CI_ACC_RESUMED) {
       mrb->jmp = *status->prev_jmp;
@@ -531,6 +516,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	    p->flags = proc->flags;
 	    p->body.irep->refcnt++;
 	    p->e.env = proc->e.env;
+	    p->upper = proc->upper;
 	    (*status->irep)->pool[ipos] = mrb_fixnum_value(((intptr_t)cirep - (intptr_t)mrb));
 	    mrb->c->ci->proc = proc = p;
 	    *status->irep = cirep;
@@ -551,6 +537,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	  p->flags = proc->flags;
 	  p->body.irep->refcnt++;
 	  p->e.env = proc->e.env;
+	  p->upper = proc->upper;
 	  mrb->c->ci->proc = proc = p;
 	  *status->irep = nirep;
 	  *status->pc = nirep->iseq;
@@ -609,7 +596,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
     if (mrb_type(blk) == MRB_TT_PROC) {
       struct RProc *p = mrb_proc_ptr(blk);
 
-      if (!MRB_PROC_STRICT_P(*status->proc) &&
+      if (!MRB_PROC_STRICT_P(p) &&
 	  ci > mrb->c->cibase && p->e.env == ci[-1].env) {
 	p->flags |= MRB_PROC_ORPHAN;
       }
@@ -705,7 +692,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 	    goto L_RAISE;
 	  }
 	}
-	while (cibase <= ci && ci->proc != dst) {
+	while (cibase <= ci && ci->proc->body.irep->org_iseq != dst->body.irep->org_iseq) {
 	  if (ci->acc < 0) {
 	    mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	    goto L_RAISE;
@@ -761,7 +748,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       else {
 	struct REnv *e = MRB_PROC_ENV(proc);
 
-	if (e == mrb->c->cibase->env && proc != mrb->c->cibase->proc) {
+	if (e == mrb->c->cibase->env && proc->body.irep->org_iseq != mrb->c->cibase->proc->body.irep->org_iseq) {
 	  goto L_BREAK_ERROR;
 	}
 	if (e->cxt != mrb->c) {
@@ -796,7 +783,7 @@ mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
       }
       mrb->c->stack = ci->stackent;
       proc = proc->upper;
-      while (mrb->c->cibase < ci &&  ci[-1].proc != proc) {
+      while (mrb->c->cibase < ci &&  ci[-1].proc->body.irep->org_iseq != proc->body.irep->org_iseq) {
 	if (ci[-1].acc == CI_ACC_SKIP) {
 	  while (ci < mrb->c->ci) {
 	    mrbjit_cipop(mrb);
