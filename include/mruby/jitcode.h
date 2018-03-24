@@ -2288,8 +2288,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       if (mrb_nil_p(regs[m1 + r + m2 + 1])) {
 	return NULL;
       }
-      emit_local_var_read(mrb, coi, reg_dtmp0, m1 + r + m2 + 1);
-      emit_local_var_write(mrb, coi, a, reg_dtmp0);
+      emit_local_var_type_read(mrb, coi, reg_tmp1, m1 + r + m2 + 1);
+      emit_local_var_value_read(mrb, coi, reg_tmp0, m1 + r + m2 + 1);
     }
     else {
       int i;
@@ -2311,9 +2311,28 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct REnv, c));
       }
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct REnv, stack));
-      emit_move(mrb, coi, reg_dtmp0, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value));
-      emit_local_var_write(mrb, coi, a, reg_dtmp0);
+      emit_move(mrb, coi, reg_tmp1, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value) + 4);
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value));
     }
+
+    cmp(reg_tmp1, 0xfff00001);
+    jnz("@f");
+
+    emit_cfunc_start(mrb, coi);
+    
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t) LOCALJUMP_ERROR_YIELD);
+    emit_arg_push(mrb, coi, 1, reg_tmp0);
+    emit_arg_push(mrb, coi, 0, reg_mrb);
+    emit_call(mrb, coi, (void *)mrbjit_localjump_error);
+
+    emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(cpu_word_t));
+    /* return code is L_RAISE */
+    emit_load_literal(mrb, coi, reg_tmp0, (cpu_word_t)status->gototable[0]);
+    ret();
+
+    L("@@");
+    emit_local_var_value_write(mrb, coi, a, reg_tmp0);
+    emit_local_var_type_write(mrb, coi, a, reg_tmp1);
 
     return code;
   }
