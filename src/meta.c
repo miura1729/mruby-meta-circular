@@ -16,7 +16,7 @@ static const char *optable[] = {
   "LOADL", "LOADI", "LOADSYM", "LOADNIL",
   "LOADSELF", "LOADT", "LOADF",
   "GETGLOBAL", "SETGLOBAL", "GETSPECIAL", "SETSPECIAL",
-  "GETIV", "SETIV", "GETCV", "SETCV",
+  "GETIV", "GETIV2", "SETIV",  "SETIV2", "GETCV", "SETCV",
   "GETCONST", "SETCONST", "GETMCNST", "SETMCNST",
   "GETUPVAR", "SETUPVAR",
   "JMP", "JMPIF", "JMPNOT",
@@ -53,7 +53,11 @@ static enum inst_type opkindtable[] = {
   ABx, AsBx, ABx, A,    //"LOADL", "LOADI", "LOADSYM", "LOADNIL",
   A, A, A,              //"LOADSELF", "LOADT", "LOADF",
   ABx, ABx, ABx, ABx,   //"GETGLOBAL", "SETGLOBAL", "GETSPECIAL", "SETSPECIAL",
-  ABx, ABx, ABx, ABx,   //"GETIV", "SETIV", "GETCV", "SETCV",
+#if defined MRBJIT
+  ABx, ABx, ABx, ABx, ABx, ABx,   //"GETIV", "GETIV2", "SETIV", "SETIV2", " GETCV", "SETCV",
+#else
+  ABx, ABx, ABx, ABx,   //"GETIV", "SETIV", " GETCV", "SETCV",
+#endif
   ABx, ABx, ABx, ABx,   //"GETCONST", "SETCONST", "GETMCNST", "SETMCNST",
   ABx, ABx,             //"GETUPVAR", "SETUPVAR",
   sBx, AsBx, AsBx,      //"JMP", "JMPIF", "JMPNOT",
@@ -126,15 +130,15 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
 {
   mrb_value recv;
   mrb_value name;
-  struct RProc *m;
+  mrb_method_t m;
   struct RClass *c;
 
   mrb_get_args(mrb, "oo", &recv, &name);
   c = mrb_class(mrb, recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m && !MRB_PROC_CFUNC_P(m)) {
-    return mrb_irep_wrap(mrb, mrb_class_ptr(self), m->body.irep);
+  if (m && MRB_METHOD_PROC_P(m)) {
+    return mrb_irep_wrap(mrb, mrb_class_ptr(self), MRB_METHOD_PROC(m)->body.irep);
   }
   else {
     return mrb_nil_value();
@@ -221,13 +225,16 @@ static mrb_value
 mrb_env_get_proc_irep(mrb_state *mrb, mrb_value self)
 {
   mrb_value proc;
+  mrb_value oirep;
   mrb_irep *irep;
 
   mrb_get_args(mrb, "o", &proc);
 
   irep = mrb_proc_ptr(proc)->body.irep;
 
-  return mrb_irep_wrap(mrb, mrb_class_ptr(self), irep);
+  oirep = mrb_irep_wrap(mrb, mrb_class_ptr(self), irep);
+  mrb_write_barrier(mrb, mrb_basic_ptr(oirep));
+  return oirep;
 }
 
 static mrb_value
