@@ -16,7 +16,11 @@ static const char *optable[] = {
   "LOADL", "LOADI", "LOADSYM", "LOADNIL",
   "LOADSELF", "LOADT", "LOADF",
   "GETGLOBAL", "SETGLOBAL", "GETSPECIAL", "SETSPECIAL",
+#if defined MRBJIT
   "GETIV", "GETIV2", "SETIV",  "SETIV2", "GETCV", "SETCV",
+#else
+  "GETIV", "SETIV",  "GETCV", "SETCV",
+#endif
   "GETCONST", "SETCONST", "GETMCNST", "SETMCNST",
   "GETUPVAR", "SETUPVAR",
   "JMP", "JMPIF", "JMPNOT",
@@ -61,7 +65,7 @@ static enum inst_type opkindtable[] = {
   ABx, ABx, ABx, ABx,   //"GETCONST", "SETCONST", "GETMCNST", "SETMCNST",
   ABx, ABx,             //"GETUPVAR", "SETUPVAR",
   sBx, AsBx, AsBx,      //"JMP", "JMPIF", "JMPNOT",
-  sBx, A, A, A, Bx, A,  //"ONERR", "RESCUE", "POPERR", "RAISE", "EPUSH", "EPOP",
+  sBx, ABC, A, A, Bx, A,  //"ONERR", "RESCUE", "POPERR", "RAISE", "EPUSH", "EPOP",
   ASC, ASC, ASC,        //"SEND", "SENDB", "FSEND",
   A, AC, ABx, Ax,       //"CALL", "SUPER", "ARGARY", "ENTER",
   ASC, AC, AB, ASC, ABx,//"KARG", "KDICT", "RETURN", "TAILCALL", "BLKPUSH",
@@ -137,7 +141,7 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
   c = mrb_class(mrb, recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m && MRB_METHOD_PROC_P(m)) {
+  if (MRB_METHOD_PROC_P(m)) {
     return mrb_irep_wrap(mrb, mrb_class_ptr(self), MRB_METHOD_PROC(m)->body.irep);
   }
   else {
