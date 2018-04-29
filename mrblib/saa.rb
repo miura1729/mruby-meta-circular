@@ -159,13 +159,13 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :LOADT
+          inst.para.push true
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
-          inst.para.push true
 
         when :LOADF
-          inst.para.push true
+          inst.para.push false
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
