@@ -24,7 +24,23 @@ module RiteSSA
       end
     end
 
+    def flush_type(tup)
+      @same.each do |var|
+        var.flush_type(tup)
+        tys = var.type[tup]
+        if tys then
+          tys.each do |ty|
+            add_type(ty, tup)
+          end
+        end
+      end
+
+      @same = []
+      @type
+    end
+
     attr :refpoint
+    attr :type
   end
 
   class Reg<Storable
