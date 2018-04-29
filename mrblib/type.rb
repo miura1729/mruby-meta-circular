@@ -1,6 +1,6 @@
 module MTypeInf
   class BasicType
-    def initialize(co)
+    def initialize(co, *rest)
       @class_object = co
     end
 
@@ -10,8 +10,19 @@ module MTypeInf
   class PrimitiveType<BasicType
   end
 
+  class LiteralType<BasicType
+    def initialize(co, val, *rest)
+      super
+      @element = {}
+      @val = val
+    end
+
+    attr :element
+    attr :val
+  end
+
   class ContainerType<BasicType
-    def initialize(co)
+    def initialize(co, *rest)
       super
       @element = {}
     end
@@ -20,12 +31,11 @@ module MTypeInf
   end
 
   class UserDefinedType<BasicType
-    def initialize(co)
-      super
-      @iv = {}
-    end
+    @@class_tab = {}
 
-    attr :iv
+    def initialize(co, *rest)
+      super
+    end
   end
 
   TypeSource = {
