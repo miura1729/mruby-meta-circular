@@ -2,17 +2,29 @@ module RiteSSA
   class Storable
     def initialize(ins)
       @genpoint = ins
-      @type = nil
+      @type = {}
       @refpoint = []
       @same = []
     end
 
     def inspect
-      "Reg "
+      "type: #{@type}"
+    end
+
+    def add_type(ty, tup)
+      @type[tup] ||= []
+      if @type[tup].index(ty) == nil then
+        @type[tup].push ty
+      end
+    end
+
+    def add_same(st)
+      if st != self and @same.index(st) == nil then
+        @same.push(st)
+      end
     end
 
     attr :refpoint
-    attr :same
   end
 
   class Reg<Storable
@@ -68,6 +80,7 @@ module RiteSSA
     attr :outreg
     attr :para
     attr :pc
+    attr :op
   end
 
   class RiteDAGNode
