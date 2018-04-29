@@ -1,3 +1,4 @@
+TOP_SELF = self
 module MTypeInf
   class TypeTupleTab
     @@id = 0
