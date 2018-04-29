@@ -144,7 +144,7 @@ module RiteSSA
 
         when :LOADL
           inst.para.push @irep.pool[getarg_bx(code)]
-          dstreg = Reg.new
+          dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
@@ -360,25 +360,26 @@ module RiteSSA
           inst.outreg.push dstreg
           if num == 127 then
             reg = regtab[a + 1]
-            inreg.refpoint.push reg
+            inreg.refpoint.push inst
             inst.inreg.push reg
             reg = regtab[a + 2]
-            inreg.refpoint.push reg
+            inreg.refpoint.push inst
             inst.inreg.push reg
           else
             num.times do |i|
               reg = regtab[a + 1 + i]
-              inreg.refpoint.push reg
+              inreg.refpoint.push inst
               inst.inreg.push reg
             end
           end
 
           if Irep::OPTABLE_SYM[op] == :SENDB then
             reg = regtab[a + 1 + num]
-            inreg.refpoint.push reg
+            inreg.refpoint.push inst
             inst.inreg.push reg
           else
-            inst.inreg.push nil
+            nilreg = Reg.new(inst)
+            inst.inreg.push nilreg
           end
 
         when :CALL
@@ -398,15 +399,15 @@ module RiteSSA
           inst.outreg.push dstreg
           if num == 127 then
             reg = regtab[a + 1]
-            inreg.refpoint.push reg
+            inreg.refpoint.push inst
             inst.inreg.push reg
             reg = regtab[a + 2]
-            inreg.refpoint.push reg
+            inreg.refpoint.push inst
             inst.inreg.push reg
           else
             num.times do |i|
               reg = regtab[a + 1 + i]
-              inreg.refpoint.push reg
+              inreg.refpoint.push inst
               inst.inreg.push reg
             end
           end

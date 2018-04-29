@@ -42,19 +42,19 @@ module MTypeInf
     end
 
     def inference_top(saairep)
-      topobj = Object.class.new
-      TypeTable[topobj] = UserDefinedType.new(topobj)
-      saairep.nodes[0].enter_reg[0].add_type(topobj, nil)
-      inference_block(saairep, [topobj])
+      topobj = TOP_SELF
+      p topobj
+      ty = TypeTable[topobj] = UserDefinedType.new(topobj)
+      inference_block(saairep, [ty])
     end
 
-    def inference_block(saairep, inreg)
-      tup = @typetupletab.get_tupple_id(inreg)
-      inreg.each_with_index do |ireg, i|
-        saairep.regtab[i].add_same ireg
+    def inference_block(saairep, intype)
+      tup = @typetupletab.get_tupple_id(intype)
+      intype.each_with_index do |ty, i|
+        saairep.regtab[i].add_type(ty, tup)
       end
 
-      inference_node(saairep.nodes[0], tup, inreg)
+      inference_node(saairep.nodes[0], tup, saairep.regtab[0, intype.size])
     end
 
     def inference_node(node, tup, in_reg)
