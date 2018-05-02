@@ -13,8 +13,10 @@ module RiteSSA
 
     def add_type(ty, tup)
       @type[tup] ||= []
-      if @type[tup].index(ty) == nil then
+      idx = @type[tup].index(ty)
+      if idx == nil then
         @type[tup].push ty
+      else
       end
     end
 
@@ -35,7 +37,7 @@ module RiteSSA
         end
       end
 
-      @same = []
+     @same = []
       @type
     end
 
@@ -107,11 +109,11 @@ module RiteSSA
       @irep = irep
       @pos = pos
       @iseq = iseq
-      @ext_iseq =nil
+      @ext_iseq = nil
       @enter_link = []
       @exit_link = []
       @enter_reg = {}
-      @exit_reg = {}
+      @exit_reg = nil
     end
 
     attr :pos
@@ -120,7 +122,7 @@ module RiteSSA
     attr :enter_link
     attr :exit_link
     attr :enter_reg
-    attr :exit_reg
+    attr_accessor :exit_reg
 
     def make_ext_iseq
       @enter_reg = regtab.clone
@@ -427,8 +429,7 @@ module RiteSSA
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
-          dstreg = Reg.new(inst)
-          regtab[a] = dstreg
+          dstreg = @root.retreg
           inst.outreg.push dstreg
 
         when :ADDI, :SUBI then
@@ -495,12 +496,15 @@ module RiteSSA
       @target_class = tclass
       @parent = parent
       @nodes = {}
-      @regtab = [SelfReg.new(@irep)]
-      (@irep.nlocals - 1).times do
-        @regtab.push ParmReg.new(@irep)
-      end
+      @retreg = Reg.new(@irep)
+
+      @regtab = nil
       block_head = collect_block_head(iseq)
       block_head.each_cons(2) do |bg, ed|
+        @regtab = [SelfReg.new(@irep)]
+        (@irep.nlocals - 1).times do
+          @regtab.push ParmReg.new(@irep)
+        end
         @nodes[bg] = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
       end
 
@@ -526,6 +530,8 @@ module RiteSSA
           @nodes[lastpos + 1].enter_link << dag
           dag.exit_link << @nodes[lastpos + 1]
         end
+
+        dag.exit_reg = @regtab[0..@irep.nlocals].clone
       end
 
     end
@@ -535,6 +541,7 @@ module RiteSSA
     attr :regtab
     attr :nodes
     attr :reps
+    attr :retreg
 
     def collect_block_head(iseq)
       res = [0]

@@ -4,6 +4,11 @@ module MTypeInf
       @class_object = co
     end
 
+    def ==(other)
+      self.class == other.class &&
+      @class_object == other.class_object
+    end
+
     attr :class_object
   end
 

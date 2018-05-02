@@ -38,21 +38,25 @@ module MTypeInf
 
   class TypeInferencer
     @@ruletab ||= {}
+    @@methodtab ||= {}
     def initialize
       @typetupletab = TypeTupleTab.new
     end
 
+    attr :typetupletab
+
     def inference_top(saairep)
       topobj = TOP_SELF
-      p topobj
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
-      inference_block(saairep, [ty])
+      inference_block(saairep, [[ty]])
     end
 
     def inference_block(saairep, intype)
       tup = @typetupletab.get_tupple_id(intype)
-      intype.each_with_index do |ty, i|
-        saairep.regtab[i].add_type(ty, tup)
+      intype.each_with_index do |tys, i|
+        tys.each do |ty|
+          saairep.regtab[i].add_type(ty, tup)
+        end
       end
 
       inference_node(saairep.nodes[0], tup, saairep.regtab[0, intype.size])
@@ -62,15 +66,17 @@ module MTypeInf
       in_reg.each_with_index do |ireg, i|
         node.enter_reg[i].add_same ireg
       end
+      inference_iseq(node, node.ext_iseq, tup)
 
-      while node
-        node = inference_iseq(node, node.ext_iseq, tup)
+      node.exit_link.each do |nd|
+        inference_node(nd, tup, node.exit_reg)
       end
     end
 
     def inference_iseq(node, iseq, tup)
       iseq.each do |ins|
-        @@ruletab[:OP][ins.op].call(ins, node, tup)
+        p ins.op
+        @@ruletab[:OP][ins.op].call(self, ins, node, tup)
       end
     end
   end
