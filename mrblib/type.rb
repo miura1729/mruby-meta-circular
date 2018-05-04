@@ -35,6 +35,13 @@ module MTypeInf
     attr :element
   end
 
+  class ProcType<BasicType
+    def initialize(co, irep, *rest)
+      super
+      @irep = irep
+    end
+  end
+
   class UserDefinedType<BasicType
     @@class_tab = {}
 

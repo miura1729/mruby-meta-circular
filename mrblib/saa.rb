@@ -8,7 +8,7 @@ module RiteSSA
     end
 
     def inspect
-      "type: #{@type}"
+      "<#{self.class} type: #{@type} same: #{@same}>"
     end
 
     def add_type(ty, tup)
@@ -26,13 +26,16 @@ module RiteSSA
       end
     end
 
-    def flush_type(tup)
+    def flush_type(dtup, stup = nil)
+      if stup == nil then
+        stup = dtup
+      end
       @same.each do |var|
-        var.flush_type(tup)
-        tys = var.type[tup]
+        var.flush_type(stup)
+        tys = var.type[stup]
         if tys then
           tys.each do |ty|
-            add_type(ty, tup)
+            add_type(ty, dtup)
           end
         end
       end
@@ -112,7 +115,7 @@ module RiteSSA
       @ext_iseq = nil
       @enter_link = []
       @exit_link = []
-      @enter_reg = {}
+      @enter_reg = nil
       @exit_reg = nil
     end
 
@@ -357,9 +360,6 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg  # push self
           inst.para.push num
-          dstreg = Reg.new(inst)
-          regtab[a] = dstreg
-          inst.outreg.push dstreg
           if num == 127 then
             reg = regtab[a + 1]
             inreg.refpoint.push inst
@@ -384,6 +384,10 @@ module RiteSSA
             inst.inreg.push nilreg
           end
 
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
+
         when :CALL
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
@@ -396,9 +400,6 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg  # push self
           inst.para.push num
-          dstreg = Reg.new(inst)
-          regtab[a] = dstreg
-          inst.outreg.push dstreg
           if num == 127 then
             reg = regtab[a + 1]
             inreg.refpoint.push inst
@@ -413,6 +414,9 @@ module RiteSSA
               inst.inreg.push reg
             end
           end
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
 
         when :ARGARY
           inst.para.push getarg_bx(code)
@@ -430,6 +434,7 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg
           dstreg = @root.retreg
+          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
         when :ADDI, :SUBI then
@@ -451,13 +456,17 @@ module RiteSSA
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
           inst.outreg.push dstreg
-          b = getarg_b(code)
-          reps[b] = Block.new(@irep.reps[b], @root, @root.target_class)
+          bn = getarg_b(code)
+          nlambda = Block.new(@irep.reps[bn], @root, @root.target_class)
+          inst.para.push nlambda
+          @root.reps[bn] = nlambda
 
         else
         end
         pc = pc + 1
       end
+
+      @exit_reg = regtab.clone
     end
 
     def regtab
@@ -502,15 +511,16 @@ module RiteSSA
       block_head = collect_block_head(iseq)
       block_head.each_cons(2) do |bg, ed|
         @regtab = [SelfReg.new(@irep)]
-        (@irep.nlocals - 1).times do
+        (@irep.nregs - 1).times do
           @regtab.push ParmReg.new(@irep)
         end
-        @nodes[bg] = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
+        dag = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
+        dag.make_ext_iseq
+        @nodes[bg] = dag
       end
 
       # construct link
       @nodes.each do |beg, dag|
-        dag.make_ext_iseq
         lastpos = beg + dag.iseq.size - 1
         lastins = dag.iseq[-1]
         case(Irep::OPTABLE_SYM[get_opcode(lastins)])
@@ -530,8 +540,6 @@ module RiteSSA
           @nodes[lastpos + 1].enter_link << dag
           dag.exit_link << @nodes[lastpos + 1]
         end
-
-        dag.exit_reg = @regtab[0..@irep.nlocals].clone
       end
 
     end

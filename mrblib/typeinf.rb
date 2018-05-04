@@ -55,11 +55,11 @@ module MTypeInf
       tup = @typetupletab.get_tupple_id(intype)
       intype.each_with_index do |tys, i|
         tys.each do |ty|
-          saairep.regtab[i].add_type(ty, tup)
+          saairep.nodes[0].enter_reg[i].add_type(ty, tup)
         end
       end
 
-      inference_node(saairep.nodes[0], tup, saairep.regtab[0, intype.size])
+      inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg)
     end
 
     def inference_node(node, tup, in_reg)
