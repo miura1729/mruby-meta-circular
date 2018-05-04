@@ -1,7 +1,8 @@
 module MTypeInf
   class TypeInferencer
     @@ruletab ||= {}
-    @@methodtab ||= {}
+    @@ruby_methodtab ||= {}
+
     def self.define_inf_rule_op(name, &block)
       @@ruletab[:OP] ||= {}
       if @@ruletab[:OP][name] then
@@ -101,34 +102,20 @@ module MTypeInf
     end
 
     define_inf_rule_op :SEND do |infer, inst, node, tup|
-      name = inst.para[0]
       inst.inreg[0..-2].each do |reg|
         reg.flush_type(tup)
       end
       inst.inreg[-1].add_type(LiteralType.new(NilClass, nil), tup)
 
-      # if inst.inreg[0].type[tup].size > 1 then   # Polymorphism
+      rule_send_common(infer, inst, node, tup)
+    end
 
-      intype = inst.inreg.map {|reg| reg.type[tup]}
-      ntup = infer.typetupletab.get_tupple_id(intype)
-
-      inst.inreg[0].type[tup].each do |ty|
-        slf = ty.class_object
-        @@methodtab[slf] ||= {}
-        irepssa = @@methodtab[slf][name]
-        if irepssa.nil? then
-          irep = Irep::get_irep(slf, name)
-          irepssa =  RiteSSA::Block.new(irep, nil, slf)
-          @@methodtab[slf][name] = irepssa
-        end
-
-        if irepssa.retreg.flush_type(ntup)[ntup].nil? then
-          infer.inference_block(irepssa, intype)
-        end
-        inst.outreg[0].add_same irepssa.retreg
+    define_inf_rule_op :SENDB do |infer, inst, node, tup|
+      inst.inreg[0..-1].each do |reg|
+        reg.flush_type(tup)
       end
-      inst.outreg[0].flush_type(tup, ntup)
-      nil
+
+      rule_send_common(infer, inst, node, tup)
     end
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup|
