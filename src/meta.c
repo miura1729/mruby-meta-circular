@@ -405,6 +405,22 @@ mrb_irep_set_syms(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_reps(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value ary = mrb_ary_new_capa(mrb, irep->rlen);
+
+
+  for (i = 0; i < irep->rlen; i++) {
+    mrb_ary_push(mrb, ary, 
+		 mrb_irep_wrap(mrb, mrb_class(mrb, self), irep->reps[i]));
+  }
+
+  return ary;
+}
+
+static mrb_value
 mrb_irep_nregs(mrb_state *mrb, mrb_value self)
 {
   mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
@@ -573,6 +589,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "pool=", mrb_irep_set_pool, MRB_ARGS_NONE());
   mrb_define_method(mrb, a, "syms", mrb_irep_syms, MRB_ARGS_NONE());
   mrb_define_method(mrb, a, "syms=", mrb_irep_set_syms, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "reps", mrb_irep_reps, MRB_ARGS_NONE());
   mrb_define_method(mrb, a, "nregs", mrb_irep_nregs, MRB_ARGS_NONE());
   mrb_define_method(mrb, a, "nregs=", mrb_irep_set_nregs, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, MRB_ARGS_NONE());
