@@ -40,6 +40,8 @@ module MTypeInf
       super
       @irep = irep
     end
+
+    attr :irep
   end
 
   class UserDefinedType<BasicType

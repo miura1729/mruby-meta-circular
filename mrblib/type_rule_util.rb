@@ -9,7 +9,7 @@ module MTypeInf
 
       inst.inreg[0].type[tup].each do |ty|
         slf = ty.class_object
-        slfcls = slf.class
+        slfcls = slf
         @@ruby_methodtab[name] ||= {}
         irepssa = nil
         if @@ruby_methodtab[name] then

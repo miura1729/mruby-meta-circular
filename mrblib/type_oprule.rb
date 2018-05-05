@@ -86,6 +86,20 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :GETUPVAR do |infer, inst, node, tup|
+      up = inst.para[1]
+      frame = inst.para[0]
+      stpos = infer.callstack.index {|item| item[0] == frame}
+      inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].flush_type(tup, infer.callstack[stpos][1])
+
+      nil
+    end
+
+    define_inf_rule_op :SETUPVAR do |infer, inst, node, tup|
+      inst.outreg[0].add_same(inst.inreg[0])
+      nil
+    end
     
     define_inf_rule_op :JMP do |infer, inst, code, tup|
     end
@@ -184,7 +198,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :LAMBDA do |infer, inst, code, tup|
-      pty = ProcType.new(Proc, inst.para)
+      pty = ProcType.new(Proc, inst.para[0])
       inst.outreg[0].add_type pty, tup
       nil
     end

@@ -41,9 +41,11 @@ module MTypeInf
     @@methodtab ||= {}
     def initialize
       @typetupletab = TypeTupleTab.new
+      @callstack = []
     end
 
     attr :typetupletab
+    attr :callstack
 
     def inference_top(saairep)
       topobj = TOP_SELF
@@ -53,6 +55,7 @@ module MTypeInf
 
     def inference_block(saairep, intype)
       tup = @typetupletab.get_tupple_id(intype)
+      @callstack.push [saairep, tup]
       intype.each_with_index do |tys, i|
         tys.each do |ty|
           saairep.nodes[0].enter_reg[i].add_type(ty, tup)
@@ -60,6 +63,7 @@ module MTypeInf
       end
 
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg)
+      @callstack.pop
     end
 
     def inference_node(node, tup, in_reg)

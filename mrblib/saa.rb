@@ -287,9 +287,12 @@ module RiteSSA
           up = getarg_c(code)
           pos = getarg_b(code)
           curframe = @root
-          (up - 1).times do
+          (up + 1).times do
             curframe = curframe.parent
           end
+          inst.para.push curframe
+          inst.para.push up
+          inst.para.push pos
           srcreg = curframe.regtab[pos]
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
@@ -301,13 +304,16 @@ module RiteSSA
           up = getarg_c(code)
           pos = getarg_b(code)
           curframe = @root
-          (up - 1).times do
+          (up + 1).times do
             curframe = curframe.parent
           end
-          dstreg = curframe.regtab[pos]
+          inst.para.push up
+          inst.para.push pos
           srcreg = regtab[getarg_a(code)]
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
+          dstreg = Reg.new(inst)
+          curframe.regtab[pos] = dstreg
           inst.outreg.push dstreg
 
         when :JMP
