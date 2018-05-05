@@ -18,11 +18,9 @@ module MTypeInf
   class LiteralType<BasicType
     def initialize(co, val, *rest)
       super
-      @element = {}
       @val = val
     end
 
-    attr :element
     attr :val
   end
 
