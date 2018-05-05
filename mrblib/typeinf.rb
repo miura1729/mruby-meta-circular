@@ -50,11 +50,16 @@ module MTypeInf
     def inference_top(saairep)
       topobj = TOP_SELF
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
-      inference_block(saairep, [[ty]])
+      intype = [[ty]]
+      tup = @typetupletab.get_tupple_id(intype)
+      inference_block(saairep, intype, tup)
     end
 
-    def inference_block(saairep, intype)
-      tup = @typetupletab.get_tupple_id(intype)
+    def inference_block(saairep, intype, tup)
+      if saairep.retreg.flush_type(tup)[tup] then
+        return
+      end
+
       @callstack.push [saairep, tup]
       intype.each_with_index do |tys, i|
         tys.each do |ty|
@@ -62,18 +67,22 @@ module MTypeInf
         end
       end
 
-      inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg)
+      inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       @callstack.pop
     end
 
-    def inference_node(node, tup, in_reg)
+    def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
         node.enter_reg[i].add_same ireg
       end
       inference_iseq(node, node.ext_iseq, tup)
 
+      history[node] ||= []
       node.exit_link.each do |nd|
-        inference_node(nd, tup, node.exit_reg)
+        if history[node].index(nd) == nil then
+          history[node].push nd
+          inference_node(nd, tup, node.exit_reg, history)
+        end
       end
     end
 

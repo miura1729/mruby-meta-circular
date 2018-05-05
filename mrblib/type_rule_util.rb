@@ -34,9 +34,7 @@ module MTypeInf
           @@ruby_methodtab[name][slfcls] = irepssa
         end
 
-        if irepssa.retreg.flush_type(ntup)[ntup].nil? then
-          infer.inference_block(irepssa, intype)
-        end
+        infer.inference_block(irepssa, intype, ntup)
         inst.outreg[0].add_same irepssa.retreg
       end
       inst.outreg[0].flush_type(tup, ntup)
