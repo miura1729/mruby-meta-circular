@@ -13,11 +13,48 @@ module RiteSSA
 
     def add_type(ty, tup)
       @type[tup] ||= []
-      idx = @type[tup].index(ty)
-      if idx == nil then
-        @type[tup].push ty
-      else
+      arr = @type[tup]
+      arr.each_with_index do |ele, i|
+        if ele.class_object == ty.class_object and
+            ele.is_a?(MTypeInf::PrimitiveType) then
+          return
+        end
+
+        if ele.class_object == ty.class_object and
+            ty.is_a?(MTypeInf::PrimitiveType) then
+          arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+          return
+        end
+
+        if ele == ty then
+          case ele
+          when MTypeInf::LiteralType
+            if ele.val != ty.val then
+              arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+            end
+
+            return
+
+          when MTypeInf::ContainerType
+            # TODO Merge element types
+
+            return
+
+          when MTypeInf::UserDefinedType, MTypeInf::PrimitiveType
+            return
+
+          when MTypeInf::ProcType
+            if ele.irep == ty.irep then
+              return
+            end
+          end
+        end
+
+#        elsif ele < ty then
+#
+#        end
       end
+      arr.push ty
     end
 
     def add_same(st)
