@@ -1,5 +1,14 @@
 TOP_SELF = self
 module MTypeInf
+  def self.inference_main(&b)
+    irep = Irep::get_proc_irep(b)
+    ti = MTypeInf::TypeInferencer.new
+
+    b = RiteSSA::Block.new(irep, nil, self)
+    ti.inference_top(b)
+    ti.dump_type
+  end
+
   class TypeTupleTab
     @@id = 0
 
@@ -47,6 +56,24 @@ module MTypeInf
     attr :typetupletab
     attr :callstack
 
+    def dump_type
+      @@ruby_methodtab.each do |name, rec_types|
+        rec_types.each do |recv, node|
+          types = node.retreg.type
+          types.each do |arg, types|
+            args = @typetupletab.rev_table[arg]
+            args.pop
+            args = args.map {|tys| 
+              tys.map {|ele| ele.class_object.inspect}.join('|')
+            }.join(', ')
+            type = types.map {|ele| ele.class_object.inspect}
+            type = type.join('|')
+            print "#{recv}##{name}: (#{args}) -> #{type} \n"
+          end
+        end
+      end
+    end
+
     def inference_top(saairep)
       topobj = TOP_SELF
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
@@ -88,7 +115,7 @@ module MTypeInf
 
     def inference_iseq(node, iseq, tup)
       iseq.each do |ins|
-        p ins.op
+        # p ins.op #for debug
         @@ruletab[:OP][ins.op].call(self, ins, node, tup)
       end
     end
