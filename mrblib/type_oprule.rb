@@ -168,8 +168,10 @@ module MTypeInf
     define_inf_rule_op :ADD do |infer, inst, node, tup|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[0].flush_type(tup)[tup]
-
-      arg0type.each do |ty|
+      if arg0type
+      end
+      restype = arg0type
+      restype.each do |ty|
         inst.outreg[0].add_type ty, tup
       end
       nil
