@@ -499,7 +499,7 @@ module RiteSSA
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
           inst.outreg.push dstreg
-          bn = getarg_b(code)
+          bn = getarg_bl(code)
           nlambda = Block.new(@irep.reps[bn], @root, @root.target_class)
           inst.para.push nlambda
           @root.reps[bn] = nlambda

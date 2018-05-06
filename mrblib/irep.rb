@@ -27,6 +27,10 @@ module RiteOpcodeUtil
     ((op >> 7) & 0xffff) - (0xffff >> 1)
   end
 
+  def getarg_bl(op)
+    (op >> 9) & ((1 << 14) - 1)
+  end
+
   def mk_opcode(op)
     op & 0x7f
   end
