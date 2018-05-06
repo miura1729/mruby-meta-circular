@@ -39,6 +39,12 @@ module MTypeInf
       @irep = irep
     end
 
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @irep == other.irep
+    end
+
     attr :irep
   end
 
