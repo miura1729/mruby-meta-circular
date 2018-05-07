@@ -201,7 +201,6 @@ module MTypeInf
 
     define_inf_rule_op :ARRAY do |infer, inst, code, tup|
       type = ContainerType.new(Array)
-      p inst.inreg
       inst.para[0].times do |i|
         if inst.inreg[i].type and inst.inreg[i].type[tup] then
           type.element[i] = inst.inreg[i].type[tup].dup
