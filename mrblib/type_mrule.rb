@@ -23,7 +23,6 @@ module MTypeInf
       arrele = arrtypes[0].element
       if argtypes.size == 1 and
           (argtype = argtypes[0]).class_object == Fixnum then
-        p argtype
         case argtype
         when MTypeInf::LiteralType
           no = argtype.val
