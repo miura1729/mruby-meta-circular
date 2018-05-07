@@ -212,7 +212,6 @@ module MTypeInf
       end
 
       inst.outreg[0].add_type type, tup
-      p inst.outreg[0].type[tup]
     end
 
     define_inf_rule_op :LAMBDA do |infer, inst, code, tup|
