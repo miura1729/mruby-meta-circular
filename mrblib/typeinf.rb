@@ -62,8 +62,8 @@ module MTypeInf
           types = node.retreg.type
           types.each do |arg, types|
             args = @typetupletab.rev_table[arg]
-            args.pop
-            args = args.map {|tys| 
+            args =  args[0..-2]
+            args = args.map {|tys|
               tys.map {|ele| ele.class_object.inspect}.join('|')
             }.join(', ')
             type = types.map {|ele| ele.class_object.inspect}
