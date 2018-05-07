@@ -13,6 +13,37 @@ module MTypeInf
       @@ruletab[:METHOD][name][rec] = block
     end
 
+    define_inf_rule_method :[], Array do |infer, inst, node, tup|
+      if inst.inreg.size != 3 then
+        raise "multiple argument not support yet in Array::[]"
+      end
+
+      argtypes = inst.inreg[1].type[tup]
+      arrtypes = inst.inreg[0].type[tup]
+      arrele = arrtypes[0].element
+      if argtypes.size == 1 and
+          (argtype = argtypes[0]).class_object == Fixnum then
+        p argtype
+        case argtype
+        when MTypeInf::LiteralType
+          no = argtype.val
+          arrele[no].each do |ty|
+            inst.outreg[0].add_type ty, tup
+          end
+
+        when MTypeInf::BasicType
+          arrele[nil].each do |ty|
+            inst.outreg[0].add_type ty, tup
+          end
+
+        else
+          raise "Not supported in Array::[]"
+        end
+
+      end
+      nil
+    end
+
     define_inf_rule_method :lambda, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[1]
       nil

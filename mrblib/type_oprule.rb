@@ -199,6 +199,22 @@ module MTypeInf
         @@ruletab[:OP][:ADDI].call(self, inst, code, tup)
     end
 
+    define_inf_rule_op :ARRAY do |infer, inst, code, tup|
+      type = ContainerType.new(Array)
+      p inst.inreg
+      inst.para[0].times do |i|
+        if inst.inreg[i].type and inst.inreg[i].type[tup] then
+          type.element[i] = inst.inreg[i].type[tup].dup
+          inst.inreg[i].type[tup].each do |ty|
+            ty.merge type.element[nil]
+          end
+        end
+      end
+
+      inst.outreg[0].add_type type, tup
+      p inst.outreg[0].type[tup]
+    end
+
     define_inf_rule_op :LAMBDA do |infer, inst, code, tup|
       pty = ProcType.new(Proc, inst.para[0])
       inst.outreg[0].add_type pty, tup

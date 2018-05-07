@@ -72,6 +72,7 @@ module MTypeInf
     def initialize(co, *rest)
       super
       @element = {}
+      @element[nil] = []
     end
 
     attr :element
