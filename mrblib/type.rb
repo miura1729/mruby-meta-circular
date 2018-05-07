@@ -10,6 +10,50 @@ module MTypeInf
     end
 
     attr :class_object
+
+    def merge(arr)
+      arr.each_with_index do |ele, i|
+        if ele.class_object == @class_object and
+            ele.is_a?(MTypeInf::PrimitiveType) then
+          return
+        end
+
+        if ele.class_object == @class_object and
+            is_a?(MTypeInf::PrimitiveType) then
+          arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+          return
+        end
+
+        if ele == self then
+          case ele
+          when MTypeInf::LiteralType
+            if ele.val != @val then
+              arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+            end
+
+            return
+
+          when MTypeInf::ContainerType
+            # TODO Merge element types
+
+            return
+
+          when MTypeInf::UserDefinedType, MTypeInf::PrimitiveType
+            return
+
+          when MTypeInf::ProcType
+            if ele.irep == @irep then
+              return
+            end
+          end
+        end
+
+#        elsif ele < self then
+#
+#        end
+      end
+      arr.push self
+    end
   end
 
   class PrimitiveType<BasicType
