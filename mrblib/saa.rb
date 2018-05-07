@@ -439,6 +439,29 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
+        when :BLKPUSH
+          bx = getarg_bx(code)
+          m1 = (bx >> 10) & 0x3f
+          r = (bx >> 9) & 0x1
+          m2 = (bx >> 4) & 0x1f
+          lv = (bx >> 0) & 0x1f
+
+          stack = nil
+          if lv == 0 then
+            stack = regtab
+          else
+            curframe = @root
+            lv.times do
+              curframe = curframe.parent
+              stack = curframe.regtab
+            end
+          end
+
+          inst.inreg.push stack[m1 + r + m2 + 1]
+          dstreg = @root.retreg
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
         when :ADDI, :SUBI then
           name = @irep.syms[getarg_b(code)]
           inst.para.push name
