@@ -54,6 +54,10 @@ module MTypeInf
       end
       arr.push self
     end
+
+    def inspect_element
+      inspect
+    end
   end
 
   class PrimitiveType<BasicType
@@ -73,6 +77,24 @@ module MTypeInf
       super
       @element = {}
       @element[nil] = []
+    end
+
+    def inspect
+      res = "<#{@class_object} element=["
+      @element.each do |key, val|
+        res << "#{key.inspect}="
+        val.type.each do |tup, tys|
+          tys.each do |ty|
+            res << "#{ty.inspect_element}|"
+          end
+        end
+      end
+      res << ">"
+      res
+    end
+
+    def inspect_element
+      "<#{@class_object} element=...>"
     end
 
     attr :element

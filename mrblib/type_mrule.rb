@@ -26,20 +26,18 @@ module MTypeInf
         case argtype
         when MTypeInf::LiteralType
           no = argtype.val
-          arrele[no].each do |ty|
-            inst.outreg[0].add_type ty, tup
-          end
+          inst.outreg[0].add_same arrele[no]
+          inst.outreg[0].flush_type(tup)
 
         when MTypeInf::BasicType
-          arrele[nil].each do |ty|
-            inst.outreg[0].add_type ty, tup
-          end
+          inst.outreg[0].add_same arrele[nil]
+          inst.outreg[0].flush_type(tup)
 
         else
           raise "Not supported in Array::[]"
         end
-
       end
+      inst.outreg[0].flush_type_alltup(tup)
       nil
     end
 

@@ -33,10 +33,28 @@ module RiteSSA
           tys.each do |ty|
             add_type(ty, dtup)
           end
+#          @same = []
         end
       end
 
-     @same = []
+      @type
+    end
+
+    def flush_type_alltup(dtup)
+      @same.each do |var|
+        var.flush_type_alltup(dtup)
+        tups = var.type.keys
+        tups.each do |stup|
+          tys = var.type[stup]
+          if tys then
+            tys.each do |ty|
+              add_type(ty, dtup)
+            end
+            @same = []
+          end
+        end
+      end
+
       @type
     end
 
@@ -211,7 +229,7 @@ module RiteSSA
 
         when :GETIV
           name = @irep.syms[getarg_b(code)]
-          srcreg = regtab[0].get_iv(name)
+          srcreg = @root.target_class.get_iv(name)
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
           dstreg = Reg.new(inst)
@@ -223,7 +241,7 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg
           name = @irep.syms[getarg_b(code)]
-          dstvar = regtab[0].get_iv(name)
+          dstvar = @root.target_class.get_iv(name)
           inst.outreg.push dstvar
 
         when :GETCV
@@ -496,7 +514,7 @@ module RiteSSA
           regtab[a] = dstreg
           inst.outreg.push dstreg
           bn = getarg_bl(code)
-          nlambda = Block.new(@irep.reps[bn], @root, @root.target_class)
+          nlambda = Block.new(@irep.reps[bn], @root, @root.target_class.class_object)
           inst.para.push nlambda
           @root.reps[bn] = nlambda
 
@@ -541,10 +559,11 @@ module RiteSSA
       iseq = irep.iseq
       @reps = []
       @irep = irep
-      @target_class = tclass
+      @target_class = ClassSSA.get_instance(tclass)
       @parent = parent
       @nodes = {}
       @retreg = Reg.new(@irep)
+      @argtab = {}
 
       @regtab = nil
       block_head = collect_block_head(iseq)
@@ -589,6 +608,7 @@ module RiteSSA
     attr :nodes
     attr :reps
     attr :retreg
+    attr :argtab
 
     def collect_block_head(iseq)
       res = [0]
@@ -616,6 +636,38 @@ module RiteSSA
       end
 
       res
+    end
+  end
+
+  class ClassSSA
+    @@insttab = {}
+
+    def self.get_instance(clobj)
+      if @@insttab[clobj] then
+        @@insttab[clobj]
+      else
+        @@insttab[clobj] = ClassSSA.new(clobj)
+      end
+    end
+
+    def initialize(clobj)
+      @class_object = clobj
+      @iv = {}
+      @cv = {}
+      @constant = {}
+    end
+
+    attr :class_object
+    attr :iv
+    attr :cv
+    attr :constant
+
+    def get_iv(name)
+      if @iv[name] then
+        @iv[name]
+      else
+        @iv[name] = InstanceVariable.new(name)
+      end
     end
   end
 end

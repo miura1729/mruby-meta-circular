@@ -69,6 +69,7 @@ module MTypeInf
             type = types.map {|ele| ele.class_object.inspect}
             type = type.join('|')
             print "#{recv}##{name}: (#{args}) -> #{type} \n"
+            node.retreg.flush_type(arg)
           end
         end
       end
@@ -83,10 +84,11 @@ module MTypeInf
     end
 
     def inference_block(saairep, intype, tup)
-      if saairep.retreg.flush_type(tup)[tup] then
+      if saairep.argtab[tup] then
         return
       end
 
+      saairep.argtab[tup] = true
       @callstack.push [saairep, tup]
       intype.each_with_index do |tys, i|
         tys.each do |ty|

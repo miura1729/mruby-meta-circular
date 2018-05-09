@@ -201,13 +201,15 @@ module MTypeInf
 
     define_inf_rule_op :ARRAY do |infer, inst, code, tup|
       type = ContainerType.new(Array)
+      nilreg = RiteSSA::Reg.new(nil)
+      type.element[nil] = nilreg
       inst.para[0].times do |i|
-        if inst.inreg[i].type and inst.inreg[i].type[tup] then
-          type.element[i] = inst.inreg[i].type[tup].dup
-          inst.inreg[i].type[tup].each do |ty|
-            ty.merge type.element[nil]
-          end
-        end
+        nreg = RiteSSA::Reg.new(nil)
+        nreg.add_same inst.inreg[i]
+        nreg.flush_type(tup)
+        type.element[i] = nreg
+        nilreg.add_same inst.inreg[i]
+        nilreg.flush_type(tup)
       end
 
       inst.outreg[0].add_type type, tup
