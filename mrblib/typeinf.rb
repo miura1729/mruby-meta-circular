@@ -116,7 +116,7 @@ module MTypeInf
 
     def inference_iseq(node, iseq, tup)
       iseq.each do |ins|
-        # p ins.op #for debug
+#         p ins.op #for debug
         @@ruletab[:OP][ins.op].call(self, ins, node, tup)
       end
     end

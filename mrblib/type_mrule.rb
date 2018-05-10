@@ -19,22 +19,27 @@ module MTypeInf
       end
 
       argtypes = inst.inreg[1].flush_type(tup)[tup]
-      arrtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
-      arrele = arrtypes[0].element
-      if argtypes.size == 1 and
-          (argtype = argtypes[0]).class_object == Fixnum then
-        case argtype
-        when MTypeInf::LiteralType
-          no = argtype.val
-          inst.outreg[0].add_same arrele[no]
+      arrtypes = inst.inreg[0].type[tup]
+      arrtypes.each do |arrt|
+        if arrt.class_object. == Array then
+          arrele = arrtypes[0].element
+          if argtypes.size == 1 and
+              (argtype = argtypes[0]).class_object == Fixnum then
+            case argtype
+            when MTypeInf::LiteralType
+              no = argtype.val
+              inst.outreg[0].add_same arrele[no]
 
-        when MTypeInf::BasicType
-          inst.outreg[0].add_same arrele[nil]
+            when MTypeInf::BasicType
+              inst.outreg[0].add_same arrele[nil]
 
-        else
-          raise "Not supported in Array::[]"
+            else
+              raise "Not supported in Array::[]"
+            end
+          end
         end
       end
+
       inst.outreg[0].flush_type_alltup(tup)
       nil
     end

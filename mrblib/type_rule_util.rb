@@ -7,7 +7,11 @@ module MTypeInf
       intype = inst.inreg.map {|reg| reg.type[tup]}
       ntup = infer.typetupletab.get_tupple_id(intype)
 
-      inst.inreg[0].type[tup].each do |ty|
+
+      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      exitf = nil
+
+      recvtypes.each do |ty|
         slf = ty.class_object
         slfcls = slf
         @@ruby_methodtab[name] ||= {}
@@ -15,28 +19,34 @@ module MTypeInf
         if @@ruby_methodtab[name] then
           irepssa = @@ruby_methodtab[name][slfcls]
         end
+
+        irep = nil
         if irepssa.nil? then
           irep = Irep::get_irep(slf, name)
           if irep == nil then
-            # written in C or method mmsing  or no method error
-            if @@ruletab[:METHOD][name] and @@ruletab[:METHOD][name][slfcls] then
-              @@ruletab[:METHOD][name][slfcls].call(infer, inst, node, tup)
-              return nil
-            elsif @@ruby_methodtab[:method_missing] && @@ruby_methodtab[:method_missing][slfcls] then
+            if @@ruby_methodtab[:method_missing] and @@ruby_methodtab[:method_missing][slfcls] then
               irep = Irep::get_irep(slf, :method_missing)
+
+            elsif @@ruletab[:METHOD][name] and @@ruletab[:METHOD][name][slfcls] then
+              # written in C or method mmsing  or no method error
+              @@ruletab[:METHOD][name][slfcls].call(infer, inst, node, tup)
+
             else
-              p "Method missing"
+              p "Method missing able to call #{slf}##{name}"
               # No method found
             end
+          else
+            irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
+            @@ruby_methodtab[name][slfcls] = irepssa
           end
-
-          irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
-          @@ruby_methodtab[name][slfcls] = irepssa
         end
 
-        infer.inference_block(irepssa, intype, ntup)
-        inst.outreg[0].add_same irepssa.retreg
+        if irepssa then
+          infer.inference_block(irepssa, intype, ntup)
+          inst.outreg[0].add_same irepssa.retreg
+        end
       end
+
       inst.outreg[0].flush_type(tup, ntup)
       nil
     end
