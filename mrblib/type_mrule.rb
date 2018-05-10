@@ -18,8 +18,8 @@ module MTypeInf
         raise "multiple argument not support yet in Array::[]"
       end
 
-      argtypes = inst.inreg[1].type[tup]
-      arrtypes = inst.inreg[0].type[tup]
+      argtypes = inst.inreg[1].flush_type(tup)[tup]
+      arrtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       arrele = arrtypes[0].element
       if argtypes.size == 1 and
           (argtype = argtypes[0]).class_object == Fixnum then
@@ -27,11 +27,9 @@ module MTypeInf
         when MTypeInf::LiteralType
           no = argtype.val
           inst.outreg[0].add_same arrele[no]
-          inst.outreg[0].flush_type(tup)
 
         when MTypeInf::BasicType
           inst.outreg[0].add_same arrele[nil]
-          inst.outreg[0].flush_type(tup)
 
         else
           raise "Not supported in Array::[]"

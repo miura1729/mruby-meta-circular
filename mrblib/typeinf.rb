@@ -69,7 +69,6 @@ module MTypeInf
             type = types.map {|ele| ele.class_object.inspect}
             type = type.join('|')
             print "#{recv}##{name}: (#{args}) -> #{type} \n"
-            node.retreg.flush_type(arg)
           end
         end
       end

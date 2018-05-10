@@ -33,7 +33,7 @@ module RiteSSA
           tys.each do |ty|
             add_type(ty, dtup)
           end
-#          @same = []
+          @same = []
         end
       end
 

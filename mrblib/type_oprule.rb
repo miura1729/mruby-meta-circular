@@ -206,10 +206,10 @@ module MTypeInf
       inst.para[0].times do |i|
         nreg = RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
-        nreg.flush_type(tup)
         type.element[i] = nreg
+        nreg.flush_type_alltup(tup)
         nilreg.add_same inst.inreg[i]
-        nilreg.flush_type(tup)
+        nilreg.flush_type_alltup(tup)
       end
 
       inst.outreg[0].add_type type, tup

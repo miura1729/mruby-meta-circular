@@ -34,7 +34,9 @@ module MTypeInf
             return
 
           when MTypeInf::ContainerType
-            # TODO Merge element types
+            ele.element.each do |idx, reg|
+              reg.add_same @element[idx]
+            end
 
             return
 
