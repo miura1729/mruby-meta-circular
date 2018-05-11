@@ -134,7 +134,7 @@ module MTypeInf
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup|
       inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type_alltup(tup)
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
