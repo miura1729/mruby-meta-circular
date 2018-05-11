@@ -111,6 +111,14 @@ module RiteSSA
       @para = []
     end
 
+    def line
+      @irep.line(@pc)
+    end
+
+    def filename
+      @irep.filename(@pc)
+    end
+
     attr :inreg
     attr :outreg
     attr :para

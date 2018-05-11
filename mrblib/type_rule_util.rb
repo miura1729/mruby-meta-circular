@@ -32,7 +32,7 @@ module MTypeInf
               @@ruletab[:METHOD][name][slfcls].call(infer, inst, node, tup)
 
             else
-              p "Method missing able to call #{slf}##{name}"
+              print "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
               # No method found
             end
           else
