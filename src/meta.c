@@ -6,6 +6,7 @@
 #include "mruby/string.h"
 #include "mruby/opcode.h"
 #include "mruby/irep.h"
+#include "mruby/debug.h"
 #if defined MRBJIT
 #include "mruby/jit.h"
 #endif
@@ -293,6 +294,26 @@ mrb_irep_iseq(mrb_state *mrb, mrb_value self)
   }
 
   return ary;
+}
+
+static mrb_value
+mrb_irep_get_filename(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pc;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_get_args(mrb, "i", &pc);
+
+  return mrb_str_new_cstr(mrb, mrb_debug_get_filename(irep, pc));
+}
+
+static mrb_value
+mrb_irep_get_line(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pc;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_get_args(mrb, "i", &pc);
+
+  return mrb_fixnum_value(mrb_debug_get_line(irep, pc));
 }
 
 static mrb_value
@@ -594,6 +615,8 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "nregs=", mrb_irep_set_nregs, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "nlocals", mrb_irep_nlocals, MRB_ARGS_NONE());
   mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "filename", mrb_irep_get_filename, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "line", mrb_irep_get_line, MRB_ARGS_REQ(1));
 #if defined MRBJIT
   mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "reg_type", mrb_irep_regtype, MRB_ARGS_REQ(1));
