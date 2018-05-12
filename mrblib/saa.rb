@@ -270,16 +270,16 @@ module RiteSSA
           inst.outreg.push dstvar
 
         when :GETCONST
-          name = @irep.syms[getarg_b(code)]
+          name = @irep.syms[getarg_bx(code)]
           src = @root.target_class.const_get(name)
-          inst.inreg.push src
+          inst.para.push src
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
         when :SETCONST
-          name = @irep.syms[getarg_b(code)]
-          inreg = regtab[getarg_b(code)]
+          name = @irep.syms[getarg_bx(code)]
+          inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
           name = @irep.syms[getarg_b(code)]
@@ -289,7 +289,7 @@ module RiteSSA
 
         when :GETMCONST
           name = @irep.syms[getarg_b(code)]
-          src = @root.target_class.class.const_get(name)
+          src = @root.target_class.const_get(name)
           inst.inreg.push src
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
@@ -669,6 +669,10 @@ module RiteSSA
     attr :iv
     attr :cv
     attr :constant
+
+    def const_get(sym)
+      @class_object.const_get(sym)
+    end
 
     def get_iv(name)
       if @iv[name] then

@@ -75,7 +75,7 @@ module MTypeInf
     end
 
     def inference_top(saairep)
-      topobj = TOP_SELF
+      topobj = TOP_SELF.class
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype)

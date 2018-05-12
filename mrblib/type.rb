@@ -12,47 +12,52 @@ module MTypeInf
     attr :class_object
 
     def merge(arr)
-      arr.each_with_index do |ele, i|
-        if ele.class_object == @class_object and
-            ele.is_a?(MTypeInf::PrimitiveType) then
-          return
-        end
-
-        if ele.class_object == @class_object and
-            is_a?(MTypeInf::PrimitiveType) then
-          arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-          return
-        end
-
-        if ele == self then
-          case ele
-          when MTypeInf::LiteralType
-            if ele.val != @val then
-              arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-            end
-
+      if @class_object != Class then
+        arr.each_with_index do |ele, i|
+          if ele.class_object == @class_object and
+              ele.is_a?(MTypeInf::PrimitiveType) then
             return
+          end
 
-          when MTypeInf::ContainerType
-            ele.element.each do |idx, reg|
-              reg.add_same @element[idx]
-            end
-
+          if ele.class_object == @class_object and
+              is_a?(MTypeInf::PrimitiveType) then
+            arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
             return
+          end
 
-          when MTypeInf::UserDefinedType, MTypeInf::PrimitiveType
-            return
+          if ele == self then
+            case ele
+            when MTypeInf::LiteralType
+              if ele.val != @val and ele.class_object != Class and nil then
+                arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+              end
 
-          when MTypeInf::ProcType
-            if ele.irep == @irep then
               return
+
+            when MTypeInf::ContainerType
+              ele.element.each do |idx, reg|
+                if reg then
+                  reg.add_same @element[idx]
+                end
+              end
+
+              return
+
+            when MTypeInf::UserDefinedType, MTypeInf::PrimitiveType
+              return
+
+            when MTypeInf::ProcType
+              if ele.irep == @irep then
+                return
+              end
             end
           end
+
+          #        elsif ele < self then
+          #
+          #        end
         end
 
-#        elsif ele < self then
-#
-#        end
       end
       arr.push self
     end
@@ -78,16 +83,18 @@ module MTypeInf
     def initialize(co, *rest)
       super
       @element = {}
-      @element[nil] = []
+      @element[nil] = RiteSSA::Reg.new(nil)
     end
 
     def inspect
       res = "<#{@class_object} element=["
       @element.each do |key, val|
-        res << "#{key.inspect}="
-        val.type.each do |tup, tys|
-          tys.each do |ty|
-            res << "#{ty.inspect_element}|"
+        if val.size > 0 then
+          res << "#{key.inspect}="
+          val.type.each do |tup, tys|
+            tys.each do |ty|
+              res << "#{ty.inspect_element}|"
+            end
           end
         end
       end

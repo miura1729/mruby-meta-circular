@@ -17,31 +17,19 @@ module MTypeInf
     end
 
     define_inf_rule_op :LOADL do |infer, inst, node, tup|
-      val = inst.para[0]
-      type = LiteralType.new(val.class, val)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_literal_commin(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADI do |infer, inst, node, tup|
-      val = inst.para[0]
-      type = LiteralType.new(val.class, val)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_literal_commin(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADSYM do |infer, inst, node, tup|
-      val = inst.para[0]
-      type = LiteralType.new(val.class, val)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_literal_commin(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADNIL do |infer, inst, node, tup|
-      val = inst.para[0]
-      type = LiteralType.new(val.class, val)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_literal_commin(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADSELF do |infer, inst, node, tup|
@@ -51,17 +39,11 @@ module MTypeInf
     end
 
     define_inf_rule_op :LOADT do |infer, inst, node, tup|
-      val = inst.para[0]
-      type = LiteralType.new(val.class, val)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_literal_commin(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADF do |infer, inst, node, tup|
-      val = inst.para[0]
-      type = LiteralType.new(val.class, val)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_literal_commin(infer, inst, node, tup)
     end
 
     #  define_inf_rule_op :GETGLOBAL do |infer, inst, node, tup|
@@ -86,6 +68,23 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :GETCONST do |infer, inst, node, tup|
+      if inst.para[0].is_a?(RiteSSA::Storable) then
+        inst.outreg[0].add_same(inst.para[0])
+      else
+        paracls = inst.para[0].class
+        cls = TypeSource[paracls]
+        type = nil
+        if  cls then
+          type = cls.new(paracls, inst.para[0])
+        else
+          type = LiteralType.new(paracls, inst.para[0])
+        end
+        inst.outreg[0].add_type(type, tup)
+      end
+      nil
+    end
+
     define_inf_rule_op :GETUPVAR do |infer, inst, node, tup|
       up = inst.para[1]
       frame = inst.para[0]
@@ -100,7 +99,7 @@ module MTypeInf
       inst.outreg[0].add_same(inst.inreg[0])
       nil
     end
-    
+
     define_inf_rule_op :JMP do |infer, inst, code, tup|
     end
 
@@ -168,12 +167,14 @@ module MTypeInf
     define_inf_rule_op :ADD do |infer, inst, node, tup|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[0].flush_type(tup)[tup]
-      if arg0type
+
+      if arg0type[0].class_object == Fixnum or
+          arg0type[0].class_object == Float then
+        arg0type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
       end
-      restype = arg0type
-      restype.each do |ty|
-        inst.outreg[0].add_type ty, tup
-      end
+
       nil
     end
 
@@ -183,6 +184,19 @@ module MTypeInf
 
     define_inf_rule_op :MUL do |infer, inst, code, tup|
         @@ruletab[:OP][:ADD].call(self, inst, code, tup)
+    end
+
+    define_inf_rule_op :DIV do |infer, inst, node, tup|
+      arg0type = inst.inreg[0].flush_type(tup)[tup]
+      arg1type = inst.inreg[0].flush_type(tup)[tup]
+
+      if arg0type[0].class_object == Fixnum or
+          arg0type[0].class_object == Float then
+        ty = PrimitiveType.new(Float)
+        inst.outreg[0].add_type ty, tup
+      end
+
+      nil
     end
 
     define_inf_rule_op :ADDI do |infer, inst, node, tup|

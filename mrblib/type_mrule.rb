@@ -49,6 +49,23 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :new, Class do |infer, inst, node, tup|
+      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      recvtypes.each do |rtype|
+        ntype = rtype.val
+        cls = TypeSource[ntype]
+        type = nil
+        if  cls then
+          type = cls.new(ntype)
+        else
+          type = LiteralType.new(ntype.class, ntype)
+        end
+
+        inst.outreg[0].add_type type, tup
+      end
+      nil
+    end
+
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
       intype = inst.inreg.map {|reg| reg.type[tup]}
       ptype = intype[0][0]
@@ -64,5 +81,3 @@ module MTypeInf
     end
   end
 end
-
-
