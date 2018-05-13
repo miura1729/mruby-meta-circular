@@ -13,11 +13,13 @@ module RiteSSA
 
     def add_type(ty, tup)
       @type[tup] ||= []
-      ty.merge(@type[tup])
+      if ty then
+        ty.merge(@type[tup])
+      end
     end
 
     def add_same(st)
-      if st != self and @same.index(st) == nil then
+      if st and st != self and @same.index(st) == nil then
         @same.push(st)
       end
     end

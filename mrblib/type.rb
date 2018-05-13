@@ -83,18 +83,18 @@ module MTypeInf
     def initialize(co, *rest)
       super
       @element = {}
-      @element[nil] = RiteSSA::Reg.new(nil)
+      reg = RiteSSA::Reg.new(nil)
+      reg.add_type PrimitiveType.new(NilClass, nil), 0
+      @element[nil] = reg
     end
 
     def inspect
       res = "<#{@class_object} element=["
       @element.each do |key, val|
-        if val.size > 0 then
-          res << "#{key.inspect}="
-          val.type.each do |tup, tys|
-            tys.each do |ty|
-              res << "#{ty.inspect_element}|"
-            end
+        res << "#{key.inspect}="
+        val.type.each do |tup, tys|
+          tys.each do |ty|
+            res << "#{ty.inspect_element}|"
           end
         end
       end

@@ -28,6 +28,10 @@ module MTypeInf
             case argtype
             when MTypeInf::LiteralType
               no = argtype.val
+              if arrele[no].nil? then
+                no = nil
+              end
+
               inst.outreg[0].add_same arrele[no]
 
             when MTypeInf::BasicType
