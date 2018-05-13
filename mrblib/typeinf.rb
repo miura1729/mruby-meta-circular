@@ -103,7 +103,14 @@ module MTypeInf
       in_reg.each_with_index do |ireg, i|
         node.enter_reg[i].add_same ireg
       end
-      inference_iseq(node, node.ext_iseq, tup)
+
+      node.ext_iseq.each do |ins|
+#         p ins.op #for debug
+        rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup)
+        if rc then
+          p ins
+        end
+      end
 
       history[node] ||= []
       node.exit_link.each do |nd|
@@ -111,13 +118,6 @@ module MTypeInf
           history[node].push nd
           inference_node(nd, tup, node.exit_reg, history)
         end
-      end
-    end
-
-    def inference_iseq(node, iseq, tup)
-      iseq.each do |ins|
-#         p ins.op #for debug
-        @@ruletab[:OP][ins.op].call(self, ins, node, tup)
       end
     end
   end

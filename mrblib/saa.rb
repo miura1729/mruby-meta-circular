@@ -60,6 +60,7 @@ module RiteSSA
       @type
     end
 
+    attr :genpoint
     attr :refpoint
     attr :type
   end
