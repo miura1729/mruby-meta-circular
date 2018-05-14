@@ -5,10 +5,12 @@ module RiteSSA
       @type = {}
       @refpoint = []
       @same = []
+      @positive_list = []
+      @negative_list = []
     end
 
     def inspect
-      "<#{self.class} type: #{@type} same: #{@same}>"
+      "<#{self.class} type: #{@type} same: #{@same} pos: #{@positive_list} neg: #{@negative_list}>"
     end
 
     def add_type(ty, tup)
@@ -30,7 +32,7 @@ module RiteSSA
       end
       @same.each do |var|
         var.flush_type(stup)
-        tys = var.type[stup]
+        tys = var.get_type(stup)
         if tys then
           tys.each do |ty|
             add_type(ty, dtup)
@@ -45,9 +47,10 @@ module RiteSSA
     def flush_type_alltup(dtup)
       @same.each do |var|
         var.flush_type_alltup(dtup)
-        tups = var.type.keys
+        types = var.type
+        tups = types.keys
         tups.each do |stup|
-          tys = var.type[stup]
+          tys = var.get_type(stup)
           if tys then
             tys.each do |ty|
               add_type(ty, dtup)
@@ -60,6 +63,30 @@ module RiteSSA
       @type
     end
 
+    def get_type(tup)
+      types = @type[tup]
+      posl = @positive_list.flatten
+      if posl.size > 0 then
+        types = types.find_all {|ele| posl.find {|e| e.class_object == ele.class_object}}
+      end
+      if types.nil? then
+        types = []
+      end
+
+      negl = @negative_list.flatten
+      if negl.size > 0 then
+        types = types.find_all {|ele| negl.find {|e| e.class_object != ele.class_object}}
+      end
+
+      if types.nil? then
+        types = []
+      end
+
+      types
+    end
+
+    attr :positive_list
+    attr :negative_list
     attr :genpoint
     attr :refpoint
     attr :type
@@ -352,6 +379,8 @@ module RiteSSA
           inst.inreg.push inreg
           off = getarg_sbx(code)
           jc = @root.nodes[pc + off]
+          inst.para.push jc
+          jc = @root.nodes[pc + 1]
           inst.para.push jc
 
         when :ONERR
