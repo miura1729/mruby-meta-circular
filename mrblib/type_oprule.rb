@@ -128,12 +128,14 @@ module MTypeInf
       end
 
       if typemethodp then
-        nd = node.exit_link[1]
+        idx = notp ? 1 : 0
+        nd = node.exit_link[idx]
         genp.inreg[0].positive_list.push addtional_type_spec
         infer.inference_node(nd, tup, node.exit_reg, history)
         genp.inreg[0].positive_list.pop
 
-        nd = node.exit_link[0]
+        idx = 1 - idx
+        nd = node.exit_link[idx]
         genp.inreg[0].negative_list.push addtional_type_spec
         infer.inference_node(nd, tup, node.exit_reg, history)
         genp.inreg[0].negative_list.pop
