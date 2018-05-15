@@ -30,14 +30,15 @@ module RiteSSA
       if stup == nil then
         stup = dtup
       end
-      @same.each do |var|
+      samecp = @same
+      @same = []
+      samecp.each do |var|
         var.flush_type(stup)
         tys = var.get_type(stup)
         if tys then
           tys.each do |ty|
             add_type(ty, dtup)
           end
-          @same = []
         end
       end
 
@@ -45,7 +46,9 @@ module RiteSSA
     end
 
     def flush_type_alltup(dtup)
-      @same.each do |var|
+      samecp = @same
+      @same = []
+      samecp.each do |var|
         var.flush_type_alltup(dtup)
         types = var.type
         tups = types.keys
@@ -55,7 +58,6 @@ module RiteSSA
             tys.each do |ty|
               add_type(ty, dtup)
             end
-            @same = []
           end
         end
       end

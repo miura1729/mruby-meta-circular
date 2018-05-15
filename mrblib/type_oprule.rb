@@ -108,22 +108,24 @@ module MTypeInf
 
     define_inf_rule_op :JMPNOT do |infer, inst, node, tup, history|
       notp = false
+      typemethodp = false
       genp = inst.inreg[0].genpoint
-      if genp.op == :SEND and genp.para[0] == :! then
-        notp = true
-        genp = genp.inreg[0].genpoint
-      end
-
-      if genp.op == :SEND then
-        typemethodp = false
-        addtional_type_spec = nil
-        case genp.para[0]
-        when :nil?
-          typemethodp = true
-          type = LiteralType.new(nil.class, nil)
-
-          addtional_type_spec = [type]
+      if genp.is_a?(RiteSSA::Inst) then
+        if genp.op == :SEND and genp.para[0] == :! then
+          notp = true
           genp = genp.inreg[0].genpoint
+        end
+
+        if genp.op == :SEND then
+          addtional_type_spec = nil
+          case genp.para[0]
+          when :nil?
+            typemethodp = true
+            type = LiteralType.new(nil.class, nil)
+
+            addtional_type_spec = [type]
+            genp = genp.inreg[0].genpoint
+          end
         end
       end
 

@@ -96,6 +96,7 @@ module MTypeInf
       end
 
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
+      inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       @callstack.pop
     end
 

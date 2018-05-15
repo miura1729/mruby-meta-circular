@@ -20,6 +20,7 @@ module MTypeInf
 
       argtypes = inst.inreg[1].flush_type(tup)[tup]
       arrtypes = inst.inreg[0].type[tup]
+
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrtypes[0].element
