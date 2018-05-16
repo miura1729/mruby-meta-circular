@@ -97,6 +97,11 @@ module MTypeInf
 
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
+      while saairep.retreg.type.size == 0
+        inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
+        p saairep.retreg.type
+      end
+
       @callstack.pop
     end
 

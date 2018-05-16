@@ -28,14 +28,14 @@ module RiteSSA
       end
     end
 
-    def flush_type(dtup, stup = nil)
+    def flush_type(dtup, stup = nil, subp = false)
       if stup == nil then
         stup = dtup
       end
       samecp = @same
       @same = []
       samecp.each do |var|
-        var.flush_type(stup)
+        var.flush_type(stup, nil, true)
         tys = var.get_type(stup)
         if tys then
           tys.each do |ty|
@@ -44,6 +44,9 @@ module RiteSSA
         end
       end
 
+      if subp then
+        @same = samecp
+      end
       @type
     end
 
@@ -64,6 +67,7 @@ module RiteSSA
         end
       end
 
+      @same = samecp
       @type
     end
 

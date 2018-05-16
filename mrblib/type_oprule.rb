@@ -259,9 +259,9 @@ module MTypeInf
         nreg = RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
         type.element[i] = nreg
-        nreg.flush_type_alltup(tup)
+#        nreg.flush_type_alltup(tup)
         nilreg.add_same inst.inreg[i]
-        nilreg.flush_type_alltup(tup)
+ #       nilreg.flush_type_alltup(tup)
       end
 
       inst.outreg[0].add_type type, tup
