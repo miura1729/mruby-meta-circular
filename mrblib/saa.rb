@@ -14,10 +14,12 @@ module RiteSSA
     end
 
     def add_type(ty, tup)
-      @type[tup] ||= []
-      if ty then
-        ty.merge(@type[tup])
+      type = @type[tup]
+      if type.nil? then
+        @type[tup] = [ty]
+        return
       end
+      ty.merge(type)
     end
 
     def add_same(st)
