@@ -73,20 +73,21 @@ module RiteSSA
 
     def get_type(tup)
       types = @type[tup]
-      posl = @positive_list.flatten
-      if posl.size > 0 then
-        types = types.find_all {|ele| posl.find {|e| e.class_object == ele.class_object}}
-      end
-      if types.nil? then
-        types = []
-      end
+      if types then
+        posl = @positive_list.flatten
+        if posl.size > 0 then
+          types = types.find_all {|ele| posl.find {|e| e.class_object == ele.class_object}}
+        end
+        if types.nil? then
+          types = []
+        end
 
-      negl = @negative_list.flatten
-      if negl.size > 0 then
-        types = types.find_all {|ele| negl.find {|e| e.class_object != ele.class_object}}
-      end
+        negl = @negative_list.flatten
+        if negl.size > 0 then
+          types = types.find_all {|ele| negl.find {|e| e.class_object != ele.class_object}}
+        end
 
-      if types.nil? then
+      else
         types = []
       end
 
@@ -385,11 +386,6 @@ module RiteSSA
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
-          off = getarg_sbx(code)
-          jc = @root.nodes[pc + off]
-          inst.para.push jc
-          jc = @root.nodes[pc + 1]
-          inst.para.push jc
 
         when :ONERR
           inst.para.push getarg_sbx(code)
@@ -617,8 +613,8 @@ module RiteSSA
       block_head = collect_block_head(iseq)
       block_head.each_cons(2) do |bg, ed|
         @regtab = [SelfReg.new(@irep)]
-        (@irep.nregs - 1).times do
-          @regtab.push ParmReg.new(@irep)
+        (@irep.nregs - 1).times do |i|
+          @regtab.push ParmReg.new(i + 1)
         end
         dag = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
         dag.make_ext_iseq
