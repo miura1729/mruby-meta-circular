@@ -94,8 +94,8 @@ module RiteSSA
       types
     end
 
-    attr :positive_list
-    attr :negative_list
+    attr_accessor :positive_list
+    attr_accessor :negative_list
     attr :genpoint
     attr :refpoint
     attr :type

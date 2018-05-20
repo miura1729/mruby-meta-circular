@@ -12,7 +12,10 @@ module MTypeInf
     end
 
     define_inf_rule_op :MOVE do |infer, inst, node, tup, history|
+      inst.inreg[0].flush_type(tup)[tup]
       inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].negative_list = inst.inreg[0].negative_list.clone
+      inst.outreg[0].positive_list = inst.inreg[0].positive_list.clone
       nil
     end
 
@@ -132,25 +135,26 @@ module MTypeInf
       if typemethodp then
         idx = notp ? 1 : 0
         nd = node.exit_link[idx]
-        genp.inreg[0].positive_list.push addtional_type_spec
-        genp.inreg[0].refpoint.each do |reg|
+        greg = genp.inreg[0]
+        greg.positive_list.push addtional_type_spec
+        greg.refpoint.each do |reg|
           reg.outreg[0].positive_list.push  addtional_type_spec
         end
         infer.inference_node(nd, tup, node.exit_reg, history)
-        genp.inreg[0].positive_list.pop
-        genp.inreg[0].refpoint.each do |reg|
+        greg.positive_list.pop
+        greg.refpoint.each do |reg|
           reg.outreg[0].positive_list.pop
         end
 
         idx = 1 - idx
         nd = node.exit_link[idx]
-        genp.inreg[0].negative_list.push addtional_type_spec
-        genp.inreg[0].refpoint.each do |reg|
+        greg.negative_list.push addtional_type_spec
+        greg.refpoint.each do |reg|
           reg.outreg[0].negative_list.push addtional_type_spec
         end
         infer.inference_node(nd, tup, node.exit_reg, history)
-        genp.inreg[0].negative_list.pop
-        genp.inreg[0].refpoint.each do |reg|
+        greg.negative_list.pop
+        greg.refpoint.each do |reg|
           reg.outreg[0].negative_list.pop
         end
 

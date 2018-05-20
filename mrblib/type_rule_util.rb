@@ -70,7 +70,7 @@ module MTypeInf
 
     def self.rule_send_common (infer, inst, node, tup)
       name = inst.para[0]
-      intype = inst.inreg.map {|reg| reg.type[tup]}
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup]}
       recreg = inst.inreg[0]
 
       rule_send_common_aux(infer, inst, node, tup, name, intype, recreg)

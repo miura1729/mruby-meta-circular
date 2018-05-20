@@ -23,7 +23,7 @@ module MTypeInf
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
-          arrele = arrtypes[0].element
+          arrele = arrt.element
           if argtypes.size == 1 and
               (argtype = argtypes[0]).class_object == Fixnum then
             case argtype
