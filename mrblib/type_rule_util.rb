@@ -9,7 +9,7 @@ module MTypeInf
       nil
     end
 
-    def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg)
+    def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg)
       ntup = infer.typetupletab.get_tupple_id(intype)
       recreg.flush_type_alltup(tup)[tup]
       recvtypes = recreg.get_type(tup)
@@ -19,6 +19,9 @@ module MTypeInf
       recvtypes.each do |ty|
         existf = false
         slf = ty.class_object
+        if !slf.is_a?(Module) then
+          next
+        end
         slf.ancestors.each do |slfcls|
           irep = nil
 
@@ -42,7 +45,7 @@ module MTypeInf
 
           if irepssa then
             infer.inference_block(irepssa, intype, ntup)
-            inst.outreg[0].add_same irepssa.retreg
+            outreg.add_same irepssa.retreg
             existf = true
           end
 
@@ -57,14 +60,14 @@ module MTypeInf
             irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
             @@ruby_methodtab[name][slfcls] = irepssa
             infer.inference_block(irepssa, intype, ntup)
-            inst.outreg[0].add_same irepssa.retreg
+            outreg.add_same irepssa.retreg
           else
             print "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
           end
         end
       end
 
-      inst.outreg[0].flush_type(tup, ntup)
+      outreg.flush_type(tup, ntup)
       nil
     end
 
@@ -73,7 +76,7 @@ module MTypeInf
       intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup]}
       recreg = inst.inreg[0]
 
-      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg)
+      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0])
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)

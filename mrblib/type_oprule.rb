@@ -63,6 +63,8 @@ module MTypeInf
 
     define_inf_rule_op :GETIV do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
+#      p inst.para[0]
+#      p inst.outreg[0].flush_type_alltup(tup)
       nil
     end
 
@@ -233,11 +235,11 @@ module MTypeInf
     end
 
     define_inf_rule_op :SUB do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:ADD].call(self, inst, node, tup)
+      @@ruletab[:OP][:ADD].call(self, inst, node, tup)
     end
 
     define_inf_rule_op :MUL do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:ADD].call(self, inst, node, tup)
+      @@ruletab[:OP][:ADD].call(self, inst, node, tup)
     end
 
     define_inf_rule_op :DIV do |infer, inst, node, tup, history|

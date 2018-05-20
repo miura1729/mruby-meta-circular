@@ -13,22 +13,27 @@ module MTypeInf
       @@ruletab[:METHOD][name][rec] = block
     end
 
+    define_inf_rule_method :to_f, Fixnum do |infer, inst, node, tup|
+      type = LiteralType.new(Float, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
+
     define_inf_rule_method :[], Array do |infer, inst, node, tup|
       if inst.inreg.size != 3 then
         raise "multiple argument not support yet in Array::[]"
       end
 
-      argtypes = inst.inreg[1].flush_type(tup)[tup]
+      idxtypes = inst.inreg[1].flush_type(tup)[tup]
       arrtypes = inst.inreg[0].type[tup]
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrt.element
-          if argtypes.size == 1 and
-              (argtype = argtypes[0]).class_object == Fixnum then
-            case argtype
+          if idxtypes.size == 1 and
+              (idxtype = idxtypes[0]).class_object == Fixnum then
+            case idxtype
             when MTypeInf::LiteralType
-              no = argtype.val
+              no = idxtype.val
               if arrele[no].nil? then
                 no = nil
               end
@@ -46,6 +51,45 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type_alltup(tup)
+      nil
+    end
+
+    define_inf_rule_method :[]=, Array do |infer, inst, node, tup|
+      if inst.inreg.size != 4 then
+        raise "multiple argument not support yet in Array::[]="
+      end
+
+      idxtypes = inst.inreg[1].flush_type(tup)[tup]
+      arrtypes = inst.inreg[0].type[tup]
+      valreg = inst.inreg[2]
+
+      arrtypes.each do |arrt|
+        if arrt.class_object. == Array then
+          arrele = arrt.element
+          if idxtypes.size == 1 and
+              (idxtype = idxtypes[0]).class_object == Fixnum then
+            case idxtype
+            when MTypeInf::LiteralType
+              no = idxtype.val
+              if arrele[no].nil? then
+                no = nil
+              end
+
+              arrele[no].add_same valreg
+              inst.outreg[0].add_same valreg
+
+            when MTypeInf::BasicType
+              arrele[nil].add_same valreg
+              inst.outreg[0].add_same valreg
+
+            else
+              raise "Not supported in Array::[]="
+            end
+          end
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
@@ -87,6 +131,15 @@ module MTypeInf
           type = UserDefinedType.new(ntype)
         end
 
+        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup]}
+        intype[0] = [type]
+        dmyreg = RiteSSA::Reg.new(nil)
+        dmyreg.add_type type, tup
+
+        if !cls then
+          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg)
+        end
+
         inst.outreg[0].add_type type, tup
       end
       nil
@@ -104,6 +157,11 @@ module MTypeInf
       inst.outreg[0].add_same irepssa.retreg
       inst.outreg[0].flush_type(tup, ntup)
       nil
+    end
+
+    define_inf_rule_method :sqrt, Module do |infer, inst, node, tup|
+      type = LiteralType.new(Float, nil)
+      inst.outreg[0].add_type(type, tup)
     end
   end
 end

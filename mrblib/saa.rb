@@ -134,7 +134,7 @@ module RiteSSA
   class InstanceVariable<Storable
     def initialize(name)
       @name = name
-      @type = nil
+      super(nil)
     end
 
     attr_accessor :type
@@ -275,7 +275,8 @@ module RiteSSA
           inst.inreg.push inst
 
         when :GETIV
-          name = @irep.syms[getarg_b(code)]
+          name = @irep.syms[getarg_bx(code)]
+          inst.para.push name
           srcreg = @root.target_class.get_iv(name)
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
@@ -284,10 +285,11 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :SETIV
-          inreg = regtab[getarg_b(code)]
+          inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
-          name = @irep.syms[getarg_b(code)]
+          name = @irep.syms[getarg_bx(code)]
+          inst.para.push name
           dstvar = @root.target_class.get_iv(name)
           inst.outreg.push dstvar
 
@@ -707,7 +709,14 @@ module RiteSSA
     attr :constant
 
     def const_get(sym)
-      @class_object.const_get(sym)
+      p @class_object
+      @class_object.ancestors.each do |cl|
+        begin
+          res = cl.const_get(sym)
+          return res
+        rescue NameError
+        end
+      end
     end
 
     def get_iv(name)
