@@ -151,6 +151,26 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_irep_get_irep_instance(mrb_state *mrb, mrb_value self)
+{
+  mrb_value recv;
+  mrb_value name;
+  mrb_method_t m;
+  struct RClass *c;
+
+  mrb_get_args(mrb, "oo", &recv, &name);
+  c = mrb_class_ptr(recv);
+  m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
+
+  if (m.proc && MRB_METHOD_PROC_P(m)) {
+    return mrb_irep_wrap(mrb, mrb_class_ptr(self), MRB_METHOD_PROC(m)->body.irep);
+  }
+  else {
+    return mrb_nil_value();
+  }
+}
+
+static mrb_value
 mrb_irep_new_irep(mrb_state *mrb, mrb_value self)
 {
   int i;
@@ -601,6 +621,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
 
   mrb_define_const(mrb, a, "OPTABLE", mrb_irep_make_optab(mrb));
   mrb_define_class_method(mrb, a, "get_irep", mrb_irep_get_irep, MRB_ARGS_REQ(2));
+  mrb_define_class_method(mrb, a, "get_irep_instance", mrb_irep_get_irep_instance, MRB_ARGS_REQ(2));
   mrb_define_class_method(mrb, a, "new_irep", mrb_irep_new_irep, MRB_ARGS_REQ(5));
 
   mrb_define_method(mrb, a, "id", mrb_irep_id, MRB_ARGS_NONE());

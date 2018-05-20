@@ -84,7 +84,7 @@ module MTypeInf
         if  cls then
           type = cls.new(ntype)
         else
-          type = LiteralType.new(ntype.class, ntype)
+          type = UserDefinedType.new(ntype)
         end
 
         inst.outreg[0].add_type type, tup
