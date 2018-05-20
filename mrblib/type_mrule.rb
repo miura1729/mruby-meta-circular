@@ -161,5 +161,20 @@ module MTypeInf
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
     end
+
+    define_inf_rule_method :rand, Module do |infer, inst, node, tup|
+      type = LiteralType.new(Float, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :cos, Module do |infer, inst, node, tup|
+      type = LiteralType.new(Float, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :sin, Module do |infer, inst, node, tup|
+      type = LiteralType.new(Float, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
   end
 end
