@@ -286,7 +286,8 @@ module MTypeInf
     end
 
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|
-      pty = ProcType.new(Proc, inst.para[0])
+      slf = inst.inreg[0].flush_type(tup)[tup][0]
+      pty = ProcType.new(Proc, inst.para[0], slf)
       inst.outreg[0].add_type pty, tup
       nil
     end

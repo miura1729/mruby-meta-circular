@@ -148,12 +148,10 @@ module MTypeInf
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
       intype = inst.inreg.map {|reg| reg.type[tup]}
       ptype = intype[0][0]
-      intype[0] = node.regtab[0].type[tup]
+      intype[0] = [ptype.slf]
       ntup = infer.typetupletab.get_tupple_id(intype)
       irepssa = ptype.irep
-      if irepssa.retreg.flush_type(ntup)[ntup].nil? then
-        infer.inference_block(irepssa, intype, ntup)
-      end
+      infer.inference_block(irepssa, intype, ntup)
       inst.outreg[0].add_same irepssa.retreg
       inst.outreg[0].flush_type(tup, ntup)
       nil

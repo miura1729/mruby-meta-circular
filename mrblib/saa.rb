@@ -555,6 +555,9 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :LAMBDA
+          inreg = regtab[0]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
           a = getarg_a(code)
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
