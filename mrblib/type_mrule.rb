@@ -71,14 +71,14 @@ module MTypeInf
             case idxtype
             when MTypeInf::LiteralType
               no = idxtype.val
-              if arrele[no].nil? then
-                no = nil
-              end
-
+              arrele[no] ||= RiteSSA::Reg.new(nil)
               arrele[no].add_same valreg
+              arrele[nil] ||= RiteSSA::Reg.new(nil)
+              arrele[nil].add_same valreg
               inst.outreg[0].add_same valreg
 
             when MTypeInf::BasicType
+              arrele[nil] ||= RiteSSA::Reg.new(nil)
               arrele[nil].add_same valreg
               inst.outreg[0].add_same valreg
 
