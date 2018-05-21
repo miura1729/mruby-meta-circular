@@ -554,6 +554,36 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
+        when :ARYCAT
+          inreg = regtab[getarg_a(code)]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
+          inreg = regtab[getarg_b(code)]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
+
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
+        when :STRING
+          inst.para.push @irep.pool[getarg_bx(code)]
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
+        when :STRCAT
+          inreg = regtab[getarg_a(code)]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
+          inreg = regtab[getarg_b(code)]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
+
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
         when :LAMBDA
           inreg = regtab[0]
           inreg.refpoint.push inst
@@ -712,7 +742,6 @@ module RiteSSA
     attr :constant
 
     def const_get(sym)
-      p @class_object
       @class_object.ancestors.each do |cl|
         begin
           res = cl.const_get(sym)

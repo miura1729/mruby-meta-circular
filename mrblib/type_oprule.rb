@@ -70,6 +70,7 @@ module MTypeInf
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].flush_type_alltup(tup)
       nil
     end
 
@@ -133,8 +134,16 @@ module MTypeInf
           end
         end
       end
+      type = inst.inreg[0].flush_type(tup)[tup]
+      if type and type.size == 1 and type[0].class_object == NilClass then
+        infer.inference_node(node.exit_link[1], tup, node.exit_reg, history)
+        true
 
-      if typemethodp then
+      elsif type and type.size == 1 and type[0].class_object != NilClass then
+        infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
+        true
+
+      elsif typemethodp then
         idx = notp ? 1 : 0
         nd = node.exit_link[idx]
         greg = genp.inreg[0]
@@ -180,7 +189,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :SENDB do |infer, inst, node, tup, history|
-      inst.inreg[0..-1].each do |reg|
+      inst.inreg.each do |reg|
         reg.flush_type(tup)
       end
 
@@ -283,6 +292,28 @@ module MTypeInf
       end
 
       inst.outreg[0].add_type type, tup
+    end
+
+    define_inf_rule_op :ARYCAT do |infer, inst, node, tup, history|
+      type = ContainerType.new(Array)
+
+      inst.inreg[0].add_type type, tup
+      inst.inreg[1].add_type type, tup
+      inst.outreg[0].add_type type, tup
+      nil
+    end
+
+    define_inf_rule_op :STRING do |infer, inst, node, tup, history|
+      rule_literal_commin(infer, inst, node, tup)
+    end
+
+    define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
+      type = ContainerType.new(String)
+
+      inst.inreg[0].add_type type, tup
+      inst.inreg[1].add_type type, tup
+      inst.outreg[0].add_type type, tup
+      nil
     end
 
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|

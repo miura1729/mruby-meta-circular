@@ -119,6 +119,24 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :kind_of?, Object do |infer, inst, node, tup|
+      inst.inreg[1].flush_type(tup)
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :class, Object do |infer, inst, node, tup|
+      type = inst.inreg[1].flush_type(tup)[tup][0].class_object.class
+
+      type = PrimitiveType.new(type)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :new, Class do |infer, inst, node, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       recvtypes.each do |rtype|
@@ -131,7 +149,7 @@ module MTypeInf
           type = UserDefinedType.new(ntype)
         end
 
-        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup]}
+        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         intype[0] = [type]
         dmyreg = RiteSSA::Reg.new(nil)
         dmyreg.add_type type, tup
@@ -162,17 +180,17 @@ module MTypeInf
       inst.outreg[0].add_type(type, tup)
     end
 
-    define_inf_rule_method :rand, Module do |infer, inst, node, tup|
+    define_inf_rule_method :rand, Math.class do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
     end
 
-    define_inf_rule_method :cos, Module do |infer, inst, node, tup|
+    define_inf_rule_method :cos, Math.class do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
     end
 
-    define_inf_rule_method :sin, Module do |infer, inst, node, tup|
+    define_inf_rule_method :sin, Math.class do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
     end

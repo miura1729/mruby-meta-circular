@@ -110,7 +110,7 @@ module MTypeInf
       end
 
       node.ext_iseq.each do |ins|
-#         p ins.op #for debug
+        # p ins.op #for debug
         rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         if rc then
           # escape for customized contination (see OP_JMPNOT)
