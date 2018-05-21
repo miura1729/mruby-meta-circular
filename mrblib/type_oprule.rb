@@ -135,11 +135,12 @@ module MTypeInf
         end
       end
       type = inst.inreg[0].flush_type(tup)[tup]
-      if type and type.size == 1 and type[0].class_object == NilClass then
+      condtype = type && type.size == 1 && type[0].class_object
+      if condtype == NilClass or condtype == FalseClass then
         infer.inference_node(node.exit_link[1], tup, node.exit_reg, history)
         true
 
-      elsif type and type.size == 1 and type[0].class_object != NilClass then
+      elsif type and type.size == 1 then
         infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
         true
 
