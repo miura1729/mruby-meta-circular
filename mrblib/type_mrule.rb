@@ -151,11 +151,12 @@ module MTypeInf
 
         intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         intype[0] = [type]
-        dmyreg = RiteSSA::Reg.new(nil)
-        dmyreg.add_type type, tup
 
         if !cls then
-          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg)
+          ntup = infer.typetupletab.get_tupple_id(intype)
+          dmyreg = RiteSSA::Reg.new(nil)
+          dmyreg.add_type type, ntup
+          rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg)
         end
 
         inst.outreg[0].add_type type, tup
