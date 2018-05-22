@@ -40,6 +40,8 @@ module MTypeInf
             else
               irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
               @@ruby_methodtab[name][slfcls] = irepssa
+              clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
+              clsobj.method[name] = irepssa
             end
           end
 
@@ -59,6 +61,8 @@ module MTypeInf
           if irep then
             irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
             @@ruby_methodtab[name][slfcls] = irepssa
+            clsobj = ClassSSA.get_instance(slfcls)
+            clsobj.method[name] = irepssa
             infer.inference_block(irepssa, intype, ntup)
             outreg.add_same irepssa.retreg
           else

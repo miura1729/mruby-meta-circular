@@ -1,7 +1,6 @@
 module MTypeInf
   class TypeInferencer
     @@ruletab ||= {}
-    @@ruby_methodtab ||= {}
 
     def self.define_inf_rule_op(name, &block)
       @@ruletab[:OP] ||= {}
@@ -232,15 +231,17 @@ module MTypeInf
 
     define_inf_rule_op :ADD do |infer, inst, node, tup, history|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
-      arg1type = inst.inreg[0].flush_type(tup)[tup]
+      arg1type = inst.inreg[1].flush_type(tup)[tup]
 
-      if arg0type[0].class_object == Fixnum or
-          arg0type[0].class_object == Float then
+      if arg1type and arg1type[0].class_object == Float then
+        arg1type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
+      else
         arg0type.each do |ty|
           inst.outreg[0].add_type ty, tup
         end
       end
-
       nil
     end
 

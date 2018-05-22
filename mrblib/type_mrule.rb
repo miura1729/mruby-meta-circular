@@ -2,7 +2,6 @@ module MTypeInf
   class TypeInferencer
 
     @@ruletab ||= {}
-    @@ruby_methodtab ||= {}
 
     def self.define_inf_rule_method(name, rec, &block)
       @@ruletab[:METHOD] ||= {}

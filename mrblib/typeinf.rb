@@ -57,8 +57,15 @@ module MTypeInf
     attr :callstack
 
     def dump_type
-      @@ruby_methodtab.each do |name, rec_types|
-        rec_types.each do |recv, node|
+      RiteSSA::ClassSSA.all_classssa.each do |cls, clsobj|
+        print "Class #{cls}\n"
+        print " Instance variables\n"
+        clsobj.iv.each do |iv, reg|
+          type = reg.flush_type_alltup(0)[0].map {|ele| ele.class_object.inspect}.join('|')
+          print "  #{iv}: #{type}\n"
+        end
+        print "\n methodes \n"
+        clsobj.method.each do |name, node|
           types = node.retreg.type
           types.each do |arg, types|
             args = @typetupletab.rev_table[arg]
@@ -68,9 +75,10 @@ module MTypeInf
             }.join(', ')
             type = types.map {|ele| ele.class_object.inspect}
             type = type.join('|')
-            print "#{recv}##{name}: (#{args}) -> #{type} \n"
+            print "  #{name}: (#{args}) -> #{type} \n"
           end
         end
+        print "\n"
       end
     end
 

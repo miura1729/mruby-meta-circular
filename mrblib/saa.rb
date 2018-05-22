@@ -180,6 +180,7 @@ module RiteSSA
       @exit_reg = nil
     end
 
+    attr :root
     attr :pos
     attr :iseq
     attr :ext_iseq
@@ -729,17 +730,23 @@ module RiteSSA
       end
     end
 
+    def self.all_classssa
+      @@insttab
+    end
+
     def initialize(clobj)
       @class_object = clobj
       @iv = {}
       @cv = {}
       @constant = {}
+      @method = {}
     end
 
     attr :class_object
     attr :iv
     attr :cv
     attr :constant
+    attr :method
 
     def const_get(sym)
       @class_object.ancestors.each do |cl|
