@@ -5,14 +5,14 @@ module MTypeInf
     end
 
     def ==(other)
-      self.class == other.class &&
+#      self.class == other.class &&
       @class_object == other.class_object
     end
 
     attr :class_object
 
     def merge(arr)
-      if @class_object != Class then
+      if @class_object != Class || 1 then
         arr.each_with_index do |ele, i|
           if ele.class_object == @class_object and
               ele.is_a?(MTypeInf::PrimitiveType) then
