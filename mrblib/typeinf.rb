@@ -61,7 +61,8 @@ module MTypeInf
         print "Class #{cls}\n"
         print " Instance variables\n"
         clsobj.iv.each do |iv, reg|
-          type = reg.flush_type_alltup(0)[0].map {|ele| ele.class_object.inspect}.join('|')
+          types =reg.flush_type_alltup(0)[0] || []
+          type = types.map {|ele| ele.class_object.inspect}.join('|')
           print "  #{iv}: #{type}\n"
         end
         print "\n methodes \n"
