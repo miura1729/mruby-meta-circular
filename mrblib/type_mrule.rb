@@ -188,12 +188,17 @@ module MTypeInf
     end
 
     define_inf_rule_method :kind_of?, Object do |infer, inst, node, tup|
-      inst.inreg[1].flush_type(tup)
+      slf = inst.inreg[0].flush_type(tup)[tup]
+      arg = inst.inreg[1].flush_type(tup)[tup]
 
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
+      if slf.size != 1 || slf[0].class_object == arg[0].val then
+        type = LiteralType.new(TrueClass, true)
+        inst.outreg[0].add_type(type, tup)
+      end
+      if slf.size != 1 || slf[0].class_object != arg[0].val then
+        type = LiteralType.new(FalseClass, false)
+        inst.outreg[0].add_type(type, tup)
+      end
       nil
     end
 
