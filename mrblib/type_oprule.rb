@@ -357,5 +357,19 @@ module MTypeInf
       inst.outreg[0].add_type pty, tup
       nil
     end
+
+    define_inf_rule_op :RANGE do |infer, inst, node, tup, history|
+      type = ContainerType.new(Range)
+      nreg = RiteSSA::Reg.new(inst)
+      nreg.add_same inst.inreg[0]
+      type.element[0] = nreg
+      type.element[0].flush_type_alltup(tup)
+      nreg = RiteSSA::Reg.new(inst)
+      nreg.add_same inst.inreg[1]
+      type.element[1] = nreg
+      type.element[1].flush_type_alltup(tup)
+
+      inst.outreg[0].add_type type, tup
+    end
   end
 end

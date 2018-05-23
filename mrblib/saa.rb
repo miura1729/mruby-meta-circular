@@ -621,6 +621,18 @@ module RiteSSA
           inst.para.push nlambda
           @root.reps[bn] = nlambda
 
+        when :RANGE
+          initno = getarg_b(code)
+          flg = getarg_c(code)
+
+          inst.para.push flg
+          inst.inreg.push regtab[initno]
+          inst.inreg.push regtab[initno + 1]
+
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
         else
         end
         pc = pc + 1
