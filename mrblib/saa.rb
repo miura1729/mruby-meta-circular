@@ -51,8 +51,17 @@ module RiteSSA
     end
 
     def flush_type_alltup(dtup)
+      tups = @type.keys
+      tups.each do |stup|
+        tys = get_type(stup)
+        tys.each do |ty|
+          add_type(ty, dtup)
+        end
+      end
+
       samecp = @same
       @same = []
+
       samecp.each do |var|
         var.flush_type_alltup(dtup)
         types = var.type
