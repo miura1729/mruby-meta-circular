@@ -263,15 +263,23 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :GETGLOBAL
-          inst.para.push @irep.syms[getarg_bx(code)]
+          name = @irep.syms[getarg_bx(code)]
+          inst.para.push name
+          srcreg = @root.target_class.get_global(name)
+          srcreg.refpoint.push inst
+          inst.inreg.push srcreg
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
 
         when :SETGLOBAL
-          inst.para.push @irep.syms[getarg_bx(code)]
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
+          name = @irep.syms[getarg_bx(code)]
+          inst.para.push name
+          dstvar = @root.target_class.get_global(name)
+          inst.outreg.push dstvar
 
         when :GETSPECIAL
           inst.para.push @irep.syms[getarg_bx(code)]
@@ -730,6 +738,7 @@ module RiteSSA
 
   class ClassSSA
     @@insttab = {}
+    @@globaltab = {}
 
     def self.get_instance(clobj)
       if @@insttab[clobj] then
@@ -741,6 +750,10 @@ module RiteSSA
 
     def self.all_classssa
       @@insttab
+    end
+
+    def self.all_globalssa
+      @@globaltab
     end
 
     def initialize(clobj)
@@ -772,6 +785,18 @@ module RiteSSA
         @iv[name]
       else
         @iv[name] = InstanceVariable.new(name)
+      end
+    end
+
+    def get_global(name)
+      if @@globaltab[name] then
+        @@globaltab[name]
+      else
+        reg = InstanceVariable.new(name)
+        val = 0
+        type = MTypeInf::LiteralType.new(val.class, val)
+        reg.add_type(type, 0)
+        @@globaltab[name] = reg
       end
     end
   end

@@ -48,11 +48,18 @@ module MTypeInf
       rule_literal_commin(infer, inst, node, tup)
     end
 
-    #  define_inf_rule_op :GETGLOBAL do |infer, inst, node, tup, history|
-    #  end
+    define_inf_rule_op :GETGLOBAL do |infer, inst, node, tup, history|
+      inst.outreg[0].add_same(inst.inreg[0])
+      #p inst.para[0]
+      inst.outreg[0].flush_type_alltup(tup)
+      nil
+    end
 
-    #  define_inf_rule_op :SETGLOBAL do |infer, inst, node, tup, history|
-    #  end
+    define_inf_rule_op :SETGLOBAL do |infer, inst, node, tup, history|
+      inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].flush_type_alltup(tup)
+      nil
+    end
 
     #  define_inf_rule_op :GETSPECIAL do |infer, inst, node, tup, history|
     #  end
