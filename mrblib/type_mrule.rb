@@ -15,6 +15,29 @@ module MTypeInf
     define_inf_rule_method :to_f, Fixnum do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :to_i, Fixnum do |infer, inst, node, tup|
+      type = LiteralType.new(Fixnum, nil)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :%, Fixnum do |infer, inst, node, tup|
+      type = LiteralType.new(Fixnum, nil)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :<=>, Fixnum do |infer, inst, node, tup|
+      inst.inreg[1].flush_type(tup)
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :[], Array do |infer, inst, node, tup|
@@ -92,8 +115,54 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :dup, Array do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
+    define_inf_rule_method :<<, Array do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
+    define_inf_rule_method :uniq!, Array do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
+    define_inf_rule_method :length, Array do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :size, Array do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :empty?, Array do |infer, inst, node, tup|
+      inst.inreg[0].flush_type(tup)
+
+      if inst.inreg[0].type[tup].size == 1 and
+          inst.inreg[0].type[tup][0].element[nil].flush_type_alltup(tup)[tup][0].class_object != NilClass then
+        type = LiteralType.new(FalseClass, false)
+        inst.outreg[0].add_type(type, tup)
+      end
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :lambda, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[1]
+      nil
+    end
+
+    define_inf_rule_method :__svalue, Object do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
       nil
     end
 
