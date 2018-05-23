@@ -510,6 +510,12 @@ module RiteSSA
 
         when :ENTER
           inst.para.push getarg_ax(code)
+          regtab[1..-1].each_with_index do |reg, i|
+            inst.inreg.push reg
+            dstreg = Reg.new(inst)
+            regtab[i + 1] = dstreg
+            inst.outreg.push dstreg
+          end
 
         when :RETURN
           a = getarg_a(code)

@@ -183,6 +183,32 @@ module MTypeInf
     end
 
     define_inf_rule_op :ENTER do |infer, inst, node, tup, history|
+      ax = inst.para[0]
+      m1 = (ax >> 18) & 0x1f
+      o = (ax >> 13) & 0x1f
+      r = (ax >> 12) & 0x1
+      m2 = (ax >> 7) & 0x1f
+
+      argc = infer.typetupletab.rev_table[tup].size - 2
+      len = m1 + o + r + m2
+
+      if r == 1 then
+        type = ContainerType.new(Array)
+        if argc > len then
+          (argc - m1 - o).times do |i|
+            nreg = RiteSSA::Reg.new(nil)
+            nreg.add_same inst.inreg[m1 + o +  i]
+            type.element[i] = nreg
+          end
+        end
+        inst.outreg[m1 + o].add_type type, tup
+      else
+        inst.outreg[m1 + o].add_same inst.inreg[m1 + o]
+      end
+
+      (m1 + o).times do |i|
+        inst.outreg[i].add_same inst.inreg[i]
+      end
       nil
     end
 
