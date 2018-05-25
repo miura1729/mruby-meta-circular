@@ -238,6 +238,18 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :raise, Object do |infer, inst, node, tup|
+      nil
+    end
+
+    define_inf_rule_method :respond_to?, Object do |infer, inst, node, tup|
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :__svalue, Object do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].type[tup]
       inst.outreg[0].add_same arrtypes[0].element[nil]
@@ -256,6 +268,16 @@ module MTypeInf
     end
 
     define_inf_rule_method :!, BasicObject do |infer, inst, node, tup|
+      inst.inreg[1].flush_type(tup)
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :!=, BasicObject do |infer, inst, node, tup|
       inst.inreg[1].flush_type(tup)
 
       type = LiteralType.new(TrueClass, true)
