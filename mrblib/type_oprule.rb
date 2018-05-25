@@ -52,7 +52,6 @@ module MTypeInf
       inst.inreg[0].flush_type_alltup(tup)
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type(tup)
-      inst.outreg[0].type
       nil
     end
 
@@ -294,10 +293,12 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[0].flush_type(tup)[tup]
 
-      if arg0type[0].class_object == Fixnum or
-          arg0type[0].class_object == Float then
-        ty = PrimitiveType.new(Float)
-        inst.outreg[0].add_type ty, tup
+      if arg0type then
+        if arg0type[0].class_object == Fixnum or
+            arg0type[0].class_object == Float then
+          ty = PrimitiveType.new(Float)
+          inst.outreg[0].add_type ty, tup
+        end
       end
 
       nil

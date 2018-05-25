@@ -84,14 +84,26 @@ module MTypeInf
       super
       @element = {}
       reg = RiteSSA::Reg.new(nil)
-      reg.add_type PrimitiveType.new(NilClass, nil), 0
+#      reg.add_type PrimitiveType.new(NilClass, nil), 0
       @element[nil] = reg
     end
 
     def ==(other)
-      self.class == other.class &&
-        @class_object == other.class_object #&&
-#        @element[nil] == other.element[nil]
+      if self.class != other.class ||
+          @class_object != other.class_object then
+        return false
+      end
+
+      stype = @element[nil].type
+      other.element[nil].type.each do |arg, tys|
+        tys.each do |ty|
+          if stype[arg] == nil || !stype[arg].find {|te| te == ty} then
+            return false
+          end
+        end
+      end
+
+      return true
     end
 
     def inspect

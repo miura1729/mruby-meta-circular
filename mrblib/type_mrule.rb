@@ -40,35 +40,62 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_f, Float do |infer, inst, node, tup|
+      type = LiteralType.new(Float, nil)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :to_i, Float do |infer, inst, node, tup|
+      type = LiteralType.new(Fixnum, nil)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :<=>, Float do |infer, inst, node, tup|
+      inst.inreg[1].flush_type(tup)
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :[], Array do |infer, inst, node, tup|
       if inst.inreg.size != 3 then
         raise "multiple argument not support yet in Array::[]"
       end
 
-      arrtypes = inst.inreg[0].flush_type_alltup(tup)[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
       idxtypes = inst.inreg[1].flush_type_alltup(tup)[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrt.element
-          if idxtypes.size == 1 and
-              (idxtype = idxtypes[0]).class_object == Fixnum then
-            case idxtype
-            when MTypeInf::LiteralType
-              no = idxtype.val
-              if arrele[no].nil? then
-                arrele[no] = RiteSSA::Reg.new(nil)
-                arrele[no].add_same arrele[nil]
+          if idxtypes.size == 1 then
+            idxtype = idxtypes[0]
+            if idxtype.class_object == Fixnum then
+              case idxtype
+              when MTypeInf::LiteralType
+                no = idxtype.val
+                if arrele[no].nil? then
+                  arrele[no] = RiteSSA::Reg.new(nil)
+                  arrele[no].add_same arrele[nil]
+                end
+                inst.outreg[0].add_same arrele[no]
+                arrele[no].flush_type_alltup(tup)
+
+              when MTypeInf::BasicType
+                inst.outreg[0].add_same arrele[nil]
+                arrele[nil].flush_type_alltup(tup)
+
+              else
+                raise "Not supported in Array::[]"
               end
-              inst.outreg[0].add_same arrele[no]
-              arrele[no].flush_type_alltup(tup)
 
-            when MTypeInf::BasicType
-              inst.outreg[0].add_same arrele[nil]
-              arrele[nil].flush_type_alltup(tup)
-
-            else
-              raise "Not supported in Array::[]"
+            elsif idxtype.class_object == Range then
+              inst.outreg[0].add_same inst.inreg[0]
             end
           end
         end
@@ -79,7 +106,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :first, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].flush_type_alltup(tup)[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -148,7 +175,7 @@ module MTypeInf
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].type[tup]
       valreg = inst.inreg[1]
-      valreg.flush_type_alltup(tup)
+      valreg.flush_type(tup)
 
       arrtypes.each do |arrt|
         if arrt.class_object.== Array then
@@ -195,6 +222,7 @@ module MTypeInf
       inst.inreg[0].flush_type(tup)
 
       if inst.inreg[0].type[tup].size == 1 and
+          inst.inreg[0].type[tup][0].element[nil].flush_type_alltup(tup)[tup] and
           inst.inreg[0].type[tup][0].element[nil].flush_type_alltup(tup)[tup][0].class_object != NilClass then
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
