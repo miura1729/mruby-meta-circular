@@ -99,16 +99,21 @@ module MTypeInf
       saairep.argtab[tup] = true
       @callstack.push [saairep, tup]
       intype.each_with_index do |tys, i|
-        tys.each do |ty|
-          saairep.nodes[0].enter_reg[i].add_type(ty, tup)
+        if tys then
+          tys.each do |ty|
+            saairep.nodes[0].enter_reg[i].add_type(ty, tup)
+          end
         end
       end
 
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
-      while saairep.retreg.type.size == 0
+#      while saairep.retreg.type.size == 0
+#        p saairep.retreg.type
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
-      end
+        inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
+        inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
+#      end
 
       @callstack.pop
     end

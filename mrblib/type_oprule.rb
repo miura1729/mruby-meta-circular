@@ -49,15 +49,19 @@ module MTypeInf
     end
 
     define_inf_rule_op :GETGLOBAL do |infer, inst, node, tup, history|
+      inst.inreg[0].flush_type_alltup(tup)
       inst.outreg[0].add_same(inst.inreg[0])
-      #p inst.para[0]
-      inst.outreg[0].flush_type_alltup(tup)
+      inst.outreg[0].flush_type(tup)
+      inst.outreg[0].type
       nil
     end
 
     define_inf_rule_op :SETGLOBAL do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type_alltup(tup)
+#      p inst.para[0]
+#      p inst.outreg[0].flush_type_alltup(tup)
+#      p tup
       nil
     end
 
@@ -247,19 +251,19 @@ module MTypeInf
     end
 
     define_inf_rule_op :LT do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(self, inst, node, tup)
+        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LE do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(self, inst, node, tup)
+        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :GT do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(self, inst, node, tup)
+        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :GE do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(self, inst, node, tup)
+        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :ADD do |infer, inst, node, tup, history|
@@ -270,7 +274,7 @@ module MTypeInf
         arg1type.each do |ty|
           inst.outreg[0].add_type ty, tup
         end
-      else
+      elsif arg0type then
         arg0type.each do |ty|
           inst.outreg[0].add_type ty, tup
         end
@@ -279,11 +283,11 @@ module MTypeInf
     end
 
     define_inf_rule_op :SUB do |infer, inst, node, tup, history|
-      @@ruletab[:OP][:ADD].call(self, inst, node, tup)
+      @@ruletab[:OP][:ADD].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :MUL do |infer, inst, node, tup, history|
-      @@ruletab[:OP][:ADD].call(self, inst, node, tup)
+      @@ruletab[:OP][:ADD].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :DIV do |infer, inst, node, tup, history|
@@ -303,14 +307,16 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = LiteralType.new(Fixnum, inst.para[1])
 
-      arg0type.each do |ty|
-        inst.outreg[0].add_type ty, tup
+      if arg0type then
+        arg0type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
       end
       nil
     end
 
     define_inf_rule_op :SUBI do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:ADDI].call(self, inst, node, tup)
+        @@ruletab[:OP][:ADDI].call(infer, inst, node, tup)
     end
 
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|
@@ -363,11 +369,11 @@ module MTypeInf
       nreg = RiteSSA::Reg.new(inst)
       nreg.add_same inst.inreg[0]
       type.element[0] = nreg
-      type.element[0].flush_type_alltup(tup)
+      type.element[0].flush_type(tup)
       nreg = RiteSSA::Reg.new(inst)
       nreg.add_same inst.inreg[1]
       type.element[1] = nreg
-      type.element[1].flush_type_alltup(tup)
+      type.element[1].flush_type(tup)
 
       inst.outreg[0].add_type type, tup
     end

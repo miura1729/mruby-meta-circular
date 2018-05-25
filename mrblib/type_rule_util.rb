@@ -11,11 +11,11 @@ module MTypeInf
 
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg)
       ntup = infer.typetupletab.get_tupple_id(intype)
-      recreg.flush_type_alltup(tup)[tup]
       recvtypes = recreg.get_type(tup)
 
       @@ruby_methodtab[name] ||= {}
       misirep = nil
+      #p name
       recvtypes.each do |ty|
         existf = false
         slf = ty.class_object
@@ -77,7 +77,6 @@ module MTypeInf
 
     def self.rule_send_common (infer, inst, node, tup)
       name = inst.para[0]
-#      p name
       intype = inst.inreg.map {|reg| reg.flush_type_alltup(tup)[tup] || []}
       recreg = inst.inreg[0]
 

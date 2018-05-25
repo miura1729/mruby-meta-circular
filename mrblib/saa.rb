@@ -76,7 +76,7 @@ module RiteSSA
         end
       end
 
-      @same = samecp
+#      @same = samecp
       @type
     end
 
@@ -811,9 +811,6 @@ module RiteSSA
         @@globaltab[name]
       else
         reg = InstanceVariable.new(name)
-        val = 0
-        type = MTypeInf::LiteralType.new(val.class, val)
-        reg.add_type(type, 0)
         @@globaltab[name] = reg
       end
     end

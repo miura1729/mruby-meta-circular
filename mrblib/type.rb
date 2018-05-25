@@ -5,7 +5,7 @@ module MTypeInf
     end
 
     def ==(other)
-#      self.class == other.class &&
+      self.class == other.class &&
       @class_object == other.class_object
     end
 
@@ -14,21 +14,20 @@ module MTypeInf
     def merge(arr)
       if @class_object != Class || 1 then
         arr.each_with_index do |ele, i|
-          if ele.class_object == @class_object and
-              ele.is_a?(MTypeInf::PrimitiveType) then
-            return
-          end
+          if ele.class_object == @class_object then
+            if ele.is_a?(MTypeInf::PrimitiveType) then
+              return
 
-          if ele.class_object == @class_object and
-              is_a?(MTypeInf::PrimitiveType) then
-            arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-            return
+            elsif is_a?(MTypeInf::PrimitiveType) then
+              arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+              return
+            end
           end
 
           if ele == self then
             case ele
             when MTypeInf::LiteralType
-              if ele.val != @val and ele.class_object != Class and nil then
+              if ele.val != @val and ele.class_object != Class then
                 arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
               end
 
@@ -43,13 +42,14 @@ module MTypeInf
 
               return
 
-            when MTypeInf::UserDefinedType, MTypeInf::PrimitiveType
+            when MTypeInf::UserDefinedType,
+              MTypeInf::PrimitiveType,
+              MTypeInf::ProcType
               return
 
-            when MTypeInf::ProcType
-              if ele.irep == @irep then
-                return
-              end
+            else
+              raise self
+
             end
           end
 
@@ -57,8 +57,8 @@ module MTypeInf
           #
           #        end
         end
-
       end
+
       arr.push self
     end
 
@@ -88,17 +88,26 @@ module MTypeInf
       @element[nil] = reg
     end
 
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object #&&
+#        @element[nil] == other.element[nil]
+    end
+
     def inspect
       res = "<#{@class_object} element=["
       @element.each do |key, val|
         res << "#{key.inspect}="
         val.type.each do |tup, tys|
+          res << "#{tup} = ["
           tys.each do |ty|
             res << "#{ty.inspect_element}|"
           end
+          res << "]\n"
         end
+        res << "\n"
       end
-      res << ">"
+      res << "]>"
       res
     end
 
