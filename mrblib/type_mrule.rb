@@ -30,16 +30,6 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :<=>, Fixnum do |infer, inst, node, tup|
-      inst.inreg[1].flush_type(tup)
-
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
-      nil
-    end
-
     define_inf_rule_method :to_f, Float do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
@@ -52,12 +42,10 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :<=>, Float do |infer, inst, node, tup|
+    define_inf_rule_method :<=>, Object do |infer, inst, node, tup|
       inst.inreg[1].flush_type(tup)
 
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
+      type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -124,6 +112,42 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :last, Array do |infer, inst, node, tup|
+      arrtypes = inst.inreg[0].type[tup] || []
+
+      arrtypes.each do |arrt|
+        if arrt.class_object. == Array then
+          arrele = arrt.element
+          inst.outreg[0].add_same arrele[nil]
+          arrele[nil].flush_type_alltup(tup)
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
+    define_inf_rule_method :delete_at, Array do |infer, inst, node, tup|
+      arrtypes = inst.inreg[0].type[tup] || []
+
+      arrtypes.each do |arrt|
+        if arrt.class_object. == Array then
+          arrele = arrt.element
+          if arrele[0].nil? then
+            arrele[0] = RiteSSA::Reg.new(nil)
+            arrele[0].add_same arrele[nil]
+          end
+          inst.outreg[0].add_same arrele[0]
+          type = PrimitiveType.new(NilClass)
+          inst.outreg[0].add_type type, tup
+          arrele[0].flush_type_alltup(tup)
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :[]=, Array do |infer, inst, node, tup|
       if inst.inreg.size != 4 then
         raise "multiple argument not support yet in Array::[]="
@@ -173,28 +197,25 @@ module MTypeInf
     end
 
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].type[tup]
-      valreg = inst.inreg[1]
-      valreg.flush_type(tup)
+      rule_ary_push_common(infer, inst, node, tup)
+    end
 
-      arrtypes.each do |arrt|
-        if arrt.class_object.== Array then
-          arrele = arrt.element
-          arrele.each do |idx, reg|
-            reg.add_same valreg
-            reg.flush_type_alltup(tup)
-          end
-        end
-      end
+    define_inf_rule_method :push, Array do |infer, inst, node, tup|
+      rule_ary_push_common(infer, inst, node, tup)
+    end
 
-      inst.inreg[0].genpoint.inreg[0].add_same inst.inreg[0]
+    define_inf_rule_method :replace, Array do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
-    define_inf_rule_method :uniq!, Array do |infer, inst, node, tup|
+
+    define_inf_rule_method :shift, Array do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type type, tup
       nil
     end
 
@@ -233,6 +254,18 @@ module MTypeInf
       nil
     end
 
+
+    define_inf_rule_method :__ary_cmp, Array do |infer, inst, node, tup|
+      inst.inreg[0].flush_type(tup)
+
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+
+      type = LiteralType.new(Fixnum, 0)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :lambda, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[1]
       nil
@@ -258,22 +291,34 @@ module MTypeInf
 
 
     define_inf_rule_method :nil?, Object do |infer, inst, node, tup|
-      inst.inreg[1].flush_type(tup)
+      slf = inst.inreg[1].flush_type(tup)[tup]
 
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
+      if slf.size != 1 || slf[0].class_object == NilClass then
+        type = LiteralType.new(TrueClass, true)
+        inst.outreg[0].add_type(type, tup)
+      end
+      if slf.size != 1 || slf[0].class_object != NilClass then
+        type = LiteralType.new(FalseClass, false)
+        inst.outreg[0].add_type(type, tup)
+      end
       nil
     end
 
     define_inf_rule_method :!, BasicObject do |infer, inst, node, tup|
-      inst.inreg[1].flush_type(tup)
+      slf = inst.inreg[1].flush_type(tup)[tup]
 
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
+      if slf.size != 1 ||
+          slf[0].class_object == NilClass ||
+          slf[0].class_object == FalseClass then
+        type = LiteralType.new(TrueClass, true)
+        inst.outreg[0].add_type(type, tup)
+      end
+      if slf.size != 1 ||
+          slf[0].class_object != NilClass ||
+          slf[0].class_object != FalseClass then
+        type = LiteralType.new(FalseClass, false)
+        inst.outreg[0].add_type(type, tup)
+      end
       nil
     end
 
