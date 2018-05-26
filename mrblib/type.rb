@@ -97,7 +97,7 @@ module MTypeInf
           @class_object != other.class_object then
         return false
       end
-#      return other.element == @element
+      # return other.element == @element
 
       stype = @element[nil].type[tup]
       if stype == nil then
@@ -108,7 +108,12 @@ module MTypeInf
         return true
       end
 
-      return stype[0].type_equal(dtype[0], tup)
+      stype.size.times do |i|
+        if !stype[i].type_equal(dtype[i], tup) then
+          return false
+        end
+      end
+      return true
     end
 
     def inspect
