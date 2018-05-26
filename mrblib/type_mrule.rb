@@ -55,8 +55,8 @@ module MTypeInf
         raise "multiple argument not support yet in Array::[]"
       end
 
-      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      idxtypes = inst.inreg[1].flush_type_alltup(tup)[tup] || []
+      arrtypes = inst.inreg[0].type[tup] || []
+      idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -94,7 +94,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :first, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      arrtypes = inst.inreg[0].type[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -243,8 +243,8 @@ module MTypeInf
       inst.inreg[0].flush_type(tup)
 
       if inst.inreg[0].type[tup].size == 1 and
-          inst.inreg[0].type[tup][0].element[nil].flush_type_alltup(tup)[tup] and
-          inst.inreg[0].type[tup][0].element[nil].flush_type_alltup(tup)[tup][0].class_object != NilClass then
+          inst.inreg[0].type[tup][0].element[nil].flush_type(tup)[tup] and
+          inst.inreg[0].type[tup][0].element[nil].type[tup][0].class_object != NilClass then
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end
