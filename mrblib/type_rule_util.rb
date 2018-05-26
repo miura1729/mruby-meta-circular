@@ -149,6 +149,26 @@ module MTypeInf
 
     def self.rule_send_cfimc(infer, inst, node, tup)
     end
+
+    def self.rule_ary_push_common(infer, inst, node, tup)
+      arrtypes = inst.inreg[0].type[tup]
+      valreg = inst.inreg[1]
+      valreg.flush_type(tup)
+
+      arrtypes.each do |arrt|
+        if arrt.class_object.== Array then
+          arrele = arrt.element
+          arrele.each do |idx, reg|
+            reg.add_same valreg
+            reg.flush_type_alltup(tup)
+          end
+        end
+      end
+
+      inst.inreg[0].genpoint.inreg[0].add_same inst.inreg[0]
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
   end
 end
 

@@ -119,70 +119,11 @@ module MTypeInf
     end
 
     define_inf_rule_op :JMPIF do |infer, inst, node, tup, history|
+      rule_jmpif_common(infer, inst, node, tup, history, 0)
     end
 
     define_inf_rule_op :JMPNOT do |infer, inst, node, tup, history|
-      notp = false
-      typemethodp = false
-      genp = inst.inreg[0].genpoint
-      if genp.is_a?(RiteSSA::Inst) then
-        if genp.op == :SEND and genp.para[0] == :! then
-          notp = true
-          genp = genp.inreg[0].genpoint
-        end
-
-        if genp.op == :SEND then
-          addtional_type_spec = nil
-          case genp.para[0]
-          when :nil?
-            typemethodp = true
-            type = LiteralType.new(nil.class, nil)
-
-            addtional_type_spec = [type]
-            genp = genp.inreg[0].genpoint
-          end
-        end
-      end
-      type = inst.inreg[0].flush_type(tup)[tup]
-      condtype = type && type.size == 1 && type[0].class_object
-      if condtype == NilClass or condtype == FalseClass then
-        infer.inference_node(node.exit_link[1], tup, node.exit_reg, history)
-        true
-
-      elsif type and type.size == 1 then
-        infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
-        true
-
-      elsif typemethodp then
-        idx = notp ? 1 : 0
-        nd = node.exit_link[idx]
-        greg = genp.inreg[0]
-        greg.positive_list.push addtional_type_spec
-        greg.refpoint.each do |reg|
-          reg.outreg[0].positive_list.push  addtional_type_spec
-        end
-        infer.inference_node(nd, tup, node.exit_reg, history)
-        greg.positive_list.pop
-        greg.refpoint.each do |reg|
-          reg.outreg[0].positive_list.pop
-        end
-
-        idx = 1 - idx
-        nd = node.exit_link[idx]
-        greg.negative_list.push addtional_type_spec
-        greg.refpoint.each do |reg|
-          reg.outreg[0].negative_list.push addtional_type_spec
-        end
-        infer.inference_node(nd, tup, node.exit_reg, history)
-        greg.negative_list.pop
-        greg.refpoint.each do |reg|
-          reg.outreg[0].negative_list.pop
-        end
-
-        true
-      else
-        nil
-      end
+      rule_jmpif_common(infer, inst, node, tup, history, 1)
     end
 
     define_inf_rule_op :ENTER do |infer, inst, node, tup, history|
@@ -328,9 +269,7 @@ module MTypeInf
         nreg = RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
         type.element[i] = nreg
-#        nreg.flush_type_alltup(tup)
         nilreg.add_same inst.inreg[i]
- #       nilreg.flush_type_alltup(tup)
       end
 
       inst.outreg[0].add_type type, tup
