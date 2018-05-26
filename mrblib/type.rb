@@ -9,6 +9,10 @@ module MTypeInf
       @class_object == other.class_object
     end
 
+    def type_equal(other, tup)
+      self == other
+    end
+
     attr :class_object
 
     def merge(arr)
@@ -88,22 +92,23 @@ module MTypeInf
       @element[nil] = reg
     end
 
-    def ==(other)
+    def type_equal(other, tup)
       if self.class != other.class ||
           @class_object != other.class_object then
         return false
       end
+#      return other.element == @element
 
-      stype = @element[nil].type
-      other.element[nil].type.each do |arg, tys|
-        tys.each do |ty|
-          if stype[arg] == nil || !stype[arg].find {|te| te == ty} then
-            return false
-          end
-        end
+      stype = @element[nil].type[tup]
+      if stype == nil then
+        return true
+      end
+      dtype = other.element[nil].type[tup]
+      if dtype == nil then
+        return true
       end
 
-      return true
+      return stype[0].type_equal(dtype[0], tup)
     end
 
     def inspect

@@ -17,12 +17,30 @@ module MTypeInf
       @rev_table = []
     end
 
-    def get_tupple_id(types)
+    def cmp_types(t1, t2, tup)
+      if !t1.kind_of?(Array) || !t2.kind_of?(Array) then
+        return t1 == t2
+      end
+
+      if t1.size != t2.size then
+        return false
+      end
+
+      t1.size.times do |i|
+        if t1[i] != t2[i] or !t1[i].type_equal(t2[i], tup) then
+          return false
+        end
+      end
+
+      return true
+    end
+
+    def get_tupple_id(types, tup)
       node = @table
       types = types.dup
       types.push nil
       types.each_with_index do |ty, i|
-        cn = node.find {|te| te[0] == ty}
+        cn = node.find {|te| cmp_types(te[0], ty, tup)}
         if cn.nil? then
           onn = nn = []
           types[i..-1].each do |nty|
@@ -87,7 +105,7 @@ module MTypeInf
       topobj = TOP_SELF.class
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
       intype = [[ty]]
-      tup = @typetupletab.get_tupple_id(intype)
+      tup = @typetupletab.get_tupple_id(intype, 0)
       inference_block(saairep, intype, tup)
     end
 

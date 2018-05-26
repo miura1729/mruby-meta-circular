@@ -326,7 +326,7 @@ module MTypeInf
         intype[0] = [type]
 
         if !cls then
-          ntup = infer.typetupletab.get_tupple_id(intype)
+          ntup = infer.typetupletab.get_tupple_id(intype, tup)
           dmyreg = RiteSSA::Reg.new(nil)
           dmyreg.add_type type, ntup
           rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg)
@@ -341,7 +341,7 @@ module MTypeInf
       intype = inst.inreg.map {|reg| reg.type[tup] || []}
       ptype = intype[0][0]
       intype[0] = [ptype.slf]
-      ntup = infer.typetupletab.get_tupple_id(intype)
+      ntup = infer.typetupletab.get_tupple_id(intype, tup)
       irepssa = ptype.irep
       infer.inference_block(irepssa, intype, ntup)
       inst.outreg[0].add_same irepssa.retreg

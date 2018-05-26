@@ -9,8 +9,72 @@ module MTypeInf
       nil
     end
 
+    def self.rule_jmpif_common(infer, inst, node, tup, history, bidx)
+      notp = false
+      typemethodp = false
+      genp = inst.inreg[0].genpoint
+      if genp.is_a?(RiteSSA::Inst) then
+        if genp.op == :SEND and genp.para[0] == :! then
+          notp = true
+          genp = genp.inreg[0].genpoint
+        end
+
+        if genp.op == :SEND then
+          addtional_type_spec = nil
+          case genp.para[0]
+          when :nil?
+            typemethodp = true
+            type = LiteralType.new(nil.class, nil)
+
+            addtional_type_spec = [type]
+            genp = genp.inreg[0].genpoint
+          end
+        end
+      end
+      type = inst.inreg[0].flush_type(tup)[tup]
+      condtype = type && type.size == 1 && type[0].class_object
+      if condtype == NilClass or condtype == FalseClass then
+        infer.inference_node(node.exit_link[bidx], tup, node.exit_reg, history)
+        true
+
+      elsif type and type.size == 1 then
+        infer.inference_node(node.exit_link[1 - bidx], tup, node.exit_reg, history)
+        true
+
+      elsif typemethodp then
+        idx = notp ? bidx : 1 - bidx
+        nd = node.exit_link[idx]
+        greg = genp.inreg[0]
+        greg.positive_list.push addtional_type_spec
+        greg.refpoint.each do |reg|
+          reg.outreg[0].positive_list.push  addtional_type_spec
+        end
+        infer.inference_node(nd, tup, node.exit_reg, history)
+        greg.positive_list.pop
+        greg.refpoint.each do |reg|
+          reg.outreg[0].positive_list.pop
+        end
+
+        idx = 1 - idx
+        nd = node.exit_link[idx]
+        greg.negative_list.push addtional_type_spec
+        greg.refpoint.each do |reg|
+          reg.outreg[0].negative_list.push addtional_type_spec
+        end
+        infer.inference_node(nd, tup, node.exit_reg, history)
+        greg.negative_list.pop
+        greg.refpoint.each do |reg|
+          reg.outreg[0].negative_list.pop
+        end
+
+        true
+      else
+        nil
+      end
+    end
+
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg)
-      ntup = infer.typetupletab.get_tupple_id(intype)
+      ntup = infer.typetupletab.get_tupple_id(intype, tup)
       recvtypes = recreg.get_type(tup)
 
       @@ruby_methodtab[name] ||= {}
@@ -75,7 +139,7 @@ module MTypeInf
       nil
     end
 
-    def self.rule_send_common (infer, inst, node, tup)
+    def self.rule_send_common(infer, inst, node, tup)
       name = inst.para[0]
       intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       recreg = inst.inreg[0]
