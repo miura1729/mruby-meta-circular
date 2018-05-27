@@ -57,6 +57,7 @@ module MTypeInf
 
       arrtypes = inst.inreg[0].type[tup] || []
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
+      inst.outreg[0].reset
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -74,7 +75,7 @@ module MTypeInf
                 inst.outreg[0].add_same arrele[no]
                 arrele[no].flush_type_alltup(tup)
 
-              when MTypeInf::BasicType
+              when MTypeInf::PrimitiveType
                 inst.outreg[0].add_same arrele[nil]
                 arrele[nil].flush_type_alltup(tup)
 
@@ -173,7 +174,7 @@ module MTypeInf
               arrele[nil].add_same valreg
               inst.outreg[0].add_same valreg
 
-            when MTypeInf::BasicType
+            when MTypeInf::PrimitiveType
               arrele.each do |idx, reg|
                 reg.add_same valreg
               end

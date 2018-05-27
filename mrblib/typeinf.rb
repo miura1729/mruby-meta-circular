@@ -40,7 +40,8 @@ module MTypeInf
       types = types.dup
       types.push nil
       types.each_with_index do |ty, i|
-        cn = node.find {|te| cmp_types(te[0], ty, tup)}
+#        cn = node.find {|te| cmp_types(te[0], ty, tup)}
+        cn = node.find {|te| te[0] == ty}
         if cn.nil? then
           onn = nn = []
           types[i..-1].each do |nty|

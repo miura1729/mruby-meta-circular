@@ -38,13 +38,9 @@ module MTypeInf
               return
 
             when MTypeInf::ContainerType
-              ele.element.each do |idx, reg|
-                if reg then
-                  reg.add_same @element[idx]
-                end
+              if ele.element[nil] == @element[nil] then
+                return
               end
-
-              return
 
             when MTypeInf::UserDefinedType,
               MTypeInf::PrimitiveType,

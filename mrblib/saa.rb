@@ -9,6 +9,11 @@ module RiteSSA
       @negative_list = []
     end
 
+    def reset
+      @same = []
+      @type = {}
+    end
+
     def inspect
       "<#{self.class} type: #{@type} same: #{@same} pos: #{@positive_list} neg: #{@negative_list}>"
     end
@@ -157,6 +162,7 @@ module RiteSSA
       @inreg = []
       @outreg = []
       @para = []
+      @objcache = nil
     end
 
     def line
@@ -172,6 +178,7 @@ module RiteSSA
     attr :para
     attr :pc
     attr :op
+    attr_accessor :objcache
   end
 
   class RiteDAGNode
