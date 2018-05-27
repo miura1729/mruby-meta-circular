@@ -73,11 +73,11 @@ module MTypeInf
                   arrele[no].add_same arrele[nil]
                 end
                 inst.outreg[0].add_same arrele[no]
-                arrele[no].flush_type_alltup(tup)
+                arrele[no].flush_type_alltup(tup, false)
 
               when MTypeInf::PrimitiveType
                 inst.outreg[0].add_same arrele[nil]
-                arrele[nil].flush_type_alltup(tup)
+                arrele[nil].flush_type_alltup(tup, false)
 
               else
                 raise "Not supported in Array::[]"
@@ -105,7 +105,7 @@ module MTypeInf
             arrele[0].add_same arrele[nil]
           end
           inst.outreg[0].add_same arrele[0]
-          arrele[0].flush_type_alltup(tup)
+          arrele[0].flush_type_alltup(tup, false)
         end
       end
 
@@ -120,7 +120,7 @@ module MTypeInf
         if arrt.class_object. == Array then
           arrele = arrt.element
           inst.outreg[0].add_same arrele[nil]
-          arrele[nil].flush_type_alltup(tup)
+          arrele[nil].flush_type_alltup(tup, false)
         end
       end
 
@@ -141,7 +141,7 @@ module MTypeInf
           inst.outreg[0].add_same arrele[0]
           type = PrimitiveType.new(NilClass)
           inst.outreg[0].add_type type, tup
-          arrele[0].flush_type_alltup(tup)
+          arrele[0].flush_type_alltup(tup, false)
         end
       end
 

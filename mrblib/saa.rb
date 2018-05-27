@@ -55,12 +55,14 @@ module RiteSSA
       @type
     end
 
-    def flush_type_alltup(dtup)
-      tups = @type.keys
-      tups.each do |stup|
-        tys = get_type(stup)
-        tys.each do |ty|
-          add_type(ty, dtup)
+    def flush_type_alltup(dtup, topall = true)
+      if topall then
+        tups = @type.keys
+        tups.each do |stup|
+          tys = get_type(stup)
+          tys.each do |ty|
+            add_type(ty, dtup)
+          end
         end
       end
 
@@ -121,22 +123,6 @@ module RiteSSA
     end
 
     attr_accessor :type
-  end
-
-  class SelfReg<Reg
-    def initialize(ins)
-      super
-      @ivlist = {}
-      @cvlist = {}
-    end
-
-    def get_iv(sym)
-      @ivlist[sym] || InstanceVariable.new(sym)
-    end
-
-    def get_cv(sym)
-      @cvlist[sym] || InstanceVariable.new(sym)
-    end
   end
 
   class ParmReg<Reg
@@ -690,7 +676,7 @@ module RiteSSA
       @regtab = nil
       block_head = collect_block_head(iseq)
       block_head.each_cons(2) do |bg, ed|
-        @regtab = [SelfReg.new(@irep)]
+        @regtab = [ParmReg.new(@irep)]
         (@irep.nregs - 1).times do |i|
           @regtab.push ParmReg.new(i + 1)
         end

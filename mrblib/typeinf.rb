@@ -98,7 +98,7 @@ module MTypeInf
         print "Class #{cls}\n"
         print " Instance variables\n"
         clsobj.iv.each do |iv, reg|
-          types =reg.flush_type_alltup(0)[0] || []
+          types =reg.flush_type_alltup(0, false)[0] || []
           type = types.map {|ele| ele.inspect}.join('|')
           print "  #{iv}: #{type}\n"
         end
@@ -126,6 +126,7 @@ module MTypeInf
       saairep.argtab[tup] = true
       @callstack.push [saairep, tup]
       intype.each_with_index do |tys, i|
+        saairep.nodes[0].enter_reg[i].reset
         if tys then
           tys.each do |ty|
             saairep.nodes[0].enter_reg[i].add_type(ty, tup)
