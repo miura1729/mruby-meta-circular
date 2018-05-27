@@ -262,7 +262,10 @@ module MTypeInf
     end
 
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|
-      type = ContainerType.new(Array)
+      type = inst.objcache
+      if !type then
+        inst.objcache = type = ContainerType.new(Array)
+      end
       nilreg = RiteSSA::Reg.new(nil)
       type.element[nil] = nilreg
       inst.para[0].times do |i|
@@ -305,7 +308,10 @@ module MTypeInf
     end
 
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|
-      type = ContainerType.new(Range)
+      type = inst.objcache
+      if !type then
+        inst.objcache = type = ContainerType.new(Range)
+      end
       nreg = RiteSSA::Reg.new(inst)
       nreg.add_same inst.inreg[0]
       type.element[0] = nreg

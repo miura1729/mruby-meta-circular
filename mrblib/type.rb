@@ -66,7 +66,15 @@ module MTypeInf
       arr.push self
     end
 
-    def inspect_element
+    def inspect_aux(level)
+      @class_object.inspect
+    end
+
+    def inspect
+      inspect_aux(0)
+    end
+
+    def inspecto_element
       inspect
     end
   end
@@ -92,31 +100,37 @@ module MTypeInf
       @element[nil] = reg
     end
 
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @element == other.element
+    end
+
     def type_equal(other, tup)
       if self.class != other.class ||
           @class_object != other.class_object then
         return false
       end
-      # return other.element == @element
-
-      stype = @element[nil].type[tup]
-      if stype == nil then
-        return true
-      end
-      dtype = other.element[nil].type[tup]
-      if dtype == nil then
-        return true
-      end
-
-      stype.size.times do |i|
-        if !stype[i].type_equal(dtype[i], tup) then
-          return false
-        end
-      end
-      return true
+      return other.element[nil] == @element[nil]
     end
 
-    def inspect
+    def inspect_aux(level)
+      if level > 5 then
+        return "..."
+      end
+
+      elearr = []
+      @element.values.each do |ele|
+        ele.type.values.each do |tys|
+          tys.each do |ty|
+            elearr << ty.inspect_aux(level + 1)
+          end
+        end
+      end
+      "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
+    end
+
+    def inspecto
       res = "<#{@class_object} element=["
       @element.each do |key, val|
         res << "#{key.inspect}="

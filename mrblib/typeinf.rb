@@ -74,28 +74,36 @@ module MTypeInf
     attr :typetupletab
     attr :callstack
 
+    def dump_method(name, node)
+      types = node.retreg.type
+      types.each do |arg, types|
+        args = @typetupletab.rev_table[arg]
+        args =  args[0..-2]
+        args = args.map {|tys|
+          tys.map {|ele| ele.inspect}.join('|')
+        }.join(', ')
+        type = types.map {|ele| ele.inspect}
+        type = type.join('|')
+        print "  #{name}: (#{args}) -> #{type} \n"
+      end
+
+      node.reps.each do |blk|
+        dump_method("#{name} block", blk)
+      end
+    end
+
     def dump_type
       RiteSSA::ClassSSA.all_classssa.each do |cls, clsobj|
         print "Class #{cls}\n"
         print " Instance variables\n"
         clsobj.iv.each do |iv, reg|
           types =reg.flush_type_alltup(0)[0] || []
-          type = types.map {|ele| ele.class_object.inspect}.join('|')
+          type = types.map {|ele| ele.inspect}.join('|')
           print "  #{iv}: #{type}\n"
         end
         print "\n methodes \n"
         clsobj.method.each do |name, node|
-          types = node.retreg.type
-          types.each do |arg, types|
-            args = @typetupletab.rev_table[arg]
-            args =  args[0..-2]
-            args = args.map {|tys|
-              tys.map {|ele| ele.class_object.inspect}.join('|')
-            }.join(', ')
-            type = types.map {|ele| ele.class_object.inspect}
-            type = type.join('|')
-            print "  #{name}: (#{args}) -> #{type} \n"
-          end
+          dump_method(name, node)
         end
         print "\n"
       end
