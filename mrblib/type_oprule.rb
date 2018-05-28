@@ -133,27 +133,43 @@ module MTypeInf
       r = (ax >> 12) & 0x1
       m2 = (ax >> 7) & 0x1f
 
-      argc = infer.typetupletab.rev_table[tup].size - 2
+      argc = infer.callstack[-1][2]
       len = m1 + o + r + m2
 
-      if r == 1 then
-        type = ContainerType.new(Array)
-        if argc > len then
-          (argc - m1 - o).times do |i|
-            nreg = RiteSSA::Reg.new(nil)
-            nreg.add_same inst.inreg[m1 + o +  i]
-            type.element[i] = nreg
-          end
+      if argc == 127 then
+        arytype = inst.inreg[0].flush_type(tup)[tup][0]
+        ele = arytype.element
+        anum = ele.keys.size - 1
+        anum.times do |i|
+          inst.outreg[i].add_same ele[i]
         end
-        inst.outreg[m1 + o].add_type type, tup
-      else
-        inst.outreg[m1 + o].add_same inst.inreg[m1 + o]
-      end
+        inst.outreg[anum].add_same inst.inreg[1]
 
-      (m1 + o).times do |i|
-        inst.outreg[i].add_same inst.inreg[i]
+      else
+        (m1 + o).times do |i|
+          inst.outreg[i].add_same inst.inreg[i]
+          inst.outreg[i].flush_type(tup)
+        end
+
+        if r == 1 then
+          type = ContainerType.new(Array)
+          if argc - m1 - o > 0 then
+            (argc - m1 - o).times do |i|
+              nreg = RiteSSA::Reg.new(nil)
+              nreg.add_same inst.inreg[m1 + o +  i]
+              nreg.flush_type(tup)
+              type.element[i] = nreg
+            end
+          end
+          inst.outreg[m1 + o].add_type type, tup
+        else
+          inst.outreg[m1 + o].add_same inst.inreg[m1 + o]
+        end
+
+        inst.outreg[m1 + o + 1].add_same inst.inreg[m1 + o + 1]
+        inst.outreg[m1 + o + 1].flush_type(tup)
+        nil
       end
-      nil
     end
 
     define_inf_rule_op :SEND do |infer, inst, node, tup, history|
@@ -274,16 +290,25 @@ module MTypeInf
         type.element[i] = nreg
         nilreg.add_same inst.inreg[i]
       end
+      nilreg.flush_type(tup)
 
       inst.outreg[0].add_type type, tup
     end
 
     define_inf_rule_op :ARYCAT do |infer, inst, node, tup, history|
+      arrtype = inst.inreg[0].flush_type(tup)[tup][0]
+      eletype = inst.inreg[1].flush_type(tup)[tup][0]
       type = ContainerType.new(Array)
-
-      inst.inreg[0].add_type type, tup
-      inst.inreg[1].add_type type, tup
-      inst.outreg[0].add_type type, tup
+      arrtype.element.each do |key, reg|
+        type.element[key] = reg
+      end
+      if !eletype.is_a?(ContainerType) then
+        bpos = type.element.keys.size - 1
+        reg = RiteSSA::Reg.new(inst)
+        reg.type[tup] = [eletype]
+        type.element[bpos] = reg
+      end
+      inst.outreg[0].type[tup] = [type]
       nil
     end
 

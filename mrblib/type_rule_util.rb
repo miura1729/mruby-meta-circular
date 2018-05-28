@@ -73,7 +73,7 @@ module MTypeInf
       end
     end
 
-    def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg)
+    def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc)
       ntup = infer.typetupletab.get_tupple_id(intype, tup)
       recvtypes = recreg.get_type(tup)
 
@@ -110,7 +110,7 @@ module MTypeInf
           end
 
           if irepssa then
-            infer.inference_block(irepssa, intype, ntup)
+            infer.inference_block(irepssa, intype, ntup, argc)
             outreg.add_same irepssa.retreg
             existf = true
           end
@@ -127,7 +127,7 @@ module MTypeInf
             @@ruby_methodtab[name][slfcls] = irepssa
             clsobj = ClassSSA.get_instance(slfcls)
             clsobj.method[name] = irepssa
-            infer.inference_block(irepssa, intype, ntup)
+            infer.inference_block(irepssa, intype, ntup, argc)
             outreg.add_same irepssa.retreg
           else
             print "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
@@ -141,10 +141,26 @@ module MTypeInf
 
     def self.rule_send_common(infer, inst, node, tup)
       name = inst.para[0]
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      argc = inst.para[1]
+      intype = nil
+      if argc == 127 then
+        intype = []
+        type = ContainerType.new(Array)
+        intype[0] = inst.inreg[0].flush_type(tup)[tup] || []
+        inst.inreg[1..-2].each_with_index do|ar, i|
+          reg = RiteSSA::Reg.new(inst)
+          reg.add_same ar
+          reg.flush_type(tup)
+          type.element[i] = reg
+        end
+        intype[1] = [type]
+        intype[2] = inst.inreg[-1].flush_type(tup)[tup] || []
+      else
+        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      end
       recreg = inst.inreg[0]
 
-      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0])
+      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc)
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)

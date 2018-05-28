@@ -98,7 +98,7 @@ module MTypeInf
         print "Class #{cls}\n"
         print " Instance variables\n"
         clsobj.iv.each do |iv, reg|
-          types =reg.flush_type_alltup(0, false)[0] || []
+          types =reg.flush_type_alltup(0)[0] || []
           type = types.map {|ele| ele.inspect}.join('|')
           print "  #{iv}: #{type}\n"
         end
@@ -115,16 +115,16 @@ module MTypeInf
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, 0)
-      inference_block(saairep, intype, tup)
+      inference_block(saairep, intype, tup, 2)
     end
 
-    def inference_block(saairep, intype, tup)
+    def inference_block(saairep, intype, tup, argc)
       if saairep.argtab[tup] then
         return
       end
 
       saairep.argtab[tup] = true
-      @callstack.push [saairep, tup]
+      @callstack.push [saairep, tup, argc]
       intype.each_with_index do |tys, i|
         saairep.nodes[0].enter_reg[i].reset
         if tys then

@@ -358,6 +358,24 @@ module MTypeInf
 
     define_inf_rule_method :new, Class do |infer, inst, node, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      intype = nil
+      argc = inst.para[1]
+      if argc == 127 then
+        intype = []
+        type = ContainerType.new(Array)
+        intype[0] = inst.inreg[0].flush_type(tup)[tup] || []
+        inst.inreg[1..-2].each_with_index do|ar, i|
+          reg = RiteSSA::Reg.new(inst)
+          reg.add_same ar
+          reg.flush_type(tup)
+          type.element[i] = reg
+        end
+        intype[1] = [type]
+        intype[2] = inst.inreg[-1].flush_type(tup)[tup] || []
+      else
+        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      end
+
       recvtypes.each do |rtype|
         ntype = rtype.val
         cls = TypeSource[ntype]
@@ -367,15 +385,13 @@ module MTypeInf
         else
           type = UserDefinedType.new(ntype)
         end
-
-        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         intype[0] = [type]
 
         if !cls then
           ntup = infer.typetupletab.get_tupple_id(intype, tup)
           dmyreg = RiteSSA::Reg.new(nil)
           dmyreg.add_type type, ntup
-          rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg)
+          rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg, inst.para[1])
         end
 
         inst.outreg[0].add_type type, tup
@@ -389,7 +405,7 @@ module MTypeInf
       intype[0] = [ptype.slf]
       ntup = infer.typetupletab.get_tupple_id(intype, tup)
       irepssa = ptype.irep
-      infer.inference_block(irepssa, intype, ntup)
+      infer.inference_block(irepssa, intype, ntup, inst.para[1])
       inst.outreg[0].add_same irepssa.retreg
       inst.outreg[0].flush_type(tup, ntup)
       nil
