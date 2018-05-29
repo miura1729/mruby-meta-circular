@@ -76,10 +76,14 @@ module MTypeInf
     attr :callstack
 
     def dump_method(name, node)
+      node.retreg.flush_type_alltup(0)[0]
       types = node.retreg.type
       types.each do |arg, types|
         args = @typetupletab.rev_table[arg]
         args =  args[0..-2]
+        if args.size == 1 then
+          next
+        end
         args = args.map {|tys|
           tys.map {|ele| ele.inspect}.join('|')
         }.join(', ')

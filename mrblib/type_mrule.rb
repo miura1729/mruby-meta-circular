@@ -55,7 +55,7 @@ module MTypeInf
         raise "multiple argument not support yet in Array::[]"
       end
 
-      arrtypes = inst.inreg[0].type[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
       inst.outreg[0].reset
 
@@ -95,7 +95,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :first, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].type[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -114,7 +114,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :last, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].type[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -129,7 +129,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :delete_at, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].type[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -155,7 +155,7 @@ module MTypeInf
       end
 
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
-      arrtypes = inst.inreg[0].type[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
 
       arrtypes.each do |arrt|
@@ -285,8 +285,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :__svalue, Object do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].type[tup]
+      arrtypes = inst.inreg[0].flush_type(tup)[tup]
       inst.outreg[0].add_same arrtypes[0].element[nil]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
@@ -400,7 +401,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
-      intype = inst.inreg.map {|reg| reg.type[tup] || []}
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       ptype = intype[0][0]
       intype[0] = [ptype.slf]
       ntup = infer.typetupletab.get_tupple_id(intype, tup)
