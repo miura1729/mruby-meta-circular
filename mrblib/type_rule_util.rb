@@ -144,7 +144,10 @@ module MTypeInf
             infer.inference_block(irepssa, intype, ntup, argc)
             outreg.add_same irepssa.retreg
           else
-            print "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
+            mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
+            # print mess #for debug
+            infer.messages[mess] ||= 0
+            infer.messages[mess] += 1
           end
         end
       end

@@ -6,6 +6,9 @@ module MTypeInf
 
     b = RiteSSA::Block.new(irep, nil, self)
     ti.inference_top(b)
+    ti.messages.each do |message, cnt|
+      print message
+    end
     ti.dump_type
   end
 
@@ -70,10 +73,12 @@ module MTypeInf
     def initialize
       @typetupletab = TypeTupleTab.new
       @callstack = []
+      @messages = {}
     end
 
     attr :typetupletab
     attr :callstack
+    attr :messages
 
     def dump_method(name, node)
       node.retreg.flush_type_alltup(0)[0]
