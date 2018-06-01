@@ -145,12 +145,12 @@ module MTypeInf
 
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
-#      while saairep.retreg.type.size == 0
-#        p saairep.retreg.type
+      i = 0
+      while saairep.retreg.type.size == 0 and i < 4
+        p saairep.retreg.type
+        i += 1
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
-        inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
-        inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
-#      end
+      end
 
       @callstack.pop
     end
