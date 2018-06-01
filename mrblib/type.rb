@@ -31,26 +31,30 @@ module MTypeInf
           if ele == self then
             case ele
             when MTypeInf::LiteralType
-              if ele.val != @val and ele.class_object != Class then
-                arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-              end
+              if ele.val != @val then
+                if ele.class_object != Class  then
+                  arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+                  return
+                end
 
-              return
-
-            when MTypeInf::ContainerType
-              if ele.element[nil] == @element[nil] then
+              else
                 return
               end
 
-            when MTypeInf::UserDefinedType,
-              MTypeInf::PrimitiveType,
-              MTypeInf::ProcType
-              return
+              when MTypeInf::ContainerType
+                if ele.element[nil] == @element[nil] then
+                  return
+                end
 
-            else
-              raise self
+              when MTypeInf::UserDefinedType,
+                MTypeInf::PrimitiveType,
+                MTypeInf::ProcType
+                return
 
-            end
+              else
+                raise self
+
+              end
           end
 
           #        elsif ele < self then
