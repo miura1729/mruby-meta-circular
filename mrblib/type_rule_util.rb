@@ -22,6 +22,20 @@ module MTypeInf
         if genp.op == :SEND then
           addtional_type_spec = nil
           case genp.para[0]
+          when :kind_of?
+            typemethodp = true
+            tcls = genp.inreg[1].flush_type(tup)[tup]
+            cls = nil
+            if tcls.size == 1 and tcls[0].class_object == Class then
+              cls = tcls[0].val
+            end
+            type = PrimitiveType.new(cls)
+            p "foo"
+            p type
+
+            addtional_type_spec = [type]
+            genp = genp.inreg[0].genpoint
+
           when :nil?
             typemethodp = true
             type = LiteralType.new(nil.class, nil)
