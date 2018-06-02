@@ -159,6 +159,10 @@ module RiteSSA
       @irep.filename(@pc)
     end
 
+    def disasm
+      @irep.disasm
+    end
+
     attr :inreg
     attr :outreg
     attr :para
