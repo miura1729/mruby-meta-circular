@@ -293,6 +293,12 @@ class Irep
     op = op + 1
   end
 
+  def disasm
+    self.iseq.each do |code|
+      p Irep::disasm(code, self)
+    end
+  end
+
   def self.disasm(code, irep)
     res = OPTABLE_SYM[get_opcode(code)].to_s
     res += " "
