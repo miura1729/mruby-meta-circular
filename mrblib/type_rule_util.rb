@@ -106,11 +106,16 @@ module MTypeInf
           irepssa = @@ruby_methodtab[name][slfcls]
           if irepssa.nil? then
             irep = Irep::get_irep_instance(slf, name)
-            if irep == nil or name == :call or name == :[] then
-              if @@ruletab[:METHOD][name] and @@ruletab[:METHOD][name][slfcls] then
+            name2 = name
+            if irep and Irep::OPTABLE_SYM[Irep::get_opcode(irep.iseq[0])] == :CALL then
+              name2 = :call
+              irep = nil
+            end
+            if irep == nil then
+              if @@ruletab[:METHOD][name2] and @@ruletab[:METHOD][name2][slfcls] then
                 # written in C or method mmsing  or no method error
                 existf = true
-                @@ruletab[:METHOD][name][slfcls].call(infer, inst, node, tup)
+                @@ruletab[:METHOD][name2][slfcls].call(infer, inst, node, tup)
 
               else
                 # No method found

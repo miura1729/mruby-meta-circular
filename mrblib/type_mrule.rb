@@ -433,18 +433,6 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :[], Proc do |infer, inst, node, tup|
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      ptype = intype[0][0]
-      intype[0] = [ptype.slf]
-      ntup = infer.typetupletab.get_tupple_id(intype, tup)
-      irepssa = ptype.irep
-      infer.inference_block(irepssa, intype, ntup, inst.para[1])
-      inst.outreg[0].add_same irepssa.retreg
-      inst.outreg[0].flush_type(tup, ntup)
-      nil
-    end
-
     define_inf_rule_method :sqrt, Module do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
