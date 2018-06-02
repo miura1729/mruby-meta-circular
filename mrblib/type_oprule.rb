@@ -312,6 +312,27 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :AREF do |infer, inst, node, tup, history|
+      arrtype = inst.inreg[0].flush_type(tup)[tup]
+      idx = inst.para[0]
+
+      arrtype.each do |at|
+        if at.class_object == Array then
+          inst.outreg[0].add_same at.element[idx]
+
+        else
+          if idx == 0 then
+            inst.outreg[0].add_same inst.inreg[0]
+          else
+            ty = PrimitiveType.new(NilClass)
+            inst.outreg[0].add_type ty, tup
+          end
+        end
+      end
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_op :STRING do |infer, inst, node, tup, history|
       rule_literal_commin(infer, inst, node, tup)
     end

@@ -587,6 +587,16 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
+        when :AREF
+          inreg = regtab[getarg_b(code)]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
+          inst.para.push getarg_c(code)
+
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
         when :STRING
           inst.para.push @irep.pool[getarg_bx(code)]
           dstreg = Reg.new(inst)
