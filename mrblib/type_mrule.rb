@@ -211,6 +211,21 @@ module MTypeInf
       rule_ary_push_common(infer, inst, node, tup)
     end
 
+    define_inf_rule_method :pop, Array do |infer, inst, node, tup|
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
+
+      arrtypes.each do |arrt|
+        if arrt.class_object. == Array then
+          arrele = arrt.element
+          inst.outreg[0].add_same arrele[nil]
+          arrele[nil].flush_type_alltup(tup, false)
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :replace, Array do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
