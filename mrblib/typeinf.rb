@@ -132,10 +132,14 @@ module MTypeInf
         return
       end
 
+      # clear all regs
+      saairep.allreg.each do |reg|
+        reg.type = {}
+      end
+
       saairep.argtab[tup] = true
       @callstack.push [saairep, tup, argc]
       intype.each_with_index do |tys, i|
-        saairep.nodes[0].enter_reg[i].reset
         if tys then
           tys.each do |ty|
             saairep.nodes[0].enter_reg[i].add_type(ty, tup)
@@ -147,7 +151,7 @@ module MTypeInf
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       i = 0
       while saairep.retreg.type.size == 0 and i < 4
-        p saairep.retreg.type
+#        p saairep.retreg.type
         i += 1
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       end

@@ -30,8 +30,6 @@ module MTypeInf
               cls = tcls[0].val
             end
             type = PrimitiveType.new(cls)
-            p "foo"
-            p type
 
             addtional_type_spec = [type]
             genp = genp.inreg[0].genpoint
@@ -196,15 +194,15 @@ module MTypeInf
       arrtypes.each do |arrt|
         if arrt.class_object.== Array then
           arrele = arrt.element
-          arrele.each do |idx, reg|
-            reg.add_same valreg
-            reg.flush_type_alltup(tup)
-          end
+          arrele[nil].add_same valreg
+          arrele[nil].flush_type(tup)
         end
       end
 
       inst.inreg[0].genpoint.inreg[0].add_same inst.inreg[0]
+      inst.inreg[0].genpoint.inreg[0].flush_type(tup)
       inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
   end

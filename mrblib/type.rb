@@ -101,9 +101,10 @@ module MTypeInf
     end
 
     def ==(other)
-      self.class == other.class &&
-        @class_object == other.class_object &&
-        @element == other.element
+#      self.class == other.class &&
+#        @class_object == other.class_object &&
+#        @element == other.element
+      equal?(other)
     end
 
     def type_equal(other, tup)

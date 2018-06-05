@@ -7,6 +7,9 @@ module RiteSSA
       @same = []
       @positive_list = []
       @negative_list = []
+      if ins.is_a?(Inst) then
+        ins.node.root.allreg.push self
+      end
     end
 
     def reset
@@ -115,6 +118,7 @@ module RiteSSA
     attr :genpoint
     attr :refpoint
     attr :type
+    attr :same
   end
 
   class Reg<Storable
@@ -141,14 +145,15 @@ module RiteSSA
   end
 
   class Inst
-    def initialize(op, irep, pc)
+    def initialize(op, irep, pc, node)
       @pc = pc
       @op = Irep::OPTABLE_SYM[op]
       @irep = irep
       @inreg = []
       @outreg = []
       @para = []
-      @objcache = nil
+      @objcache = {}
+      @node = node
     end
 
     def line
@@ -168,6 +173,7 @@ module RiteSSA
     attr :para
     attr :pc
     attr :op
+    attr :node
     attr_accessor :objcache
   end
 
@@ -202,7 +208,7 @@ module RiteSSA
 
       @iseq.each do |code|
         op = get_opcode(code)
-        inst = Inst.new(op, @irep, pc)
+        inst = Inst.new(op, @irep, pc, self)
         @ext_iseq.push inst
         case Irep::OPTABLE_SYM[op]
         when :NOP
@@ -515,13 +521,12 @@ module RiteSSA
           end
 
         when :RETURN
-          a = getarg_a(code)
           inst.para.push getarg_bx(code)
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
           dstreg = @root.retreg
-          regtab[getarg_a(code)] = dstreg
+#          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
         when :BLKPUSH
@@ -684,8 +689,9 @@ module RiteSSA
       @target_class = ClassSSA.get_instance(tclass)
       @parent = parent
       @nodes = {}
-      @retreg = Reg.new(@irep)
+      @retreg = Reg.new(self)
       @argtab = {}
+      @allreg = []
 
       @regtab = nil
       block_head = collect_block_head(iseq)
@@ -731,6 +737,7 @@ module RiteSSA
     attr :reps
     attr :retreg
     attr :argtab
+    attr :allreg
 
     def collect_block_head(iseq)
       res = [0]

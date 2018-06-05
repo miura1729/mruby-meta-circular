@@ -152,7 +152,10 @@ module MTypeInf
         end
 
         if r == 1 then
-          type = ContainerType.new(Array)
+          type = inst.objcache[nil]
+          if !type then
+            inst.objcache[nil] = type = ContainerType.new(Array)
+          end
           if argc - m1 - o > 0 then
             (argc - m1 - o).times do |i|
               nreg = RiteSSA::Reg.new(nil)
@@ -226,9 +229,11 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
-      if arg1type and arg1type[0].class_object == Float then
-        arg1type.each do |ty|
-          inst.outreg[0].add_type ty, tup
+      if arg1type then
+        if arg1type[0].class_object == Float then
+          arg1type.each do |ty|
+            inst.outreg[0].add_type ty, tup
+          end
         end
       elsif arg0type then
         arg0type.each do |ty|
@@ -253,7 +258,8 @@ module MTypeInf
       if arg0type then
         if arg0type[0].class_object == Fixnum or
             arg0type[0].class_object == Float then
-          ty = PrimitiveType.new(Float)
+#          ty = PrimitiveType.new(Float)
+          ty = PrimitiveType.new(Fixnum)
           inst.outreg[0].add_type ty, tup
         end
       end
@@ -278,14 +284,14 @@ module MTypeInf
     end
 
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|
-      type = inst.objcache
+      type = inst.objcache[nil]
       if !type then
-        inst.objcache = type = ContainerType.new(Array)
+        inst.objcache[nil] = type = ContainerType.new(Array)
       end
-      nilreg = RiteSSA::Reg.new(nil)
+      nilreg = type.element[nil]
       type.element[nil] = nilreg
       inst.para[0].times do |i|
-        nreg = RiteSSA::Reg.new(nil)
+        nreg = type.element[i] || RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
         type.element[i] = nreg
         nilreg.add_same inst.inreg[i]
@@ -354,17 +360,18 @@ module MTypeInf
     end
 
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|
-      type = inst.objcache
+      type = inst.objcache[nil]
       if !type then
-        inst.objcache = type = ContainerType.new(Range)
+        inst.objcache[nil] = type = ContainerType.new(Range)
       end
-      nreg = RiteSSA::Reg.new(inst)
+      type.element[nil]
+      nreg = type.element[0] || RiteSSA::Reg.new(inst)
       nreg.add_same inst.inreg[0]
       type.element[0] = nreg
       type.element[0].flush_type(tup)
-      nreg = RiteSSA::Reg.new(inst)
+      nreg = type.element[1] || RiteSSA::Reg.new(inst)
       nreg.add_same inst.inreg[1]
-      type.element[1] = nreg
+      type.element[1] ||= nreg
       type.element[1].flush_type(tup)
 
       inst.outreg[0].add_type type, tup

@@ -49,8 +49,6 @@ module MTypeInf
     end
 
     define_inf_rule_method :<=>, Object do |infer, inst, node, tup|
-      inst.inreg[1].flush_type(tup)
-
       type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -78,8 +76,8 @@ module MTypeInf
                   arrele[no] = RiteSSA::Reg.new(nil)
                   arrele[no].add_same arrele[nil]
                 end
-                inst.outreg[0].add_same arrele[no]
                 arrele[no].flush_type_alltup(tup, false)
+                inst.outreg[0].add_same arrele[no]
 
               when MTypeInf::PrimitiveType
                 inst.outreg[0].add_same arrele[nil]
@@ -307,7 +305,7 @@ module MTypeInf
 
     define_inf_rule_method :__svalue, Object do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup]
-      inst.outreg[0].add_same arrtypes[0].element[nil]
+      inst.outreg[0].add_same arrtypes[0].element[0]
       inst.outreg[0].flush_type(tup)
       nil
     end
@@ -324,6 +322,7 @@ module MTypeInf
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
@@ -342,6 +341,7 @@ module MTypeInf
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
@@ -352,6 +352,7 @@ module MTypeInf
       inst.outreg[0].add_type(type, tup)
       type = LiteralType.new(FalseClass, false)
       inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
@@ -367,6 +368,7 @@ module MTypeInf
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
