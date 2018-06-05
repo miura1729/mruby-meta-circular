@@ -168,7 +168,7 @@ module MTypeInf
         type = ContainerType.new(Array)
         intype[0] = inst.inreg[0].flush_type(tup)[tup] || []
         inst.inreg[1..-2].each_with_index do|ar, i|
-          reg = RiteSSA::Reg.new(inst)
+          reg = RiteSSA::Reg.new(nil)
           reg.add_same ar
           reg.flush_type(tup)
           type.element[i] = reg

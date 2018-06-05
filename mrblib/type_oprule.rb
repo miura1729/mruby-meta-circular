@@ -100,6 +100,10 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :SETCONST do |infer, inst, node, tup, history|
+      nil
+    end
+
     define_inf_rule_op :GETUPVAR do |infer, inst, node, tup, history|
       up = inst.para[1]
       frame = inst.para[0]
@@ -310,7 +314,7 @@ module MTypeInf
       end
       if !eletype.is_a?(ContainerType) then
         bpos = type.element.keys.size - 1
-        reg = RiteSSA::Reg.new(inst)
+        reg = RiteSSA::Reg.new(nil)
         reg.type[tup] = [eletype]
         type.element[bpos] = reg
       end
@@ -365,13 +369,13 @@ module MTypeInf
         inst.objcache[nil] = type = ContainerType.new(Range)
       end
       type.element[nil]
-      nreg = type.element[0] || RiteSSA::Reg.new(inst)
+      nreg = type.element[0] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[0]
       type.element[0] = nreg
       type.element[0].flush_type(tup)
-      nreg = type.element[1] || RiteSSA::Reg.new(inst)
+      nreg = type.element[1] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[1]
-      type.element[1] ||= nreg
+      type.element[1] = nreg
       type.element[1].flush_type(tup)
 
       inst.outreg[0].add_type type, tup

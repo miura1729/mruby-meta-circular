@@ -346,7 +346,7 @@ module RiteSSA
           inst.inreg.push inreg
           name = @irep.syms[getarg_b(code)]
           dstreg = Reg.new(inst)
-          @root.target_class.set_constant(name, dstreg)
+          @root.target_class.const_set(name, dstreg)
           inst.outreg.push dstreg
 
         when :GETMCONST
@@ -357,14 +357,14 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
-        when :SETCONST
+        when :SETMCONST
           name = @irep.syms[getarg_b(code)]
           inreg = regtab[getarg_b(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
           name = @irep.syms[getarg_b(code)]
           dstreg = Reg.new(inst)
-          @root.target_class.class.set_constant(name, dstreg)
+          @root.target_class.class.const_set(name, dstreg)
           inst.outreg.push dstreg
 
         when :GETUPVAR
@@ -696,7 +696,7 @@ module RiteSSA
       @regtab = nil
       block_head = collect_block_head(iseq)
       block_head.each_cons(2) do |bg, ed|
-        @regtab = [ParmReg.new(@irep)]
+        @regtab = [ParmReg.new(0)]
         (@irep.nregs - 1).times do |i|
           @regtab.push ParmReg.new(i + 1)
         end
@@ -806,6 +806,16 @@ module RiteSSA
       @class_object.ancestors.each do |cl|
         begin
           res = cl.const_get(sym)
+          return res
+        rescue NameError
+        end
+      end
+    end
+
+    def const_set(sym, val)
+      @class_object.ancestors.each do |cl|
+        begin
+          res = cl.const_set(sym, val)
           return res
         rescue NameError
         end
