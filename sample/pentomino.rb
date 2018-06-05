@@ -53,8 +53,8 @@ def mkpieces
     a.sort!
     a.uniq!
   end
-  $p.uniq!.sort! {|x,y| x[0] <=> y[0] }
-#  $p.sort! {|x,y| x[0] <=> y[0] }
+  #$p.uniq!.sort! {|x,y| x[0] <=> y[0] }
+  $p.sort! {|x,y| x[0] <=> y[0] }
 end
 
 def mkboard

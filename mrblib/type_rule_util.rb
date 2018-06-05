@@ -101,6 +101,11 @@ module MTypeInf
         slf.ancestors.each do |slfcls|
           irep = nil
 
+          # p name
+          # p slfcls
+          # GC bug?
+          a = name
+          b = slfcls
           irepssa = @@ruby_methodtab[name][slfcls]
           if irepssa.nil? then
             irep = Irep::get_irep_instance(slf, name)
@@ -128,8 +133,10 @@ module MTypeInf
 
           if irepssa then
             infer.inference_block(irepssa, intype, ntup, argc)
-            outreg.add_same irepssa.retreg
-            existf = true
+            if outreg then
+              outreg.add_same irepssa.retreg
+              existf = true
+            end
           end
 
           if existf then

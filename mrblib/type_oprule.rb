@@ -58,9 +58,9 @@ module MTypeInf
     define_inf_rule_op :SETGLOBAL do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type_alltup(tup)
-#      p inst.para[0]
-#      p inst.outreg[0].flush_type_alltup(tup)
-#      p tup
+      # p inst.para[0]
+      # p inst.outreg[0].flush_type_alltup(tup)
+      # p tup
       nil
     end
 
@@ -233,12 +233,11 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
-      if arg1type then
-        if arg1type[0].class_object == Float then
-          arg1type.each do |ty|
-            inst.outreg[0].add_type ty, tup
-          end
+      if arg1type and arg1type[0].class_object == Float then
+        arg1type.each do |ty|
+          inst.outreg[0].add_type ty, tup
         end
+
       elsif arg0type then
         arg0type.each do |ty|
           inst.outreg[0].add_type ty, tup
