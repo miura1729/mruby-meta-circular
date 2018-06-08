@@ -74,6 +74,7 @@ module MTypeInf
       @typetupletab = TypeTupleTab.new
       @callstack = []
       @messages = {}
+      @step = 1
     end
 
     attr :typetupletab
@@ -124,11 +125,13 @@ module MTypeInf
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, 0)
-      inference_block(saairep, intype, tup, 2)
+      inference_block(saairep, intype, tup, 2, nil)
+      @step += 1
+      inference_block(saairep, intype, tup, 2, nil)
     end
 
-    def inference_block(saairep, intype, tup, argc)
-      if saairep.argtab[tup] then
+    def inference_block(saairep, intype, tup, argc, proc)
+      if saairep.argtab[tup] and saairep.argtab[tup] >= @step then
         return
       end
 
@@ -137,8 +140,10 @@ module MTypeInf
         reg.type = {}
       end
 
-      saairep.argtab[tup] = true
-      @callstack.push [saairep, tup, argc]
+      saairep.argtab[tup] ||= 0
+      saairep.argtab[tup] += 1
+
+      @callstack.push [saairep, tup, argc, proc]
       intype.each_with_index do |tys, i|
         if tys then
           tys.each do |ty|
