@@ -132,7 +132,7 @@ module MTypeInf
           end
 
           if irepssa then
-            infer.inference_block(irepssa, intype, ntup, argc)
+            infer.inference_block(irepssa, intype, ntup, argc, nil)
             if outreg then
               outreg.add_same irepssa.retreg
               existf = true
@@ -151,7 +151,7 @@ module MTypeInf
             @@ruby_methodtab[name][slfcls] = irepssa
             clsobj = ClassSSA.get_instance(slfcls)
             clsobj.method[name] = irepssa
-            infer.inference_block(irepssa, intype, ntup, argc)
+            infer.inference_block(irepssa, intype, ntup, argc, nil)
             outreg.add_same irepssa.retreg
           else
             mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"

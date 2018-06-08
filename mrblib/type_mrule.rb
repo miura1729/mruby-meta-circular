@@ -428,7 +428,7 @@ module MTypeInf
       intype[0] = [ptype.slf]
       ntup = infer.typetupletab.get_tupple_id(intype, tup)
       irepssa = ptype.irep
-      infer.inference_block(irepssa, intype, ntup, inst.para[1])
+      infer.inference_block(irepssa, intype, ntup, inst.para[1], ptype)
       inst.outreg[0].add_same irepssa.retreg
       inst.outreg[0].flush_type(tup, ntup)
       nil

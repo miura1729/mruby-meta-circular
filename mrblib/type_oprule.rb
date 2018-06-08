@@ -107,9 +107,11 @@ module MTypeInf
     define_inf_rule_op :GETUPVAR do |infer, inst, node, tup, history|
       up = inst.para[1]
       frame = inst.para[0]
+      pos = inst.para[2]
       stpos = infer.callstack.index {|item| item[0] == frame}
+      otup = infer.callstack[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type(tup, infer.callstack[stpos][1])
+      inst.outreg[0].flush_type(tup, otup)
 
       nil
     end
@@ -357,7 +359,8 @@ module MTypeInf
 
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|
       slf = inst.inreg[0].flush_type(tup)[tup][0]
-      pty = ProcType.new(Proc, inst.para[0], slf)
+      envtypes = inst.para[1].map {|reg| reg.flush_type(tup)[tup]}
+      pty = ProcType.new(Proc, inst.para[0], slf, envtypes)
       inst.outreg[0].add_type pty, tup
       nil
     end

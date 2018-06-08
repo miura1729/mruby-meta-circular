@@ -156,20 +156,34 @@ module MTypeInf
   end
 
   class ProcType<BasicType
-    def initialize(co, irep, slf, *rest)
+    def initialize(co, irep, slf, env, *rest)
       super
       @irep = irep
       @slf = slf
+      @env = env
     end
 
     def ==(other)
-      self.class == other.class &&
-        @class_object == other.class_object &&
-        @irep == other.irep
+      if self.class == other.class &&
+          @class_object == other.class_object &&
+          @irep == other.irep then
+        if @env != other.env
+          p "foo"
+          p @env
+          false
+        else
+          true
+        end
+      end
+    end
+
+    def inspect
+      "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=#{env}>"
     end
 
     attr :irep
     attr :slf
+    attr :env
   end
 
   class UserDefinedType<BasicType

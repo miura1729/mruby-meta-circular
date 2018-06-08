@@ -201,6 +201,22 @@ module RiteSSA
     attr :enter_reg
     attr_accessor :exit_reg
 
+    def get_export_reg(reps, level)
+      res = []
+      reps.each do |irep|
+        irep.iseq.each do |code|
+          if Irep::OPTABLE_SYM[get_opcode(code)] == :GETUPVAR and
+              getarg_c(code) == level then
+            res.push getarg_b(code)
+          end
+        end
+
+        res += get_export_reg(irep.reps, level + 1)
+      end
+
+      res.uniq
+    end
+
     def make_ext_iseq
       @enter_reg = regtab.clone
       @ext_iseq = []
@@ -631,6 +647,12 @@ module RiteSSA
           bn = getarg_bl(code)
           nlambda = Block.new(@irep.reps[bn], @root, @root.target_class.class_object)
           inst.para.push nlambda
+          exregno = get_export_reg(@irep.reps, 0)
+          exreg = []
+          exregno.each do |no|
+            exreg.push regtab[no]
+          end
+          inst.para.push exreg
           @root.reps[bn] = nlambda
 
         when :RANGE
@@ -701,8 +723,8 @@ module RiteSSA
           @regtab.push ParmReg.new(i + 1)
         end
         dag = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
-        dag.make_ext_iseq
         @nodes[bg] = dag
+        dag.make_ext_iseq
       end
 
       # construct link
@@ -738,6 +760,7 @@ module RiteSSA
     attr :retreg
     attr :argtab
     attr :allreg
+    attr :irep
 
     def collect_block_head(iseq)
       res = [0]
