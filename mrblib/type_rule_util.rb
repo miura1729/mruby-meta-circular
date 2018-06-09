@@ -86,12 +86,11 @@ module MTypeInf
     end
 
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc)
-      ntup = infer.typetupletab.get_tupple_id(intype, tup)
+      ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
       recvtypes = recreg.get_type(tup)
 
       @@ruby_methodtab[name] ||= {}
       misirep = nil
-      #p name
       recvtypes.each do |ty|
         existf = false
         slf = ty.class_object

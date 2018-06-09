@@ -168,12 +168,12 @@ module MTypeInf
           @class_object == other.class_object &&
           @irep == other.irep then
         if @env != other.env
-          p "foo"
-          p @env
           false
         else
           true
         end
+      else
+        false
       end
     end
 

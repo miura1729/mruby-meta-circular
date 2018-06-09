@@ -38,9 +38,10 @@ module MTypeInf
       return true
     end
 
-    def get_tupple_id(types, tup)
+    def get_tupple_id(types, proc, tup)
       node = @table
       types = types.dup
+      types.push proc
       types.push nil
       types.each_with_index do |ty, i|
 #        cn = node.find {|te| cmp_types(te[0], ty, tup)}
@@ -86,7 +87,7 @@ module MTypeInf
       types = node.retreg.type
       types.each do |arg, types|
         args = @typetupletab.rev_table[arg]
-        args =  args[0..-2]
+        args =  args[0..-3]
         if args.size == 1 then
           next
         end
@@ -124,10 +125,10 @@ module MTypeInf
       topobj = TOP_SELF.class
       ty = TypeTable[topobj] = UserDefinedType.new(topobj)
       intype = [[ty]]
-      tup = @typetupletab.get_tupple_id(intype, 0)
+      tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
       inference_block(saairep, intype, tup, 2, nil)
-      @step += 1
-      inference_block(saairep, intype, tup, 2, nil)
+#      @step += 1
+#      inference_block(saairep, intype, tup, 2, nil)
     end
 
     def inference_block(saairep, intype, tup, argc, proc)
