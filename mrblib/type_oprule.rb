@@ -249,11 +249,37 @@ module MTypeInf
     end
 
     define_inf_rule_op :SUB do |infer, inst, node, tup, history|
-      @@ruletab[:OP][:ADD].call(infer, inst, node, tup)
+      arg0type = inst.inreg[0].flush_type(tup)[tup]
+      arg1type = inst.inreg[1].flush_type(tup)[tup]
+
+      if arg1type and arg1type[0].class_object == Float then
+        arg1type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
+
+      elsif arg0type then
+        arg0type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
+      end
+      nil
     end
 
     define_inf_rule_op :MUL do |infer, inst, node, tup, history|
-      @@ruletab[:OP][:ADD].call(infer, inst, node, tup)
+      arg0type = inst.inreg[0].flush_type(tup)[tup]
+      arg1type = inst.inreg[1].flush_type(tup)[tup]
+
+      if arg1type and arg1type[0].class_object == Float then
+        arg1type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
+
+      elsif arg0type then
+        arg0type.each do |ty|
+          inst.outreg[0].add_type ty, tup
+        end
+      end
+      nil
     end
 
     define_inf_rule_op :DIV do |infer, inst, node, tup, history|
