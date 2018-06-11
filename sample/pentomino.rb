@@ -138,7 +138,6 @@ MTypeInf::inference_main {
 $p = []
 $b = []
 $no = 0
-$pnum=[]
 
   top
 }
