@@ -375,7 +375,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
-      type = ContainerType.new(String)
+      type = PrimitiveType.new(String)
 
       inst.inreg[0].add_type type, tup
       inst.inreg[1].add_type type, tup

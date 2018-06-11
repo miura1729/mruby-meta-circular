@@ -36,13 +36,22 @@ module MTypeInf
 
           when :nil?
             typemethodp = true
-            type = LiteralType.new(nil.class, nil)
+            type = PrimitiveType.new(NilClass)
 
             addtional_type_spec = [type]
             genp = genp.inreg[0].genpoint
           end
+
+        elsif genp.op == :MOVE then
+          notp = !notp
+          typemethodp = true
+          type0 = PrimitiveType.new(NilClass)
+          type1 = LiteralType.new(false.class, false)
+
+          addtional_type_spec = [type0, type1]
         end
       end
+
       type = inst.inreg[0].flush_type(tup)[tup]
       condtype = type && type.size == 1 && type[0].class_object
       if condtype == NilClass or condtype == FalseClass then

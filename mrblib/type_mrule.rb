@@ -275,13 +275,15 @@ module MTypeInf
 
 
     define_inf_rule_method :__ary_cmp, Array do |infer, inst, node, tup|
-      inst.inreg[0].flush_type(tup)
+      inst.outreg[0].add_same inst.inreg[1]
+      inst.outreg[0].flush_type(tup)
 
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
 
       type = LiteralType.new(Fixnum, 0)
       inst.outreg[0].add_type(type, tup)
+
       nil
     end
 
@@ -432,6 +434,20 @@ module MTypeInf
       inst.outreg[0].add_same irepssa.retreg
       inst.outreg[0].flush_type(tup, ntup)
       nil
+    end
+
+    define_inf_rule_method :to_s, String do |infer, inst, node, tup|
+      type = LiteralType.new(String, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :sprintf, Object do |infer, inst, node, tup|
+      type = LiteralType.new(String, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :__printstr__, Object do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
     end
 
     define_inf_rule_method :sqrt, Module do |infer, inst, node, tup|
