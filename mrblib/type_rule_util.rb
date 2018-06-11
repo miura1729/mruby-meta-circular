@@ -95,7 +95,7 @@ module MTypeInf
     end
 
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc)
-      ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
+      ntup = 0
       recvtypes = recreg.get_type(tup)
 
       @@ruby_methodtab[name] ||= {}
@@ -140,6 +140,8 @@ module MTypeInf
           end
 
           if irepssa then
+            intype[0] = [ty]
+            ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.inference_block(irepssa, intype, ntup, argc, nil)
             if outreg then
               outreg.add_same irepssa.retreg
@@ -159,6 +161,8 @@ module MTypeInf
             @@ruby_methodtab[name][slfcls] = irepssa
             clsobj = ClassSSA.get_instance(slfcls)
             clsobj.method[name] = irepssa
+            intype[0] = [ty]
+            ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.inference_block(irepssa, intype, ntup, argc, nil)
             outreg.add_same irepssa.retreg
           else
