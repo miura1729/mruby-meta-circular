@@ -655,6 +655,16 @@ module RiteSSA
           inst.para.push exreg
           @root.reps[bn] = nlambda
 
+        when :CLASS
+          a = getarg_a(code)
+          b = getarg_b(code)
+          inst.inreg.push regtab[a]     # BASE
+          inst.inreg.push regtab[a + 1] # SUPER
+          inst.para.push @irep.syms[b]
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
         when :RANGE
           initno = getarg_b(code)
           flg = getarg_c(code)

@@ -409,6 +409,23 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :CLASS do |infer, inst, node, tup, history|
+      base = inst.inreg[0].flush_type(tup)[tup]
+      if base[0].class_object = NilClass then
+        outer = node.root.target_class
+      else
+        outer = base[0].class_object
+      end
+      sup = inst.inreg[1].flush_type(tup)[tup]
+      cls = Class.new(sup[0].class_object)
+      clobj = RiteSSA::ClassSSA.get_instance(cls)
+      outerobj = RiteSSA::ClassSSA.get_instance(outer)
+      outerobj.const_set(inst.para[0], clobj)
+
+      inst.outreg[0].add_type clobj, tup
+      nil
+    end
+
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|
       type = inst.objcache[nil]
       if !type then
