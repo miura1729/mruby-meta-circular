@@ -215,7 +215,7 @@ module MTypeInf
         if arrt.class_object. == Array then
           arrele = arrt.element
           inst.outreg[0].add_same arrele[nil]
-          arrele[nil].flush_type_alltup(tup, false)
+          arrele[nil].flush_type_alltup(tup)
         end
       end
 
@@ -306,7 +306,9 @@ module MTypeInf
 
     define_inf_rule_method :__svalue, Object do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup]
-      inst.outreg[0].add_same arrtypes[0].element[0]
+      arrtypes.each do |arrt|
+        inst.outreg[0].add_same arrt.element[0]
+      end
       inst.outreg[0].flush_type(tup)
       nil
     end
@@ -425,7 +427,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      intype = inst.inreg.map {|reg| reg.type[tup] || []}
       ptype = intype[0][0]
       intype[0] = [ptype.slf]
       ntup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
