@@ -153,7 +153,6 @@ module MTypeInf
             inst.outreg[i].flush_type(tup, certup)
           end
         end
-
       else
         (m1 + o).times do |i|
           inst.outreg[i].add_same inst.inreg[i]

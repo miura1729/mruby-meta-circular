@@ -467,9 +467,6 @@ module RiteSSA
             reg = regtab[a + 1]
             inreg.refpoint.push inst
             inst.inreg.push reg
-            reg = regtab[a + 2]
-            inreg.refpoint.push inst
-            inst.inreg.push reg
           else
             num.times do |i|
               reg = regtab[a + 1 + i]
