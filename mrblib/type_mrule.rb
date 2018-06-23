@@ -324,7 +324,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :__svalue, Object do |infer, inst, node, tup|
+    define_inf_rule_method :__svalue, Array do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup]
       arrtypes.each do |arrt|
         inst.outreg[0].add_same arrt.element[0]
@@ -335,7 +335,7 @@ module MTypeInf
 
 
     define_inf_rule_method :nil?, Object do |infer, inst, node, tup|
-      slf = inst.inreg[1].flush_type(tup)[tup]
+      slf = inst.inreg[0].flush_type(tup)[tup]
 
       if slf.size != 1 || slf[0].class_object == NilClass then
         type = LiteralType.new(TrueClass, true)
@@ -406,7 +406,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :class, Object do |infer, inst, node, tup|
-      type = inst.inreg[1].flush_type(tup)[tup][0].class_object.class
+      type = inst.inreg[0].flush_type(tup)[tup][0].class_object.class
 
       type = PrimitiveType.new(type)
       inst.outreg[0].add_type(type, tup)
