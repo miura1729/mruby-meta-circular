@@ -13,19 +13,39 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_f, Fixnum do |infer, inst, node, tup|
-      type = LiteralType.new(Float, nil)
+      type = PrimitiveType.new(Float)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :to_i, Fixnum do |infer, inst, node, tup|
-      type = LiteralType.new(Fixnum, nil)
+      type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :>>, Fixnum do |infer, inst, node, tup|
-      type = LiteralType.new(Fixnum, nil)
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+
+    define_inf_rule_method :&, Fixnum do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :|, Fixnum do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum, nil)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+
+    define_inf_rule_method :chr, Fixnum do |infer, inst, node, tup|
+      type = PrimitiveType.new(String)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -325,12 +345,22 @@ module MTypeInf
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end
-      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
+    define_inf_rule_method :===, Object do |infer, inst, node, tup|
+      slf = inst.inreg[0].flush_type(tup)[tup]
+      other = inst.inreg[1].flush_type(tup)[tup]
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :!, BasicObject do |infer, inst, node, tup|
-      slf = inst.inreg[1].flush_type(tup)[tup]
+      slf = inst.inreg[0].flush_type(tup)[tup]
 
       if slf.size != 1 ||
           slf[0].class_object == NilClass ||
@@ -440,6 +470,18 @@ module MTypeInf
 
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
       type = LiteralType.new(String, nil)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :size, String do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :[], String do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
     end
 
