@@ -307,6 +307,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :include?, Array do |infer, inst, node, tup|
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :lambda, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[1]
       nil
@@ -469,7 +477,22 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
-      type = LiteralType.new(String, nil)
+      type = PrimitiveType.new(String)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :to_f, String do |infer, inst, node, tup|
+      type = PrimitiveType.new(Float)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :to_i, String do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :downcase, String do |infer, inst, node, tup|
+      type = PrimitiveType.new(String)
       inst.outreg[0].add_type(type, tup)
     end
 
@@ -479,10 +502,26 @@ module MTypeInf
     end
 
     define_inf_rule_method :[], String do |infer, inst, node, tup|
+      type = PrimitiveType.new(String)
+      inst.outreg[0].add_type(type, tup)
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+    end
+
+    define_inf_rule_method :include?, String do |infer, inst, node, tup|
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :index, String do |infer, inst, node, tup|
       type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :sprintf, Object do |infer, inst, node, tup|
@@ -531,6 +570,47 @@ module MTypeInf
       inst.outreg[0].add_type(type, tup)
       type = LiteralType.new(FalseClass, false)
       inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :[]=, Hash do |infer, inst, node, tup|
+      if inst.inreg.size != 4 then
+        raise "multiple argument not support yet in Hash::[]="
+      end
+
+      idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      valreg = inst.inreg[2]
+
+      arrtypes.each do |arrt|
+        if arrt.class_object. == Hash then
+          arrele = arrt.element
+          if idxtypes.size == 1 then
+            case idxtypes[0]
+            when MTypeInf::LiteralType
+              idx = idxtypes[0].val
+              if arrele[idx].nil? then
+                arrele[idx] = RiteSSA::Reg.new(nil)
+                arrele[idx].add_same arrele[ContainerType::UNDEF_VALUE]
+              end
+              arrele[idx].add_same valreg
+              arrele[ContainerType::UNDEF_VALUE].add_same valreg
+              inst.outreg[0].add_same valreg
+
+            when MTypeInf::PrimitiveType
+              arrele.each do |idx, reg|
+                reg.add_same valreg
+              end
+              inst.outreg[0].add_same valreg
+
+            else
+              raise "Not supported in Array::[]="
+            end
+          end
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
       nil
     end
   end
