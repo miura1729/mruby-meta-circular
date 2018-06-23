@@ -79,8 +79,8 @@ module MTypeInf
                 inst.outreg[0].add_same arrele[no]
 
               when MTypeInf::PrimitiveType
-                inst.outreg[0].add_same arrele[nil]
-                arrele[nil].flush_type_alltup(tup)
+                inst.outreg[0].add_same arrele[ContainerType::UNDEF_VALUE]
+                arrele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
 
               else
                 raise "Not supported in Array::[]"
@@ -105,7 +105,7 @@ module MTypeInf
           arrele = arrt.element
           if arrele[0].nil? then
             arrele[0] = RiteSSA::Reg.new(nil)
-            arrele[0].add_same arrele[nil]
+            arrele[0].add_same arrele[ContainerType::UNDEF_VALUE]
           end
           inst.outreg[0].add_same arrele[0]
           arrele[0].flush_type_alltup(tup)
@@ -122,8 +122,8 @@ module MTypeInf
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrt.element
-          inst.outreg[0].add_same arrele[nil]
-          arrele[nil].flush_type_alltup(tup)
+          inst.outreg[0].add_same arrele[ContainerType::UNDEF_VALUE]
+          arrele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
         end
       end
 
@@ -139,7 +139,7 @@ module MTypeInf
           arrele = arrt.element
           if arrele[0].nil? then
             arrele[0] = RiteSSA::Reg.new(nil)
-            arrele[0].add_same arrele[nil]
+            arrele[0].add_same arrele[ContainerType::UNDEF_VALUE]
           end
           inst.outreg[0].add_same arrele[0]
           type = PrimitiveType.new(NilClass)
@@ -171,10 +171,10 @@ module MTypeInf
               no = idxtype.val
               if arrele[no].nil? then
                 arrele[no] = RiteSSA::Reg.new(nil)
-                arrele[no].add_same arrele[nil]
+                arrele[no].add_same arrele[ContainerType::UNDEF_VALUE]
               end
               arrele[no].add_same valreg
-              arrele[nil].add_same valreg
+              arrele[ContainerType::UNDEF_VALUE].add_same valreg
               inst.outreg[0].add_same valreg
 
             when MTypeInf::PrimitiveType
@@ -214,8 +214,8 @@ module MTypeInf
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrt.element
-          inst.outreg[0].add_same arrele[nil]
-          arrele[nil].flush_type_alltup(tup)
+          inst.outreg[0].add_same arrele[ContainerType::UNDEF_VALUE]
+          arrele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
         end
       end
 
@@ -262,8 +262,8 @@ module MTypeInf
       inst.inreg[0].flush_type(tup)
 
       if inst.inreg[0].type[tup].size == 1 and
-          inst.inreg[0].type[tup][0].element[nil].flush_type(tup)[tup] and
-          inst.inreg[0].type[tup][0].element[nil].type[tup][0].class_object != NilClass then
+          inst.inreg[0].type[tup][0].element[ContainerType::UNDEF_VALUE].flush_type(tup)[tup] and
+          inst.inreg[0].type[tup][0].element[ContainerType::UNDEF_VALUE].type[tup][0].class_object != NilClass then
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end

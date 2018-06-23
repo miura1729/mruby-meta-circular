@@ -321,7 +321,7 @@ module MTypeInf
       if !type then
         inst.objcache[nil] = type = ContainerType.new(Array)
       end
-      nilreg = type.element[nil]
+      nilreg = type.element[ContainerType::UNDEF_VALUE]
       type.element[nil] = nilreg
       inst.para[0].times do |i|
         nreg = type.element[i] || RiteSSA::Reg.new(nil)
@@ -354,7 +354,7 @@ module MTypeInf
         type.element[bpos] = reg
       else
         eletype.element.each do |key, reg|
-          if key then
+          if key.is_a?(Fixnum) then
             type.element[bpos + key] ||= RiteSSA::Reg.new(nil)
             type.element[bpos + key].add_same reg
             type.element[bpos + key].flush_type(tup)
@@ -430,7 +430,7 @@ module MTypeInf
       if !type then
         inst.objcache[nil] = type = ContainerType.new(Range)
       end
-      type.element[nil]
+      type.element[ContainerType::UNDEF_VALUE]
       nreg = type.element[0] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[0]
       type.element[0] = nreg

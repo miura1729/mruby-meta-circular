@@ -1,5 +1,6 @@
 module MTypeInf
   class BasicType
+    UNDEF_VALUE = [:undef]
     def initialize(co, *rest)
       @class_object = co
     end
@@ -42,7 +43,7 @@ module MTypeInf
               end
 
               when MTypeInf::ContainerType
-                if ele.element[nil] == @element[nil] then
+                if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
                   return
                 end
 
@@ -97,7 +98,7 @@ module MTypeInf
       @element = {}
       reg = RiteSSA::Reg.new(nil)
 #      reg.add_type PrimitiveType.new(NilClass, nil), 0
-      @element[nil] = reg
+      @element[UNDEF_VALUE] = reg
     end
 
     def ==(other)
@@ -112,7 +113,7 @@ module MTypeInf
           @class_object != other.class_object then
         return false
       end
-      return other.element[nil] == @element[nil]
+      return other.element[UNDEF_VALUE] == @element[nil]
     end
 
     def inspect_aux(level)
