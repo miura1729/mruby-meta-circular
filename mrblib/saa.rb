@@ -633,6 +633,20 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
+        when :HASH
+          initno = getarg_b(code)
+          num = getarg_c(code)
+
+          inst.para.push num
+          inst.para.push initno
+          num.times do |i|
+            inst.inreg.push regtab[initno + i]
+          end
+
+          dstreg = Reg.new(inst)
+          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
         when :LAMBDA
           inreg = regtab[0]
           inreg.refpoint.push inst

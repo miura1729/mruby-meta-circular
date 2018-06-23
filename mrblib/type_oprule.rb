@@ -408,6 +408,28 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :HASH do |infer, inst, node, tup, history|
+      type = inst.objcache[nil]
+      if !type then
+        inst.objcache[nil] = type = ContainerType.new(Hash)
+      end
+      udefreg = type.element[ContainerType::UNDEF_VALUE]
+      type.element[nil] = udefreg
+      inst.para[0].times do |i|
+        nreg = type.element[i] || RiteSSA::Reg.new(nil)
+        nreg.add_same inst.inreg[i * 2 + 1]
+        idxtypes = inst.inreg[i * 2].flush_type(tup)[tup]
+        if idxtypes then
+          idx = indxtypes[0].class_object
+          type.element[idx] = nreg
+        end
+        udefreg.add_same inst.inreg[i * 2 + 1]
+      end
+      udefreg.flush_type(tup)
+
+      inst.outreg[0].add_type type, tup
+    end
+
     define_inf_rule_op :CLASS do |infer, inst, node, tup, history|
       base = inst.inreg[0].flush_type(tup)[tup]
       if base[0].class_object = NilClass then
