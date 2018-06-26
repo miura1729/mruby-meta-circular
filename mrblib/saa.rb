@@ -209,6 +209,11 @@ module RiteSSA
               getarg_c(code) == level then
             res.push getarg_b(code)
           end
+
+          if Irep::OPTABLE_SYM[get_opcode(code)] == :SETUPVAR and
+              getarg_c(code) == level then
+            res.push getarg_b(code)
+          end
         end
 
         res += get_export_reg(irep.reps, level + 1)
@@ -407,13 +412,13 @@ module RiteSSA
           (up + 1).times do
             curframe = curframe.parent
           end
+          inst.para.push curframe
           inst.para.push up
           inst.para.push pos
           srcreg = regtab[getarg_a(code)]
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
-          dstreg = Reg.new(inst)
-          curframe.regtab[pos] = dstreg
+          dstreg = curframe.regtab[pos]
           inst.outreg.push dstreg
 
         when :JMP

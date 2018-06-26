@@ -117,7 +117,14 @@ module MTypeInf
     end
 
     define_inf_rule_op :SETUPVAR do |infer, inst, node, tup, history|
+      up = inst.para[1]
+      frame = inst.para[0]
+      pos = inst.para[2]
+      stpos = infer.callstack.index {|item| item[0] == frame}
+      otup = infer.callstack[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].flush_type(otup, tup)
+
       nil
     end
 
