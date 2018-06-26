@@ -55,7 +55,12 @@ module MTypeInf
       type = inst.inreg[0].flush_type(tup)[tup]
       condtype = type && type.size == 1 && type[0].class_object
       if condtype == NilClass or condtype == FalseClass then
-        infer.inference_node(node.exit_link[bidx], tup, node.exit_reg, history)
+        enode = node.exit_link[bidx]
+        while enode.ext_iseq.size == 1 and
+            (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
+          enode = enode.exit_link[bidx]
+        end
+        infer.inference_node(enode, tup, node.exit_reg, history)
         true
 
       elsif type and type.size == 1 then
