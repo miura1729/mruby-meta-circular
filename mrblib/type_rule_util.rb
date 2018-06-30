@@ -203,8 +203,8 @@ module MTypeInf
       arrtypes.each do |arrt|
         if arrt.class_object.== Array then
           arrele = arrt.element
-          arrele[nil].add_same valreg
-          arrele[nil].flush_type(tup)
+          arrele[ContainerType::UNDEF_VALUE].add_same valreg
+          arrele[ContainerType::UNDEF_VALUE].flush_type(tup)
         end
       end
 

@@ -93,7 +93,7 @@ module MTypeInf
                 no = idxtype.val
                 if arrele[no].nil? then
                   arrele[no] = RiteSSA::Reg.new(nil)
-                  arrele[no].add_same arrele[nil]
+                  arrele[no].add_same arrele[ContainerType::UNDEF_VALUE]
                 end
                 arrele[no].flush_type_alltup(tup)
                 inst.outreg[0].add_same arrele[no]
@@ -184,27 +184,27 @@ module MTypeInf
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrt.element
-          if idxtypes.size == 1 and
-              (idxtype = idxtypes[0]).class_object == Fixnum then
-            case idxtype
-            when MTypeInf::LiteralType
-              no = idxtype.val
-              if arrele[no].nil? then
-                arrele[no] = RiteSSA::Reg.new(nil)
-                arrele[no].add_same arrele[ContainerType::UNDEF_VALUE]
-              end
-              arrele[no].add_same valreg
-              arrele[ContainerType::UNDEF_VALUE].add_same valreg
-              inst.outreg[0].add_same valreg
+          idxtypes.each do |idxtype|
+            if idxtype.class_object == Fixnum then
+              case idxtype
+              when MTypeInf::LiteralType
+                no = idxtype.val
+                if arrele[no].nil? then
+                  arrele[no] = RiteSSA::Reg.new(nil)
+                end
+                arrele[no].add_same valreg
+                arrele[ContainerType::UNDEF_VALUE].add_same valreg
+                inst.outreg[0].add_same valreg
 
-            when MTypeInf::PrimitiveType
-              arrele.each do |idx, reg|
-                reg.add_same valreg
-              end
-              inst.outreg[0].add_same valreg
+              when MTypeInf::PrimitiveType
+                arrele.each do |idx, reg|
+                  reg.add_same valreg
+                end
+                inst.outreg[0].add_same valreg
 
-            else
-              raise "Not supported in Array::[]="
+              else
+                raise "Not supported in Array::[]="
+              end
             end
           end
         end
