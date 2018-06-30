@@ -99,6 +99,8 @@ module MTypeInf
       reg = RiteSSA::Reg.new(nil)
 #      reg.add_type PrimitiveType.new(NilClass, nil), 0
       @element[UNDEF_VALUE] = reg
+      reg = RiteSSA::Reg.new(nil)
+      @key = reg
     end
 
     def ==(other)
@@ -154,6 +156,7 @@ module MTypeInf
     end
 
     attr :element
+    attr :key
   end
 
   class ProcType<BasicType

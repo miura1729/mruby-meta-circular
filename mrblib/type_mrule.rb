@@ -573,38 +573,75 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :[], Hash do |infer, inst, node, tup|
+      if inst.inreg.size != 3 then
+        raise "multiple argument not support yet in Hash::[]"
+      end
+
+      hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
+
+      hashtypes.each do |hasht|
+        if hasht.class_object. == Hash then
+          hashele = hasht.element
+          idxtypes.each do |idxtype|
+            case idxtype
+            when MTypeInf::LiteralType
+              idx = idxtype.val
+              if hashele[idx].nil? then
+                hashele[idx] = RiteSSA::Reg.new(nil)
+                hashele[idx].add_same hashele[ContainerType::UNDEF_VALUE]
+              end
+              inst.outreg[0].add_same hashele[idx]
+
+            when MTypeInf::PrimitiveType
+              inst.outreg[0].add_same hashele[ContainerType::UNDEF_VALUE]
+              hashele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
+
+            else
+              raise "Not supported in Hash::[]"
+            end
+          end
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :[]=, Hash do |infer, inst, node, tup|
       if inst.inreg.size != 4 then
         raise "multiple argument not support yet in Hash::[]="
       end
 
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
-      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
 
-      arrtypes.each do |arrt|
-        if arrt.class_object. == Hash then
-          arrele = arrt.element
-          if idxtypes.size == 1 then
-            case idxtypes[0]
+      hashtypes.each do |hasht|
+        if hasht.class_object. == Hash then
+          hashele = hasht.element
+          idxtypes.each do |idxtype|
+            hasht.key.add_type idxtype, 0
+            case idxtype
             when MTypeInf::LiteralType
-              idx = idxtypes[0].val
-              if arrele[idx].nil? then
-                arrele[idx] = RiteSSA::Reg.new(nil)
-                arrele[idx].add_same arrele[ContainerType::UNDEF_VALUE]
-              end
-              arrele[idx].add_same valreg
-              arrele[ContainerType::UNDEF_VALUE].add_same valreg
+              idx = idxtype.val
+              hashele[idx] ||= RiteSSA::Reg.new(nil)
+              hashele[idx].add_same valreg
+              hashele[idx].flush_type(tup)
+              hashele[ContainerType::UNDEF_VALUE].add_same valreg
+              hashele[ContainerType::UNDEF_VALUE].flush_type(tup)
               inst.outreg[0].add_same valreg
 
             when MTypeInf::PrimitiveType
-              arrele.each do |idx, reg|
+              hashele.each do |idx, reg|
                 reg.add_same valreg
+                reg.flush_type(tup)
               end
               inst.outreg[0].add_same valreg
 
             else
-              raise "Not supported in Array::[]="
+              raise "Not supported in Hash::[]="
             end
           end
         end
