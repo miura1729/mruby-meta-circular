@@ -245,7 +245,7 @@ module MTypeInf
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg1type and arg1type[0].class_object == Float then
-        ty = PrimitiveType(Float)
+        ty = PrimitiveType.new(Float)
         inst.outreg[0].add_type ty, tup
 
       elsif arg0type then

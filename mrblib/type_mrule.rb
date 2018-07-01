@@ -193,12 +193,15 @@ module MTypeInf
                   arrele[no] = RiteSSA::Reg.new(nil)
                 end
                 arrele[no].add_same valreg
+                arrele[no].flush_type(tup)
                 arrele[ContainerType::UNDEF_VALUE].add_same valreg
+                arrele[ContainerType::UNDEF_VALUE].flush_type(tup)
                 inst.outreg[0].add_same valreg
 
               when MTypeInf::PrimitiveType
                 arrele.each do |idx, reg|
                   reg.add_same valreg
+                  reg.flush_type_alltup(tup)
                 end
                 inst.outreg[0].add_same valreg
 

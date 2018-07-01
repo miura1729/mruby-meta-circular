@@ -21,11 +21,11 @@ module MTypeInf
         arr.each_with_index do |ele, i|
           if ele.class_object == @class_object then
             if ele.is_a?(MTypeInf::PrimitiveType) then
-              return
+              return false
 
             elsif is_a?(MTypeInf::PrimitiveType) then
               arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-              return
+              return true
             end
           end
 
@@ -35,7 +35,7 @@ module MTypeInf
               if ele.val != @val then
                 if ele.class_object != Class  then
                   arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-                  return
+                  return true
                 end
 
               else
@@ -44,13 +44,13 @@ module MTypeInf
 
               when MTypeInf::ContainerType
                 if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
-                  return
+                  return false
                 end
 
               when MTypeInf::UserDefinedType,
                 MTypeInf::PrimitiveType,
                 MTypeInf::ProcType
-                return
+                return false
 
               else
                 raise self
@@ -65,6 +65,7 @@ module MTypeInf
       end
 
       arr.push self
+      return true
     end
 
     def inspect_aux(level)
@@ -124,8 +125,8 @@ module MTypeInf
       end
 
       elearr = []
-      @element.values.each do |ele|
-        ele.type.values.each do |tys|
+      @element.each do |key0, ele|
+        ele.type.each do |key1, tys|
           tys.each do |ty|
             elearr << ty.inspect_aux(level + 1)
           end

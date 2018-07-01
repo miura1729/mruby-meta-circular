@@ -4,7 +4,7 @@ def foo
 #  a[:ab] = 3.0
 #  a["ab"] = :a
   i = 0
-  [[:a, 1], ["abc", :foo]].each do |x|
+  [[:a, 1], ["abc", :foo], [:a, [1]]].each do |x|
     a[x[0]] = x[1]
     $foo = x
 #    i = i + 1

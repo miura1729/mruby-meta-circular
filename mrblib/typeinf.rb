@@ -127,8 +127,8 @@ module MTypeInf
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
       inference_block(saairep, intype, tup, 2, nil)
-#      @step += 1
-#      inference_block(saairep, intype, tup, 2, nil)
+      @step += 1
+      inference_block(saairep, intype, tup, 2, nil)
     end
 
     def inference_block(saairep, intype, tup, argc, proc)
@@ -141,16 +141,21 @@ module MTypeInf
         reg.type = {}
       end
 
-      saairep.argtab[tup] ||= 0
-      saairep.argtab[tup] += 1
-
       @callstack.push [saairep, tup, argc, proc]
+      fixp = true
       intype.each_with_index do |tys, i|
         if tys then
           tys.each do |ty|
-            saairep.nodes[0].enter_reg[i].add_type(ty, tup)
+            if saairep.nodes[0].enter_reg[i].add_type(ty, tup) then
+              fixp = false
+            end
           end
         end
+      end
+
+      if fixp or true then
+        saairep.argtab[tup] ||= 0
+        saairep.argtab[tup] += 1
       end
 
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
