@@ -315,8 +315,10 @@ module MTypeInf
 
       if arg0type then
         arg0type.each do |ty|
-          #  ty = LiteralType.new(ty.class_object, ty.val + arg1type.val)
-          ty = PrimitiveType.new(ty.class_object)
+          if ty.is_a?(LiteralType) then
+            ty = LiteralType.new(ty.class_object, ty.val + arg1type.val)
+          end
+          #ty = PrimitiveType.new(ty.class_object)
           inst.outreg[0].add_type ty, tup
         end
       end
