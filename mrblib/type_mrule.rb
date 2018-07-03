@@ -595,6 +595,7 @@ module MTypeInf
                 hashele[idx] = RiteSSA::Reg.new(nil)
                 hashele[idx].add_same hashele[ContainerType::UNDEF_VALUE]
               end
+              hashele[idx].flush_type_alltup(tup)
               inst.outreg[0].add_same hashele[idx]
 
             when MTypeInf::PrimitiveType
