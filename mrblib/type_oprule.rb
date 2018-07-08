@@ -430,7 +430,7 @@ module MTypeInf
         nreg.add_same inst.inreg[i * 2 + 1]
         idxtypes = inst.inreg[i * 2].flush_type(tup)[tup]
         if idxtypes then
-          idx = indxtypes[0].class_object
+          idx = idxtypes[0].class_object
           type.element[idx] = nreg
         end
         udefreg.add_same inst.inreg[i * 2 + 1]
