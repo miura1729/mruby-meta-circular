@@ -84,19 +84,16 @@ module MTypeInf
     end
 
     define_inf_rule_op :GETCONST do |infer, inst, node, tup, history|
-      if inst.para[0].is_a?(RiteSSA::Storable) then
-        inst.outreg[0].add_same(inst.para[0])
+      name = inst.para[0]
+      const = node.root.target_class.const_get(name)
+      cls = TypeSource[const.class]
+      type = nil
+      if cls then
+        type = cls.new(const.class, const)
       else
-        paracls = inst.para[0].class
-        cls = TypeSource[paracls]
-        type = nil
-        if  cls then
-          type = cls.new(paracls, inst.para[0])
-        else
-          type = LiteralType.new(paracls, inst.para[0])
-        end
-        inst.outreg[0].add_type(type, tup)
+        type = LiteralType.new(const.class, const)
       end
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
@@ -445,19 +442,36 @@ module MTypeInf
 
     define_inf_rule_op :CLASS do |infer, inst, node, tup, history|
       base = inst.inreg[0].flush_type(tup)[tup]
-      if base[0].class_object = NilClass then
+      if base[0].class_object == NilClass then
         outer = node.root.target_class
       else
         outer = base[0].class_object
       end
       sup = inst.inreg[1].flush_type(tup)[tup]
-      cls = Class.new(sup[0].class_object)
-      clobj = RiteSSA::ClassSSA.get_instance(cls)
-      outerobj = RiteSSA::ClassSSA.get_instance(outer)
-      outerobj.const_set(inst.para[0], clobj)
+      supobj = sup[0].class_object
+      cls = inst.objcache[supobj]
+      if !cls then
+        cls = Class.new(supobj)
+        inst.objcache[supobj] = cls
+        clobj = RiteSSA::ClassSSA.get_instance(cls)
+        outer.const_set(inst.para[0], cls)
+      end
 
-      inst.outreg[0].add_type clobj, tup
+      clstype = LiteralType.new(cls.class, cls)
+      inst.outreg[0].add_type clstype, tup
       nil
+    end
+
+    define_inf_rule_op :EXEC do |infer, inst, node, tup, history|
+      tclass = inst.inreg[0].flush_type(tup)[tup]
+      irep = inst.para[0]
+      root = node.root
+      co = tclass[0].class_object
+      irepssa = inst.objcache[co]
+      if !irepssa then
+        irepssa = RiteSSA::Block.new(irep, root, co)
+        inst.objcache[co] = irepssa
+      end
     end
 
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|

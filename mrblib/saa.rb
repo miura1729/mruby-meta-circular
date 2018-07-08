@@ -354,21 +354,17 @@ module RiteSSA
 
         when :GETCONST
           name = @irep.syms[getarg_bx(code)]
-          src = @root.target_class.const_get(name)
-          inst.para.push src
+          inst.para.push name
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
         when :SETCONST
           name = @irep.syms[getarg_bx(code)]
+          inst.para.push name
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
-          name = @irep.syms[getarg_b(code)]
-          dstreg = Reg.new(inst)
-          @root.target_class.const_set(name, dstreg)
-          inst.outreg.push dstreg
 
         when :GETMCONST
           name = @irep.syms[getarg_b(code)]
@@ -678,7 +674,16 @@ module RiteSSA
           inst.inreg.push regtab[a + 1] # SUPER
           inst.para.push @irep.syms[b]
           dstreg = Reg.new(inst)
-          regtab[getarg_a(code)] = dstreg
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
+
+        when :EXEC
+          a = getarg_a(code);
+          bx = getarg_bx(code);
+          inst.inreg.push regtab[a]
+          inst.para.push @irep.reps[bx]
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
           inst.outreg.push dstreg
 
         when :RANGE
