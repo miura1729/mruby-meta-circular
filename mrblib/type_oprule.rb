@@ -472,6 +472,10 @@ module MTypeInf
         irepssa = RiteSSA::Block.new(irep, root, co)
         inst.objcache[co] = irepssa
       end
+      intype = [tclass]
+      ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
+      infer.inference_block(irepssa, intype, ntup, 0, nil)
+      nil
     end
 
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|

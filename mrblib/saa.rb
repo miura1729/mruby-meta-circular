@@ -678,13 +678,20 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :EXEC
-          a = getarg_a(code);
-          bx = getarg_bx(code);
+          a = getarg_a(code)
+          bx = getarg_bx(code)
           inst.inreg.push regtab[a]
           inst.para.push @irep.reps[bx]
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
           inst.outreg.push dstreg
+
+        when :METHOD
+          a = getarg_a(code)
+          inst.inreg.push regtab[a]     # Rec
+          inst.inreg.push regtab[a + 1] # Method
+          b = getarg_b(code)
+          inst.para.push @irep.syms[b]  # Name
 
         when :RANGE
           initno = getarg_b(code)
