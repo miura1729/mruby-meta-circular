@@ -2,6 +2,10 @@ module MTypeInf
   class TypeInferencer
     @@ruby_methodtab ||= {}
 
+    def self.get_ruby_methodtab
+      @@ruby_methodtab
+    end
+
     def self.rule_literal_commin(infer, inst, node, tup)
       val = inst.para[0]
       type = LiteralType.new(val.class, val)

@@ -693,6 +693,12 @@ module RiteSSA
           b = getarg_b(code)
           inst.para.push @irep.syms[b]  # Name
 
+        when :TCLASS
+          a = getarg_a(code)
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
+
         when :RANGE
           initno = getarg_b(code)
           flg = getarg_c(code)

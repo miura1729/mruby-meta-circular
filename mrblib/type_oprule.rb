@@ -466,7 +466,7 @@ module MTypeInf
       tclass = inst.inreg[0].flush_type(tup)[tup]
       irep = inst.para[0]
       root = node.root
-      co = tclass[0].class_object
+      co = tclass[0].val
       irepssa = inst.objcache[co]
       if !irepssa then
         irepssa = RiteSSA::Block.new(irep, root, co)
@@ -475,6 +475,26 @@ module MTypeInf
       intype = [tclass]
       ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
       infer.inference_block(irepssa, intype, ntup, 0, nil)
+      nil
+    end
+
+    define_inf_rule_op :METHOD do |infer, inst, node, tup, history|
+      tclass = inst.inreg[0].flush_type(tup)[tup][0].val
+      method = inst.inreg[1].flush_type(tup)[tup][0]
+      name = inst.para[0]
+      ruby_methodtab = get_ruby_methodtab
+      ruby_methodtab[name] ||= {}
+      irep = method.irep
+      ruby_methodtab[name][tclass] = irep
+      tclobj = RiteSSA::ClassSSA.get_instance(tclass)
+      tclobj.method[name] = irep
+      nil
+    end
+
+    define_inf_rule_op :TCLASS do |infer, inst, node, tup, history|
+      tcls = node.root.target_class.class_object
+      tclobj = LiteralType.new(tcls.class, tcls)
+      inst.outreg[0].add_type tclobj, tup
       nil
     end
 
