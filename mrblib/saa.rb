@@ -491,7 +491,7 @@ module RiteSSA
 
         when :CALL
           dstreg = Reg.new(inst)
-          regtab[a] = dstreg
+          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
         when :SUPER
@@ -522,7 +522,7 @@ module RiteSSA
         when :ARGARY
           inst.para.push getarg_bx(code)
           dstreg = Reg.new(inst)
-          regtab[a] = dstreg
+          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
         when :ENTER
