@@ -424,6 +424,7 @@ module MTypeInf
       end
       type.element[ContainerType::UNDEF_VALUE] ||= RiteSSA::Reg.new(nil)
       udefreg = type.element[ContainerType::UNDEF_VALUE]
+      udefreg.add_type PrimitiveType.new(NilClass), tup
       inst.para[0].times do |i|
         nreg = type.element[i] || RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i * 2 + 1]
