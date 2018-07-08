@@ -127,11 +127,17 @@ module MTypeInf
               name2 = :call
               irep = nil
             end
-            if irep == nil then
+
+            if irep.nil? then
               if @@ruletab[:METHOD][name2] and @@ruletab[:METHOD][name2][slfcls] then
                 # written in C or method mmsing  or no method error
                 existf = true
                 @@ruletab[:METHOD][name2][slfcls].call(infer, inst, node, tup)
+
+              elsif @@ruby_methodtab[:method_missing] and
+                  @@ruby_methodtab[:method_missing][cls] then
+                name2 = :method_missing
+                irepssa = @@ruby_methodtab[:method_missing][cls]
 
               else
                 # No method found
