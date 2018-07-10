@@ -1,10 +1,11 @@
-TOP_SELF = self
+TOP_SELF = Object
+
 module MTypeInf
   def self.inference_main(&b)
     irep = Irep::get_proc_irep(b)
     ti = MTypeInf::TypeInferencer.new
 
-    b = RiteSSA::Block.new(irep, nil, self)
+    b = RiteSSA::Block.new(irep, nil, TOP_SELF)
     ti.inference_top(b)
     ti.messages.each do |message, cnt|
       print message
