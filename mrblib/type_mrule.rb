@@ -320,6 +320,7 @@ module MTypeInf
 
     define_inf_rule_method :lambda, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[1]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
@@ -637,7 +638,9 @@ module MTypeInf
               hashele[ContainerType::UNDEF_VALUE].flush_type(tup)
               inst.outreg[0].add_same valreg
 
-            when MTypeInf::PrimitiveType
+            when MTypeInf::PrimitiveType,
+                 MTypeInf::ContainerType,
+                 MTypeInf::ProcType
               hashele.each do |idx, reg|
                 reg.add_same valreg
                 reg.flush_type(tup)
