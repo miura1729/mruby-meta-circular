@@ -121,7 +121,7 @@ module MTypeInf
 
     def inspect_aux(hist)
       if hist[self] then
-        return "<#{@class_object} element=...>"
+        return "<#{@class_object} ...>"
       end
       hist[self] = true
 
