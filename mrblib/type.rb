@@ -68,12 +68,12 @@ module MTypeInf
       return true
     end
 
-    def inspect_aux(level)
+    def inspect_aux(hist)
       @class_object.inspect
     end
 
     def inspect
-      inspect_aux(0)
+      inspect_aux({})
     end
 
     def inspecto_element
@@ -119,16 +119,17 @@ module MTypeInf
       return other.element[UNDEF_VALUE] == @element[nil]
     end
 
-    def inspect_aux(level)
-      if level > 5 then
+    def inspect_aux(hist)
+      if hist[self] then
         return "..."
       end
+      hist[self] = true
 
       elearr = []
       @element.each do |key0, ele|
         ele.type.each do |key1, tys|
           tys.each do |ty|
-            elearr << ty.inspect_aux(level + 1)
+            elearr << ty.inspect_aux(hist)
           end
         end
       end
@@ -169,17 +170,10 @@ module MTypeInf
     end
 
     def ==(other)
-      if self.class == other.class &&
-          @class_object == other.class_object &&
-          @irep == other.irep then
-        if @env != other.env
-          false
-        else
-          true
-        end
-      else
-        false
-      end
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @irep == other.irep &&
+        @env == other.env
     end
 
     def inspect
