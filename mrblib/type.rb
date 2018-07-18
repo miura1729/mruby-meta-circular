@@ -133,6 +133,7 @@ module MTypeInf
           end
         end
       end
+      hist.delete(self)
       "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
     end
 
