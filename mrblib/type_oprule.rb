@@ -331,7 +331,6 @@ module MTypeInf
         inst.objcache[nil] = type = ContainerType.new(Array)
       end
       nilreg = type.element[ContainerType::UNDEF_VALUE]
-      type.element[nil] = nilreg
       inst.para[0].times do |i|
         nreg = type.element[i] || RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
