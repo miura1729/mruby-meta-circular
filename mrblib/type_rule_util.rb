@@ -13,6 +13,39 @@ module MTypeInf
       nil
     end
 
+    def self.get_original_reg(infer, inst, tup)
+      case inst.op
+      when :MOVE
+        return inst.inreg[0]
+
+      when :SEND
+        case inst.para[0]
+        when :[]
+          rectype = inst.inreg[0].genpoint.inreg[0].get_type(tup)
+          idxtype = inst.inreg[1].get_type(tup)
+          if rectype.size == 1 then
+            if rectype[0].class_object == Array then
+              if idxtype.size == 1 and
+                  idxtype[0].is_a?(MTypeInf::LiteralType) then
+                return rectype[0].element[idxtype[0].val]
+              else
+                return rectype[0].element[ContainerType::UNDEF_VALUE]
+              end
+
+            else
+              return nil
+            end
+          end
+          return nil
+
+        else
+          return nil
+        end
+      else
+        return nil
+      end
+    end
+
     def self.rule_jmpif_common(infer, inst, node, tup, history, bidx)
       notp = false
       typemethodp = false
@@ -53,6 +86,7 @@ module MTypeInf
           type1 = LiteralType.new(false.class, false)
 
           addtional_type_spec = [type0, type1]
+        #  genp = genp.inreg[0].genpoint
         end
       end
 
@@ -74,27 +108,31 @@ module MTypeInf
       elsif typemethodp then
         idx = notp ? bidx : 1 - bidx
         nd = node.exit_link[idx]
-        greg = genp.inreg[0]
-        greg.positive_list.push addtional_type_spec
-        greg.refpoint.each do |reg|
-          reg.outreg[0].positive_list.push  addtional_type_spec
-        end
-        infer.inference_node(nd, tup, node.exit_reg, history)
-        greg.positive_list.pop
-        greg.refpoint.each do |reg|
-          reg.outreg[0].positive_list.pop
-        end
+        if greg = get_original_reg(infer, genp, tup) then
+          greg.positive_list.push addtional_type_spec
+          greg.refpoint.each do |reg|
+            reg.outreg[0].positive_list.push  addtional_type_spec
+          end
+          infer.inference_node(nd, tup, node.exit_reg, history)
+          greg.positive_list.pop
+          greg.refpoint.each do |reg|
+            reg.outreg[0].positive_list.pop
+          end
 
-        idx = 1 - idx
-        nd = node.exit_link[idx]
-        greg.negative_list.push addtional_type_spec
-        greg.refpoint.each do |reg|
-          reg.outreg[0].negative_list.push addtional_type_spec
-        end
-        infer.inference_node(nd, tup, node.exit_reg, history)
-        greg.negative_list.pop
-        greg.refpoint.each do |reg|
-          reg.outreg[0].negative_list.pop
+          idx = 1 - idx
+          nd = node.exit_link[idx]
+          greg.negative_list.push addtional_type_spec
+          greg.refpoint.each do |reg|
+            reg.outreg[0].negative_list.push addtional_type_spec
+          end
+          infer.inference_node(nd, tup, node.exit_reg, history)
+          greg.negative_list.pop
+          greg.refpoint.each do |reg|
+            reg.outreg[0].negative_list.pop
+          end
+        else
+          infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
+          infer.inference_node(node.exit_link[1], tup, node.exit_reg, history)
         end
 
         true

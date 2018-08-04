@@ -127,8 +127,8 @@ module MTypeInf
 
       elearr = []
       @element.each do |key0, ele|
-        ele.type.each do |key1, tys|
-          tys.each do |ty|
+        ele.type.each do |tup, tys|
+          ele.get_type(tup).each do |ty|
             elearr << ty.inspect_aux(hist)
           end
         end
@@ -143,7 +143,7 @@ module MTypeInf
         res << "#{key.inspect}="
         val.type.each do |tup, tys|
           res << "#{tup} = ["
-          tys.each do |ty|
+          val.get_type(tup).each do |ty|
             res << "#{ty.inspect_element}|"
           end
           res << "]\n"

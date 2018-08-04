@@ -79,8 +79,10 @@ module MTypeInf
         raise "multiple argument not support yet in Array::[]"
       end
 
-      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
+      inst.inreg[0].flush_type(tup)
+      inst.inreg[1].flush_type(tup)
+      arrtypes = inst.inreg[0].get_type(tup)
+      idxtypes = inst.inreg[1].get_type(tup)
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
@@ -404,7 +406,6 @@ module MTypeInf
     define_inf_rule_method :kind_of?, Object do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]
       arg = inst.inreg[1].flush_type(tup)[tup]
-
       if slf.size != 1 || slf[0].class_object == arg[0].val then
         type = LiteralType.new(TrueClass, true)
         inst.outreg[0].add_type(type, tup)
