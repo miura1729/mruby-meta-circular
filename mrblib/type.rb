@@ -84,6 +84,9 @@ module MTypeInf
   class PrimitiveType<BasicType
   end
 
+  class ExceptionType<BasicType
+  end
+
   class LiteralType<BasicType
     def initialize(co, val, *rest)
       super

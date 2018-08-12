@@ -135,6 +135,18 @@ module MTypeInf
       rule_jmpif_common(infer, inst, node, tup, history, 1)
     end
 
+    define_inf_rule_op :ONERR do |infer, inst, node, tup, history|
+      node.root.rescuetab.push inst.para[0]
+
+      nil
+    end
+
+    define_inf_rule_op :POPERR do |infer, inst, node, tup, history|
+      node.root.rescuetab.pop
+
+      nil
+    end
+
     define_inf_rule_op :ENTER do |infer, inst, node, tup, history|
       ax = inst.para[0]
       m1 = (ax >> 18) & 0x1f
@@ -192,7 +204,7 @@ module MTypeInf
       end
       inst.inreg[-1].add_type(LiteralType.new(NilClass, nil), tup)
 
-      rule_send_common(infer, inst, node, tup)
+      rule_send_common(infer, inst, node, tup, history)
     end
 
     define_inf_rule_op :SENDB do |infer, inst, node, tup, history|
@@ -200,7 +212,7 @@ module MTypeInf
         reg.flush_type(tup)
       end
 
-      rule_send_common(infer, inst, node, tup)
+      rule_send_common(infer, inst, node, tup, history)
     end
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|

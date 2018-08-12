@@ -428,24 +428,33 @@ module RiteSSA
           inst.inreg.push inreg
 
         when :ONERR
-          inst.para.push getarg_sbx(code)
+          off = getarg_sbx(code)
+          respc = pc + off
+          inst.para.push respc
+          inst.para.push off
 
         when :RESCUE
-          flg = getarg_c(code)
-          if flg == 1 then
-            # exception object compare mode
+          a = getarg_a(code)
+          cont = getarg_c(code)
+          if cont == 0 then
+            # No cont
 
+          else
+            # cont
+            inreg = regtab[a]
+            inreg.refpoint.push inst
+            inst.inreg.push inreg
           end
 
         when :POPERR
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
-          inst.inreg.pus inreg
+          inst.inreg.push inreg
 
         when :RAISE
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
-          inst.inreg.pus inreg
+          inst.inreg.push inreg
 
         when :EPUSH
           inst.para.push @irep.pool[getarg_bx(code)]
@@ -723,6 +732,14 @@ module RiteSSA
       @root.regtab
     end
 
+    def rescuetab
+      @root.rescuetab
+    end
+
+    def ensuretab
+      @root.rescuetab
+    end
+
     def inspect
       res = ""
       res << "#{pos}  \n"
@@ -758,6 +775,9 @@ module RiteSSA
       @retreg = Reg.new(self)
       @argtab = {}
       @allreg = []
+      @exception = []
+      @rescuetab = []
+      @ensuretab = []
 
       @regtab = nil
       block_head = collect_block_head(iseq)
@@ -779,6 +799,10 @@ module RiteSSA
         when :JMP
           @nodes[lastpos + getarg_sbx(lastins)].enter_link << dag
           dag.exit_link << @nodes[lastpos + getarg_sbx(lastins)]
+
+        when :ONERR
+          @nodes[lastpos + 1].enter_link << dag
+          dag.exit_link << @nodes[lastpos + 1]
 
         when :JMPIF, :JMPNOT
           @nodes[lastpos + 1].enter_link << dag
@@ -805,6 +829,9 @@ module RiteSSA
     attr :argtab
     attr :allreg
     attr :irep
+    attr :exception
+    attr :rescuetab
+    attr :ensuretab
 
     def collect_block_head(iseq)
       res = [0]
@@ -816,6 +843,10 @@ module RiteSSA
 
         when :JMP
           res.push (pos + getarg_sbx(ins))
+
+        when :ONERR
+          res.push (pos + getarg_sbx(ins))
+          res.push (pos + 1)
 
         when :RETURN
           res.push (pos + 1)

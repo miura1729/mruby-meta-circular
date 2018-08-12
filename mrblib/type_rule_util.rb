@@ -91,7 +91,11 @@ module MTypeInf
       end
 
       type = inst.inreg[0].flush_type(tup)[tup]
-      condtype = type && type.size == 1 && type[0].class_object
+      if type && type.size == 1 then
+        condtype = type[0].class_object
+      else
+        condtype = nil
+      end
       if condtype == NilClass or condtype == FalseClass then
         enode = node.exit_link[bidx]
         while enode.ext_iseq.size == 1 and
@@ -141,7 +145,18 @@ module MTypeInf
       end
     end
 
-    def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc)
+    def self.handle_exception(infer, inst, node, tup, name, intype, recreg, outreg, argc, history, ex)
+      rescuetab = node.root.rescuetab
+      pos = rescuetab[-1]
+      if pos then
+        rescuenode = node.root.nodes[pos]
+        infer.inference_node(rescuenode, tup, rescuenode.exit_reg, history)
+      else
+        raise ex
+      end
+    end
+
+    def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
       ntup = 0
       recvtypes = recreg.get_type(tup)
 
@@ -174,7 +189,12 @@ module MTypeInf
               if @@ruletab[:METHOD][name2] and @@ruletab[:METHOD][name2][slfcls] then
                 # written in C or method mmsing  or no method error
                 existf = true
-                @@ruletab[:METHOD][name2][slfcls].call(infer, inst, node, tup)
+                begin
+                  @@ruletab[:METHOD][name2][slfcls].call(infer, inst, node, tup)
+                rescue RaiseHappen => ex
+                  handle_exception(infer, inst, node, tup, name, intype, recreg, outreg, argc, history, ex)
+                  return true
+                end
 
               elsif @@ruby_methodtab[:method_missing] and
                   @@ruby_methodtab[:method_missing][cls] then
@@ -195,7 +215,12 @@ module MTypeInf
           if irepssa then
             intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
-            infer.inference_block(irepssa, intype, ntup, argc, nil)
+            begin
+              infer.inference_block(irepssa, intype, ntup, argc, nil)
+            rescue  RaiseHappen => ex
+              handle_exception(infer, inst, node, tup, name, intype, recreg, outreg, argc, history, ex)
+              return true
+            end
             if outreg then
               outreg.add_same irepssa.retreg
               existf = true
@@ -216,7 +241,12 @@ module MTypeInf
             clsobj.method[name] = irepssa
             intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
-            infer.inference_block(irepssa, intype, ntup, argc, nil)
+            begin
+              infer.inference_block(irepssa, intype, ntup, argc, nil)
+            rescue RaiseHappen => ex
+              handle_exception(infer, inst, node, tup, name, intype, recreg, outreg, argc, history, ex)
+              return true
+            end
             outreg.add_same irepssa.retreg
           else
             mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
@@ -231,13 +261,13 @@ module MTypeInf
       nil
     end
 
-    def self.rule_send_common(infer, inst, node, tup)
+    def self.rule_send_common(infer, inst, node, tup, history)
       name = inst.para[0]
       argc = inst.para[1]
       intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       recreg = inst.inreg[0]
 
-      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc)
+      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc, history)
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)

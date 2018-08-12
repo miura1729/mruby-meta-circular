@@ -1,6 +1,9 @@
 TOP_SELF = Object
 
 module MTypeInf
+  class RaiseHappen<Exception
+  end
+
   def self.inference_main(&b)
     irep = Irep::get_proc_irep(b)
     ti = MTypeInf::TypeInferencer.new
@@ -77,11 +80,13 @@ module MTypeInf
       @callstack = []
       @messages = {}
       @step = 1
+      @exception = nil
     end
 
     attr :typetupletab
     attr :callstack
     attr :messages
+    attr_accessor :exception
 
     def dump_method(name, node)
       node.retreg.flush_type_alltup(0)[0]

@@ -326,10 +326,6 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :raise, Object do |infer, inst, node, tup|
-      nil
-    end
-
     define_inf_rule_method :respond_to?, Object do |infer, inst, node, tup|
       type = LiteralType.new(FalseClass, false)
       inst.outreg[0].add_type(type, tup)
@@ -461,7 +457,7 @@ module MTypeInf
           ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
           dmyreg = RiteSSA::Reg.new(nil)
           dmyreg.add_type type, ntup
-          rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg, inst.para[1])
+          rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
         end
 
         inst.outreg[0].add_type type, tup
@@ -536,6 +532,31 @@ module MTypeInf
 
     define_inf_rule_method :__printstr__, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
+    end
+
+    define_inf_rule_method :raise, Kernel do |infer, inst, node, tup|
+      argc = infer.callstack[-1][2]
+      type = nil
+      case argc
+      when 0
+#        type = ExceptionType.new(RUNTIME_ERROR)
+
+      when 1
+#        type = ExceptionType.new(RUNTIME_ERROR)
+
+      else
+#        type = ExceptionType.new(RUNTIME_ERROR)
+      end
+
+      infer.exception = reg = RiteSSA::Reg.new(nil)
+      reg.add_same inst.inreg[1]
+      reg.flush_type(tup)
+#      p inst.line
+#      p inst.filename
+
+#      raise RaiseHappen.new
+
+      nil
     end
 
     define_inf_rule_method :sqrt, Module do |infer, inst, node, tup|
