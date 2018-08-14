@@ -106,7 +106,7 @@ module MTypeInf
             tys.map {|ele| ele.inspect}.join('|')
           }.join(', ')
           if exfmt.size != 0 then
-            print "  #{name}: (#{args}) ->  (exception #{exfmt.join(',')}) \n"
+            print "  #{name}: (#{args}) ->  (throws #{exfmt.join(',')}) \n"
           else
             print "  #{name}: (#{args}) ->  \n"
           end
@@ -124,7 +124,7 @@ module MTypeInf
           type = types.map {|ele| ele.inspect}
           type = type.join('|')
           if exfmt.size != 0 then
-            print "  #{name}: (#{args}) -> #{type} exception #{exfmt.join(',')} \n"
+            print "  #{name}: (#{args}) -> #{type} throws #{exfmt.join(',')} \n"
           else
             print "  #{name}: (#{args}) -> #{type} \n"
           end
