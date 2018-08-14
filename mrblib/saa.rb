@@ -473,6 +473,7 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg  # push self
           inst.para.push num
+          inst.para.push regtab.dup
           if num == 127 then
             reg = regtab[a + 1]
             inreg.refpoint.push inst
@@ -775,7 +776,7 @@ module RiteSSA
       @retreg = Reg.new(self)
       @argtab = {}
       @allreg = []
-      @exception = []
+      @export_exception = Reg.new(self)
       @rescuetab = []
       @ensuretab = []
 
@@ -829,7 +830,7 @@ module RiteSSA
     attr :argtab
     attr :allreg
     attr :irep
-    attr :exception
+    attr :export_exception
     attr :rescuetab
     attr :ensuretab
 

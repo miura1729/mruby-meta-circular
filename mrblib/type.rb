@@ -42,14 +42,16 @@ module MTypeInf
                 return
               end
 
-              when MTypeInf::ContainerType
-                if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
-                  return false
-                end
+            when MTypeInf::ContainerType
+              if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
+                return false
+              end
 
-              when MTypeInf::UserDefinedType,
-                MTypeInf::PrimitiveType,
-                MTypeInf::ProcType
+            when MTypeInf::UserDefinedType,
+              MTypeInf::PrimitiveType,
+              MTypeInf::ProcType,
+              MTypeInf::ExceptionType
+
                 return false
 
               else

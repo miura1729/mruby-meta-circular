@@ -480,26 +480,31 @@ module MTypeInf
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
       type = PrimitiveType.new(String)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :to_f, String do |infer, inst, node, tup|
       type = PrimitiveType.new(Float)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :to_i, String do |infer, inst, node, tup|
       type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :downcase, String do |infer, inst, node, tup|
       type = PrimitiveType.new(String)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :size, String do |infer, inst, node, tup|
       type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :[], String do |infer, inst, node, tup|
@@ -507,6 +512,7 @@ module MTypeInf
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :include?, String do |infer, inst, node, tup|
@@ -528,33 +534,32 @@ module MTypeInf
     define_inf_rule_method :sprintf, Object do |infer, inst, node, tup|
       type = LiteralType.new(String, nil)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :__printstr__, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
+      nil
     end
 
     define_inf_rule_method :raise, Kernel do |infer, inst, node, tup|
       argc = infer.callstack[-1][2]
       type = nil
+      reg = RiteSSA::Reg.new(nil)
+      infer.exception.push reg
+
       case argc
       when 0
-#        type = ExceptionType.new(RUNTIME_ERROR)
-
-      when 1
-#        type = ExceptionType.new(RUNTIME_ERROR)
+        type = ExceptionType.new(RuntimeError)
+        reg.add_type(type, tup)
 
       else
-#        type = ExceptionType.new(RUNTIME_ERROR)
+        reg.add_same inst.inreg[1]
+        reg.flush_type(tup)
       end
 
-      infer.exception = reg = RiteSSA::Reg.new(nil)
-      reg.add_same inst.inreg[1]
-      reg.flush_type(tup)
 #      p inst.line
 #      p inst.filename
-
-#      raise RaiseHappen.new
 
       nil
     end
@@ -562,21 +567,25 @@ module MTypeInf
     define_inf_rule_method :sqrt, Module do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :rand, Math.class do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :cos, Math.class do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :sin, Math.class do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_method :begin, Range do |infer, inst, node, tup|

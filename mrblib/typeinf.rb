@@ -1,9 +1,6 @@
 TOP_SELF = Object
 
 module MTypeInf
-  class RaiseHappen<Exception
-  end
-
   def self.inference_main(&b)
     irep = Irep::get_proc_irep(b)
     ti = MTypeInf::TypeInferencer.new
@@ -80,29 +77,58 @@ module MTypeInf
       @callstack = []
       @messages = {}
       @step = 1
-      @exception = nil
+      @exception = []
     end
 
     attr :typetupletab
     attr :callstack
     attr :messages
-    attr_accessor :exception
+    attr :exception
 
     def dump_method(name, node)
       node.retreg.flush_type_alltup(0)[0]
       types = node.retreg.type
-      types.each do |arg, types|
-        args = @typetupletab.rev_table[arg]
-        args =  args[0..-3]
-        if args.size == 1 then
-          next
+      node.export_exception.flush_type_alltup(0)[0]
+      exceptions = node.export_exception.type
+      exfmt = []
+      exceptions.each do |arg, types|
+        exfmt.push types.map {|ele| ele.inspect}.join(' ,')
+      end
+      exfmt.uniq!
+      if types.size == 0 then
+        exceptions.each do |arg, types|
+          args = @typetupletab.rev_table[arg]
+          args =  args[0..-3]
+          if args.size == 1 then
+            next
+          end
+          args = args.map {|tys|
+            tys.map {|ele| ele.inspect}.join('|')
+          }.join(', ')
+          if exfmt.size != 0 then
+            print "  #{name}: (#{args}) ->  (exception #{exfmt.join(',')}) \n"
+          else
+            print "  #{name}: (#{args}) ->  \n"
+          end
         end
-        args = args.map {|tys|
-          tys.map {|ele| ele.inspect}.join('|')
-        }.join(', ')
-        type = types.map {|ele| ele.inspect}
-        type = type.join('|')
-        print "  #{name}: (#{args}) -> #{type} \n"
+      else
+        types.each do |arg, types|
+          args = @typetupletab.rev_table[arg]
+          args =  args[0..-3]
+          if args.size == 1 then
+            next
+          end
+          args = args.map {|tys|
+            tys.map {|ele| ele.inspect}.join('|')
+          }.join(', ')
+          type = types.map {|ele| ele.inspect}
+          type = type.join('|')
+          if exfmt.size != 0 then
+            print "  #{name}: (#{args}) -> #{type} exception #{exfmt.join(',')} \n"
+          else
+            print "  #{name}: (#{args}) -> #{type} \n"
+          end
+        end
       end
 
       node.reps.each do |blk|
@@ -168,7 +194,7 @@ module MTypeInf
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       i = 0
       while saairep.retreg.type.size == 0 and i < 4
-#        p saairep.retreg.type
+        #       p saairep.retreg.type
         i += 1
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       end
@@ -182,7 +208,7 @@ module MTypeInf
       end
 
       node.ext_iseq.each do |ins|
-        # p ins.op #for debug
+        #p ins.op #for debug
         rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         if rc then
           # escape for customized contination (see OP_JMPNOT)

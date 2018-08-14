@@ -2,17 +2,18 @@ MTypeInf::inference_main {
   def bar
     raise
   end
-  
+
+  def bazr
+    bar
+  end
+
   def foo
     begin
-      $kkk = 1
-      bar
+      bazr
     rescue
-      p "foo"
-    rescue ArgumentError
-      p "bar"
+      $kkk = 1
     end
   end
-  
+
   foo
 }
