@@ -252,9 +252,8 @@ module MTypeInf
       if infer.exception.size > 0 then
         # exception happen
         handle_exception(infer, inst, node, tup, outreg, argc, history)
-      else
-        nil
       end
+      nil
     end
 
     def self.rule_send_common(infer, inst, node, tup, history)
