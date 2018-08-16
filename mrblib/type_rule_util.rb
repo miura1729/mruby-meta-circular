@@ -147,18 +147,17 @@ module MTypeInf
 
     def self.handle_exception(infer, inst, node, tup, outreg, argc, history)
       rescuetab = node.root.rescuetab
-      pos = rescuetab[-1]
+      pos = rescuetab.pop
       if pos then
         infer.exception.clear
         rescuenode = node.root.nodes[pos]
         infer.inference_node(rescuenode, tup, inst.para[2], history)
-        nil
-      else
-        infer.exception.each do |exreg|
-          excreg = node.root.export_exception
-          excreg.add_same exreg
-          excreg.flush_type(tup)
-        end
+      end
+
+      infer.exception.each do |exreg|
+        excreg = node.root.export_exception
+        excreg.add_same exreg
+        excreg.flush_type(tup)
       end
     end
 

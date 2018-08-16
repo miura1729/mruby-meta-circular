@@ -165,6 +165,13 @@ module MTypeInf
 
     def inference_block(saairep, intype, tup, argc, proc)
       if saairep.argtab[tup] and saairep.argtab[tup] >= @step then
+        exexp = saairep.export_exception
+        if exexp and @exception.size == 0 then
+          reg = RiteSSA::Reg.new(nil)
+          @exception.push reg
+          reg.add_same exexp
+        end
+
         return
       end
 

@@ -4,14 +4,27 @@ MTypeInf::inference_main {
   end
 
   def bazr
-    bar
+    if random
+      bar
+    else
+      1.0
+    end
+  end
+
+  def bazrr
+    if random
+      raise
+    else
+      1.0
+    end
   end
 
   def foo
     begin
       bazr
     rescue
-      $kkk = 1
+      bazr
+      "a"
     end
   end
 

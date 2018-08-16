@@ -89,6 +89,10 @@ module MTypeInf
       type = nil
       if cls then
         type = cls.new(const.class, const)
+
+      elsif const.is_a?(Class) and const.ancestors.index(Exception) then
+        type = ExceptionType.new(const)
+
       else
         type = LiteralType.new(const.class, const)
       end

@@ -334,6 +334,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :index, Array do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :__svalue, Array do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup]
       arrtypes.each do |arrt|
@@ -544,7 +552,6 @@ module MTypeInf
 
     define_inf_rule_method :raise, Kernel do |infer, inst, node, tup|
       argc = infer.callstack[-1][2]
-      type = nil
       reg = RiteSSA::Reg.new(nil)
       infer.exception.push reg
 
