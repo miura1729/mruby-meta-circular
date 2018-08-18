@@ -26,7 +26,10 @@ module MTypeInf
     end
 
     define_inf_rule_op :LOADSYM do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      val = inst.para[0]
+      type = SymbolType.new(val.class, val)
+      inst.outreg[0].add_type(type, tup)
+      nil
     end
 
     define_inf_rule_op :LOADNIL do |infer, inst, node, tup, history|

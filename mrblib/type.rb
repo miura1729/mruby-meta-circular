@@ -51,6 +51,7 @@ module MTypeInf
               MTypeInf::PrimitiveType,
               MTypeInf::ProcType,
               MTypeInf::ExceptionType
+              MTypeInf::SymbolType
 
                 return false
 
@@ -96,6 +97,12 @@ module MTypeInf
     end
 
     attr :val
+  end
+
+  class SymbolType<LiteralType
+    def inspect_aux(hist)
+      "#{@class_object.inspect}(:#{@val})"
+    end
   end
 
   class ContainerType<BasicType
