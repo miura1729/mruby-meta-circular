@@ -106,7 +106,12 @@ module MTypeInf
         true
 
       elsif type and type.size == 1 then
-        infer.inference_node(node.exit_link[1 - bidx], tup, node.exit_reg, history)
+        enode = node.exit_link[1 - bidx]
+        while enode.ext_iseq.size == 1 and
+            (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
+          enode = enode.exit_link[1 - bidx]
+        end
+        infer.inference_node(enode, tup, node.exit_reg, history)
         true
 
       elsif typemethodp then
@@ -280,8 +285,10 @@ module MTypeInf
         end
       end
 
-      inst.inreg[0].genpoint.inreg[0].add_same inst.inreg[0]
-      inst.inreg[0].genpoint.inreg[0].flush_type(tup)
+      if inst.inreg[0].class == RiteSSA::Reg then
+        inst.inreg[0].genpoint.inreg[0].add_same inst.inreg[0]
+        inst.inreg[0].genpoint.inreg[0].flush_type(tup)
+      end
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
       nil

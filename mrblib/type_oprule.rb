@@ -27,7 +27,7 @@ module MTypeInf
 
     define_inf_rule_op :LOADSYM do |infer, inst, node, tup, history|
       val = inst.para[0]
-      type = SymbolType.new(val.class, val)
+      type = SymbolType.instance(val.class, val)
       inst.outreg[0].add_type(type, tup)
       nil
     end

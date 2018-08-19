@@ -100,6 +100,16 @@ module MTypeInf
   end
 
   class SymbolType<LiteralType
+    @@symtab = {}
+
+    def self.instance(klass, val)
+      if @@symtab[val] then
+        @@symtab[val]
+      else
+        @@symtab[val] = SymbolType.new(klass, val)
+      end
+    end
+
     def inspect_aux(hist)
       "#{@class_object.inspect}(:#{@val})"
     end
