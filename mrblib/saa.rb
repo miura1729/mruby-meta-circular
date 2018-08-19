@@ -545,11 +545,19 @@ module RiteSSA
           end
 
         when :RETURN
-          inst.para.push getarg_bx(code)
+          rkind = getarg_b(code)
+          inst.para.push rkind
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
-          dstreg = @root.retreg
+          rnode = @root
+          if rkind == 2 then  # OP_R_RETURN
+            while rnode.parent
+              rnode = rnode.parent
+            end
+            inst.para.push rnode
+          end
+          dstreg = rnode.retreg
 #          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 

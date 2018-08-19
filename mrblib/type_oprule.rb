@@ -230,7 +230,14 @@ module MTypeInf
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type(tup)
+      if inst.para[0] == 2 then
+        frame = inst.para[1]
+        stpos = infer.callstack.index {|item| item[0] == frame}
+        otup = infer.callstack[stpos][1]
+        inst.outreg[0].flush_type(otup, tup)
+      else
+        inst.outreg[0].flush_type(tup)
+      end
       nil
     end
 
