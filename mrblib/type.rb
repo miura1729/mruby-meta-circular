@@ -17,14 +17,17 @@ module MTypeInf
     attr :class_object
 
     def merge(arr)
-      if @class_object != Class || 1 then
+      clsobj = @class_object
+      primobj = MTypeInf::PrimitiveType
+      selfprimp = is_a?(primobj)
+      if clsobj != Class then
         arr.each_with_index do |ele, i|
-          if ele.class_object == @class_object then
-            if ele.is_a?(MTypeInf::PrimitiveType) then
+          if ele.class_object == clsobj then
+            if ele.is_a?(primobj) then
               return false
 
-            elsif is_a?(MTypeInf::PrimitiveType) then
-              arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+            elsif selfprimp then
+              arr[i] = primobj.new(ele.class_object)
               return true
             end
           end
@@ -34,12 +37,12 @@ module MTypeInf
             when MTypeInf::LiteralType
               if ele.val != @val then
                 if ele.class_object != Class  then
-                  arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+                  arr[i] = primobj.new(ele.class_object)
                   return true
                 end
 
               else
-                return
+                return false
               end
 
             when MTypeInf::ContainerType
@@ -48,17 +51,16 @@ module MTypeInf
               end
 
             when MTypeInf::UserDefinedType,
-              MTypeInf::PrimitiveType,
+              primobj,
               MTypeInf::ProcType,
               MTypeInf::ExceptionType
               MTypeInf::SymbolType
 
                 return false
 
-              else
-                raise self
-
-              end
+            else
+              raise self
+            end
           end
 
           #        elsif ele < self then

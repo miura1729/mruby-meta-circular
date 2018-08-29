@@ -25,7 +25,7 @@ module RiteSSA
       type = @type[tup]
       if type.nil? then
         @type[tup] = [ty]
-        return
+        return nil
       end
       ty.merge(type)
     end
