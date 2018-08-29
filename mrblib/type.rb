@@ -98,6 +98,16 @@ module MTypeInf
       @val = val
     end
 
+    def inspect_aux(hist)
+      case  @val
+      when NilClass, TrueClass, FalseClass
+        "#{@class_object.inspect}"
+
+      else
+        "#{@class_object.inspect} val=#{@val.inspect}"
+      end
+    end
+
     attr :val
   end
 
