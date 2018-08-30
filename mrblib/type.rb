@@ -22,17 +22,17 @@ module MTypeInf
       selfprimp = is_a?(primobj)
       if clsobj != Class then
         arr.each_with_index do |ele, i|
-          if ele.class_object == clsobj then
-            if ele.is_a?(primobj) then
-              return false
-
-            elsif selfprimp then
-              arr[i] = primobj.new(ele.class_object)
-              return true
-            end
-          end
-
           if ele == self then
+            if ele.class_object == @class_object then
+              if ele.is_a?(MTypeInf::PrimitiveType) then
+                return false
+
+              elsif is_a?(MTypeInf::PrimitiveType) then
+                arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+                return true
+              end
+            end
+
             case ele
             when MTypeInf::LiteralType
               if ele.val != @val then
@@ -56,7 +56,7 @@ module MTypeInf
               MTypeInf::ExceptionType
               MTypeInf::SymbolType
 
-                return false
+              return false
 
             else
               raise self
