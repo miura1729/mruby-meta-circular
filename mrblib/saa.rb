@@ -25,7 +25,7 @@ module RiteSSA
       type = @type[tup]
       if type.nil? then
         @type[tup] = [ty]
-        return
+        return nil
       end
       ty.merge(type)
     end
@@ -60,12 +60,9 @@ module RiteSSA
 
     def flush_type_alltup(dtup, topall = true)
       if topall then
-        tups = @type.keys
-        tups.each do |stup|
-          tys = get_type(stup)
-          tys.each do |ty|
-            add_type(ty, dtup)
-          end
+        types = @type.values.flatten(1)
+        filter_type(types).each do |ty|
+          add_type(ty, dtup)
         end
       end
 
@@ -75,14 +72,9 @@ module RiteSSA
       samecp.each do |var|
         var.flush_type_alltup(dtup)
         types = var.type
-        tups = types.keys
-        tups.each do |stup|
-          tys = var.get_type(stup)
-          if tys then
-            tys.each do |ty|
-              add_type(ty, dtup)
-            end
-          end
+        tys = types.values.flatten(1)
+        filter_type(tys).each do |ty|
+          add_type(ty, dtup)
         end
       end
 
@@ -90,10 +82,9 @@ module RiteSSA
       @type
     end
 
-    def get_type(tup)
-      types = @type[tup]
+    def filter_type(types)
       if types then
-        posl = @positive_list.flatten
+        posl = @positive_list.flatten(1)
         if posl.size > 0 then
           types = types.find_all {|ele| posl.find {|e| e.class_object == ele.class_object}}
         end
@@ -101,16 +92,20 @@ module RiteSSA
           types = []
         end
 
-        negl = @negative_list.flatten
+        negl = @negative_list.flatten(1)
         if negl.size > 0 then
           types = types.find_all {|ele| negl.find {|e| e.class_object != ele.class_object}}
         end
 
+        types
       else
-        types = []
+        []
       end
+    end
 
-      types
+    def get_type(tup)
+      types = @type[tup]
+      filter_type(types)
     end
 
     attr_accessor :positive_list

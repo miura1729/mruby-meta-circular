@@ -19,17 +19,17 @@ module MTypeInf
     def merge(arr)
       if @class_object != Class || 1 then
         arr.each_with_index do |ele, i|
-          if ele.class_object == @class_object then
-            if ele.is_a?(MTypeInf::PrimitiveType) then
-              return false
-
-            elsif is_a?(MTypeInf::PrimitiveType) then
-              arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-              return true
-            end
-          end
-
           if ele == self then
+            if ele.class_object == @class_object then
+              if ele.is_a?(MTypeInf::PrimitiveType) then
+                return false
+
+              elsif is_a?(MTypeInf::PrimitiveType) then
+                arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
+                return true
+              end
+            end
+
             case ele
             when MTypeInf::LiteralType
               if ele.val != @val then
@@ -53,12 +53,12 @@ module MTypeInf
               MTypeInf::ExceptionType
               MTypeInf::SymbolType
 
-                return false
+              return false
 
-              else
-                raise self
+            else
+              raise self
 
-              end
+            end
           end
 
           #        elsif ele < self then
