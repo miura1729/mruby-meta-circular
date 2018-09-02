@@ -5,6 +5,7 @@ module RiteSSA
       @type = {}
       @refpoint = []
       @same = []
+      @same_parm = {}
       @positive_list = []
       @negative_list = []
       if ins.is_a?(Inst) then
@@ -33,6 +34,7 @@ module RiteSSA
     def add_same(st)
       if st and st != self and @same.index(st) == nil then
         @same.push(st)
+        @same_parm[st] = true
       end
     end
 
