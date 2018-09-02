@@ -159,8 +159,8 @@ module MTypeInf
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
       inference_block(saairep, intype, tup, 2, nil)
-      @step += 1
-      inference_block(saairep, intype, tup, 2, nil)
+#      @step += 1
+#      inference_block(saairep, intype, tup, 2, nil)
     end
 
     def inference_block(saairep, intype, tup, argc, proc)
@@ -215,6 +215,8 @@ module MTypeInf
       end
 
       node.ext_iseq.each do |ins|
+        #p ins.line
+        #p ins.filename
         #p ins.op #for debug
         rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         if rc then

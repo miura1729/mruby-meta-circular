@@ -218,6 +218,7 @@ module MTypeInf
       inst.inreg[-1].add_type(LiteralType.new(NilClass, nil), tup)
 
       rule_send_common(infer, inst, node, tup, history)
+      nil
     end
 
     define_inf_rule_op :SENDB do |infer, inst, node, tup, history|
