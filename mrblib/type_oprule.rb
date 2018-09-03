@@ -176,10 +176,30 @@ module MTypeInf
         arytypes.each do |arytype|
           ele = arytype.element
           anum = ele.keys.size - 1
-          anum.times do |i|
-            inst.outreg[i].add_same ele[i]
-            inst.outreg[i].flush_type(tup, certup)
+          (m1 + o).times do |i|
+            if ele[i] then
+              inst.outreg[i].add_same ele[i]
+              r = inst.outreg[i].flush_type(tup, certup)
+            end
           end
+          if r == 1 then
+            type = inst.objcache[tup]
+            if !type then
+              inst.objcache[tup] = type = ContainerType.new(Array)
+            end
+
+            (anum - m1 - o).times do |i|
+              nreg = type.element[i] || RiteSSA::Reg.new(nil)
+              nreg.add_same ele[m1 + o +  i]
+              nreg.flush_type(tup)
+              type.element[i] = nreg
+            end
+
+            inst.outreg[m1 + o].add_type(type, tup)
+          end
+
+          inst.outreg[len].add_same inst.inreg[1]
+          inst.outreg[len].flush_type(tup)
         end
       else
         (m1 + o).times do |i|
@@ -204,10 +224,11 @@ module MTypeInf
         else
           inst.outreg[m1 + o].add_same inst.inreg[m1 + o]
         end
+
+        inst.outreg[m1 + o + 1].add_same inst.inreg[m1 + o + 1]
+        inst.outreg[m1 + o + 1].flush_type(tup)
       end
 
-      inst.outreg[m1 + o + 1].add_same inst.inreg[m1 + o + 1]
-      inst.outreg[m1 + o + 1].flush_type(tup)
       nil
     end
 

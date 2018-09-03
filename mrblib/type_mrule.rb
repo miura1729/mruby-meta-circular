@@ -434,21 +434,7 @@ module MTypeInf
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
       argc = inst.para[1]
-      if argc == 127 then
-        intype = []
-        type = ContainerType.new(Array)
-        intype[0] = inst.inreg[0].flush_type(tup)[tup] || []
-        inst.inreg[1..-2].each_with_index do|ar, i|
-          reg = RiteSSA::Reg.new(nil)
-          reg.add_same ar
-          reg.flush_type(tup)
-          type.element[i] = reg
-        end
-        intype[1] = [type]
-        intype[2] = inst.inreg[-1].flush_type(tup)[tup] || []
-      else
-        intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      end
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
 
       recvtypes.each do |rtype|
         ntype = rtype.val
