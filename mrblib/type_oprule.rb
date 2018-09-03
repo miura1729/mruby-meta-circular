@@ -179,7 +179,7 @@ module MTypeInf
           (m1 + o).times do |i|
             if ele[i] then
               inst.outreg[i].add_same ele[i]
-              r = inst.outreg[i].flush_type(tup, certup)
+              inst.outreg[i].flush_type(tup, certup)
             end
           end
           if r == 1 then
@@ -191,7 +191,7 @@ module MTypeInf
             (anum - m1 - o).times do |i|
               nreg = type.element[i] || RiteSSA::Reg.new(nil)
               nreg.add_same ele[m1 + o +  i]
-              nreg.flush_type(tup)
+              nreg.flush_type_alltup(tup)
               type.element[i] = nreg
             end
 
