@@ -365,9 +365,11 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg
 
-        when :GETMCONST
+        when :GETMCNST
           name = @irep.syms[getarg_b(code)]
-          src = @root.target_class.const_get(name)
+          inst.para.push name
+          src = regtab[getarg_a(code)]
+          src.refpoint.push inst
           inst.inreg.push src
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg

@@ -110,13 +110,37 @@ module MTypeInf
         type = ExceptionType.new(const)
 
       else
-        type = LiteralType.new(const.class, const)
+        if const.is_a?(Module) then
+          type = LiteralType.new(const.singleton_class, const)
+        else
+          type = LiteralType.new(const.class, const)
+        end
       end
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_op :SETCONST do |infer, inst, node, tup, history|
+      nil
+    end
+
+    define_inf_rule_op :GETMCNST do |infer, inst, node, tup, history|
+      name = inst.para[0]
+      srccls = inst.inreg[0].flush_type(tup)[tup][0].val
+
+      const = RiteSSA::ClassSSA.get_instance(srccls).const_get(name)
+      cls = TypeSource[const.class]
+      type = nil
+      if cls then
+        type = cls.new(const.class, const)
+
+      elsif const.is_a?(Class) and const.ancestors.index(Exception) then
+        type = ExceptionType.new(const)
+
+      else
+        type = LiteralType.new(const.class, const)
+      end
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
