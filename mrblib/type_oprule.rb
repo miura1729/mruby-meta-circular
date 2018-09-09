@@ -85,6 +85,19 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :GETCV do |infer, inst, node, tup, history|
+      inst.inreg[0].flush_type_alltup(tup)
+      inst.outreg[0].add_same(inst.inreg[0])
+      #p inst.para[0]
+      nil
+    end
+
+    define_inf_rule_op :SETCV do |infer, inst, node, tup, history|
+      inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].flush_type_alltup(tup)
+      nil
+    end
+
     define_inf_rule_op :GETCONST do |infer, inst, node, tup, history|
       name = inst.para[0]
       const = node.root.target_class.const_get(name)

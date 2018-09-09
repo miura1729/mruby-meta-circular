@@ -334,7 +334,7 @@ module RiteSSA
 
         when :GETCV
           name = @irep.syms[getarg_b(code)]
-          srcreg = regtab[0].get_cv(name)
+          srcreg = @root.target_class.get_iv(name)
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
           dstreg = Reg.new(inst)
@@ -342,12 +342,14 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :SETCV
-          inreg = regtab[getarg_b(code)]
+          inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
-          name = @irep.syms[getarg_b(code)]
-          dstvar = regtab[0].get_cv(name)
+          name = @irep.syms[getarg_bx(code)]
+          inst.para.push name
+          dstvar = @root.target_class.get_cv(name)
           inst.outreg.push dstvar
+
 
         when :GETCONST
           name = @irep.syms[getarg_bx(code)]
@@ -931,6 +933,14 @@ module RiteSSA
         @iv[name]
       else
         @iv[name] = InstanceVariable.new(name)
+      end
+    end
+
+    def get_cv(name)
+      if @cv[name] then
+        @cv[name]
+      else
+        @cv[name] = InstanceVariable.new(name)
       end
     end
 
