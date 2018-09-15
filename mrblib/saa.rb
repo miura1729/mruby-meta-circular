@@ -366,7 +366,7 @@ module RiteSSA
           inst.inreg.push inreg
 
         when :GETMCNST
-          name = @irep.syms[getarg_b(code)]
+          name = @irep.syms[getarg_bx(code)]
           inst.para.push name
           src = regtab[getarg_a(code)]
           src.refpoint.push inst
@@ -375,8 +375,8 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
-        when :SETMCONST
-          name = @irep.syms[getarg_b(code)]
+        when :SETMCNST
+          name = @irep.syms[getarg_bx(code)]
           inreg = regtab[getarg_b(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
