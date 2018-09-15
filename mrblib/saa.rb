@@ -911,13 +911,20 @@ module RiteSSA
     attr :method
 
     def const_get(sym)
-      @class_object.ancestors.each do |cl|
-        begin
-          res = cl.const_get(sym)
-          return res
-        rescue NameError
+      cls = @class_object
+      cls1 = cls
+      while cls1
+        cls1.ancestors.each do |cl|
+          begin
+            res = cl.const_get(sym)
+            return res
+          rescue NameError
+          end
         end
+        cls1 = cls1.instance_variable_get(:__attached__)
       end
+
+      nil
     end
 
     def const_set(sym, val)

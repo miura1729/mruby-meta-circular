@@ -162,7 +162,7 @@ mrb_irep_get_irep_instance(mrb_state *mrb, mrb_value self)
   c = mrb_class_ptr(recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m.proc && MRB_METHOD_PROC_P(m)) {
+  if (m.proc && MRB_METHOD_PROC_P(m) && !MRB_METHOD_CFUNC_P(m)) {
     return mrb_irep_wrap(mrb, mrb_class_ptr(self), MRB_METHOD_PROC(m)->body.irep);
   }
   else {
@@ -611,6 +611,56 @@ mrb_env_to_a(mrb_state *mrb, mrb_value self)
   return a;
 }
 
+static mrb_value
+mrb_meta_proc_search_proc(mrb_state *mrb, mrb_value self)
+{
+  mrb_value recv;
+  mrb_value name;
+  mrb_method_t m;
+  struct RClass *c;
+
+  mrb_get_args(mrb, "oo", &recv, &name);
+  c = mrb_class_ptr(recv);
+  m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
+
+  if (m.proc && MRB_METHOD_PROC_P(m) && !MRB_METHOD_CFUNC_P(m)) {
+    struct RProc *p =  MRB_METHOD_PROC(m);
+    struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+    mrb_proc_copy(p2, p);
+    p2->e.target_class = p->e.target_class;
+    p2->flags |= MRB_PROC_STRICT;
+    return mrb_obj_value(p2);
+  }
+  else {
+    return mrb_nil_value();
+  }
+}
+
+static mrb_value
+mrb_meta_proc_target_class(mrb_state *mrb, mrb_value self)
+{
+  struct RProc *p = mrb_proc_ptr(self);
+
+  return mrb_obj_value(MRB_PROC_TARGET_CLASS(p));
+}
+
+static mrb_value
+mrb_meta_proc_upper(mrb_state *mrb, mrb_value self)
+{
+  struct RProc *p = mrb_proc_ptr(self);
+
+  if (p->upper) {
+    struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+    mrb_proc_copy(p2, p->upper);
+    p2->e.target_class = p->upper->e.target_class;
+    p2->flags |= MRB_PROC_STRICT;
+    return mrb_obj_value(p2);
+  }
+  else {
+    return mrb_nil_value();
+  }
+}
+
 void
 mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
 {
@@ -651,6 +701,11 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, a, "get_proc_env", mrb_env_get_proc_env, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, a, "get_current_env", mrb_env_get_current_env, MRB_ARGS_ANY());
   mrb_define_method(mrb, a, "to_a", mrb_env_to_a, MRB_ARGS_NONE());
+
+  a = mrb->proc_class;
+  mrb_define_class_method(mrb, a, "search_proc", mrb_meta_proc_search_proc, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, a, "upper", mrb_meta_proc_upper, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "target_class", mrb_meta_proc_target_class, MRB_ARGS_NONE());
 }
 
 void

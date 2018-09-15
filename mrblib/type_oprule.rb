@@ -100,7 +100,12 @@ module MTypeInf
 
     define_inf_rule_op :GETCONST do |infer, inst, node, tup, history|
       name = inst.para[0]
-      const = node.root.target_class.const_get(name)
+      proc = node.root
+      const = nil
+      while proc and !const
+        const = proc.target_class.const_get(name)
+        proc = proc.parent
+      end
       cls = TypeSource[const.class]
       type = nil
       if cls then
@@ -126,7 +131,7 @@ module MTypeInf
 
     define_inf_rule_op :GETMCNST do |infer, inst, node, tup, history|
       name = inst.para[0]
-      srccls = inst.inreg[0].flush_type(tup)[tup][0].val
+      srccls = inst.inreg[0].flush_type(tup)[tup][0].class_object
 
       const = RiteSSA::ClassSSA.get_instance(srccls).const_get(name)
       cls = TypeSource[const.class]
@@ -138,7 +143,11 @@ module MTypeInf
         type = ExceptionType.new(const)
 
       else
-        type = LiteralType.new(const.class, const)
+        if const.is_a?(Module) then
+          type = LiteralType.new(const.singleton_class, const)
+        else
+          type = LiteralType.new(const.class, const)
+        end
       end
       inst.outreg[0].add_type(type, tup)
       nil
@@ -547,7 +556,7 @@ module MTypeInf
         outer.const_set(inst.para[0], cls)
       end
 
-      clstype = LiteralType.new(cls.class, cls)
+      clstype = LiteralType.new(cls.singleton_class, cls)
       inst.outreg[0].add_type clstype, tup
       nil
     end

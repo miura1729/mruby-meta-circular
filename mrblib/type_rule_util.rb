@@ -166,6 +166,27 @@ module MTypeInf
       end
     end
 
+    def self.make_ssablock(p0)
+      upper = p0.upper
+      tclass = p0.target_class
+      parent = nil
+      if upper and tclass != Object and nil then
+        parent = make_ssablock(upper)
+      end
+      irep = Irep::get_proc_irep(p0)
+      if irep then
+        begin
+          irepssa =  RiteSSA::Block.new(irep, parent, tclass)
+        rescue
+          return nil
+        end
+
+        return irepssa
+      else
+        nil
+      end
+    end
+
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
       ntup = 0
       recvtypes = recreg.get_type(tup)
@@ -175,14 +196,13 @@ module MTypeInf
       recvtypes.each do |ty|
         existf = false
         slf = ty.class_object
+
         if !slf.is_a?(Module) then
           next
         end
+
         slf.ancestors.each do |slfcls|
           irep = nil
-
-          # p name
-          # p slfcls
           # GC bug?
           a = name
           b = slfcls
@@ -210,7 +230,8 @@ module MTypeInf
                 # No method found
               end
             else
-              irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
+              p0 = Proc::search_proc(slf, name)
+              irepssa = make_ssablock(p0)
               @@ruby_methodtab[name][slfcls] = irepssa
               clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
               clsobj.method[name] = irepssa
@@ -233,9 +254,11 @@ module MTypeInf
         end
         if !existf then
           # No method fuound
-          irep = Irep::get_irep(slf, :method_missing)
+          irep = Irep::get_irep_instance(slf, :method_missing)
           if irep then
-            irepssa =  RiteSSA::Block.new(irep, nil, slfcls)
+            p0 = Proc::search_proc(slf, :method_missing)
+            tclass = p0.target_class
+            irepssa =  RiteSSA::Block.new(irep, nil, tclass)
             @@ruby_methodtab[name][slfcls] = irepssa
             clsobj = ClassSSA.get_instance(slfcls)
             clsobj.method[name] = irepssa
