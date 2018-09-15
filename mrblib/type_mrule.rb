@@ -623,12 +623,12 @@ module MTypeInf
               hashele[idx].flush_type_alltup(tup)
               inst.outreg[0].add_same hashele[idx]
 
-            when MTypeInf::PrimitiveType
+            when MTypeInf::PrimitiveType, MTypeInf::ContainerType
               inst.outreg[0].add_same hashele[ContainerType::UNDEF_VALUE]
               hashele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
 
             else
-              raise "Not supported in Hash::[]"
+              raise "Not supported in Hash::[] #{idxtype.class}"
             end
           end
         end
