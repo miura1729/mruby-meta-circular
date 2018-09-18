@@ -553,7 +553,7 @@ module RiteSSA
           inst.inreg.push inreg
           rnode = @root
           if rkind == 2 then  # OP_R_RETURN
-            while rnode.parent
+            while rnode.parent and !rnode.strict
               rnode = rnode.parent
             end
             inst.para.push rnode
@@ -676,7 +676,7 @@ module RiteSSA
           regtab[a] = dstreg
           inst.outreg.push dstreg
           bn = getarg_bl(code)
-          nlambda = Block.new(@irep.reps[bn], @root, @root.target_class.class_object)
+          nlambda = Block.new(@irep.reps[bn], @root, @root.target_class.class_object, nil)
           inst.para.push nlambda
           exregno = get_export_reg(@irep.reps, 0)
           exreg = []
@@ -775,8 +775,9 @@ module RiteSSA
   class Block
     include RiteOpcodeUtil
 
-    def initialize(irep, parent, tclass)
+    def initialize(irep, parent, tclass, strict)
       iseq = irep.iseq
+      @strict = strict
       @reps = []
       @irep = irep
       @target_class = ClassSSA.get_instance(tclass)
@@ -820,7 +821,7 @@ module RiteSSA
           dag.exit_link << @nodes[lastpos + 1]
           dag.exit_link << @nodes[lastpos + getarg_sbx(lastins)]
 
-        when :RETURN
+        when :RETURN, :STOP
 
         else
           @nodes[lastpos + 1].enter_link << dag
@@ -842,6 +843,7 @@ module RiteSSA
     attr :export_exception
     attr :rescuetab
     attr :ensuretab
+    attr :strict
 
     def collect_block_head(iseq)
       res = [0]
@@ -858,7 +860,7 @@ module RiteSSA
           res.push (pos + getarg_sbx(ins))
           res.push (pos + 1)
 
-        when :RETURN
+        when :RETURN, :STOP
           res.push (pos + 1)
         end
       end

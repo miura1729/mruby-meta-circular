@@ -645,6 +645,19 @@ mrb_meta_proc_target_class(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_meta_proc_strictp(mrb_state *mrb, mrb_value self)
+{
+  struct RProc *p = mrb_proc_ptr(self);
+
+  if (MRB_PROC_SCOPE_P(p) || MRB_PROC_STRICT_P(p)) {
+    return mrb_true_value();
+  }
+  else {
+    return mrb_nil_value();
+  }
+}
+
+static mrb_value
 mrb_meta_proc_upper(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
@@ -706,6 +719,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, a, "search_proc", mrb_meta_proc_search_proc, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, a, "upper", mrb_meta_proc_upper, MRB_ARGS_NONE());
   mrb_define_method(mrb, a, "target_class", mrb_meta_proc_target_class, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "strict?", mrb_meta_proc_strictp, MRB_ARGS_NONE());
 }
 
 void

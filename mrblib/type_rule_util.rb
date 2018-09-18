@@ -170,18 +170,12 @@ module MTypeInf
       upper = p0.upper
       tclass = p0.target_class
       parent = nil
-      if upper and tclass != Object and nil then
+      if upper then
         parent = make_ssablock(upper)
       end
       irep = Irep::get_proc_irep(p0)
       if irep then
-        begin
-          irepssa =  RiteSSA::Block.new(irep, parent, tclass)
-        rescue
-          return nil
-        end
-
-        return irepssa
+        RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
       else
         nil
       end
@@ -257,8 +251,7 @@ module MTypeInf
           irep = Irep::get_irep_instance(slf, :method_missing)
           if irep then
             p0 = Proc::search_proc(slf, :method_missing)
-            tclass = p0.target_class
-            irepssa =  RiteSSA::Block.new(irep, nil, tclass)
+            irepssa = make_ssablock(p0)
             @@ruby_methodtab[name][slfcls] = irepssa
             clsobj = ClassSSA.get_instance(slfcls)
             clsobj.method[name] = irepssa

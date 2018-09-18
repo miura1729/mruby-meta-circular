@@ -568,7 +568,7 @@ module MTypeInf
       co = tclass[0].val
       irepssa = inst.objcache[co]
       if !irepssa then
-        irepssa = RiteSSA::Block.new(irep, root, co)
+        irepssa = RiteSSA::Block.new(irep, root, co, true)
         inst.objcache[co] = irepssa
       end
       intype = [tclass]
