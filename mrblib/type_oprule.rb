@@ -278,6 +278,16 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :ARGARY do |infer, inst, node, tup, history|
+      ax = inst.para[0]
+      m1 = (ax >> 10) & 0x3f
+      r = (ax >> 9) & 0x1
+      m2 = (ax >> 4) & 0x1f
+      lv = (ax >> 0) & 0xf
+
+      nil
+    end
+
     define_inf_rule_op :SEND do |infer, inst, node, tup, history|
       inst.inreg[0..-2].each do |reg|
         reg.flush_type(tup)
@@ -294,6 +304,14 @@ module MTypeInf
       end
 
       rule_send_common(infer, inst, node, tup, history)
+    end
+
+    define_inf_rule_op :SUPER do |infer, inst, node, tup, history|
+      inst.inreg.each do |reg|
+        reg.flush_type(tup)
+      end
+
+#      rule_send_common(infer, inst, node, tup, history)
     end
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|
