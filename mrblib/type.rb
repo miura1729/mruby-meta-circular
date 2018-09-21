@@ -203,11 +203,12 @@ module MTypeInf
   end
 
   class ProcType<BasicType
-    def initialize(co, irep, slf, env, *rest)
+    def initialize(co, irep, slf, env, tups, *rest)
       super
       @irep = irep
       @slf = slf
       @env = env
+      @tups = tups
     end
 
     def ==(other)
@@ -224,6 +225,7 @@ module MTypeInf
     attr :irep
     attr :slf
     attr :env
+    attr :tups
   end
 
   class UserDefinedType<BasicType

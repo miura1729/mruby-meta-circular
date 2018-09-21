@@ -157,8 +157,9 @@ module MTypeInf
       up = inst.para[1]
       frame = inst.para[0]
       pos = inst.para[2]
-      stpos = infer.callstack.index {|item| item[0] == frame}
-      otup = infer.callstack[stpos][1]
+      proc = infer.callstack[-1][3]
+      stpos = proc.tups.index {|item| item[0] == frame}
+      otup = proc.tups[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type(tup, otup)
 
@@ -169,8 +170,9 @@ module MTypeInf
       up = inst.para[1]
       frame = inst.para[0]
       pos = inst.para[2]
-      stpos = infer.callstack.index {|item| item[0] == frame}
-      otup = infer.callstack[stpos][1]
+      proc = infer.callstack[-1][3]
+      stpos = proc.tups.index {|item| item[0] == frame}
+      otup = proc.tups[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type(otup, tup)
 
@@ -529,7 +531,8 @@ module MTypeInf
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|
       slf = inst.inreg[0].flush_type(tup)[tup][0]
       envtypes = inst.para[1].map {|reg| reg.flush_type(tup)[tup]}
-      pty = ProcType.new(Proc, inst.para[0], slf, envtypes)
+      tups = infer.callstack.map {|e| [e[0], e[1]]}
+      pty = ProcType.new(Proc, inst.para[0], slf, envtypes, tups)
       inst.outreg[0].add_type pty, tup
       nil
     end
