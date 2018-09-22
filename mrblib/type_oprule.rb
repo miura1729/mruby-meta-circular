@@ -579,12 +579,13 @@ module MTypeInf
         end
         if regcls then
           inst.objcache[supobj] = regcls
+          cls = regcls
         else
           cls = Class.new(supobj)
           inst.objcache[supobj] = cls
-          clobj = RiteSSA::ClassSSA.get_instance(cls)
-          outer.const_set(name, cls)
         end
+        clobj = RiteSSA::ClassSSA.get_instance(cls)
+        outer.const_set(name, cls)
       end
 
       clstype = LiteralType.new(cls.singleton_class, cls)
