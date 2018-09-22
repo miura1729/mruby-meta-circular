@@ -561,6 +561,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :CLASS do |infer, inst, node, tup, history|
+      name = inst.para[0]
       base = inst.inreg[0].flush_type(tup)[tup]
       if base[0].class_object == NilClass then
         outer = node.root.target_class
@@ -569,12 +570,21 @@ module MTypeInf
       end
       sup = inst.inreg[1].flush_type(tup)[tup]
       supobj = sup[0].class_object
+      regcls = nil
       cls = inst.objcache[supobj]
       if !cls then
-        cls = Class.new(supobj)
-        inst.objcache[supobj] = cls
-        clobj = RiteSSA::ClassSSA.get_instance(cls)
-        outer.const_set(inst.para[0], cls)
+        begin
+          regcls = Object.const_get(name)
+        rescue
+        end
+        if regcls then
+          inst.objcache[supobj] = regcls
+        else
+          cls = Class.new(supobj)
+          inst.objcache[supobj] = cls
+          clobj = RiteSSA::ClassSSA.get_instance(cls)
+          outer.const_set(name, cls)
+        end
       end
 
       clstype = LiteralType.new(cls.singleton_class, cls)
