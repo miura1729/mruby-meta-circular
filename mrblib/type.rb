@@ -20,19 +20,19 @@ module MTypeInf
       clsobj = @class_object
       primobj = MTypeInf::PrimitiveType
       selfprimp = is_a?(primobj)
+      selfcontp = is_a?(MTypeInf::ContainerType)
       if clsobj != Class then
         arr.each_with_index do |ele, i|
-          if ele == self then
-            if ele.class_object == @class_object then
-              if ele.is_a?(MTypeInf::PrimitiveType) then
-                return false
+          if ele.class_object == @class_object then
+            if ele.is_a?(primobj) then
+              return false
 
-              elsif is_a?(MTypeInf::PrimitiveType) then
-                arr[i] = MTypeInf::PrimitiveType.new(ele.class_object)
-                return true
-                edn
-              end
+            elsif selfprimp then
+              arr[i] = self
+              return false
+            end
 
+            if ele == self then
               case ele
               when MTypeInf::LiteralType
                 if ele.val != @val then

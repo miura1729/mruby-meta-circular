@@ -164,23 +164,11 @@ module MTypeInf
     end
 
     def inference_block(saairep, intype, tup, argc, proc)
-      if saairep.argtab[tup] and saairep.argtab[tup] >= @step then
-        exexp = saairep.export_exception
-        if exexp and @exception.size == 0 then
-          reg = RiteSSA::Reg.new(nil)
-          @exception.push reg
-          reg.add_same exexp
-        end
-
-        return
-      end
-
       # clear all regs
       saairep.allreg.each do |reg|
         reg.type = {}
       end
 
-      @callstack.push [saairep, tup, argc, proc]
       fixp = true
       intype.each_with_index do |tys, i|
         if tys then
@@ -192,15 +180,28 @@ module MTypeInf
         end
       end
 
-      if fixp or true then
+      if fixp then
         saairep.argtab[tup] ||= 0
         saairep.argtab[tup] += 1
       end
 
-      inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
+      if fixp and saairep.argtab[tup] > @step then
+        exexp = saairep.export_exception
+        if exexp and @exception.size == 0 then
+          reg = RiteSSA::Reg.new(nil)
+          @exception.push reg
+          reg.add_same exexp
+        end
+
+        return
+      end
+
+      @callstack.push [saairep, tup, argc, proc]
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       i = 0
-      while saairep.retreg.type.size == 0 and i < 4
+      oldtype = true
+      while saairep.retreg.type != oldtype and i < 5
+        oldtype = saairep.retreg.type.dup
         #       p saairep.retreg.type
         i += 1
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
