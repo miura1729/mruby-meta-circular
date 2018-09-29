@@ -1,4 +1,4 @@
-TOP_SELF = Object
+TOP_SELF = Object.new
 
 module MTypeInf
   def self.inference_main(&b)
@@ -154,8 +154,8 @@ module MTypeInf
     end
 
     def inference_top(saairep)
-      topobj = TOP_SELF.class
-      ty = TypeTable[topobj] = UserDefinedType.new(topobj)
+      topobj = TOP_SELF
+      ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
       inference_block(saairep, intype, tup, 2, nil)

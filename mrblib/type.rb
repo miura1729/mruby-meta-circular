@@ -38,7 +38,7 @@ module MTypeInf
                 if ele.val != @val then
                   if ele.class_object != Class  then
                     arr[i] = primobj.new(ele.class_object)
-                    return true
+                    return false
                   end
 
                 else
