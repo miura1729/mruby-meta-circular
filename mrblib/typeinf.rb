@@ -164,11 +164,6 @@ module MTypeInf
     end
 
     def inference_block(saairep, intype, tup, argc, proc)
-      # clear all regs
-      saairep.allreg.each do |reg|
-        reg.type = {}
-      end
-
       fixp = true
       intype.each_with_index do |tys, i|
         if tys then
@@ -196,13 +191,25 @@ module MTypeInf
         return
       end
 
+      # clear all regs
+      saairep.allreg.each do |reg|
+        reg.type = {}
+      end
+      intype.each_with_index do |tys, i|
+        if tys then
+          tys.each do |ty|
+            saairep.nodes[0].enter_reg[i].add_type(ty, tup)
+          end
+        end
+      end
+
       @callstack.push [saairep, tup, argc, proc]
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       i = 0
       oldtype = true
       while saairep.retreg.type != oldtype and i < 5
         oldtype = saairep.retreg.type.dup
-        #       p saairep.retreg.type
+        #p saairep.retreg.type
         i += 1
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       end
