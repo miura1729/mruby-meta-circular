@@ -423,9 +423,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :class, Object do |infer, inst, node, tup|
-      type = inst.inreg[0].flush_type(tup)[tup][0].class_object.class
+      type = inst.inreg[0].flush_type(tup)[tup][0].class_object
 
-      type = PrimitiveType.new(type)
+      type = LiteralType.new(type.class, type)
       inst.outreg[0].add_type(type, tup)
       nil
     end

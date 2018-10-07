@@ -5,7 +5,7 @@ module MTypeInf
     irep = Irep::get_proc_irep(b)
     ti = TypeInferencer.new
 
-    b = RiteSSA::Block.new(irep, nil, TOP_SELF, true)
+    b = RiteSSA::Block.new(irep, nil, TOP_SELF.class, true)
     ti.inference_top(b)
     ti.messages.each do |message, cnt|
       print message
