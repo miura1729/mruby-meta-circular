@@ -22,8 +22,11 @@ module MTypeInf
       selfprimp = is_a?(primobj)
       selfcontp = is_a?(MTypeInf::ContainerType)
       if clsobj != Class then
-        arr.each_with_index do |ele, i|
-          if ele.class_object == @class_object then
+        i = 0
+        ed = arr.size
+        while i < ed
+          ele = arr[i]
+          if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
 
@@ -63,6 +66,8 @@ module MTypeInf
               end
             end
           end
+
+          i += 1
         end
       else
         #        elsif ele < self then
