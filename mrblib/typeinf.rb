@@ -158,7 +158,9 @@ module MTypeInf
       ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
-      inference_block(saairep, intype, tup, 2, nil)
+      bproc = ProcType.new(Proc, saairep, ty, [], [])
+      bproc.place[true] = true
+      inference_block(saairep, intype, tup, 2, bproc)
 #      @step += 1
 #      inference_block(saairep, intype, tup, 2, nil)
     end

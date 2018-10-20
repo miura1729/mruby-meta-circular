@@ -59,7 +59,11 @@ module MTypeInf
 
     define_inf_rule_op :SETGLOBAL do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type_alltup(tup)
+      types = inst.outreg[0].flush_type_alltup(tup)[tup]
+      # update place infomation
+      types.each do |ty|
+        ty.place[true] = true
+      end
       # p inst.para[0]
       # p inst.outreg[0].flush_type_alltup(tup)
       # p tup
@@ -81,7 +85,14 @@ module MTypeInf
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type_alltup(tup)
+      types = inst.outreg[0].flush_type_alltup(tup)[tup]
+
+      # update place infomation
+      if types then
+        types.each do |ty|
+          ty.place[inst.inreg[1]] = true
+        end
+      end
       nil
     end
 
@@ -174,7 +185,11 @@ module MTypeInf
       stpos = proc.tups.index {|item| item[0] == frame}
       otup = proc.tups[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type(otup, tup)
+      types = inst.outreg[0].flush_type(otup, tup)[otup]
+      # update place infomation
+      types.each do |ty|
+        ty.place[proc] = true
+      end
 
       nil
     end
@@ -534,6 +549,9 @@ module MTypeInf
       tups = infer.callstack.map {|e| [e[0], e[1]]}
       pty = ProcType.new(Proc, inst.para[0], slf, envtypes, tups)
       inst.outreg[0].add_type pty, tup
+      cproc = infer.callstack[-1][3]
+      cproc.place[pty] = true
+
       nil
     end
 
@@ -615,10 +633,9 @@ module MTypeInf
       name = inst.para[0]
       ruby_methodtab = get_ruby_methodtab
       ruby_methodtab[name] ||= {}
-      irep = method.irep
-      ruby_methodtab[name][tclass] = irep
+      ruby_methodtab[name][tclass] = method
       tclobj = RiteSSA::ClassSSA.get_instance(tclass)
-      tclobj.method[name] = irep
+      tclobj.method[name] = method.irep
       nil
     end
 

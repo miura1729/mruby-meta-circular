@@ -3,6 +3,7 @@ module MTypeInf
     UNDEF_VALUE = [:undef]
     def initialize(co, *rest)
       @class_object = co
+      @place = {}
     end
 
     def ==(other)
@@ -15,6 +16,7 @@ module MTypeInf
     end
 
     attr :class_object
+    attr :place
 
     def merge(arr)
       clsobj = @class_object

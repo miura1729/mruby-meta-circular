@@ -21,7 +21,7 @@ module MTypeInf
       when :SEND
         case inst.para[0]
         when :[]
-          rectype = inst.inreg[0].genpoint.inreg[0].get_type(tup)
+          rectype = inst.inreg[0].get_type(tup)
           idxtype = inst.inreg[1].get_type(tup)
           if rectype.size == 1 then
             if rectype[0].class_object == Array then
@@ -171,11 +171,15 @@ module MTypeInf
       tclass = p0.target_class
       parent = nil
       if upper then
-        parent = make_ssablock(upper)
+        pproc = make_ssablock(upper)
+        if pproc then
+          parent = pproc.irep
+        end
       end
       irep = Irep::get_proc_irep(p0)
       if irep then
-        RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
+        blk = RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
+        ProcType.new(Proc, blk, tclass, [], [])
       else
         nil
       end
@@ -200,8 +204,9 @@ module MTypeInf
           # GC bug?
           a = name
           b = slfcls
-          irepssa = @@ruby_methodtab[name][slfcls]
-          if irepssa.nil? then
+          procssa = @@ruby_methodtab[name][slfcls]
+          irepssa = nil
+          if procssa.nil? then
             irep = Irep::get_irep_instance(slf, name)
             name2 = name
             if irep and Irep::OPTABLE_SYM[Irep::get_opcode(irep.iseq[0])] == :CALL then
@@ -218,24 +223,28 @@ module MTypeInf
               elsif @@ruby_methodtab[:method_missing] and
                   @@ruby_methodtab[:method_missing][cls] then
                 name2 = :method_missing
-                irepssa = @@ruby_methodtab[:method_missing][cls]
+                procssa = @@ruby_methodtab[:method_missing][cls]
+                irepssa = procssa.irep
 
               else
                 # No method found
               end
             else
               p0 = Proc::search_proc(slf, name)
-              irepssa = make_ssablock(p0)
-              @@ruby_methodtab[name][slfcls] = irepssa
+              procssa = make_ssablock(p0)
+              @@ruby_methodtab[name][slfcls] = procssa
+              irepssa = procssa.irep
               clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
               clsobj.method[name] = irepssa
             end
+          else
+            irepssa = procssa.irep
           end
 
           if irepssa then
             intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
-            infer.inference_block(irepssa, intype, ntup, argc, nil)
+            infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if outreg then
               outreg.add_same irepssa.retreg
               existf = true
@@ -251,13 +260,14 @@ module MTypeInf
           irep = Irep::get_irep_instance(slf, :method_missing)
           if irep then
             p0 = Proc::search_proc(slf, :method_missing)
-            irepssa = make_ssablock(p0)
-            @@ruby_methodtab[name][slfcls] = irepssa
+            procssa = make_ssablock(p0)
+            @@ruby_methodtab[name][slfcls] = procssa
+            irepssa = procssa.irep
             clsobj = ClassSSA.get_instance(slfcls)
             clsobj.method[name] = irepssa
             intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
-            infer.inference_block(irepssa, intype, ntup, argc, nil)
+            infer.inference_block(irepssa, intype, ntup, argc, procssa)
             outreg.add_same irepssa.retreg
           else
             mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"

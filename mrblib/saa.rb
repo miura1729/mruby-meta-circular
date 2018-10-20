@@ -327,6 +327,8 @@ module RiteSSA
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
+          slfreg = regtab[0]
+          inst.inreg.push slfreg
           name = @irep.syms[getarg_bx(code)]
           inst.para.push name
           dstvar = @root.target_class.get_iv(name)
