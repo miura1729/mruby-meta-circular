@@ -1,6 +1,10 @@
 module RiteSSA
   class Storable
+    @@num = 0
+
     def initialize(ins)
+      @id = @@num
+      @@num += 1
       @genpoint = ins
       @type = {}
       @refpoint = []
@@ -116,6 +120,7 @@ module RiteSSA
     attr :refpoint
     attr :type
     attr :same
+    attr :id
   end
 
   class Reg<Storable
