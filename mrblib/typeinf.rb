@@ -6,11 +6,15 @@ module MTypeInf
     ti = TypeInferencer.new
 
     b = RiteSSA::Block.new(irep, nil, TOP_SELF.class, true)
-    ti.inference_top(b)
+    bproc = ti.inference_top(b)
     ti.messages.each do |message, cnt|
       print message
     end
-    ti.dump_type
+
+    # ti.dump_type
+    cgen = CodeGenC::CodeGen.new
+    cgen.code_gen(bproc, ti)
+    p cgen.code
   end
 
   class TypeTupleTab
@@ -163,6 +167,7 @@ module MTypeInf
       inference_block(saairep, intype, tup, 2, bproc)
 #      @step += 1
 #      inference_block(saairep, intype, tup, 2, nil)
+      bproc
     end
 
     def inference_block(saairep, intype, tup, argc, proc)

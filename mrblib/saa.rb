@@ -181,6 +181,7 @@ module RiteSSA
 
   class RiteDAGNode
     include RiteOpcodeUtil
+    @@num = 0
 
     def initialize(irep, pos, iseq, root)
       @root = root
@@ -192,6 +193,8 @@ module RiteSSA
       @exit_link = []
       @enter_reg = nil
       @exit_reg = nil
+      @id = @@num
+      @@num += 1
     end
 
     attr :root
@@ -202,6 +205,7 @@ module RiteSSA
     attr :exit_link
     attr :enter_reg
     attr_accessor :exit_reg
+    attr :id
 
     def get_export_reg(reps, level)
       res = []
@@ -499,7 +503,7 @@ module RiteSSA
             inreg.refpoint.push inst
             inst.inreg.push reg
           else
-            nilreg = Reg.new(inst)
+            nilreg = Reg.new(nil)
             inst.inreg.push nilreg
           end
 
