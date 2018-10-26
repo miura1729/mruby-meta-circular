@@ -35,6 +35,20 @@ module CodeGenC
         i = gins.outreg.index(reg)
         "v#{gins.inreg[i].id}"
 
+      when :EQ
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node)
+        "(#{arg0} == #{arg1})"
+
+      when :SUBI
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node)
+        "(#{arg0} - #{gins.para[1]})"
+
+      when :ADD
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node)
+        "(#{arg0} + #{arg1})"
+
       else
         "v#{reg.id}"
 

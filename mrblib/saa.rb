@@ -746,6 +746,12 @@ module RiteSSA
         pc = pc + 1
       end
 
+      inst = Inst.new(0, @irep, -1, self)
+      dstreg = Reg.new(nil)
+      inst.outreg.push dstreg
+      regtab.each do |reg|
+        reg.refpoint.push inst
+      end
       @exit_reg = regtab.clone
     end
 

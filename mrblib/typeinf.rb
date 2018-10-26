@@ -14,7 +14,6 @@ module MTypeInf
     # ti.dump_type
     cgen = CodeGenC::CodeGen.new
     cgen.code_gen(bproc, ti)
-    p cgen.code
   end
 
   class TypeTupleTab
