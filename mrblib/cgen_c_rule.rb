@@ -1,11 +1,19 @@
 module CodeGenC
   class CodeGen
-    def self.reg_real_value(ccgen, reg, node)
+    def self.reg_real_value(ccgen, reg, node, tup, ti)
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
           preg = pnode.exit_reg[reg.genpoint]
-          return reg_real_value(ccgen, preg, pnode)
+          return reg_real_value(ccgen, preg, pnode, tup, ti)
+        end
+
+        if node.enter_link.size == 0 then # TOP of block
+          ptype = ti.typetupletab.rev_table[tup][reg.genpoint]
+          if ptype and ptype.size == 1 and
+              ptype[0].class == MTypeInf::LiteralType then
+            return ptype[0].val
+          end
         end
 
         return "v#{reg.id}"
@@ -17,7 +25,7 @@ module CodeGenC
       end
       case gins.op
       when :MOVE
-        reg_real_value(ccgen, gins.inreg[0], node)
+        reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
 
       when :LOADL, :LOADI
         gins.para[0]
@@ -33,20 +41,20 @@ module CodeGenC
 
       when :ENTER
         i = gins.outreg.index(reg)
-        "v#{gins.inreg[i].id}"
+        reg_real_value(ccgen, gins.inreg[i], node, tup, ti)
 
       when :EQ
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node)
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
         "(#{arg0} == #{arg1})"
 
       when :SUBI
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node)
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
         "(#{arg0} - #{gins.para[1]})"
 
       when :ADD
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node)
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
         "(#{arg0} + #{arg1})"
 
       else

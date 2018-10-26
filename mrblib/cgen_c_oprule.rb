@@ -35,7 +35,7 @@ module CodeGenC
       proc = mtab[inst.para[0]][rectype]
       decl = gen_declare(ccgen, inst, inst.outreg[0], tup)
       fname = gen_method_func(name, rectype, utup)
-      args = inst.inreg.map {|reg| reg_real_value(ccgen, reg, node)}.join(", ")
+      args = inst.inreg.map {|reg| reg_real_value(ccgen, reg, node, tup, infer)}.join(", ")
       ccgen.ccode << "#{decl} = #{fname}(#{args})"
       ccgen.ccode << "\n"
       minf = [name, proc, utup]
@@ -46,7 +46,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
-      retval = reg_real_value(ccgen, inst.inreg[0], node)
+      retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
       ccgen.ccode << "return #{retval}"
       ccgen.ccode << "\n"
       nil
@@ -65,12 +65,12 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
-      cond = reg_real_value(ccgen, inst.inreg[0], node)
+      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
       "if (#{cond}) goto L#{node.exit_link[0].id} else goto L#{node.exit_link[1].id}\n"
     end
 
     define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
-      cond = reg_real_value(ccgen, inst.inreg[0], node)
+      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
       "if (#{cond}) goto L#{node.exit_link[1].id} else goto L#{node.exit_link[0].id}\n"
     end
 
