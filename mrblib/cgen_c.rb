@@ -71,6 +71,7 @@ EOS
       @ccode << "#{rettype} #{fname}(mrb_state *mrb, mrb_value self#{args}) {\n"
       code_gen_node(block.nodes[0], ti, name, {}, tup)
       @ccode << "}\n"
+      @callstack.pop
     end
 
     def code_gen_node(node, ti, name, history, tup)
@@ -83,12 +84,23 @@ EOS
       end
 
       node.exit_link.each do |nd|
+        dclf = nil
         if nd.enter_link.size > 1 then
+          if nd.enter_link.count {|n| history[n]} == 1 then
+            declf = true
+          end
+
           nd.enter_reg.each_with_index do |nreg, i|
             if is_live_reg?(nd, nreg, i) then
               sreg = node.exit_reg[i]
               src = CodeGen::reg_real_value(self, sreg, node, tup, ti)
-              @ccode << "v#{nreg.id} = #{src}\n"
+              dst = nil
+              if declf then
+                dst = CodeGen::gen_declare(self, nil, nreg, tup)
+              else
+                dst = "v#{nreg.id}"
+              end
+              @ccode << "#{dst} = #{src};\n"
             end
           end
         end
@@ -97,7 +109,7 @@ EOS
       if rc then
         @ccode << rc
       elsif node.exit_link[0] then
-        @ccode << "goto L#{node.exit_link[0].id}\n"
+        @ccode << "goto L#{node.exit_link[0].id};\n"
       end
 
       node.exit_link.each do |nd|

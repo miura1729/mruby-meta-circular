@@ -22,33 +22,59 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :LOADSYM do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :LOADNIL do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :ENTER do |ccgen, inst, node, infer, history, tup|
       nil
     end
 
+    define_ccgen_rule_op :JMP do |ccgen, inst, node, infer, history, tup|
+      "goto L#{node.exit_link[0].id};\n"
+    end
+
+    define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
+      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
+      "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+    end
+
+    define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
+      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
+      "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+    end
+
     define_ccgen_rule_op :SEND do |ccgen, inst, node, infer, history, tup|
       name = inst.para[0]
-      mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
       intype = inst.inreg.map {|reg| reg.type[tup] || []}
-      utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), 0)
       rectype = inst.inreg[0].type[tup][0].class_object
-      proc = mtab[inst.para[0]][rectype]
-      decl = gen_declare(ccgen, inst, inst.outreg[0], tup)
-      fname = gen_method_func(name, rectype, utup)
-      args = inst.inreg.map {|reg| reg_real_value(ccgen, reg, node, tup, infer)}.join(", ")
-      ccgen.ccode << "#{decl} = #{fname}(#{args})"
-      ccgen.ccode << "\n"
-      minf = [name, proc, utup]
-      if ccgen.using_method.index(minf) == nil then
-        ccgen.using_method.push minf
+      if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rectype] then
+        mproc.call(ccgen, inst, node, infer, history, tup)
+      else
+        mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
+        proc = mtab[inst.para[0]][rectype]
+        decl = gen_declare(ccgen, inst, inst.outreg[0], tup)
+
+        utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), 0)
+        fname = gen_method_func(name, rectype, utup)
+
+        args = inst.inreg.map {|reg| reg_real_value(ccgen, reg, node, tup, infer)}.join(", ")
+        ccgen.ccode << "#{decl} = #{fname}(#{args});\n"
+        minf = [name, proc, utup]
+        if ccgen.using_method.index(minf) == nil then
+          ccgen.using_method.push minf
+        end
       end
       nil
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
       retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
-      ccgen.ccode << "return #{retval}"
-      ccgen.ccode << "\n"
+      ccgen.ccode << "return #{retval};\n"
       nil
     end
 
@@ -56,7 +82,19 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_op :SUBI do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_op :LT do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :LE do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :GT do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :GE do |ccgen, inst, node, infer, history, tup|
       nil
     end
 
@@ -64,18 +102,48 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
-      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
-      "if (#{cond}) goto L#{node.exit_link[0].id} else goto L#{node.exit_link[1].id}\n"
+    define_ccgen_rule_op :SUB do |ccgen, inst, node, infer, history, tup|
+      nil
     end
 
-    define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
-      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
-      "if (#{cond}) goto L#{node.exit_link[1].id} else goto L#{node.exit_link[0].id}\n"
+    define_ccgen_rule_op :MUL do |ccgen, inst, node, infer, history, tup|
+      nil
     end
 
-    define_ccgen_rule_op :JMP do |ccgen, inst, node, infer, history, tup|
-      "goto L#{node.exit_link[0].id}\n"
+    define_ccgen_rule_op :DIV do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :ADDI do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :SUBI do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
+      plist = inst.outreg[0].type[tup].map {|ty| ty.place.keys}.flatten.uniq
+      reg = inst.outreg[0]
+      vals = inst.inreg.map {|reg|
+        reg_real_value(ccgen, reg, node, tup, infer)
+      }.join(',')
+      if plist.size != 0 then
+        ccgen.ccode << "mrb_value v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, #{vals});\n"
+      else
+        type = get_type(ccgen, inst, reg, tup)
+        if type == :array then
+          uv = MTypeInf::ContainerType::UNDEF_VALUE
+          ereg = reg.type[tup][0].element[uv]
+          etype = get_type(ccgen, inst, ereg, tup)
+          ccgen.ccode << "#{etype} v#{reg.id}[] = {\n"
+          ccgen.ccode << vals
+          ccgen.ccode << "\n};\n"
+        end
+      end
+
+      print ccgen.ccode
+      nil
     end
   end
 end

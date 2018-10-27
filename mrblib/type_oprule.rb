@@ -469,6 +469,13 @@ module MTypeInf
       inst.para[0].times do |i|
         nreg = type.element[i] || RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
+        stype = inst.inreg[i].type
+        stype.keys.each do |ttup|
+          types = stype[ttup]
+          types.each do |ty|
+            ty.place[nreg] = true
+          end
+        end
         type.element[i] = nreg
         nilreg.add_same inst.inreg[i]
       end

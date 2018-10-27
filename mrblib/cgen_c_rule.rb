@@ -48,14 +48,54 @@ module CodeGenC
         arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
         "(#{arg0} == #{arg1})"
 
-      when :SUBI
+      when :LT
         arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        "(#{arg0} - #{gins.para[1]})"
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} < #{arg1})"
+
+      when :LE
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} <= #{arg1})"
+
+      when :GT
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} > #{arg1})"
+
+      when :GE
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} >= #{arg1})"
 
       when :ADD
         arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
         arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
         "(#{arg0} + #{arg1})"
+
+      when :SUB
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} - #{arg1})"
+
+      when :MUL
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} * #{arg1})"
+
+      when :DIV
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
+        "(#{arg0} / #{arg1})"
+
+      when :ADDI
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        "(#{arg0} + #{gins.para[1]})"
+
+      when :SUBI
+        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        "(#{arg0} - #{gins.para[1]})"
+
 
       else
         "v#{reg.id}"
@@ -69,11 +109,16 @@ module CodeGenC
 
     TTABLE = {
       Fixnum => :mrb_int,
-      Float => :mrb_float
+      Float => :mrb_float,
+      Array => :array
     }
     def self.get_type(ccgen, inst, reg, tup)
       rtype = reg.type[tup]
-      cls0 = rtype[0].class_object
+      if rtype then
+        cls0 = rtype[0].class_object
+      else
+        rtype = reg.type[reg.type.keys[0]]
+      end
       if rtype.all? {|e| e.class_object == cls0} then
         res = TTABLE[cls0]
         if res then
@@ -84,7 +129,7 @@ module CodeGenC
       if rtype.all? {|e|
           cls = e.class_object
           cls == TrueClass || cls == FalseClass
-        } then
+        } and rtype.size > 0 then
         return :mrb_bool
       end
 
@@ -93,7 +138,16 @@ module CodeGenC
 
     def self.gen_declare(ccgen, inst, reg, tup)
       type = get_type(ccgen, inst, reg, tup)
-      "#{type} v#{reg.id}"
+      case type
+      when :array
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        ereg = reg.type[tup][0].element[uv]
+        etype = get_type(ccgen, inst, ereg, tup)
+        "#{etype} *v#{reg.id}"
+
+      else
+        "#{type} v#{reg.id}"
+      end
     end
   end
 end
