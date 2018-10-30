@@ -67,7 +67,7 @@ EOS
         args << ", "
         args << CodeGen::gen_declare(self, nil, topnode.enter_reg[i + 1], tup)
       end
-      rettype = CodeGen::get_type(self, block, block.retreg, tup)
+      rettype = CodeGen::get_ctype(self, block, block.retreg, tup)
       @ccode << "#{rettype} #{fname}(mrb_state *mrb, mrb_value self#{args}) {\n"
       code_gen_node(block.nodes[0], ti, name, {}, tup)
       @ccode << "}\n"
@@ -79,7 +79,7 @@ EOS
       @ccode << "L#{node.id}: \n"
       rc = nil
       node.ext_iseq.each do |ins|
-        p ins.op
+        #p ins.op # for debug
         rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
       end
 

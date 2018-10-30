@@ -11,7 +11,7 @@ module MTypeInf
       print message
     end
 
-    # ti.dump_type
+    ti.dump_type
     cgen = CodeGenC::CodeGen.new
     cgen.code_gen(bproc, ti)
   end
@@ -199,7 +199,7 @@ module MTypeInf
 
       # clear all regs
       saairep.allreg.each do |reg|
-        reg.type = {}
+        reg.type.delete(tup)
       end
       intype.each_with_index do |tys, i|
         if tys then

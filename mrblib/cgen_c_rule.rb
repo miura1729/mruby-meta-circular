@@ -1,6 +1,10 @@
 module CodeGenC
   class CodeGen
     def self.reg_real_value(ccgen, reg, node, tup, ti)
+      rc = reg_real_value_noconv(ccgen, reg, node, tup, ti)
+    end
+
+    def self.reg_real_value_noconv(ccgen, reg, node, tup, ti)
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
@@ -112,7 +116,7 @@ module CodeGenC
       Float => :mrb_float,
       Array => :array
     }
-    def self.get_type(ccgen, inst, reg, tup)
+    def self.get_ctype_aux(ccgen, inst, reg, tup)
       rtype = reg.type[tup]
       if rtype then
         cls0 = rtype[0].class_object
@@ -136,17 +140,76 @@ module CodeGenC
       :mrb_value
     end
 
-    def self.gen_declare(ccgen, inst, reg, tup)
-      type = get_type(ccgen, inst, reg, tup)
+    def self.get_ctype(ccgen, inst, reg, tup)
+      type = get_ctype_aux(ccgen, inst, reg, tup)
       case type
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
-        etype = get_type(ccgen, inst, ereg, tup)
-        "#{etype} *v#{reg.id}"
+        rc = get_ctype_aux(ccgen, inst, ereg, tup)
+        if rc == :array then
+          :mrb_value
+        else
+          rc
+        end
+      else
+        type
+      end
+    end
+
+    def self.gen_declare(ccgen, inst, reg, tup)
+      type = get_ctype_aux(ccgen, inst, reg, tup)
+      case type
+      when :array
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        ereg = reg.type[tup][0].element[uv]
+        etype = get_ctype_aux(ccgen, inst, ereg, tup)
+        "#{etype} v#{reg.id}"
 
       else
         "#{type} v#{reg.id}"
+      end
+    end
+
+    def self.is_escape?(reg)
+      plist = reg.type.keys.map { |tup|
+        reg.type[tup].map {|ty| ty.place.keys}.flatten.uniq
+      }.flatten.uniq
+      plist.size != 0
+    end
+
+    def self.gen_type_conversion(dstt, srct, src)
+      if dstt == srct then
+        return src
+      end
+
+      case dstt
+      when :mrb_value
+        case srct
+        when :mrb_int
+          "(mrb_fixnum_value(#{src}))"
+
+        when :mrb_float
+          "(mrb_float_value(#{src}))"
+
+        when :mrb_bool
+          "((src) ? mrb_true_value() : mrb_false_value())"
+
+        else
+          raise "Not support yet #{dstt} #{srct}"
+        end
+
+      when :mrb_int
+      "(mrb_fixnum(#{src}))"
+
+      when :mrb_float
+      "(mrb_float(#{src}))"
+
+      when :mrb_bool
+        "(mrb_test(#{src}))"
+
+      else
+        raise "Not support yet"
       end
     end
   end

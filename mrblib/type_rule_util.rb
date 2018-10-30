@@ -312,8 +312,8 @@ module MTypeInf
       end
 
       if inst.inreg[0].class == RiteSSA::Reg then
-        inst.inreg[0].genpoint.inreg[0].add_same inst.inreg[0]
-        inst.inreg[0].genpoint.inreg[0].flush_type(tup)
+        inst.inreg[0].genpoint.outreg[0].add_same inst.inreg[0]
+        inst.inreg[0].genpoint.outreg[0].flush_type(tup)
       end
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)

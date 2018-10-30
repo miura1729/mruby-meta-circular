@@ -401,6 +401,9 @@ module MTypeInf
 
       elsif arg0type then
         arg0type.each do |ty|
+          if ty.is_a?(LiteralType) then
+            ty = PrimitiveType.new(ty.class_object)
+          end
           inst.outreg[0].add_type ty, tup
         end
       end
@@ -418,6 +421,9 @@ module MTypeInf
 
       elsif arg0type then
         arg0type.each do |ty|
+          if ty.is_a?(LiteralType) then
+            ty = PrimitiveType.new(ty.class_object)
+          end
           inst.outreg[0].add_type ty, tup
         end
       end
@@ -447,7 +453,7 @@ module MTypeInf
       if arg0type then
         arg0type.each do |ty|
           if ty.is_a?(LiteralType) then
-            ty = LiteralType.new(ty.class_object, ty.val + arg1type.val)
+            ty = PrimitiveType.new(ty.class_object)
           end
           #ty = PrimitiveType.new(ty.class_object)
           inst.outreg[0].add_type ty, tup
@@ -469,6 +475,7 @@ module MTypeInf
       inst.para[0].times do |i|
         nreg = type.element[i] || RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i]
+        nreg.flush_type(tup)
         stype = inst.inreg[i].type
         stype.keys.each do |ttup|
           types = stype[ttup]
