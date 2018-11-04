@@ -507,6 +507,21 @@ module RiteSSA
             inst.inreg.push nilreg
           end
 
+          # export local variables
+          exp_regset = {}
+          inst.inreg.each_with_index do |reg, ppos|
+            gins = reg.genpoint
+            if gins.is_a?(Inst) and gins.op == :LAMBDA then
+              exregs = []
+              gins.para[2].each do |regno|
+                exregs.push regtab[regno]
+              end
+
+              exp_regset[ppos] = exregs
+            end
+          end
+          inst.para.push exp_regset
+
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
           inst.outreg.push dstreg
@@ -695,6 +710,7 @@ module RiteSSA
             exreg.push regtab[no]
           end
           inst.para.push exreg
+          inst.para.push exregno
           @root.reps[bn] = nlambda
 
         when :CLASS
