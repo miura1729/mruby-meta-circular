@@ -83,10 +83,12 @@ module MTypeInf
       inst.inreg[1].flush_type(tup)
       arrtypes = inst.inreg[0].get_type(tup)
       idxtypes = inst.inreg[1].get_type(tup)
+      nilobj = PrimitiveType.new(NilClass)
 
       arrtypes.each do |arrt|
         if arrt.class_object. == Array then
           arrele = arrt.element
+          altele = arrele[ContainerType::UNDEF_VALUE]
           if idxtypes.size == 1 then
             idxtype = idxtypes[0]
             if idxtype.class_object == Fixnum then
@@ -94,14 +96,14 @@ module MTypeInf
               when MTypeInf::LiteralType
                 no = idxtype.val
                 if arrele[no].nil? then
-                  arrele[no] = RiteSSA::Reg.new(nil)
-                  arrele[no].add_same arrele[ContainerType::UNDEF_VALUE]
+                  inst.outreg[0].add_type nilobj, tup
+                else
+                  arrele[no].flush_type_alltup(tup)
+                  inst.outreg[0].add_same arrele[no]
                 end
-                arrele[no].flush_type_alltup(tup)
-                inst.outreg[0].add_same arrele[no]
 
               when MTypeInf::PrimitiveType
-                inst.outreg[0].add_same arrele[ContainerType::UNDEF_VALUE]
+                inst.outreg[0].add_same altele
                 arrele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
 
               else

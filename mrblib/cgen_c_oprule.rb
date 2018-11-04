@@ -34,6 +34,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :ENTER do |ccgen, inst, node, infer, history, tup|
       nil
     end
@@ -43,42 +47,34 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
-      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
-      "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+      if cond == true then
+        "goto L#{node.exit_link[1].id};\n"
+      elsif cond == false
+        "goto L#{node.exit_link[0].id};\n"
+      else
+        "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+      end
     end
 
     define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
-      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
-      "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+      cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+      if cond == true then
+        "goto L#{node.exit_link[0].id};\n"
+      elsif cond == false
+        "goto L#{node.exit_link[1].id};\n"
+      else
+        "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+      end
     end
 
     define_ccgen_rule_op :SEND do |ccgen, inst, node, infer, history, tup|
-      name = inst.para[0]
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      intype[0] = [intype[0][0]]
-      rectype = intype[0][0].class_object
-      if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rectype] then
-        mproc.call(ccgen, inst, node, infer, history, tup)
-      else
-        mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
-        proc = mtab[inst.para[0]][rectype]
-        decl = gen_declare(ccgen, inst, inst.outreg[0], tup)
-
-        utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
-        fname = gen_method_func(name, rectype, utup)
-
-        args = inst.inreg.map {|reg| reg_real_value(ccgen, reg, node, tup, infer)}.join(", ")
-        ccgen.ccode << "#{decl} = #{fname}(mrb, #{args});\n"
-        minf = [name, proc, utup]
-        if ccgen.using_method.index(minf) == nil then
-          ccgen.using_method.push minf
-        end
-      end
+      op_send_aux(ccgen, inst, node, infer, history, tup)
       nil
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
-      retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer)
+      retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       ccgen.ccode << "return #{retval};\n"
       nil
     end
@@ -131,7 +127,7 @@ module CodeGenC
       reg = inst.outreg[0]
       aescape = is_escape?(reg)
       vals = inst.inreg.map {|reg|
-        src = reg_real_value(ccgen, reg, node, tup, infer)
+        src = reg_real_value(ccgen, reg, node, tup, infer, history)
       }
 
       dstt = nil
@@ -144,6 +140,8 @@ module CodeGenC
       i = 0
       vals2 = inst.inreg.map {|reg|
         srct = get_ctype(ccgen, inst, reg, tup)
+        p dstt
+        p srct
         rc = gen_type_conversion(dstt, srct, vals[i])
         i = i + 1
         rc

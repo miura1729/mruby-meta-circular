@@ -1,15 +1,99 @@
 module CodeGenC
   class CodeGen
-    def self.reg_real_value(ccgen, reg, node, tup, ti)
-      rc = reg_real_value_noconv(ccgen, reg, node, tup, ti)
+    def self.op_send_aux(ccgen, inst, node, infer, history, tup)
+      name = inst.para[0]
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      intype[0] = [intype[0][0]]
+      rectype = intype[0][0].class_object
+      mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
+      rectype.ancestors.each do |rt|
+        if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
+          return mproc.call(ccgen, inst, node, infer, history, tup)
+        else
+          if mtab[inst.para[0]] and mtab[inst.para[0]][rt] then
+            proc = mtab[inst.para[0]][rt]
+          else
+            next
+          end
+          decl = gen_declare(ccgen, inst, inst.outreg[0], tup)
+
+          utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
+          fname = gen_method_func(name, rt, utup)
+
+          args = inst.inreg.map {|reg|
+            reg_real_value(ccgen, reg, node, tup, infer, history)
+          }.join(", ")
+          ccgen.ccode << "#{decl} = #{fname}(mrb, #{args});\n"
+          minf = [name, proc, utup]
+          if ccgen.using_method.index(minf) == nil then
+            ccgen.using_method.push minf
+          end
+
+          return
+        end
+      end
+      ccgen.ccode << "mrb_no_method_error(mrb, mrb_intern(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+      nil
     end
 
-    def self.reg_real_value_noconv(ccgen, reg, node, tup, ti)
+    def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
+      if reg0.is_a?(RiteSSA::Reg) then
+        arg0 = reg_real_value(ccgen, reg0, node, tup, ti, history)
+        case reg0.type[tup].size
+        when 1
+          type0 = reg0.type[tup][0].class_object
+        else
+          type0 = Object
+        end
+      else
+        arg0 = reg0
+        type0 = arg0.class
+      end
+
+      if reg1.is_a?(RiteSSA::Reg) then
+        arg1 = reg_real_value(ccgen, reg1, node, tup, ti, history)
+        case reg1.type[tup].size
+        when 1
+          type1 = reg1.type[tup][0].class_object
+        else
+          type1 = Object
+        end
+      else
+        arg1 = reg1
+        type1 = arg1.class
+      end
+
+      if (type0 == Fixnum or type0 == Float) and
+          (type1 == Fixnum or type1 == Float) then
+        if arg0.class != String and arg1.class != String then
+          eval "(#{arg0} #{op} #{arg1})"
+        else
+          "(#{arg0} #{op} #{arg1})"
+        end
+      elsif op == :== and
+          type0 == type1 then
+        if arg0.class != String and arg1.class != String then
+          eval "(#{arg0} #{op} #{arg1})"
+        else
+          "(#{arg0} #{op} #{arg1})"
+        end
+
+      else
+        op_send_aux(ccgen, gins, node, ti, history, tup)
+        nil
+      end
+    end
+
+    def self.reg_real_value(ccgen, reg, node, tup, ti, history)
+      rc = reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
+    end
+
+    def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
           preg = pnode.exit_reg[reg.genpoint]
-          return reg_real_value(ccgen, preg, pnode, tup, ti)
+          return reg_real_value(ccgen, preg, pnode, tup, ti, history)
         end
 
         if node.enter_link.size == 0 then # TOP of block
@@ -29,7 +113,7 @@ module CodeGenC
       end
       case gins.op
       when :MOVE
-        reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
+        reg_real_value(ccgen, gins.inreg[0], node, tup, ti, history)
 
       when :LOADL, :LOADI
         gins.para[0]
@@ -43,63 +127,45 @@ module CodeGenC
       when :LOADSELF
         "self"
 
+      when :GETCONST
+        gins.para[1]
+
       when :ENTER
         i = gins.outreg.index(reg)
-        reg_real_value(ccgen, gins.inreg[i], node, tup, ti)
+        reg_real_value(ccgen, gins.inreg[i], node, tup, ti, history)
 
       when :EQ
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} == #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :==)
 
       when :LT
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} < #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<)
 
       when :LE
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} <= #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<=)
 
       when :GT
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} > #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>)
 
       when :GE
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} >= #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>=)
 
       when :ADD
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} + #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :+)
 
       when :SUB
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} - #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :-)
 
       when :MUL
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} * #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :*)
 
       when :DIV
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        arg1 = reg_real_value(ccgen, gins.inreg[1], node, tup, ti)
-        "(#{arg0} / #{arg1})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :/)
 
       when :ADDI
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        "(#{arg0} + #{gins.para[1]})"
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :+)
 
       when :SUBI
-        arg0 = reg_real_value(ccgen, gins.inreg[0], node, tup, ti)
-        "(#{arg0} - #{gins.para[1]})"
-
+        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :-)
 
       else
         "v#{reg.id}"
@@ -114,15 +180,17 @@ module CodeGenC
     TTABLE = {
       Fixnum => :mrb_int,
       Float => :mrb_float,
-      Array => :array
+      Array => :array,
+      NilClass => :nil
     }
     def self.get_ctype_aux(ccgen, inst, reg, tup)
       rtype = reg.type[tup]
-      if rtype then
-        cls0 = rtype[0].class_object
-      else
+      if !rtype then
+        # for element of array
         rtype = reg.type[reg.type.keys[0]]
       end
+
+      cls0 = rtype[0].class_object
       if rtype.all? {|e| e.class_object == cls0} then
         res = TTABLE[cls0]
         if res then
@@ -166,6 +234,9 @@ module CodeGenC
         etype = get_ctype_aux(ccgen, inst, ereg, tup)
         "#{etype} v#{reg.id}"
 
+      when :nil
+        "mrb_value v#{reg.id}"
+
       else
         "#{type} v#{reg.id}"
       end
@@ -195,21 +266,27 @@ module CodeGenC
         when :mrb_bool
           "((src) ? mrb_true_value() : mrb_false_value())"
 
+        when :nil
+          "#{src}"
+
         else
           raise "Not support yet #{dstt} #{srct}"
         end
 
       when :mrb_int
-      "(mrb_fixnum(#{src}))"
+        "(mrb_fixnum(#{src}))"
 
       when :mrb_float
-      "(mrb_float(#{src}))"
+        "(mrb_float(#{src}))"
 
       when :mrb_bool
         "(mrb_test(#{src}))"
 
+      when :nil
+        "mrb_nil_value()"
+
       else
-        raise "Not support yet"
+        raise "Not support yet #{dstt} #{srct}"
       end
     end
   end

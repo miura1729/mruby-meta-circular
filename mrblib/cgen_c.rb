@@ -93,7 +93,7 @@ EOS
           nd.enter_reg.each_with_index do |nreg, i|
             if is_live_reg?(nd, nreg, i) then
               sreg = node.exit_reg[i]
-              src = CodeGen::reg_real_value(self, sreg, node, tup, ti)
+              src = CodeGen::reg_real_value(self, sreg, node, tup, ti, history)
               dst = nil
               if declf then
                 dst = CodeGen::gen_declare(self, nil, nreg, tup)

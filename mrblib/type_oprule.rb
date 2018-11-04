@@ -117,6 +117,7 @@ module MTypeInf
         const = proc.target_class.const_get(name)
         proc = proc.parent
       end
+      inst.para.push const
       cls = TypeSource[const.class]
       type = nil
       if cls then
