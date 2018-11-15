@@ -218,7 +218,25 @@ module MTypeInf
               if @@ruletab[:METHOD][name2] and @@ruletab[:METHOD][name2][slfcls] then
                 # written in C or method mmsing  or no method error
                 existf = true
-                @@ruletab[:METHOD][name2][slfcls].call(infer, inst, node, tup)
+                cont = @@ruletab[:METHOD][name2][slfcls]
+                if cont == :reader then
+                  clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
+                  name2ins = "@#{name2.to_s}".to_sym
+                  ivreg = clsobj.get_iv(name2ins)
+                  ivreg.flush_type_alltup(tup)
+                  inst.outreg[0].add_same(ivreg)
+                  inst.outreg[0].flush_type_alltup(tup)
+
+                elsif cont == :writer then
+                  clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
+                  name2ins = "@#{name2.to_s.chop}".to_sym
+                  ivreg = clsobj.get_iv(name2ins)
+                  ivreg.add_same(inst.inreg[1])
+                  ivreg.flush_type_alltup(tup)
+
+                else
+                  cont.call(infer, inst, node, tup)
+                end
 
               elsif @@ruby_methodtab[:method_missing] and
                   @@ruby_methodtab[:method_missing][cls] then

@@ -432,6 +432,41 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :attr_reader, Module do |infer, inst, node, tup|
+      recvtypes = inst.inreg[0].flush_type(tup)[tup]
+      nameary = inst.inreg[1].flush_type(tup)[tup][0]
+      nameary.element.each do |k, symty|
+        if symty.type[tup] then
+          symcls = symty.type[tup][0]
+          name = symcls.val
+          recvtypes.each do |rtype|
+            rcls = rtype.val
+            @@ruletab[:METHOD][name] = {}
+            @@ruletab[:METHOD][name][rcls] = :reader
+          end
+        end
+      end
+      nil
+    end
+
+    define_inf_rule_method :attr_writer, Module do |infer, inst, node, tup|
+      recvtypes = inst.inreg[0].flush_type(tup)[tup]
+      nameary = inst.inreg[1].flush_type(tup)[tup][0]
+      nameary.element.each do |k, symty|
+        if symty.type[tup] then
+          symcls = symty.type[tup][0]
+          name = symcls.val
+          recvtypes.each do |rtype|
+            rcls = rtype.val
+            name2 = "#{name.to_s}=".to_sym
+            @@ruletab[:METHOD][name2] = {}
+            @@ruletab[:METHOD][name2][rcls] = :writer
+          end
+        end
+      end
+      nil
+    end
+
     define_inf_rule_method :new, Class do |infer, inst, node, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
