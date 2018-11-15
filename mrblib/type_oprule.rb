@@ -565,7 +565,9 @@ module MTypeInf
       pty = ProcType.new(Proc, inst.para[0], slf, envtypes, tups)
       inst.outreg[0].add_type pty, tup
       cproc = infer.callstack[-1][3]
-      cproc.place[pty] = true
+      if cproc then
+        cproc.place[pty] = true
+      end
 
       nil
     end

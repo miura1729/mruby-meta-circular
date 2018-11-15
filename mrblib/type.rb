@@ -210,8 +210,12 @@ module MTypeInf
   end
 
   class ProcType<BasicType
+    @@num = 0
+
     def initialize(co, irep, slf, env, tups, *rest)
       super
+      @id = @@num
+      @@num += 1
       @irep = irep
       @slf = slf
       @env = env
@@ -229,6 +233,7 @@ module MTypeInf
       "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=#{env}>"
     end
 
+    attr :id
     attr :irep
     attr :slf
     attr :env

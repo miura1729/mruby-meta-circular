@@ -510,14 +510,16 @@ module RiteSSA
           # export local variables
           exp_regset = {}
           inst.inreg.each_with_index do |reg, ppos|
-            gins = reg.genpoint
-            if gins.is_a?(Inst) and gins.op == :LAMBDA then
-              exregs = []
-              gins.para[2].each do |regno|
-                exregs.push regtab[regno]
-              end
+            if reg.class == Reg then
+              gins = reg.genpoint
+              if gins.is_a?(Inst) and gins.op == :LAMBDA then
+                exregs = []
+                gins.para[2].each do |regno|
+                  exregs.push regtab[regno]
+                end
 
-              exp_regset[ppos] = exregs
+                exp_regset[ppos] = exregs
+              end
             end
           end
           inst.para.push exp_regset
