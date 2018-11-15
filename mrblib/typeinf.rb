@@ -234,6 +234,8 @@ module MTypeInf
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
         node.enter_reg[i].add_same ireg
+        node.enter_reg[i].negative_list = ireg.negative_list.clone
+        node.enter_reg[i].positive_list = ireg.positive_list.clone
       end
 
       node.ext_iseq.each do |ins|
