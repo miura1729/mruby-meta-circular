@@ -162,6 +162,32 @@ module CodeGenC
       end
       nil
     end
+
+    define_ccgen_rule_op :LAMBDA do |ccgen, inst, node, infer, history, tup|
+      # make env struct
+      envreg = inst.para[1]
+      proc = inst.outreg[0].type[tup][0]
+      if envreg.size > 0 then
+        ccgen.hcode << "struct env#{proc.id} {\n"
+        envreg.each do |reg|
+          ccgen.hcode << "#{gen_declare(self, inst, reg, tup)};\n"
+        end
+        ccgen.hcode << "};\n"
+        ccgen.hcode << "struct proc#{proc.id} {\n"
+        ccgen.hcode << "struct env#{proc.id} env;\n"
+      else
+        ccgen.hcode << "struct proc#{proc.id} {\n"
+      end
+
+      cproc = ccgen.callstack[-1][0]
+      if !cproc.irep.strict then
+        ccgen.hcode << "struct env#{cproc.id} prev;\n"
+      end
+      ccgen.hcode << "void *code;\n"
+      ccgen.hcode << "};\n"
+
+      print ccgen.hcode
+    end
   end
 end
 

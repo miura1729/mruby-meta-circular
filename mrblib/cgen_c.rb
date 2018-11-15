@@ -4,6 +4,7 @@ module CodeGenC
       @using_method = []
       @callstack = []
       @ccode = ""
+      @hcode = ""
       init_code
     end
 
@@ -14,7 +15,8 @@ EOS
     end
 
     attr :ccode
-    attr :codestack
+    attr :hcode
+    attr :callstack
     attr :using_method
 
     def is_live_reg_aux(node, reg, pos, hash)
