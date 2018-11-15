@@ -260,7 +260,11 @@ module MTypeInf
 
             (anum - m1 - o).times do |i|
               nreg = type.element[i] || RiteSSA::Reg.new(nil)
-              nreg.add_same ele[m1 + o +  i]
+              if ele[m1 + o +  i] then
+                nreg.add_same ele[m1 + o +  i]
+              else
+                nreg.add_same ele[ContainerType::UNDEF_VALUE]
+              end
               nreg.flush_type_alltup(tup)
               type.element[i] = nreg
             end
@@ -272,9 +276,24 @@ module MTypeInf
           inst.outreg[len].flush_type(tup)
         end
       else
-        (m1 + o).times do |i|
-          inst.outreg[i].add_same inst.inreg[i]
-          inst.outreg[i].flush_type(tup)
+        arg1 = inst.inreg[1].flush_type(tup)[tup]
+        cls = nil
+        argv = nil
+        if arg1 and arg1[0] then
+          cls = arg1[0].class_object
+        end
+
+        if len > 1 and argc == 1 and cls == Array then
+          argv = arg1[0].element
+        else
+          argv = inst.inreg
+        end
+
+        inst.outreg[0].add_same inst.inreg[0]
+        inst.outreg[0].flush_type(tup)
+        (m1 + o - 1).times do |i|
+          inst.outreg[i + 1].add_same argv[i + 1]
+          inst.outreg[i + 1].flush_type(tup)
         end
 
         if r == 1 then
@@ -285,14 +304,14 @@ module MTypeInf
 
           (argc - m1 - o).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(nil)
-            nreg.add_same inst.inreg[m1 + o +  i]
+            nreg.add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
             type.element[i] = nreg
           end
 
           inst.outreg[m1 + o].type[tup] = [type]
         else
-          inst.outreg[m1 + o].add_same inst.inreg[m1 + o]
+          inst.outreg[m1 + o].add_same argv[m1 + o]
         end
 
         inst.outreg[m1 + o + 1].add_same inst.inreg[m1 + o + 1]
