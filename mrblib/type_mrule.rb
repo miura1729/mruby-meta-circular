@@ -97,6 +97,8 @@ module MTypeInf
                 no = idxtype.val
                 if arrele[no].nil? then
                   inst.outreg[0].add_type nilobj, tup
+                  inst.outreg[0].add_same altele
+                  altele.flush_type_alltup(tup)
                 else
                   arrele[no].flush_type_alltup(tup)
                   inst.outreg[0].add_same arrele[no]
@@ -104,7 +106,7 @@ module MTypeInf
 
               when MTypeInf::PrimitiveType
                 inst.outreg[0].add_same altele
-                arrele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
+                altele.flush_type_alltup(tup)
 
               else
                 raise "Not supported in Array::[]"
@@ -594,7 +596,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :sqrt, Module do |infer, inst, node, tup|
+    define_inf_rule_method :sqrt, Math do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
       nil
