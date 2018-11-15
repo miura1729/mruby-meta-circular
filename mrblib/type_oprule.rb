@@ -89,6 +89,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
+      inst.inreg[0].flush_type(tup)
       inst.outreg[0].add_same(inst.inreg[0])
       types = inst.outreg[0].flush_type_alltup(tup)[tup]
 
