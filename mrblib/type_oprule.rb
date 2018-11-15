@@ -61,12 +61,17 @@ module MTypeInf
       inst.outreg[0].add_same(inst.inreg[0])
       types = inst.outreg[0].flush_type_alltup(tup)[tup]
       # update place infomation
-      types.each do |ty|
-        ty.place[true] = true
+      if types then
+        types.each do |ty|
+          ty.place[true] = true
+        end
       end
-      # p inst.para[0]
-      # p inst.outreg[0].flush_type_alltup(tup)
-      # p tup
+       p inst.para[0]
+       p inst.outreg[0].flush_type_alltup(tup)
+       p inst.outreg[0].get_type(tup)
+       p inst.inreg[0].negative_list
+       p inst.inreg[0].positive_list
+       p tup
       nil
     end
 
