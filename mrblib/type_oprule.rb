@@ -180,6 +180,8 @@ module MTypeInf
       otup = proc.tups[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type(tup, otup)
+      inst.outreg[0].negative_list = inst.inreg[0].negative_list.clone
+      inst.outreg[0].positive_list = inst.inreg[0].positive_list.clone
 
       nil
     end
@@ -276,24 +278,29 @@ module MTypeInf
           inst.outreg[len].flush_type(tup)
         end
       else
-        arg1 = inst.inreg[1].flush_type(tup)[tup]
+        inst.inreg[0].flush_type(tup)
+        arg0 = inst.inreg[0].get_type(tup)
         cls = nil
         argv = nil
-        if arg1 and arg1[0] then
-          cls = arg1[0].class_object
+        if arg0 and arg0[0] then
+          cls = arg0[0].class_object
         end
 
+#        p "FILT #{cls} #{inst.inreg[0].get_type(tup)}" if len > 1 and argc == 1
         if len > 1 and argc == 1 and cls == Array then
-          argv = arg1[0].element
+          argv = arg0[0].element
+          argv.each do |k, r|
+            r.flush_type_alltup(tup)
+          end
+#          p tup
+#          p argv.map{|k, e| "#{k} => #{e.type}"}
         else
           argv = inst.inreg
         end
 
-        inst.outreg[0].add_same inst.inreg[0]
-        inst.outreg[0].flush_type(tup)
-        (m1 + o - 1).times do |i|
-          inst.outreg[i + 1].add_same argv[i + 1]
-          inst.outreg[i + 1].flush_type(tup)
+        (m1 + o).times do |i|
+          inst.outreg[i].add_same argv[i]
+          inst.outreg[i].flush_type(tup)
         end
 
         if r == 1 then
