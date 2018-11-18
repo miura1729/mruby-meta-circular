@@ -15,7 +15,7 @@ module MTypeInf
 
     def self.get_original_reg(infer, inst, tup)
       case inst.op
-      when :MOVE, :GETUPVAR
+      when :MOVE, :GETUPVAR #, :GETIV
         return inst.inreg[0]
 
       when :SEND
@@ -79,7 +79,9 @@ module MTypeInf
             genp = genp.inreg[0].genpoint
           end
 
-        elsif genp.op == :MOVE then
+        elsif genp.op == :MOVE or
+            genp.op == :GETIV or
+            genp.op == :GETGLOBAL then
           notp = !notp
           typemethodp = true
           type0 = PrimitiveType.new(NilClass)

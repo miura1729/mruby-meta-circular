@@ -58,8 +58,9 @@ module MTypeInf
               when MTypeInf::UserDefinedType,
                 primobj,
                 MTypeInf::ProcType,
-                MTypeInf::ExceptionType
-                MTypeInf::SymbolType
+                MTypeInf::ExceptionType,
+                MTypeInf::SymbolType,
+                MTypeInf::FiberType
 
                 return false
 
@@ -133,6 +134,12 @@ module MTypeInf
       else
         @@symtab[val] = SymbolType.new(klass, val)
       end
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @val == other.val
     end
 
     def inspect_aux(hist)
@@ -238,6 +245,31 @@ module MTypeInf
     attr :slf
     attr :env
     attr :tups
+  end
+
+  class FiberType<BasicType
+    @@num = 0
+
+    def initialize(co, proc, *rest)
+      super
+      @id = @@num
+      @@num += 1
+      @proc = proc
+      @ret = RiteSSA::Reg.new(nil)
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @proc == other.proc
+    end
+
+    def inspect
+      "#{@class_object.inspect}<proc=#{@proc} ret =#{@ret.type}>"
+    end
+
+    attr :id
+    attr :proc
+    attr :ret
   end
 
   class UserDefinedType<BasicType

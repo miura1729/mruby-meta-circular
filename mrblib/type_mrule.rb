@@ -12,6 +12,18 @@ module MTypeInf
       @@ruletab[:METHOD][name][rec] = block
     end
 
+    def self.define_inf_rule_class_method(name, rec, &block)
+      rec = class << rec
+              self
+            end
+      @@ruletab[:METHOD] ||= {}
+      @@ruletab[:METHOD][name] ||= {}
+      if @@ruletab[:METHOD][name][rec] then
+        raise "Already defined #{name}"
+      end
+      @@ruletab[:METHOD][name][rec] = block
+    end
+
     define_inf_rule_method :to_f, Fixnum do |infer, inst, node, tup|
       type = PrimitiveType.new(Float)
       inst.outreg[0].add_type(type, tup)
@@ -489,10 +501,9 @@ module MTypeInf
         intype[0] = [type]
 
         if !cls then
-          ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
           dmyreg = RiteSSA::Reg.new(nil)
-          dmyreg.add_type type, ntup
-          rule_send_common_aux(infer, inst, node, ntup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
+          dmyreg.add_type type, tup
+          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
         end
 
         inst.outreg[0].add_type type, tup
@@ -598,7 +609,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :sqrt, Math do |infer, inst, node, tup|
+    define_inf_rule_class_method :sqrt, Math do |infer, inst, node, tup|
       type = LiteralType.new(Float, nil)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -720,6 +731,39 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type(tup)
+      nil
+    end
+
+    define_inf_rule_class_method :current, Fiber do |infer, inst, node, tup|
+      proc = infer.callstack[-1][3]
+      type = FiberType.new(Fiber, proc)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_class_method :new, Fiber do |infer, inst, node, tup|
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      proc = intype.pop
+      type = FiberType.new(Fiber, proc[0])
+
+      argc = inst.para[1]
+
+      intype[0] = [type]
+      intype = [proc] + intype + [[]]
+
+      dmyreg = RiteSSA::Reg.new(nil)
+      dmyreg.add_type proc[0], tup
+      rule_send_common_aux(infer, inst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
+
+      inst.outreg[0].add_type type, tup
+      nil
+    end
+
+    define_inf_rule_method :alive?, Fiber do |infer, inst, node, tup|
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].add_type(type, tup)
+      type = LiteralType.new(FalseClass, false)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
   end
