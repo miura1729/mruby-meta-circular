@@ -750,10 +750,20 @@ module MTypeInf
 
       intype[0] = [type]
       intype = [proc] + intype + [[]]
+      ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node) #33 is :send maybe
+      intype.each {|tys|
+        nreg = RiteSSA::Reg.new(nil)
+        tys.each do |ty|
+          nreg.add_type ty, tup
+        end
+        ninst.inreg.push nreg
+      }
 
       dmyreg = RiteSSA::Reg.new(nil)
       dmyreg.add_type proc[0], tup
-      rule_send_common_aux(infer, inst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
+      ninst.outreg.push dmyreg
+
+      rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
 
       inst.outreg[0].add_type type, tup
       nil
