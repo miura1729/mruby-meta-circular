@@ -286,14 +286,11 @@ module MTypeInf
           cls = arg0[0].class_object
         end
 
-#        p "FILT #{cls} #{inst.inreg[0].get_type(tup)}" if len > 1 and argc == 1
         if len > 1 and argc == 1 and cls == Array then
           argv = arg0[0].element
           argv.each do |k, r|
             r.flush_type_alltup(tup)
           end
-#          p tup
-#          p argv.map{|k, e| "#{k} => #{e.type}"}
         else
           argv = inst.inreg
         end
