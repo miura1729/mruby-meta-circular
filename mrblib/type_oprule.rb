@@ -314,12 +314,12 @@ module MTypeInf
           end
 
           inst.outreg[m1 + o].type[tup] = [type]
+          inst.outreg[m1 + o + 1].add_same inst.inreg[argc]
+          inst.outreg[m1 + o + 1].flush_type(tup)
         else
           inst.outreg[m1 + o].add_same argv[m1 + o]
+          inst.outreg[m1 + o].flush_type(tup)
         end
-
-        inst.outreg[m1 + o + 1].add_same inst.inreg[m1 + o + 1]
-        inst.outreg[m1 + o + 1].flush_type(tup)
       end
 
       nil
