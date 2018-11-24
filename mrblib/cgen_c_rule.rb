@@ -183,6 +183,7 @@ module CodeGenC
       Array => :array,
       NilClass => :nil
     }
+
     def self.get_ctype_aux(ccgen, inst, reg, tup)
       rtype = reg.type[tup]
       if !rtype then
@@ -212,13 +213,17 @@ module CodeGenC
       type = get_ctype_aux(ccgen, inst, reg, tup)
       case type
       when :array
-        uv = MTypeInf::ContainerType::UNDEF_VALUE
-        ereg = reg.type[tup][0].element[uv]
-        rc = get_ctype_aux(ccgen, inst, ereg, tup)
-        if rc == :array then
-          :mrb_value
+        if !is_escape?(reg) then
+          uv = MTypeInf::ContainerType::UNDEF_VALUE
+          ereg = reg.type[tup][0].element[uv]
+          rc = get_ctype_aux(ccgen, inst, ereg, tup)
+          if rc == :array then
+            :mrb_value
+          else
+            rc
+          end
         else
-          rc
+          :mrb_value
         end
       else
         type
