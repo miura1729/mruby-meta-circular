@@ -110,6 +110,7 @@ module MTypeInf
                 if arrele[no].nil? then
                   if no != 0 then
                     inst.outreg[0].add_type nilobj, tup
+                    altele.add_type nilobj, tup
                   end
                   inst.outreg[0].add_same altele
                   altele.flush_type_alltup(tup)

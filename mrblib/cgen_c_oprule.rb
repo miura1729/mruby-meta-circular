@@ -77,7 +77,11 @@ module CodeGenC
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
       retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
-      ccgen.ccode << "return #{retval};\n"
+      if retval then
+        ccgen.ccode << "return #{retval};\n"
+      else
+        ccgen.ccode << "return mrb_nil_value();\n"
+      end
       nil
     end
 
