@@ -142,8 +142,6 @@ module CodeGenC
       i = 0
       vals2 = inst.inreg.map {|reg|
         srct = get_ctype(ccgen, inst, reg, tup)
-        p dstt
-        p srct
         rc = gen_type_conversion(dstt, srct, vals[i])
         i = i + 1
         rc
