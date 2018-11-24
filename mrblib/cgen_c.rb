@@ -108,13 +108,12 @@ EOS
         end
       end
 
-      if rc then
-        @ccode << rc
-      elsif node.exit_link[0] then
+      if rc == nil and history[node.exit_link[0]] then
         @ccode << "goto L#{node.exit_link[0].id};\n"
       end
 
-      node.exit_link.each do |nd|
+      nxnode = rc ? rc : node.exit_link
+      nxnode.each do |nd|
         if history[nd] == nil then
           code_gen_node(nd, ti, name, history, tup)
         end

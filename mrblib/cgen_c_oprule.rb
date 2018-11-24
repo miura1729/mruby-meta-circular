@@ -43,28 +43,30 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :JMP do |ccgen, inst, node, infer, history, tup|
-      "goto L#{node.exit_link[0].id};\n"
+      nil
     end
 
     define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
       cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       if cond == true then
-        "goto L#{node.exit_link[1].id};\n"
+        [node.exit_link[1]]
       elsif cond == false
-        "goto L#{node.exit_link[0].id};\n"
+        [node.exit_link[0]]
       else
-        "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+        ccgen.ccode << "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+        [node.exit_link[1], node.exit_link[0]]
       end
     end
 
     define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
       cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       if cond == true then
-        "goto L#{node.exit_link[0].id};\n"
+        [node.exit_link[0]]
       elsif cond == false
-        "goto L#{node.exit_link[1].id};\n"
+        [node.exit_link[1]]
       else
-        "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+        ccgen.ccode << "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+        [node.exit_link[0], node.exit_link[1]]
       end
     end
 
