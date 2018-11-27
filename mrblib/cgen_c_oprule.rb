@@ -53,7 +53,7 @@ module CodeGenC
       elsif cond == false
         [node.exit_link[0]]
       else
-        ccgen.ccode << "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+        ccgen.pcode << "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
         [node.exit_link[1], node.exit_link[0]]
       end
     end
@@ -65,7 +65,7 @@ module CodeGenC
       elsif cond == false
         [node.exit_link[1]]
       else
-        ccgen.ccode << "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+        ccgen.pcode << "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
         [node.exit_link[0], node.exit_link[1]]
       end
     end
@@ -78,9 +78,9 @@ module CodeGenC
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
       retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       if retval then
-        ccgen.ccode << "return #{retval};\n"
+        ccgen.pcode << "return #{retval};\n"
       else
-        ccgen.ccode << "return mrb_nil_value();\n"
+        ccgen.pcode << "return mrb_nil_value();\n"
       end
       nil
     end
@@ -152,16 +152,22 @@ module CodeGenC
       }
 
       if aescape then
-        ccgen.ccode << "mrb_value v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, #{vals2.join(', ')});\n"
+        ccgen.hcode << "mrb_value v#{reg.id};"
+        ccgen.pcode << "{\n"
+        ccgen.pcode << "mrb_value tmpele[] = {\n"
+        ccgen.pcode << vals2.join(', ')
+        ccgen.pcode << "\n};\n"
+        ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
+        ccgen.pcode << "}\n"
       else
         type = get_ctype_aux(ccgen, inst, reg, tup)
         if type == :array then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = reg.type[tup][0].element[uv]
           etype = get_ctype_aux(ccgen, inst, ereg, tup)
-          ccgen.ccode << "#{etype} v#{reg.id}[] = {\n"
-          ccgen.ccode << vals2.join(', ')
-          ccgen.ccode << "\n};\n"
+          ccgen.pcode << "#{etype} v#{reg.id}[] = {\n"
+          ccgen.pcode << vals2.join(', ')
+          ccgen.pcode << "\n};\n"
         end
       end
       nil

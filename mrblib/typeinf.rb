@@ -11,9 +11,12 @@ module MTypeInf
       print message
     end
 
-    ti.dump_type
+    typemess = ti.dump_type
+    print typemess
     cgen = CodeGenC::CodeGen.new
+    cgen.ccode << "/*\n#{typemess}*/\n"
     cgen.code_gen(bproc, ti)
+    print cgen.ccode
   end
 
   class TypeTupleTab
@@ -89,6 +92,7 @@ module MTypeInf
     attr :exception
 
     def dump_method(name, node)
+      mess = ""
       node.retreg.flush_type_alltup(0)[0]
       types = node.retreg.type
       node.export_exception.flush_type_alltup(0)[0]
@@ -109,9 +113,9 @@ module MTypeInf
             tys.map {|ele| ele.inspect}.join('|')
           }.join(', ')
           if exfmt.size != 0 then
-            print "  #{name}: (#{args}) ->  (throws #{exfmt.join(',')}) \n"
+            mess << "  #{name}: (#{args}) ->  (throws #{exfmt.join(',')}) \n"
           else
-            print "  #{name}: (#{args}) ->  \n"
+            mess << "  #{name}: (#{args}) ->  \n"
           end
         end
       else
@@ -127,33 +131,38 @@ module MTypeInf
           type = types.map {|ele| ele.inspect}
           type = type.join('|')
           if exfmt.size != 0 then
-            print "  #{name}: (#{args}) -> #{type} throws #{exfmt.join(',')} \n"
+            mess << "  #{name}: (#{args}) -> #{type} throws #{exfmt.join(',')} \n"
           else
-            print "  #{name}: (#{args}) -> #{type} \n"
+            mess << "  #{name}: (#{args}) -> #{type} \n"
           end
         end
       end
 
       node.reps.each do |blk|
-        dump_method("#{name} block", blk)
+        mess << dump_method("#{name} block", blk)
       end
+
+      mess
     end
 
     def dump_type
+      mess = ""
       RiteSSA::ClassSSA.all_classssa.each do |cls, clsobj|
-        print "Class #{cls}\n"
-        print " Instance variables\n"
+        mess << "Class #{cls}\n"
+        mess << " Instance variables\n"
         clsobj.iv.each do |iv, reg|
           types =reg.flush_type_alltup(0)[0] || []
           type = types.map {|ele| ele.inspect}.join('|')
-          print "  #{iv}: #{type}\n"
+          mess << "  #{iv}: #{type}\n"
         end
-        print "\n methodes \n"
+        mess << "\n methodes \n"
         clsobj.method.each do |name, node|
-          dump_method(name, node)
+          mess << dump_method(name, node)
         end
-        print "\n"
+        mess << "\n"
       end
+
+      mess
     end
 
     def inference_top(saairep)

@@ -410,11 +410,17 @@ module MTypeInf
         inst.outreg[0].add_type ty, tup
 
       elsif arg0type then
-        arg0type.each do |ty|
-          if ty.is_a?(LiteralType) then
-            ty = PrimitiveType.new(ty.class_object)
+        if arg1type then
+          if arg1type.any? {|e| e.class_object == NilClass} then
+            inst.outreg[0].add_type LiteralType.new(NilClass, nil), tup
           end
-          inst.outreg[0].add_type ty, tup
+
+          arg0type.each do |ty|
+            if ty.is_a?(LiteralType) then
+              ty = PrimitiveType.new(ty.class_object)
+            end
+            inst.outreg[0].add_type ty, tup
+          end
         end
       end
       nil

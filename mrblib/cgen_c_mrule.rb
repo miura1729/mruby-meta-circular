@@ -14,26 +14,30 @@ module CodeGenC
     define_ccgen_rule_method :!, TrueClass do |ccgen, inst, node, infer, history, tup|
       srct = get_ctype(ccgen, inst, inst.inreg[0], tup)
       dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
-      dst = gen_declare(ccgen, inst, inst.outreg[0], tup)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, inst, nreg[0], tup)
+      ccgen.dcode << ";\n"
       src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       src = gen_type_conversion(:mrb_value, srct, src)
       src = "(!mrb_test(#{src}))"
       src = gen_type_conversion(dstt, :mrb_bool, src)
 
-      ccgen.ccode << "#{dst} = #{src};\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
 
     define_ccgen_rule_method :nil?, Array do |ccgen, inst, node, infer, history, tup|
       srct = get_ctype(ccgen, inst, inst.inreg[0], tup)
       dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
-      dst = gen_declare(ccgen, inst, inst.outreg[0], tup)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, inst, nreg, tup)
+      ccgen.dcode << ";\n"
       src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       src = gen_type_conversion(:mrb_value, srct, src)
       src = "mrb_nil_p(#{src})"
       src = gen_type_conversion(dstt, :mrb_bool, src)
 
-      ccgen.ccode << "#{dst} = #{src};\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
 
@@ -41,7 +45,9 @@ module CodeGenC
       srct = get_ctype(ccgen, inst, inst.inreg[0], tup)
       dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
       src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
-      dst = gen_declare(ccgen, inst, inst.outreg[0], tup)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, inst, nreg, tup)
+      ccgen.dcode << ";\n"
       idx = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)
       if is_escape?(inst.inreg[0]) then
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"
@@ -55,7 +61,7 @@ module CodeGenC
         end
       end
 
-      ccgen.ccode << "#{dst} = #{src};\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
   end

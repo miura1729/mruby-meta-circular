@@ -5,17 +5,23 @@ module CodeGenC
       @callstack = []
       @ccode = ""
       @hcode = ""
+      @pcode = ""
+      @dcode = ""
       init_code
     end
 
     def init_code
-      @ccode = <<'EOS'
+      @hcode = <<'EOS'
 #include "mruby.h"
+#include "mruby/value.h"
+#include "mruby/array.h"
 EOS
     end
 
     attr :ccode
     attr :hcode
+    attr :dcode
+    attr :pcode
     attr :callstack
     attr :using_method
 
@@ -57,7 +63,7 @@ EOS
         code_gen_block(proc.irep, ti, name, proc, utup, intype)
       end
 
-      print @ccode
+      @ccode = @hcode + @ccode
     end
 
     def code_gen_block(block, ti, name, proc, tup, intype)
@@ -71,14 +77,19 @@ EOS
       end
       rettype = CodeGen::get_ctype(self, block, block.retreg, tup)
       @ccode << "#{rettype} #{fname}(mrb_state *mrb, mrb_value self#{args}) {\n"
+      @hcode << "#{rettype} #{fname}(mrb_state *, mrb_value#{args});\n"
+      @dcode = ""
+      @pcode = ""
       code_gen_node(block.nodes[0], ti, name, {}, tup)
+      @ccode << @dcode
+      @ccode << @pcode
       @ccode << "}\n"
       @callstack.pop
     end
 
     def code_gen_node(node, ti, name, history, tup)
       history[node] = true
-      @ccode << "L#{node.id}: \n"
+      @pcode << "L#{node.id}:; \n"
       rc = nil
       node.ext_iseq.each do |ins|
         #p ins.op # for debug
@@ -96,20 +107,18 @@ EOS
             if is_live_reg?(nd, nreg, i) then
               sreg = node.exit_reg[i]
               src = CodeGen::reg_real_value(self, sreg, node, tup, ti, history)
-              dst = nil
               if declf then
-                dst = CodeGen::gen_declare(self, nil, nreg, tup)
-              else
-                dst = "v#{nreg.id}"
+                @dcode << CodeGen::gen_declare(self, nil, nreg, tup)
+                @dcode << ";\n"
               end
-              @ccode << "#{dst} = #{src};\n"
+              @pcode << "v#{nreg.id} = #{src};\n"
             end
           end
         end
       end
 
       if rc == nil and history[node.exit_link[0]] then
-        @ccode << "goto L#{node.exit_link[0].id};\n"
+        @pcode << "goto L#{node.exit_link[0].id};\n"
       end
 
       nxnode = rc ? rc : node.exit_link

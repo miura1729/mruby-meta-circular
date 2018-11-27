@@ -15,7 +15,9 @@ module CodeGenC
           else
             next
           end
-          decl = gen_declare(ccgen, inst, inst.outreg[0], tup)
+          nreg = inst.outreg[0]
+          ccgen.dcode << gen_declare(ccgen, inst, nreg, tup)
+          ccgen.dcode << ";\n"
 
           utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
           fname = gen_method_func(name, rt, utup)
@@ -23,7 +25,7 @@ module CodeGenC
           args = inst.inreg.map {|reg|
             reg_real_value(ccgen, reg, node, tup, infer, history)
           }.join(", ")
-          ccgen.ccode << "#{decl} = #{fname}(mrb, #{args});\n"
+          ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
           minf = [name, proc, utup]
           if ccgen.using_method.index(minf) == nil then
             ccgen.using_method.push minf
@@ -32,7 +34,7 @@ module CodeGenC
           return
         end
       end
-      ccgen.ccode << "mrb_no_method_error(mrb, mrb_intern(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+      ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
       nil
     end
 
@@ -109,7 +111,7 @@ module CodeGenC
 
       gins = reg.genpoint
       if !gins then
-        return "mrb_nil_value(mrb)"
+        return "mrb_nil_value()"
       end
       case gins.op
       when :MOVE
