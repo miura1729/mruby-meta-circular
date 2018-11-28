@@ -15,6 +15,15 @@ module CodeGenC
 #include "mruby.h"
 #include "mruby/value.h"
 #include "mruby/array.h"
+
+int main(int argc, char **argv)
+{
+  mrb_state *mrb = mrb_open();
+  main_Object_0(mrb, mrb_top_self(mrb));
+
+  return 0;
+}
+
 EOS
     end
 
