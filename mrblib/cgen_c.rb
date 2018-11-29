@@ -12,9 +12,10 @@ module CodeGenC
 
     def init_code
       @hcode = <<'EOS'
-#include "mruby.h"
-#include "mruby/value.h"
-#include "mruby/array.h"
+#include <mruby.h>
+#include <mruby/value.h>
+#include <mruby/array.h>
+#include <mruby/throw.h>
 
 EOS
     end
@@ -68,7 +69,17 @@ EOS
 int main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
-  main_Object_0(mrb, mrb_top_self(mrb));
+  struct mrb_jmpbuf c_jmp;
+
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    main_Object_0(mrb, mrb_top_self(mrb));
+  }
+  MRB_CATCH(&c_jmp) {
+    mrb_p(mrb, mrb_obj_value(mrb->exc));
+    return 1;
+  }
+  MRB_END_EXC(&c_jmp);
 
   return 0;
 }
