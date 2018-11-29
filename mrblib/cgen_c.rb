@@ -16,14 +16,6 @@ module CodeGenC
 #include "mruby/value.h"
 #include "mruby/array.h"
 
-int main(int argc, char **argv)
-{
-  mrb_state *mrb = mrb_open();
-  main_Object_0(mrb, mrb_top_self(mrb));
-
-  return 0;
-}
-
 EOS
     end
 
@@ -72,7 +64,18 @@ EOS
         code_gen_block(proc.irep, ti, name, proc, utup, intype)
       end
 
-      @ccode = @hcode + @ccode
+      main = <<'EOS'
+int main(int argc, char **argv)
+{
+  mrb_state *mrb = mrb_open();
+  main_Object_0(mrb, mrb_top_self(mrb));
+
+  return 0;
+}
+EOS
+
+
+      @ccode = @hcode + main + @ccode
     end
 
     def code_gen_block(block, ti, name, proc, tup, intype)
