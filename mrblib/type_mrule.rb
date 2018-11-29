@@ -385,6 +385,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :inspect, Object do |infer, inst, node, tup|
+      type = PrimitiveType.new(String)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :===, Object do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]
       other = inst.inreg[1].flush_type(tup)[tup]

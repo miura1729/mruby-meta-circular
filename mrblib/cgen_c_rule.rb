@@ -191,6 +191,9 @@ module CodeGenC
       if !rtype then
         # for element of array
         rtype = reg.type[reg.type.keys[0]]
+        if rtype.nil? then
+          return :mrb_value
+        end
       end
 
       cls0 = rtype[0].class_object
@@ -268,7 +271,7 @@ module CodeGenC
           "(mrb_fixnum_value(#{src}))"
 
         when :mrb_float
-          "(mrb_float_value(#{src}))"
+          "(mrb_float_value(mrb, #{src}))"
 
         when :mrb_bool
           "((src) ? mrb_true_value() : mrb_false_value())"
