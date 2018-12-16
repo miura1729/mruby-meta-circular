@@ -14,10 +14,6 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_op :LOADSELF do |ccgen, inst, node, infer, history, tup|
-      nil
-    end
-
     define_ccgen_rule_op :LOADI do |ccgen, inst, node, infer, history, tup|
       nil
     end
@@ -34,7 +30,33 @@ module CodeGenC
       nil
     end
 
+
+    define_ccgen_rule_op :LOADSELF do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :LOADT do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :LOADF do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :GETUPVAR do |ccgen, inst, node, infer, history, tup|
+      up = inst.para[1]
+      pos = inst.para[2]
+      proc = ccgen.callstack[-1][0]
+      ireg = inst.inreg[0]
+      oreg = inst.outreg[0]
+
+      ccgen.hcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+      ccgen.pcode << "v#{oreg.id} = proc#{".prev" * up}.env#{proc.id}.v#{ireg.id};\n"
+      print ccgen.pcode
       nil
     end
 

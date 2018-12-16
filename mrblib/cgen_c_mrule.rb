@@ -76,5 +76,14 @@ module CodeGenC
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
+
+    define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
+      intype = inst.inreg.map {|reg| reg.type[tup] || []}
+      ptype = intype[0][0]
+      intype[0] = [ptype.slf]
+      if intype[0].size == 1 then
+        # store proc object only 1 kind.
+      end
+    end
   end
 end

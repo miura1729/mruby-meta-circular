@@ -17,6 +17,7 @@ module CodeGenC
 #include <mruby/array.h>
 #include <mruby/throw.h>
 
+typedef void *gproc;
 EOS
     end
 
