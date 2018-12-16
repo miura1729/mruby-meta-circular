@@ -714,6 +714,7 @@ module RiteSSA
           end
           inst.para.push exreg
           inst.para.push exregno
+          inst.para.push bn
           @root.reps[bn] = nlambda
 
         when :CLASS

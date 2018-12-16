@@ -106,7 +106,11 @@ module CodeGenC
           end
         end
 
-        return "v#{reg.id}"
+        if reg.genpoint == 0 then
+          return "self"
+        else
+          return "v#{reg.id}"
+        end
       end
 
       gins = reg.genpoint
@@ -169,6 +173,9 @@ module CodeGenC
       when :SUBI
         gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :-)
 
+      when :LAMBDA
+        "(void *)&v#{reg.id}"
+
       else
         "v#{reg.id}"
 
@@ -179,10 +186,15 @@ module CodeGenC
       "#{name}_#{rectype}_#{tup}"
     end
 
+    def self.gen_block_func(name, rectype, blkno, tup)
+      "#{name}_#{rectype}_#{blkno}_#{tup}"
+    end
+
     TTABLE = {
       Fixnum => :mrb_int,
       Float => :mrb_float,
       Array => :array,
+      Proc => :gproc,
       NilClass => :nil
     }
 
@@ -274,7 +286,7 @@ module CodeGenC
           "(mrb_float_value(mrb, #{src}))"
 
         when :mrb_bool
-          "((src) ? mrb_true_value() : mrb_false_value())"
+          "((#{src}) ? mrb_true_value() : mrb_false_value())"
 
         when :nil
           "#{src}"

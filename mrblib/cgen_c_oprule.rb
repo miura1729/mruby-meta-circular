@@ -48,9 +48,18 @@ module CodeGenC
 
     define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
       cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
-      if cond == true then
+      r = 0
+      inst.inreg[0].type[tup].each do |ty|
+        if ty.class_object == NilClass or
+            ty.class_object == FalseClass then
+          r |= 1
+        else
+          r |= 2
+        end
+      end
+      if cond == true or r == 2 then
         [node.exit_link[1]]
-      elsif cond == false
+      elsif cond == false or r == 1 then
         [node.exit_link[0]]
       else
         ccgen.pcode << "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
@@ -60,9 +69,18 @@ module CodeGenC
 
     define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
       cond = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
-      if cond == true then
+      r = 0
+      inst.inreg[0].type[tup].each do |ty|
+        if ty.class_object == NilClass or
+            ty.class_object == FalseClass then
+          r |= 1
+        else
+          r |= 2
+        end
+      end
+      if cond == true or r == 2 then
         [node.exit_link[0]]
-      elsif cond == false
+      elsif cond == false or r == 1 then
         [node.exit_link[1]]
       else
         ccgen.pcode << "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
@@ -71,6 +89,11 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :SEND do |ccgen, inst, node, infer, history, tup|
+      op_send_aux(ccgen, inst, node, infer, history, tup)
+      nil
+    end
+
+    define_ccgen_rule_op :SENDB do |ccgen, inst, node, infer, history, tup|
       op_send_aux(ccgen, inst, node, infer, history, tup)
       nil
     end
@@ -177,6 +200,8 @@ module CodeGenC
       # make env struct
       envreg = inst.para[1]
       proc = inst.outreg[0].type[tup][0]
+      tups = inst.outreg[0].type.keys
+      tupsize = tups.size
       if envreg.size > 0 then
         ccgen.hcode << "struct env#{proc.id} {\n"
         envreg.each do |reg|
@@ -184,17 +209,32 @@ module CodeGenC
         end
         ccgen.hcode << "};\n"
         ccgen.hcode << "struct proc#{proc.id} {\n"
+        ccgen.hcode << "int id;\n"
+        ccgen.hcode << "void *code[tupsize];\n"
         ccgen.hcode << "struct env#{proc.id} env;\n"
       else
         ccgen.hcode << "struct proc#{proc.id} {\n"
+        ccgen.hcode << "int id;\n"
+        ccgen.hcode << "void *code[#{tupsize}];\n"
       end
 
       cproc = ccgen.callstack[-1][0]
       if !cproc.irep.strict then
         ccgen.hcode << "struct env#{cproc.id} prev;\n"
       end
-      ccgen.hcode << "void *code;\n"
+      ccgen.hcode << "mrb_value self;\n"
       ccgen.hcode << "};\n"
+
+      regno = inst.outreg[0].id
+      ccgen.pcode << "struct proc#{proc.id} v#{regno};\n"
+      ccgen.pcode << "v#{regno}.id = #{proc.id};\n"
+      ccgen.pcode << "v#{regno}.self = self;\n"
+      tups.each_with_index do |tp, i|
+        bfunc = gen_block_func("p#{proc.id}", proc.slf.class_object, inst.para[3], tp)
+        ccgen.pcode << "v#{regno}.code[i] = (void *)#{bfunc};\n"
+        minf = [bfunc, proc, tp]
+        ccgen.using_method.push minf
+      end
 
       print ccgen.hcode
     end
