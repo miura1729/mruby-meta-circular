@@ -54,9 +54,8 @@ module CodeGenC
       ireg = inst.inreg[0]
       oreg = inst.outreg[0]
 
-      ccgen.hcode << "#{gen_declare(self, inst, oreg, tup)};\n"
-      ccgen.pcode << "v#{oreg.id} = proc#{".prev" * up}.env#{proc.id}.v#{ireg.id};\n"
-      print ccgen.pcode
+      ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+      ccgen.pcode << "v#{oreg.id} = proc->#{"prev." * up}env.v#{ireg.id};\n"
       nil
     end
 
@@ -111,12 +110,12 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :SEND do |ccgen, inst, node, infer, history, tup|
-      op_send_aux(ccgen, inst, node, infer, history, tup)
+      op_send(ccgen, inst, node, infer, history, tup)
       nil
     end
 
     define_ccgen_rule_op :SENDB do |ccgen, inst, node, infer, history, tup|
-      op_send_aux(ccgen, inst, node, infer, history, tup)
+      op_send(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -222,7 +221,7 @@ module CodeGenC
       # make env struct
       envreg = inst.para[1]
       proc = inst.outreg[0].type[tup][0]
-      tups = inst.outreg[0].type.keys
+      tups = proc.using_tup
       tupsize = tups.size
       if envreg.size > 0 then
         ccgen.hcode << "struct env#{proc.id} {\n"
@@ -232,7 +231,7 @@ module CodeGenC
         ccgen.hcode << "};\n"
         ccgen.hcode << "struct proc#{proc.id} {\n"
         ccgen.hcode << "int id;\n"
-        ccgen.hcode << "void *code[tupsize];\n"
+        ccgen.hcode << "void *code[#{tupsize}];\n"
         ccgen.hcode << "struct env#{proc.id} env;\n"
       else
         ccgen.hcode << "struct proc#{proc.id} {\n"
@@ -253,12 +252,10 @@ module CodeGenC
       ccgen.pcode << "v#{regno}.self = self;\n"
       tups.each_with_index do |tp, i|
         bfunc = gen_block_func("p#{proc.id}", proc.slf.class_object, inst.para[3], tp)
-        ccgen.pcode << "v#{regno}.code[i] = (void *)#{bfunc};\n"
+        ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"
         minf = [bfunc, proc, tp]
-        ccgen.using_method.push minf
+        ccgen.using_block.push minf
       end
-
-      print ccgen.hcode
     end
   end
 end

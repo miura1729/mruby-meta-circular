@@ -2,6 +2,7 @@ module CodeGenC
   class CodeGen
     def initialize
       @using_method = []
+      @using_block = []
       @callstack = []
       @ccode = ""
       @hcode = ""
@@ -27,6 +28,7 @@ EOS
     attr :pcode
     attr :callstack
     attr :using_method
+    attr :using_block
 
     def is_live_reg_aux(node, reg, pos, hash)
       if hash[node] then
@@ -58,10 +60,14 @@ EOS
       block = proc.irep
       topobj = TOP_SELF
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
-      intype = [[ty]]
-      tup = ti.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), 0)
-      code_gen_block(block, ti, :main, proc, tup, intype)
+      nilty = MTypeInf::LiteralType.new(NilClass,  nil)
+      intype = [[ty], nil, nil]
+      code_gen_method(block, ti, :main_Object_0, proc, 0, intype)
       @using_method.each do |name, proc, utup|
+        intype = ti.typetupletab.rev_table[utup]
+        code_gen_method(proc.irep, ti, name, proc, utup, intype)
+      end
+      @using_block.each do |name, proc, utup|
         intype = ti.typetupletab.rev_table[utup]
         code_gen_block(proc.irep, ti, name, proc, utup, intype)
       end
@@ -90,18 +96,40 @@ EOS
       @ccode = @hcode + main + @ccode
     end
 
-    def code_gen_block(block, ti, name, proc, tup, intype)
+    def code_gen_method(block, ti, name, proc, tup, intype)
       @callstack.push [proc]
-      fname = CodeGen::gen_method_func(name, intype[0][0].class_object, tup)
       topnode = block.nodes[0]
       args = ""
+      intype[0...-2].each_with_index do |ty, i|
+        args << ", "
+        args << CodeGen::gen_declare(self, nil, topnode.enter_reg[i], tup)
+      end
+      rettype = CodeGen::get_ctype(self, block, block.retreg, tup)
+      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
+      @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
+      @dcode = ""
+      @pcode = ""
+      code_gen_node(block.nodes[0], ti, name, {}, tup)
+      @ccode << @dcode
+      @ccode << @pcode
+      @ccode << "}\n"
+      @callstack.pop
+    end
+
+    def code_gen_block(block, ti, name, proc, tup, intype)
+      @callstack.push [proc]
+      topnode = block.nodes[0]
+      args = ", gproc gproc"
       intype[1...-2].each_with_index do |ty, i|
         args << ", "
         args << CodeGen::gen_declare(self, nil, topnode.enter_reg[i + 1], tup)
       end
       rettype = CodeGen::get_ctype(self, block, block.retreg, tup)
-      @ccode << "#{rettype} #{fname}(mrb_state *mrb, mrb_value self#{args}) {\n"
-      @hcode << "#{rettype} #{fname}(mrb_state *, mrb_value#{args});\n"
+      @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
+      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
+      slfdecl = CodeGen::gen_declare(self, nil, topnode.enter_reg[0], tup)
+      @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)gproc;\n"
+      @ccode << "#{slfdecl} = proc->self;\n"
       @dcode = ""
       @pcode = ""
       code_gen_node(block.nodes[0], ti, name, {}, tup)
@@ -128,7 +156,8 @@ EOS
           end
 
           nd.enter_reg.each_with_index do |nreg, i|
-            if is_live_reg?(nd, nreg, i) then
+            if is_live_reg?(nd, nreg, i) and
+                !(nreg.is_a?(RiteSSA::ParmReg) and nreg.genpoint == 0) then
               sreg = node.exit_reg[i]
               src = CodeGen::reg_real_value(self, sreg, node, tup, ti, history)
               if declf then

@@ -227,6 +227,7 @@ module MTypeInf
       @slf = slf
       @env = env
       @tups = tups
+      @using_tup = []
     end
 
     def ==(other)
@@ -245,6 +246,7 @@ module MTypeInf
     attr :slf
     attr :env
     attr :tups
+    attr :using_tup
   end
 
   class FiberType<BasicType

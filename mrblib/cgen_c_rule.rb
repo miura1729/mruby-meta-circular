@@ -1,7 +1,11 @@
 module CodeGenC
   class CodeGen
-    def self.op_send_aux(ccgen, inst, node, infer, history, tup)
+    def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
+      op_send_aux(ccgen, inst, node, infer, history, tup, name)
+    end
+
+    def self.op_send_aux(ccgen, inst, node, infer, history, tup, name)
       intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       intype[0] = [intype[0][0]]
       rectype = intype[0][0].class_object
@@ -26,7 +30,7 @@ module CodeGenC
             reg_real_value(ccgen, reg, node, tup, infer, history)
           }.join(", ")
           ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
-          minf = [name, proc, utup]
+          minf = [fname, proc, utup]
           if ccgen.using_method.index(minf) == nil then
             ccgen.using_method.push minf
           end
@@ -81,7 +85,7 @@ module CodeGenC
         end
 
       else
-        op_send_aux(ccgen, gins, node, ti, history, tup)
+        op_send(ccgen, gins, node, ti, history, tup)
         nil
       end
     end
@@ -174,7 +178,14 @@ module CodeGenC
         gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :-)
 
       when :LAMBDA
-        "(void *)&v#{reg.id}"
+        res = "("
+        envreg = gins.para[1]
+        envreg.each do |reg|
+          val = reg_real_value(ccgen, reg, node, tup, ti, history)
+          res += "(v#{gins.outreg[0].id}.env.v#{reg.id} = #{val}),"
+        end
+        res += "(void *)&v#{reg.id})"
+        res
 
       else
         "v#{reg.id}"
@@ -249,18 +260,24 @@ module CodeGenC
 
     def self.gen_declare(ccgen, inst, reg, tup)
       type = get_ctype_aux(ccgen, inst, reg, tup)
+      if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
+        regnm = "self"
+      else
+        regnm = "v#{reg.id}"
+      end
+
       case type
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
         etype = get_ctype_aux(ccgen, inst, ereg, tup)
-        "#{etype} v#{reg.id}"
+        "#{etype} #{regnm}"
 
       when :nil
-        "mrb_value v#{reg.id}"
+        "mrb_value #{regnm}"
 
       else
-        "#{type} v#{reg.id}"
+        "#{type} #{regnm}"
       end
     end
 

@@ -80,10 +80,22 @@ module CodeGenC
     define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
       intype = inst.inreg.map {|reg| reg.type[tup] || []}
       ptype = intype[0][0]
+      proc = inst.inreg[0]
       intype[0] = [ptype.slf]
+      nreg = inst.outreg[0]
       if intype[0].size == 1 then
         # store proc object only 1 kind.
+        utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
+        procvar = reg_real_value(ccgen, proc, node, tup, infer, history)
+        fname = "((int (*)())((struct proc#{ptype.id} *)(#{procvar}))->code[0])"
+        args = inst.inreg.map {|reg|
+          reg_real_value(ccgen, reg, node, tup, infer, history)
+        }.join(", ")
+        ccgen.dcode << CodeGen::gen_declare(self, inst, nreg, tup)
+        ccgen.dcode << ";\n"
+        ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
       end
+      nil
     end
   end
 end
