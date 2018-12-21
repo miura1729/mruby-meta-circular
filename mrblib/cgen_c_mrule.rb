@@ -77,6 +77,23 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :length, Array do |ccgen, inst, node, infer, history, tup|
+      dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
+      src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, inst, nreg, tup)
+      ccgen.dcode << ";\n"
+      if is_escape?(inst.inreg[0]) then
+        src = "ARY_LEN(mrb_ary_ptr(#{src}))"
+        src = gen_type_conversion(dstt, :mrb_int, src)
+      else
+        src = gen_type_conversion(dstt, :mrb_int, inst.inreg[0].type[tup][0].elem,size - 1)
+      end
+
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
       intype = inst.inreg.map {|reg| reg.type[tup] || []}
       ptype = intype[0][0]

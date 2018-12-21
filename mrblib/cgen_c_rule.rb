@@ -259,7 +259,7 @@ module CodeGenC
     end
 
     def self.gen_declare(ccgen, inst, reg, tup)
-      type = get_ctype_aux(ccgen, inst, reg, tup)
+      type = get_ctype(ccgen, inst, reg, tup)
       if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else
@@ -271,7 +271,7 @@ module CodeGenC
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
         etype = get_ctype_aux(ccgen, inst, ereg, tup)
-        "#{etype} #{regnm}"
+        "#{etype} #{regnm}[]"
 
       when :nil
         "mrb_value #{regnm}"

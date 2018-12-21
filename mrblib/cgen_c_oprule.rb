@@ -196,7 +196,7 @@ module CodeGenC
       }
 
       if aescape then
-        ccgen.hcode << "mrb_value v#{reg.id};"
+        ccgen.dcode << "mrb_value v#{reg.id};\n"
         ccgen.pcode << "{\n"
         ccgen.pcode << "mrb_value tmpele[] = {\n"
         ccgen.pcode << vals2.join(', ')
@@ -236,7 +236,7 @@ module CodeGenC
         ccgen.hcode << "void *code[#{tupsize}];\n"
       end
 
-      if !cproc.irep.strict then
+      if !cproc.irep.strict and pproc then
         ccgen.hcode << "struct env#{pproc.id} *prev;\n"
       end
       ccgen.hcode << "mrb_value self;\n"
