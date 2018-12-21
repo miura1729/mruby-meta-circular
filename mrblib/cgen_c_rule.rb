@@ -182,7 +182,7 @@ module CodeGenC
         envreg = gins.para[1]
         envreg.each do |reg|
           val = reg_real_value(ccgen, reg, node, tup, ti, history)
-          res += "(v#{gins.outreg[0].id}.env.v#{reg.id} = #{val}),"
+          res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
         end
         res += "(void *)&v#{reg.id})"
         res

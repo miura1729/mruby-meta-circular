@@ -109,6 +109,14 @@ EOS
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       @dcode = ""
       @pcode = ""
+      if block.export_regs.size > 0 then
+        @hcode << "struct env#{proc.id} {\n"
+        block.export_regs.each do |reg|
+          @hcode << "#{CodeGen::gen_declare(self, nil, reg, tup)};\n"
+        end
+        @hcode << "};\n"
+        @dcode << "struct env#{proc.id} env;\n"
+      end
       code_gen_node(block.nodes[0], ti, name, {}, tup)
       @ccode << @dcode
       @ccode << @pcode
@@ -132,6 +140,14 @@ EOS
       @ccode << "#{slfdecl} = proc->self;\n"
       @dcode = ""
       @pcode = ""
+      if block.export_regs.size > 0 then
+        @hcode << "struct env#{proc.id} {\n"
+        block.export_regs.each do |reg|
+          @hcode << "#{CodeGen::gen_declare(self, nil, reg, tup)};\n"
+        end
+        @hcode << "};\n"
+        @dcode << "struct env#{proc.id} env;\n"
+      end
       code_gen_node(block.nodes[0], ti, name, {}, tup)
       @ccode << @dcode
       @ccode << @pcode

@@ -55,7 +55,7 @@ module CodeGenC
       oreg = inst.outreg[0]
 
       ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
-      ccgen.pcode << "v#{oreg.id} = proc->#{"prev." * up}env.v#{ireg.id};\n"
+      ccgen.pcode << "v#{oreg.id} = proc->#{"prev->" * up}env->v#{ireg.id};\n"
       nil
     end
 
@@ -221,27 +221,23 @@ module CodeGenC
       # make env struct
       envreg = inst.para[1]
       proc = inst.outreg[0].type[tup][0]
+      cproc = ccgen.callstack[-1][0]
+      pproc = ccgen.callstack[-2] ? ccgen.callstack[-2][0] : nil
       tups = proc.using_tup
       tupsize = tups.size
       if envreg.size > 0 then
-        ccgen.hcode << "struct env#{proc.id} {\n"
-        envreg.each do |reg|
-          ccgen.hcode << "#{gen_declare(self, inst, reg, tup)};\n"
-        end
-        ccgen.hcode << "};\n"
         ccgen.hcode << "struct proc#{proc.id} {\n"
         ccgen.hcode << "int id;\n"
         ccgen.hcode << "void *code[#{tupsize}];\n"
-        ccgen.hcode << "struct env#{proc.id} env;\n"
+        ccgen.hcode << "struct env#{cproc.id} *env;\n"
       else
         ccgen.hcode << "struct proc#{proc.id} {\n"
         ccgen.hcode << "int id;\n"
         ccgen.hcode << "void *code[#{tupsize}];\n"
       end
 
-      cproc = ccgen.callstack[-1][0]
       if !cproc.irep.strict then
-        ccgen.hcode << "struct env#{cproc.id} prev;\n"
+        ccgen.hcode << "struct env#{pproc.id} *prev;\n"
       end
       ccgen.hcode << "mrb_value self;\n"
       ccgen.hcode << "};\n"
@@ -250,6 +246,9 @@ module CodeGenC
       ccgen.pcode << "struct proc#{proc.id} v#{regno};\n"
       ccgen.pcode << "v#{regno}.id = #{proc.id};\n"
       ccgen.pcode << "v#{regno}.self = self;\n"
+      if envreg.size > 0 then
+        ccgen.pcode << "v#{regno}.env = &env;\n"
+      end
       tups.each_with_index do |tp, i|
         bfunc = gen_block_func("p#{proc.id}", proc.slf.class_object, inst.para[3], tp)
         ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"

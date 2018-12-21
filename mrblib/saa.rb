@@ -712,6 +712,7 @@ module RiteSSA
           exregno.each do |no|
             exreg.push regtab[no]
           end
+          @root.export_regs |= exreg
           inst.para.push exreg
           inst.para.push exregno
           inst.para.push bn
@@ -826,6 +827,7 @@ module RiteSSA
       @export_exception = Reg.new(self)
       @rescuetab = []
       @ensuretab = []
+      @export_regs = []
 
       @regtab = nil
       block_head = collect_block_head(iseq)
@@ -881,6 +883,7 @@ module RiteSSA
     attr :rescuetab
     attr :ensuretab
     attr :strict
+    attr_accessor :export_regs
 
     def collect_block_head(iseq)
       res = [0]
