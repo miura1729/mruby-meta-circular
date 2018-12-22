@@ -87,7 +87,7 @@ module CodeGenC
         src = "ARY_LEN(mrb_ary_ptr(#{src}))"
         src = gen_type_conversion(dstt, :mrb_int, src)
       else
-        src = gen_type_conversion(dstt, :mrb_int, inst.inreg[0].type[tup][0].elem,size - 1)
+        src = gen_type_conversion(dstt, :mrb_int, inst.inreg[0].type[tup][0].element.keys.size - 1)
       end
 
       ccgen.pcode << "v#{nreg.id} = #{src};\n"

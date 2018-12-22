@@ -171,7 +171,7 @@ module MTypeInf
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
       bproc = ProcType.new(Proc, saairep, ty, [], [])
-      bproc.place[true] = true
+      #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
 #      @step += 1
 #      inference_block(saairep, intype, tup, 2, nil)

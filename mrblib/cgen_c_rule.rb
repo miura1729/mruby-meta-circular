@@ -259,7 +259,7 @@ module CodeGenC
     end
 
     def self.gen_declare(ccgen, inst, reg, tup)
-      type = get_ctype(ccgen, inst, reg, tup)
+      type = get_ctype_aux(ccgen, inst, reg, tup)
       if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else
@@ -271,7 +271,11 @@ module CodeGenC
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
         etype = get_ctype_aux(ccgen, inst, ereg, tup)
-        "#{etype} #{regnm}[]"
+        if !is_escape?(reg) then
+          "#{etype} *#{regnm}"
+        else
+          "mrb_value #{regnm}"
+        end
 
       when :nil
         "mrb_value #{regnm}"
@@ -285,7 +289,24 @@ module CodeGenC
       plist = reg.type.keys.map { |tup|
         reg.type[tup].map {|ty| ty.place.keys}.flatten.uniq
       }.flatten.uniq
-      plist.size != 0
+      is_escape_aux(plist)
+    end
+
+    def self.is_escape_aux(plist)
+      plist.any? {|e|
+        case e
+        when TrueClass
+          true
+
+        when RiteSSA::Reg
+          e.is_escape?
+
+        when MTypeInf::ProcType
+          is_escape_aux(e.place.keys)
+
+        else
+        end
+      }
     end
 
     def self.gen_type_conversion(dstt, srct, src)
