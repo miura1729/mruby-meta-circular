@@ -51,19 +51,19 @@ module MTypeInf
       typemethodp = false
       genp = inst.inreg[0].genpoint
       if genp.is_a?(RiteSSA::Inst) then
-        if genp.op == :SEND and genp.para[0] == :! then
-          notp = true
+        while genp.op == :SEND and genp.para[0] == :!
+          notp = !notp
           genp = genp.inreg[0].genpoint
         end
 
         if genp.op == :SEND then
           addtional_type_spec = nil
           case genp.para[0]
-          when :kind_of?
+          when :kind_of?, :is_a?
             typemethodp = true
             tcls = genp.inreg[1].flush_type(tup)[tup]
             cls = nil
-            if tcls.size == 1 and tcls[0].class_object == Class then
+            if tcls.size == 1 and tcls[0].val.class == Class then
               cls = tcls[0].val
             end
             type = PrimitiveType.new(cls)
@@ -93,8 +93,16 @@ module MTypeInf
       end
 
       type = inst.inreg[0].flush_type(tup)[tup]
+      atype = nil
+      if genp.is_a?(RiteSSA::Inst) then
+        atype = genp.outreg[0].flush_type(tup)[tup]
+      end
       if type && type.size == 1 then
         condtype = type[0].class_object
+      elsif atype and addtional_type_spec and
+          (atype.all? {|e| addtional_type_spec.include?(e.class_object)} or 
+          atype.all? {|e| !addtional_type_spec.include?(e.class_object)}) then
+        condtype = (notp ^ addtional_type_spec.include?(atype[0].class_object)).class
       else
         condtype = nil
       end
