@@ -223,8 +223,7 @@ module CodeGenC
       proc = inst.outreg[0].type[tup][0]
       cproc = ccgen.callstack[-1][0]
       pproc = ccgen.callstack[-2] ? ccgen.callstack[-2][0] : nil
-      tups = proc.using_tup
-      tupsize = tups.size
+      tupsize = proc.using_tup.size
       if envreg.size > 0 then
         ccgen.hcode << "struct proc#{proc.id} {\n"
         ccgen.hcode << "int id;\n"
@@ -239,7 +238,8 @@ module CodeGenC
       if !cproc.irep.strict and pproc then
         ccgen.hcode << "struct env#{pproc.id} *prev;\n"
       end
-      ccgen.hcode << "mrb_value self;\n"
+      slfdecl = gen_declare(ccgen, inst, proc.slfreg, tup)
+      ccgen.hcode << "#{slfdecl};\n"
       ccgen.hcode << "};\n"
 
       regno = inst.outreg[0].id
@@ -249,7 +249,7 @@ module CodeGenC
       if envreg.size > 0 then
         ccgen.pcode << "v#{regno}.env = &env;\n"
       end
-      tups.each_with_index do |tp, i|
+      proc.using_tup.each do |tp, i|
         bfunc = gen_block_func("p#{proc.id}", proc.slf.class_object, inst.para[3], tp)
         ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"
         minf = [bfunc, proc, tp]

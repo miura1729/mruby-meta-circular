@@ -44,6 +44,7 @@ module CodeGenC
 
     def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
       if reg0.is_a?(RiteSSA::Reg) then
+        reg0.rearrange_type(tup)
         arg0 = reg_real_value(ccgen, reg0, node, tup, ti, history)
         case reg0.type[tup].size
         when 1
@@ -57,6 +58,7 @@ module CodeGenC
       end
 
       if reg1.is_a?(RiteSSA::Reg) then
+        reg1.rearrange_type(tup)
         arg1 = reg_real_value(ccgen, reg1, node, tup, ti, history)
         case reg1.type[tup].size
         when 1
@@ -184,7 +186,7 @@ module CodeGenC
           val = reg_real_value(ccgen, reg, node, tup, ti, history)
           res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
         end
-        res += "(void *)&v#{reg.id})"
+        res += "(gproc)&v#{reg.id})"
         res
 
       else

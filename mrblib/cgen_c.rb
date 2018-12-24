@@ -17,6 +17,7 @@ module CodeGenC
 #include <mruby/value.h>
 #include <mruby/array.h>
 #include <mruby/throw.h>
+#undef mrb_int
 
 typedef void *gproc;
 EOS
@@ -97,6 +98,9 @@ EOS
     end
 
     def code_gen_method(block, ti, name, proc, tup, intype)
+      if !block.nodes[0] then
+        return
+      end
       @callstack.push [proc]
       topnode = block.nodes[0]
       args = ""
@@ -127,7 +131,7 @@ EOS
     def code_gen_block(block, ti, name, proc, tup, intype)
       @callstack.push [proc]
       topnode = block.nodes[0]
-      args = ", gproc gproc"
+      args = ", gproc cgproc"
       intype[1...-2].each_with_index do |ty, i|
         args << ", "
         args << CodeGen::gen_declare(self, nil, topnode.enter_reg[i + 1], tup)
@@ -136,7 +140,7 @@ EOS
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       slfdecl = CodeGen::gen_declare(self, nil, topnode.enter_reg[0], tup)
-      @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)gproc;\n"
+      @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
       @ccode << "#{slfdecl} = proc->self;\n"
       @dcode = ""
       @pcode = ""

@@ -28,6 +28,7 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
+          ele.place.merge!(@place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
@@ -112,6 +113,12 @@ module MTypeInf
       @val = val
     end
 
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @val == other.val
+    end
+
     def inspect_aux(hist)
       case  @val
       when NilClass, TrueClass, FalseClass
@@ -134,12 +141,6 @@ module MTypeInf
       else
         @@symtab[val] = SymbolType.new(klass, val)
       end
-    end
-
-    def ==(other)
-      self.class == other.class &&
-        @class_object == other.class_object &&
-        @val == other.val
     end
 
     def inspect_aux(hist)
@@ -219,15 +220,16 @@ module MTypeInf
   class ProcType<BasicType
     @@num = 0
 
-    def initialize(co, irep, slf, env, tups, *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, *rest)
       super
       @id = @@num
       @@num += 1
       @irep = irep
       @slf = slf
+      @slfreg = slfreg
       @env = env
       @tups = tups
-      @using_tup = []
+      @using_tup = {}
     end
 
     def ==(other)
@@ -244,6 +246,7 @@ module MTypeInf
     attr :id
     attr :irep
     attr :slf
+    attr :slfreg
     attr :env
     attr :tups
     attr :using_tup

@@ -170,7 +170,7 @@ module MTypeInf
       ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
-      bproc = ProcType.new(Proc, saairep, ty, [], [])
+      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [])
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
 #      @step += 1
@@ -179,6 +179,9 @@ module MTypeInf
     end
 
     def inference_block(saairep, intype, tup, argc, proc)
+      if !saairep.nodes[0] then
+        return
+      end
       fixp = true
       intype.each_with_index do |tys, i|
         if tys then
@@ -250,7 +253,7 @@ module MTypeInf
       node.ext_iseq.each do |ins|
         #p ins.line
         #p ins.filename
-        #p ins.op #for debug
+        #p "#{ins.line} #{ins.op}" #for debug
         rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         if rc then
           # escape for customized contination (see OP_JMPNOT)

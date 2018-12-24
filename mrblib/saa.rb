@@ -26,6 +26,23 @@ module RiteSSA
       "<#{self.class} type: #{@type} same: #{@same} pos: #{@positive_list} neg: #{@negative_list}>"
     end
 
+    def rearrange_type(tup)
+      otype = @type[tup]
+      ntype = []
+      clstab = {}
+      otype.each do |ty|
+        cl = ty.class_object
+        if clstab[cl]
+          next
+        end
+
+        clstab[cl] = true
+        ntype.push ty
+      end
+
+      @type[tup] = ntype
+    end
+
     def add_type(ty, tup)
       type = @type[tup]
       if type.nil? then

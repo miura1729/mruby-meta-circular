@@ -181,7 +181,7 @@ module MTypeInf
       irep = Irep::get_proc_irep(p0)
       if irep then
         blk = RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
-        ProcType.new(Proc, blk, tclass, [], [])
+        ProcType.new(Proc, blk, tclass, nil,  [], [])
       else
         nil
       end
@@ -324,6 +324,7 @@ module MTypeInf
       valreg.flush_type(tup)
 
       arrtypes.each do |arrt|
+        arrt.place[true] = true
         if arrt.class_object.== Array then
           arrele = arrt.element
           arrele[ContainerType::UNDEF_VALUE].add_same valreg

@@ -77,6 +77,21 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :push, Array do |ccgen, inst, node, infer, history, tup|
+      srct = get_ctype(ccgen, inst, inst.inreg[0], tup)
+      valt = get_ctype(ccgen, inst, inst.inreg[1], tup)
+      dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
+      src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, inst, nreg, tup)
+      ccgen.dcode << ";\n"
+      val = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)
+      val = gen_type_conversion(:mrb_value, valt, val)
+      ccgen.pcode <<  "mrb_ary_push(mrb, #{src}, #{val});\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :length, Array do |ccgen, inst, node, infer, history, tup|
       dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
       src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
@@ -102,9 +117,11 @@ module CodeGenC
       nreg = inst.outreg[0]
       if intype[0].size == 1 then
         # store proc object only 1 kind.
-        utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
+        utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         procvar = reg_real_value(ccgen, proc, node, tup, infer, history)
-        fname = "((int (*)())((struct proc#{ptype.id} *)(#{procvar}))->code[0])"
+        codeno = ptype.using_tup[utup]
+        outtype = get_ctype(ccgen, inst, nreg, tup)
+        fname = "((#{outtype} (*)())((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
         args = inst.inreg.map {|reg|
           reg_real_value(ccgen, reg, node, tup, infer, history)
         }.join(", ")
