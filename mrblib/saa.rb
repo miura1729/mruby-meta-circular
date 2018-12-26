@@ -225,24 +225,28 @@ module RiteSSA
     attr :id
 
     def get_export_reg(reps, level)
-      res = []
+      exres = []
+      imres = []
       reps.each do |irep|
         irep.iseq.each do |code|
           if Irep::OPTABLE_SYM[get_opcode(code)] == :GETUPVAR and
               getarg_c(code) == level then
-            res.push getarg_b(code)
+            exres.push getarg_b(code)
           end
 
           if Irep::OPTABLE_SYM[get_opcode(code)] == :SETUPVAR and
               getarg_c(code) == level then
-            res.push getarg_b(code)
+            exres.push getarg_b(code)
+            imres.push getarg_b(code)
           end
         end
 
-        res += get_export_reg(irep.reps, level + 1)
+        cexres, cimres = get_export_reg(irep.reps, level + 1)
+        exres += cexres
+        imres += cimres
       end
 
-      res.uniq
+      [exres.uniq, imres.uniq]
     end
 
     def make_ext_iseq
@@ -724,7 +728,7 @@ module RiteSSA
           bn = getarg_bl(code)
           nlambda = Block.new(@irep.reps[bn], @root, @root.target_class.class_object, nil)
           inst.para.push nlambda
-          exregno = get_export_reg(@irep.reps, 0)
+          exregno, imregno = get_export_reg(@irep.reps, 0)
           exreg = []
           exregno.each do |no|
             exreg.push regtab[no]
@@ -733,6 +737,14 @@ module RiteSSA
           inst.para.push exreg
           inst.para.push exregno
           inst.para.push bn
+
+          imreg = []
+          imregno.each do |no|
+            imreg.push regtab[no]
+          end
+          inst.para.push imreg
+          inst.para.push imregno
+          @root.import_regs |= imreg
           @root.reps[bn] = nlambda
 
         when :CLASS
@@ -845,6 +857,7 @@ module RiteSSA
       @rescuetab = []
       @ensuretab = []
       @export_regs = []
+      @import_regs = []
 
       @regtab = nil
       block_head = collect_block_head(iseq)
@@ -901,6 +914,7 @@ module RiteSSA
     attr :ensuretab
     attr :strict
     attr_accessor :export_regs
+    attr_accessor :import_regs
 
     def collect_block_head(iseq)
       res = [0]

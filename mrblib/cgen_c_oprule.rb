@@ -15,10 +15,15 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :LOADI do |ccgen, inst, node, infer, history, tup|
-      nil
+      oreg = inst.outreg[0]
+      if node.root.export_regs.include?(oreg) then
+        ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+        ccgen.pcode << "v#{oreg.id} = #{inst.para[0]};\n"
+      end
     end
 
     define_ccgen_rule_op :LOADL do |ccgen, inst, node, infer, history, tup|
+      @@ruletab[:CCGEN][:LOADI].call(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -56,6 +61,18 @@ module CodeGenC
 
       ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
       ccgen.pcode << "v#{oreg.id} = proc->#{"prev->" * up}env->v#{ireg.id};\n"
+      nil
+    end
+
+    define_ccgen_rule_op :SETUPVAR do |ccgen, inst, node, infer, history, tup|
+      up = inst.para[1]
+      pos = inst.para[2]
+      proc = ccgen.callstack[-1][0]
+      oreg = inst.outreg[0]
+
+      ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+      val = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+      ccgen.pcode << "proc->#{"prev->" * up}env->v#{oreg.id} = #{val};\n"
       nil
     end
 

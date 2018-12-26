@@ -26,10 +26,20 @@ module CodeGenC
           utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
           fname = gen_method_func(name, rt, utup)
 
+          procexport = false
           args = inst.inreg.map {|reg|
-            reg_real_value(ccgen, reg, node, tup, infer, history)
+            rs = reg_real_value(ccgen, reg, node, tup, infer, history)
+            if get_ctype_aux(ccgen, inst, reg, tup) == :gproc then
+              procexport = true
+            end
+            rs
           }.join(", ")
           ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+          if procexport then
+            node.root.import_regs.each do |reg|
+              ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
+            end
+          end
           minf = [fname, proc, utup]
           if ccgen.using_method.index(minf) == nil then
             ccgen.using_method.push minf
@@ -128,7 +138,11 @@ module CodeGenC
         reg_real_value(ccgen, gins.inreg[0], node, tup, ti, history)
 
       when :LOADL, :LOADI
-        gins.para[0]
+        if node.root.export_regs.include?(reg) then
+          "v#{reg.id}"
+        else
+          gins.para[0]
+        end
 
       when :LOADSYM
         "mrb_intern_lit(mrb, \"#{gins.para[0]}\")"
@@ -207,6 +221,7 @@ module CodeGenC
       Fixnum => :mrb_int,
       Float => :mrb_float,
       Array => :array,
+      Range => :range,
       Proc => :gproc,
       NilClass => :nil
     }
@@ -246,6 +261,19 @@ module CodeGenC
         if !is_escape?(reg) then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = reg.type[tup][0].element[uv]
+          rc = get_ctype_aux(ccgen, inst, ereg, tup)
+          if rc == :array then
+            :mrb_value
+          else
+            rc
+          end
+        else
+          :mrb_value
+        end
+
+      when :range
+        if !is_escape?(reg) then
+          ereg = reg.type[tup][0].element[0]
           rc = get_ctype_aux(ccgen, inst, ereg, tup)
           if rc == :array then
             :mrb_value
