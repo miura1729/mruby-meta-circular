@@ -952,6 +952,7 @@ module RiteSSA
   class ClassSSA
     @@insttab = {}
     @@globaltab = {}
+    @@num = 0
 
     def self.get_instance(clobj)
       if @@insttab[clobj] then
@@ -975,6 +976,8 @@ module RiteSSA
       @cv = {}
       @constant = {}
       @method = {}
+      @id = @@num
+      @@num += 1
     end
 
     attr :class_object
@@ -982,6 +985,7 @@ module RiteSSA
     attr :cv
     attr :constant
     attr :method
+    attr :id
 
     def const_get(sym)
       cls = @class_object

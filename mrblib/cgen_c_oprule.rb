@@ -17,7 +17,7 @@ module CodeGenC
     define_ccgen_rule_op :LOADI do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       if node.root.export_regs.include?(oreg) then
-        ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+        ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
         ccgen.pcode << "v#{oreg.id} = #{inst.para[0]};\n"
       end
     end
@@ -49,6 +49,25 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
+      val = inst.para[1]
+      if !(val.is_a?(Fixnum) or val.is_a?(Float)) then
+        ccgen.clstab[val] = [inst.para[0], "const#{ccgen.clstab.size}"]
+      end
+      nil
+    end
+
+    define_ccgen_rule_op :GETIV do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :SETIV do |ccgen, inst, node, infer, history, tup|
+      dst = inst.outreg[0]
+      slf = inst.inreg[1]
+      val = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+      if is_escape?(slf) then
+      else
+        ccgen.pcode << "self->v#{dst.id} = #{val};\n"
+      end
       nil
     end
 
@@ -59,7 +78,7 @@ module CodeGenC
       ireg = inst.inreg[0]
       oreg = inst.outreg[0]
 
-      ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+      ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
       ccgen.pcode << "v#{oreg.id} = proc->#{"prev->" * up}env->v#{ireg.id};\n"
       nil
     end
@@ -70,7 +89,7 @@ module CodeGenC
       proc = ccgen.callstack[-1][0]
       oreg = inst.outreg[0]
 
-      ccgen.dcode << "#{gen_declare(self, inst, oreg, tup)};\n"
+      ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
       val = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       ccgen.pcode << "proc->#{"prev->" * up}env->v#{oreg.id} = #{val};\n"
       nil
@@ -137,6 +156,9 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
+      if ccgen.callstack[-1][1] then
+        ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
+      end
       retval = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       if retval then
         ccgen.pcode << "return #{retval};\n"
@@ -192,21 +214,21 @@ module CodeGenC
 
     define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
       reg = inst.outreg[0]
-      aescape = is_escape?(reg)
       vals = inst.inreg.map {|reg|
         src = reg_real_value(ccgen, reg, node, tup, infer, history)
       }
 
+      aescape = is_escape?(reg)
       dstt = nil
       if aescape then
         dstt = :mrb_value
       else
-        dstt = get_ctype(ccgen, inst, inst.outreg[0], tup)
+        dstt = get_ctype(ccgen, inst.outreg[0], tup)
       end
 
       i = 0
       vals2 = inst.inreg.map {|reg|
-        srct = get_ctype(ccgen, inst, reg, tup)
+        srct = get_ctype(ccgen, reg, tup)
         rc = gen_type_conversion(dstt, srct, vals[i])
         i = i + 1
         rc
@@ -219,13 +241,14 @@ module CodeGenC
         ccgen.pcode << vals2.join(', ')
         ccgen.pcode << "\n};\n"
         ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
+        ccgen.callstack[-1][1] = true
         ccgen.pcode << "}\n"
       else
-        type = get_ctype_aux(ccgen, inst, reg, tup)
+        type = get_ctype_aux(ccgen, reg, tup)
         if type == :array then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = reg.type[tup][0].element[uv]
-          etype = get_ctype_aux(ccgen, inst, ereg, tup)
+          etype = get_ctype_aux(ccgen, ereg, tup)
           ccgen.pcode << "#{etype} v#{reg.id}[] = {\n"
           ccgen.pcode << vals2.join(', ')
           ccgen.pcode << "\n};\n"
@@ -255,7 +278,7 @@ module CodeGenC
       if !cproc.irep.strict and pproc then
         ccgen.hcode << "struct env#{pproc.id} *prev;\n"
       end
-      slfdecl = gen_declare(ccgen, inst, proc.slfreg, tup)
+      slfdecl = gen_declare(ccgen, proc.slfreg, tup)
       ccgen.hcode << "#{slfdecl};\n"
       ccgen.hcode << "};\n"
 

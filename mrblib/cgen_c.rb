@@ -3,16 +3,20 @@ module CodeGenC
     def initialize
       @using_method = []
       @using_block = []
+      @using_class = {}
       @callstack = []
-      @ccode = ""
-      @hcode = ""
-      @pcode = ""
-      @dcode = ""
+      @scode = ""               # structure definituon
+      @hcode = ""               # prototype, variable
+      @dcode = ""               # local declaration
+      @pcode = ""               # program code
+      @ccode = ""               # whole program
+
+      @clstab = {}
       init_code
     end
 
     def init_code
-      @hcode = <<'EOS'
+      @scode = <<'EOS'
 #include <mruby.h>
 #include <mruby/value.h>
 #include <mruby/array.h>
@@ -23,13 +27,17 @@ typedef void *gproc;
 EOS
     end
 
-    attr :ccode
+    attr :scode
     attr :hcode
+    attr :ccode
     attr :dcode
     attr :pcode
     attr :callstack
     attr :using_method
     attr :using_block
+    attr :using_class
+
+    attr :clstab
 
     def is_live_reg_aux(node, reg, pos, hash)
       if hash[node] then
@@ -73,6 +81,14 @@ EOS
         code_gen_block(proc.irep, ti, name, proc, utup, intype)
       end
 
+      @using_class.each do |clsssa, id|
+        @scode << "struct #{id} {\n"
+        clsssa.iv.each do |name, reg|
+          @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
+        end
+        @scode << "};\n"
+      end
+
       main = <<'EOS'
 int main(int argc, char **argv)
 {
@@ -94,69 +110,62 @@ int main(int argc, char **argv)
 EOS
 
 
-      @ccode = @hcode + main + @ccode
+      @ccode = @scode + @hcode + main + @ccode
+    end
+
+    def code_gen_method_aux(block, ti, name, proc, tup, intype)
+      @dcode = ""
+      @pcode = ""
+      if block.export_regs.size > 0 then
+        @scode << "struct env#{proc.id} {\n"
+        block.export_regs.each do |reg|
+          @scode << "#{CodeGen::gen_declare(self, reg, tup)};\n"
+        end
+        @scode << "};\n"
+        @dcode << "struct env#{proc.id} env;\n"
+      end
+      code_gen_node(block.nodes[0], ti, name, {}, tup)
+      if @callstack[-1][1] then
+        @dcode << "int ai = mrb_gc_arena_save(mrb);\n"
+      end
+      @ccode << @dcode
+      @ccode << @pcode
+      @ccode << "}\n"
+      @callstack.pop
     end
 
     def code_gen_method(block, ti, name, proc, tup, intype)
       if !block.nodes[0] then
         return
       end
-      @callstack.push [proc]
+      @callstack.push [proc, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       args = ""
       intype[0...-2].each_with_index do |ty, i|
         args << ", "
-        args << CodeGen::gen_declare(self, nil, topnode.enter_reg[i], tup)
+        args << CodeGen::gen_declare(self, topnode.enter_reg[i], tup)
       end
-      rettype = CodeGen::get_ctype(self, block, block.retreg, tup)
+      rettype = CodeGen::get_ctype(self, block.retreg, tup)
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
-      @dcode = ""
-      @pcode = ""
-      if block.export_regs.size > 0 then
-        @hcode << "struct env#{proc.id} {\n"
-        block.export_regs.each do |reg|
-          @hcode << "#{CodeGen::gen_declare(self, nil, reg, tup)};\n"
-        end
-        @hcode << "};\n"
-        @dcode << "struct env#{proc.id} env;\n"
-      end
-      code_gen_node(block.nodes[0], ti, name, {}, tup)
-      @ccode << @dcode
-      @ccode << @pcode
-      @ccode << "}\n"
-      @callstack.pop
+      code_gen_method_aux(block, ti, name, proc, tup, intype)
     end
 
     def code_gen_block(block, ti, name, proc, tup, intype)
-      @callstack.push [proc]
+      @callstack.push [proc, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       args = ", gproc cgproc"
       intype[1...-2].each_with_index do |ty, i|
         args << ", "
-        args << CodeGen::gen_declare(self, nil, topnode.enter_reg[i + 1], tup)
+        args << CodeGen::gen_declare(self, topnode.enter_reg[i + 1], tup)
       end
-      rettype = CodeGen::get_ctype(self, block, block.retreg, tup)
-      @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
+      rettype = CodeGen::get_ctype(self, block.retreg, tup)
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
-      slfdecl = CodeGen::gen_declare(self, nil, topnode.enter_reg[0], tup)
+      @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
+      slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
       @ccode << "#{slfdecl} = proc->self;\n"
-      @dcode = ""
-      @pcode = ""
-      if block.export_regs.size > 0 then
-        @hcode << "struct env#{proc.id} {\n"
-        block.export_regs.each do |reg|
-          @hcode << "#{CodeGen::gen_declare(self, nil, reg, tup)};\n"
-        end
-        @hcode << "};\n"
-        @dcode << "struct env#{proc.id} env;\n"
-      end
-      code_gen_node(block.nodes[0], ti, name, {}, tup)
-      @ccode << @dcode
-      @ccode << @pcode
-      @ccode << "}\n"
-      @callstack.pop
+      code_gen_method_aux(block, ti, name, proc, tup, intype)
     end
 
     def code_gen_node(node, ti, name, history, tup)
@@ -181,7 +190,7 @@ EOS
               sreg = node.exit_reg[i]
               src = CodeGen::reg_real_value(self, sreg, node, tup, ti, history)
               if declf then
-                @dcode << CodeGen::gen_declare(self, nil, nreg, tup)
+                @dcode << CodeGen::gen_declare(self, nreg, tup)
                 @dcode << ";\n"
               end
               @pcode << "v#{nreg.id} = #{src};\n"

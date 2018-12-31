@@ -2,11 +2,11 @@ module CodeGenC
   class CodeGen
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
-      op_send_aux(ccgen, inst, node, infer, history, tup, name)
+      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
     end
 
-    def self.op_send_aux(ccgen, inst, node, infer, history, tup, name)
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+    def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
+      intype = inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       intype[0] = [intype[0][0]]
       rectype = intype[0][0].class_object
       mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
@@ -14,27 +14,33 @@ module CodeGenC
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
           return mproc.call(ccgen, inst, node, infer, history, tup)
         else
-          if mtab[inst.para[0]] and mtab[inst.para[0]][rt] then
-            proc = mtab[inst.para[0]][rt]
+          if mtab[name] and mtab[name][rt] then
+            proc = mtab[name][rt]
           else
             next
           end
-          nreg = inst.outreg[0]
-          ccgen.dcode << gen_declare(ccgen, inst, nreg, tup)
-          ccgen.dcode << ";\n"
 
           utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
           fname = gen_method_func(name, rt, utup)
 
           procexport = false
-          args = inst.inreg.map {|reg|
+          args = inreg.map {|reg|
             rs = reg_real_value(ccgen, reg, node, tup, infer, history)
-            if get_ctype_aux(ccgen, inst, reg, tup) == :gproc then
+            if get_ctype_aux(ccgen, reg, tup) == :gproc then
               procexport = true
             end
             rs
           }.join(", ")
-          ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+
+          if outreg then
+            nreg = outreg[0]
+            ccgen.dcode << gen_declare(ccgen, nreg, tup)
+            ccgen.dcode << ";\n"
+            ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+          else
+            ccgen.pcode << "#{fname}(mrb, #{args});\n"
+          end
+
           if procexport then
             node.root.import_regs.each do |reg|
               ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
@@ -48,6 +54,7 @@ module CodeGenC
           return
         end
       end
+      p name
       ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
       nil
     end
@@ -154,7 +161,13 @@ module CodeGenC
         "self"
 
       when :GETCONST
-        gins.para[1]
+        val = gins.para[1]
+        vid =  ccgen.clstab[val]
+        if vid then
+          vid[1]
+        else
+          val
+        end
 
       when :ENTER
         i = gins.outreg.index(reg)
@@ -223,10 +236,10 @@ module CodeGenC
       Array => :array,
       Range => :range,
       Proc => :gproc,
-      NilClass => :nil
+      NilClass => :mrb_value
     }
 
-    def self.get_ctype_aux(ccgen, inst, reg, tup)
+    def self.get_ctype_aux(ccgen, reg, tup)
       rtype = reg.type[tup]
       if !rtype then
         # for element of array
@@ -251,17 +264,23 @@ module CodeGenC
         return :mrb_bool
       end
 
-      :mrb_value
+      clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
+
+      if clsssa and !is_escape?(reg) and clsssa.id != 0 then
+        "struct cls#{clsssa.id} *"
+      else
+        :mrb_value
+      end
     end
 
-    def self.get_ctype(ccgen, inst, reg, tup)
-      type = get_ctype_aux(ccgen, inst, reg, tup)
+    def self.get_ctype(ccgen, reg, tup)
+      type = get_ctype_aux(ccgen, reg, tup)
       case type
       when :array
         if !is_escape?(reg) then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = reg.type[tup][0].element[uv]
-          rc = get_ctype_aux(ccgen, inst, ereg, tup)
+          rc = get_ctype_aux(ccgen, ereg, tup)
           if rc == :array then
             :mrb_value
           else
@@ -274,7 +293,7 @@ module CodeGenC
       when :range
         if !is_escape?(reg) then
           ereg = reg.type[tup][0].element[0]
-          rc = get_ctype_aux(ccgen, inst, ereg, tup)
+          rc = get_ctype_aux(ccgen, ereg, tup)
           if rc == :array then
             :mrb_value
           else
@@ -283,14 +302,15 @@ module CodeGenC
         else
           :mrb_value
         end
+
       else
         type
       end
     end
 
-    def self.gen_declare(ccgen, inst, reg, tup)
-      type = get_ctype_aux(ccgen, inst, reg, tup)
-      if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
+    def self.gen_declare(ccgen, reg, tup)
+      type = get_ctype_aux(ccgen, reg, tup)
+     if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else
         regnm = "v#{reg.id}"
@@ -300,7 +320,7 @@ module CodeGenC
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
-        etype = get_ctype_aux(ccgen, inst, ereg, tup)
+        etype = get_ctype_aux(ccgen, ereg, tup)
         if !is_escape?(reg) then
           "#{etype} *#{regnm}"
         else
@@ -329,7 +349,8 @@ module CodeGenC
           true
 
         when RiteSSA::Reg
-          e.is_escape?
+#          is_escape?(e)
+          true
 
         when MTypeInf::ProcType
           is_escape_aux(e.place.keys)
