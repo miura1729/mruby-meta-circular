@@ -170,7 +170,7 @@ module MTypeInf
       ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
-      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [])
+      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil)
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
 #      @step += 1
@@ -246,6 +246,7 @@ module MTypeInf
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
         node.enter_reg[i].add_same ireg
+        node.enter_reg[i].flush_type(tup)
         node.enter_reg[i].negative_list = ireg.negative_list.clone
         node.enter_reg[i].positive_list = ireg.positive_list.clone
       end

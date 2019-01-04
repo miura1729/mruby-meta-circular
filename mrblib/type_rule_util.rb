@@ -189,7 +189,7 @@ module MTypeInf
       irep = Irep::get_proc_irep(p0)
       if irep then
         blk = RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
-        ProcType.new(Proc, blk, tclass, nil,  [], [])
+        ProcType.new(Proc, blk, tclass, nil,  [], [], pproc)
       else
         nil
       end

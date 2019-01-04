@@ -1,9 +1,13 @@
 module CodeGenC
   class CodeGen
+    @@escape_cache = {}
     def initialize
       @using_method = []
       @using_block = []
       @using_class = {}
+      @defined_method = {}
+      @defined_block = {}
+      @defined_class = {}
       @callstack = []
       @scode = ""               # structure definituon
       @hcode = ""               # prototype, variable
@@ -72,21 +76,39 @@ EOS
       nilty = MTypeInf::LiteralType.new(NilClass,  nil)
       intype = [[ty], nil, nil]
       code_gen_method(block, ti, :main_Object_0, proc, 0, intype)
-      @using_method.each do |name, proc, utup|
-        intype = ti.typetupletab.rev_table[utup]
-        code_gen_method(proc.irep, ti, name, proc, utup, intype)
-      end
-      @using_block.each do |name, proc, utup|
-        intype = ti.typetupletab.rev_table[utup]
-        code_gen_block(proc.irep, ti, name, proc, utup, intype)
-      end
 
-      @using_class.each do |clsssa, id|
-        @scode << "struct #{id} {\n"
-        clsssa.iv.each do |name, reg|
-          @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
+      fin = false
+      while !fin
+        fin = true
+        @using_method.each do |name, proc, utup|
+          if !@defined_method[name] then
+            intype = ti.typetupletab.rev_table[utup]
+            code_gen_method(proc.irep, ti, name, proc, utup, intype)
+            @defined_method[name] = true
+            fin = false
+          end
         end
-        @scode << "};\n"
+
+        @using_block.each do |name, proc, utup|
+          if !@defined_block[name] then
+            intype = ti.typetupletab.rev_table[utup]
+            code_gen_block(proc.irep, ti, name, proc, utup, intype)
+            @defined_block[name] = true
+            fin = false
+          end
+        end
+
+        @using_class.each do |clsssa, id|
+          if !@defined_class[id] then
+            @scode << "struct #{id} {\n"
+            clsssa.iv.each do |name, reg|
+              @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
+            end
+            @scode << "};\n"
+            @defined_class[id] = true
+            fin = false
+          end
+        end
       end
 
       main = <<'EOS'
@@ -113,13 +135,18 @@ EOS
       @ccode = @scode + @hcode + main + @ccode
     end
 
-    def code_gen_method_aux(block, ti, name, proc, tup, intype)
+    def code_gen_method_aux(block, ti, name, proc, tup)
       @dcode = ""
       @pcode = ""
-      if block.export_regs.size > 0 then
+      pproc = proc.parent
+      if block.export_regs.size > 0 or
+          (pproc and pproc.irep.export_regs.size > 0) then
         @scode << "struct env#{proc.id} {\n"
         block.export_regs.each do |reg|
           @scode << "#{CodeGen::gen_declare(self, reg, tup)};\n"
+        end
+        if pproc and pproc.irep.export_regs.size > 0 then
+          @scode << "struct env#{pproc.id} prev;\n"
         end
         @scode << "};\n"
         @dcode << "struct env#{proc.id} env;\n"
@@ -148,7 +175,7 @@ EOS
       rettype = CodeGen::get_ctype(self, block.retreg, tup)
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
-      code_gen_method_aux(block, ti, name, proc, tup, intype)
+      code_gen_method_aux(block, ti, name, proc, tup)
     end
 
     def code_gen_block(block, ti, name, proc, tup, intype)
@@ -165,7 +192,7 @@ EOS
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
       @ccode << "#{slfdecl} = proc->self;\n"
-      code_gen_method_aux(block, ti, name, proc, tup, intype)
+      code_gen_method_aux(block, ti, name, proc, tup)
     end
 
     def code_gen_node(node, ti, name, history, tup)
@@ -174,7 +201,12 @@ EOS
       rc = nil
       node.ext_iseq.each do |ins|
         #p ins.op # for debug
-        rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
+        begin
+          rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
+        rescue NoMethodError => e
+          p "#{ins.op} #{ins.filename}##{ins.line}"
+          raise e
+        end
       end
 
       node.exit_link.each do |nd|

@@ -30,13 +30,21 @@ module RiteSSA
       otype = @type[tup]
       ntype = []
       clstab = {}
+      if !otype.is_a?(Array) then
+        return
+      end
       otype.each do |ty|
         cl = ty.class_object
-        if clstab[cl]
+        if clstab[cl] or (cl == Fixnum and clstab[Float]) then
           next
         end
 
-        clstab[cl] = true
+        if cl == Float and pos = clstab[Fixnum] then
+          ntype[pos] = cl
+          next
+        end
+
+        clstab[cl] = ntype.size
         ntype.push ty
       end
 
@@ -155,9 +163,9 @@ module RiteSSA
   end
 
   class InstanceVariable<Storable
-    def initialize(name)
+    def initialize(name, pos)
       @name = name
-      super(nil)
+      super(pos)
     end
 
     attr_accessor :type
@@ -352,6 +360,8 @@ module RiteSSA
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
+          slfreg = regtab[0]
+          inst.inreg.push slfreg
 
         when :SETIV
           inreg = regtab[getarg_a(code)]
@@ -1018,7 +1028,8 @@ module RiteSSA
       if @iv[name] then
         @iv[name]
       else
-        @iv[name] = InstanceVariable.new(name)
+        npos = @iv.size
+        @iv[name] = InstanceVariable.new(name, npos)
       end
     end
 
@@ -1026,7 +1037,8 @@ module RiteSSA
       if @cv[name] then
         @cv[name]
       else
-        @cv[name] = InstanceVariable.new(name)
+        npos = @cv.size
+        @cv[name] = InstanceVariable.new(name, npos)
       end
     end
 
@@ -1034,7 +1046,8 @@ module RiteSSA
       if @@globaltab[name] then
         @@globaltab[name]
       else
-        reg = InstanceVariable.new(name)
+        npos = @@globaltab.size
+        reg = InstanceVariable.new(name, npos)
         @@globaltab[name] = reg
       end
     end

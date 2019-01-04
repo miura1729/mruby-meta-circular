@@ -60,7 +60,7 @@ module CodeGenC
     end
 
     def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
-      if reg0.is_a?(RiteSSA::Reg) then
+      if reg0.is_a?(RiteSSA::Reg) and reg0.type[tup] then
         reg0.rearrange_type(tup)
         arg0 = reg_real_value(ccgen, reg0, node, tup, ti, history)
         case reg0.type[tup].size
@@ -74,7 +74,7 @@ module CodeGenC
         type0 = arg0.class
       end
 
-      if reg1.is_a?(RiteSSA::Reg) then
+      if reg1.is_a?(RiteSSA::Reg) and reg1.type[tup] then
         reg1.rearrange_type(tup)
         arg1 = reg_real_value(ccgen, reg1, node, tup, ti, history)
         case reg1.type[tup].size
@@ -104,6 +104,7 @@ module CodeGenC
         end
 
       else
+        #p reg0.type[tup]
         op_send(ccgen, gins, node, ti, history, tup)
         nil
       end
@@ -123,7 +124,7 @@ module CodeGenC
 
         if node.enter_link.size == 0 then # TOP of block
           ptype = ti.typetupletab.rev_table[tup][reg.genpoint]
-          if ptype and ptype.size == 1 and
+          if ptype.is_a?(Array) and ptype.size == 1 and
               ptype[0].class == MTypeInf::LiteralType then
             return ptype[0].val
           end
@@ -240,6 +241,10 @@ module CodeGenC
     }
 
     def self.get_ctype_aux(ccgen, reg, tup)
+      if is_escape?(reg) then
+        return :mrb_value
+      end
+
       rtype = reg.type[tup]
       if !rtype then
         # for element of array
@@ -266,7 +271,7 @@ module CodeGenC
 
       clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
 
-      if clsssa and !is_escape?(reg) and clsssa.id != 0 then
+      if clsssa and clsssa.id != 0 then
         "struct cls#{clsssa.id} *"
       else
         :mrb_value
@@ -291,16 +296,12 @@ module CodeGenC
         end
 
       when :range
-        if !is_escape?(reg) then
-          ereg = reg.type[tup][0].element[0]
-          rc = get_ctype_aux(ccgen, ereg, tup)
-          if rc == :array then
-            :mrb_value
-          else
-            rc
-          end
-        else
+        ereg = reg.type[tup][0].element[0]
+        rc = get_ctype_aux(ccgen, ereg, tup)
+        if rc == :array then
           :mrb_value
+        else
+          rc
         end
 
       else
@@ -310,7 +311,7 @@ module CodeGenC
 
     def self.gen_declare(ccgen, reg, tup)
       type = get_ctype_aux(ccgen, reg, tup)
-     if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
+      if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else
         regnm = "v#{reg.id}"
@@ -321,11 +322,7 @@ module CodeGenC
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
         etype = get_ctype_aux(ccgen, ereg, tup)
-        if !is_escape?(reg) then
-          "#{etype} *#{regnm}"
-        else
-          "mrb_value #{regnm}"
-        end
+        "#{etype} *#{regnm}"
 
       when :nil
         "mrb_value #{regnm}"
@@ -335,27 +332,46 @@ module CodeGenC
       end
     end
 
-    def self.is_escape?(reg)
-      plist = reg.type.keys.map { |tup|
-        reg.type[tup].map {|ty| ty.place.keys}.flatten.uniq
-      }.flatten.uniq
-      is_escape_aux(plist)
+    def self.is_escape?(reg, cache = {})
+      res = @@escape_cache[reg]
+      if res then
+        res
+      end
+
+      if cache[reg] then
+        @@escape_cache[reg] = false
+        return false
+      end
+      cache[reg] = true
+
+      reg.type.each do |tup, tys|
+        tys.each do |ty|
+          res = is_escape_aux(ty.place, cache)
+          if res then
+            @@escape_cache[reg] = true
+            return true
+          end
+        end
+      end
+
+      @@escape_cache[reg] = false
+      false
     end
 
-    def self.is_escape_aux(plist)
-      plist.any? {|e|
+    def self.is_escape_aux(plist, cache)
+      plist.any? {|e, val|
         case e
+        when MTypeInf::ProcType
+          is_escape_aux(e.place, cache)
+
+        when RiteSSA::Reg
+          is_escape?(e, cache)
+
         when TrueClass
           true
 
-        when RiteSSA::Reg
-#          is_escape?(e)
-          true
-
-        when MTypeInf::ProcType
-          is_escape_aux(e.place.keys)
-
         else
+          nil
         end
       }
     end

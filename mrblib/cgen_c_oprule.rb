@@ -57,14 +57,32 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :GETIV do |ccgen, inst, node, infer, history, tup|
+      dst = inst.outreg[0]
+      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      src = inst.inreg[0]
+      srct = get_ctype(ccgen, inst.inreg[0], tup)
+      slf = inst.inreg[1]
+      ccgen.dcode << "#{gen_declare(self, dst, tup)};\n"
+
+      if is_escape?(slf) then
+        idx = src.genpoint
+        src = "mrb_ary_ref(mrb, self, #{idx});"
+        src = gen_type_conversion(dstt, :mrb_value, src)
+        ccgen.pcode << "v#{dst.id} = #{src}\n"
+      else
+        ccgen.pcode << " v#{dst.id} = self->v#{src.id};\n"
+      end
       nil
     end
 
     define_ccgen_rule_op :SETIV do |ccgen, inst, node, infer, history, tup|
       dst = inst.outreg[0]
       slf = inst.inreg[1]
+      valt = get_ctype(ccgen, inst.inreg[0], tup)
       val = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       if is_escape?(slf) then
+        val = gen_type_conversion(:mrb_value, valt, val)
+        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
       else
         ccgen.pcode << "self->v#{dst.id} = #{val};\n"
       end
@@ -79,7 +97,7 @@ module CodeGenC
       oreg = inst.outreg[0]
 
       ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
-      ccgen.pcode << "v#{oreg.id} = proc->#{"prev->" * up}env->v#{ireg.id};\n"
+      ccgen.pcode << "v#{oreg.id} = proc->env#{"->prev" * up}->v#{ireg.id};\n"
       nil
     end
 
@@ -91,7 +109,7 @@ module CodeGenC
 
       ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
       val = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
-      ccgen.pcode << "proc->#{"prev->" * up}env->v#{oreg.id} = #{val};\n"
+      ccgen.pcode << "proc->env#{"->prev" * up}->v#{oreg.id} = #{val};\n"
       nil
     end
 
@@ -262,9 +280,10 @@ module CodeGenC
       envreg = inst.para[1]
       proc = inst.outreg[0].type[tup][0]
       cproc = ccgen.callstack[-1][0]
-      pproc = ccgen.callstack[-2] ? ccgen.callstack[-2][0] : nil
+      pproc = cproc.parent
       tupsize = proc.using_tup.size
-      if envreg.size > 0 then
+      if envreg.size > 0 or
+          (pproc and pproc.irep.export_regs.size > 0) then
         ccgen.hcode << "struct proc#{proc.id} {\n"
         ccgen.hcode << "int id;\n"
         ccgen.hcode << "void *code[#{tupsize}];\n"
@@ -275,9 +294,6 @@ module CodeGenC
         ccgen.hcode << "void *code[#{tupsize}];\n"
       end
 
-      if !cproc.irep.strict and pproc then
-        ccgen.hcode << "struct env#{pproc.id} *prev;\n"
-      end
       slfdecl = gen_declare(ccgen, proc.slfreg, tup)
       ccgen.hcode << "#{slfdecl};\n"
       ccgen.hcode << "};\n"

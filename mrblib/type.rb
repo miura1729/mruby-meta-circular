@@ -29,6 +29,7 @@ module MTypeInf
         while i < ed
           ele = arr[i]
           ele.place.merge!(@place)
+          @place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
@@ -220,7 +221,7 @@ module MTypeInf
   class ProcType<BasicType
     @@num = 0
 
-    def initialize(co, irep, slf, slfreg, env, tups, *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, pproc,  *rest)
       super
       @id = @@num
       @@num += 1
@@ -230,6 +231,7 @@ module MTypeInf
       @env = env
       @tups = tups
       @using_tup = {}
+      @parent = pproc
     end
 
     def ==(other)
@@ -250,6 +252,7 @@ module MTypeInf
     attr :env
     attr :tups
     attr :using_tup
+    attr :parent
   end
 
   class FiberType<BasicType
