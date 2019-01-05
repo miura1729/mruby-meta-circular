@@ -408,8 +408,7 @@ module CodeGenC
 
       reg.type.each do |tup, tys|
         tys.each do |ty|
-          res = is_escape_aux(ty.place, cache)
-          if res then
+          if is_escape_aux(ty, ty.place, cache) then
             @@escape_cache[reg] = true
             return true
           end
@@ -420,11 +419,23 @@ module CodeGenC
       false
     end
 
-    def self.is_escape_aux(plist, cache)
+    def self.is_escape_aux(ty, plist, cache)
+      if plist.size == 0 then
+        return false
+      end
+
       plist.any? {|e, val|
         case e
+        when :return
+          if ty.is_a?(MTypeInf::ContainerType) or
+              ty.is_a?(MTypeInf::UserDefinedType) then
+            true
+          else
+            false
+          end
+
         when MTypeInf::ProcType
-          is_escape_aux(e.place, cache)
+          is_escape_aux(ty, e.place, cache)
 
         when RiteSSA::Reg
           is_escape?(e, cache)
@@ -433,7 +444,7 @@ module CodeGenC
           true
 
         else
-          nil
+          true
         end
       }
     end
