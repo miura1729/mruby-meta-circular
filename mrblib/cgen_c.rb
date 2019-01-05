@@ -8,6 +8,7 @@ module CodeGenC
       @defined_method = {}
       @defined_block = {}
       @defined_class = {}
+      @defined_env = {}
       @callstack = []
       @scode = ""               # structure definituon
       @hcode = ""               # prototype, variable
@@ -141,14 +142,17 @@ EOS
       pproc = proc.parent
       if block.export_regs.size > 0 or
           (pproc and pproc.irep.export_regs.size > 0) then
-        @scode << "struct env#{proc.id} {\n"
-        block.export_regs.each do |reg|
-          @scode << "#{CodeGen::gen_declare(self, reg, tup)};\n"
+        if !@defined_env[proc] then
+          @defined_env[proc] = true
+          @scode << "struct env#{proc.id} {\n"
+          block.export_regs.each do |reg|
+            @scode << "#{CodeGen::gen_declare(self, reg, tup)};\n"
+          end
+          if pproc and pproc.irep.export_regs.size > 0 then
+            @scode << "struct env#{pproc.id} *prev;\n"
+          end
+          @scode << "};\n"
         end
-        if pproc and pproc.irep.export_regs.size > 0 then
-          @scode << "struct env#{pproc.id} prev;\n"
-        end
-        @scode << "};\n"
         @dcode << "struct env#{proc.id} env;\n"
       end
       code_gen_node(block.nodes[0], ti, name, {}, tup)
