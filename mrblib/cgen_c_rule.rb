@@ -83,13 +83,15 @@ module CodeGenC
         arg0 = reg_real_value(ccgen, reg0, node, tup, ti, history)
         case reg0.type[tup].size
         when 1
-          type0 = reg0.type[tup][0].class_object
+          srcs0 = get_ctype(ccgen, reg0, tup)
+          srcd0 = get_ctype(ccgen, reg0, tup, false)
         else
-          type0 = Object
+          srcs0 = :mrb_value
+          srcd0 = :mrb_value
         end
       else
         arg0 = reg0
-        type0 = arg0.class
+        srcd0 = get_ctype(ccgen, gins.inreg[0], tup, false)
       end
 
       if reg1.is_a?(RiteSSA::Reg) and reg1.type[tup] then
@@ -97,28 +99,44 @@ module CodeGenC
         arg1 = reg_real_value(ccgen, reg1, node, tup, ti, history)
         case reg1.type[tup].size
         when 1
-          type1 = reg1.type[tup][0].class_object
+          srcs1 = get_ctype(ccgen, reg1, tup)
+          srcd1 = get_ctype(ccgen, reg1, tup, false)
         else
-          type1 = Object
+          srcs1 = :mrb_value
+          srcd1 = :mrb_value
         end
       else
         arg1 = reg1
-        type1 = arg1.class
+        if gins.inreg[1] then
+          srcd1 = get_ctype(ccgen, gins.inreg[1], tup, false)
+        else
+          if gins.para[1].is_a?(Fixnum) then
+            srcd1 = :mrb_int
+            srcs1 = srcd1
+          elsif  gins.para[1].is_a?(Float) then
+            srcd1 = :mrb_float
+            srcs1 = srcd1
+          else
+            srcd1 = :mrb_value
+            srcs1 = srcd1
+          end
+        end
       end
 
-      if (type0 == Fixnum or type0 == Float) and
-          (type1 == Fixnum or type1 == Float) then
+      if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
+          (srcd1 == :mrb_int or srcd1 == :mrb_float) then
         if arg0.class != String and arg1.class != String then
-          eval "(#{arg0} #{op} #{arg1})"
-        else
+#            eval "(#{arg0} #{op} #{arg1})"
           "(#{arg0} #{op} #{arg1})"
+        else
+          "(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})"
         end
       elsif op == :== and
-          type0 == type1 then
+          srcd0 == srcd1 then
         if arg0.class != String and arg1.class != String then
-          eval "(#{arg0} #{op} #{arg1})"
-        else
           "(#{arg0} #{op} #{arg1})"
+        else
+          "(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})"
         end
 
       else
@@ -284,8 +302,8 @@ module CodeGenC
       NilClass => :mrb_value
     }
 
-    def self.get_ctype_aux(ccgen, reg, tup)
-      if is_escape?(reg) then
+    def self.get_ctype_aux(ccgen, reg, tup, escheck = true)
+      if escheck and is_escape?(reg) then
         return :mrb_value
       end
 
@@ -322,14 +340,14 @@ module CodeGenC
       end
     end
 
-    def self.get_ctype(ccgen, reg, tup)
-      type = get_ctype_aux(ccgen, reg, tup)
+    def self.get_ctype(ccgen, reg, tup, escheck = true)
+      type = get_ctype_aux(ccgen, reg, tup, escheck)
       case type
       when :array
-        if !is_escape?(reg) then
+        if escheck and !is_escape?(reg) then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = reg.type[tup][0].element[uv]
-          rc = get_ctype_aux(ccgen, ereg, tup)
+          rc = get_ctype_aux(ccgen, ereg, tup, escheck)
           if rc == :array then
             :mrb_value
           else

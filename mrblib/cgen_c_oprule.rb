@@ -24,7 +24,17 @@ module CodeGenC
       oreg = inst.outreg[0]
       if node.root.export_regs.include?(oreg) then
         ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
-        ccgen.pcode << "v#{oreg.id} = #{inst.para[0]};\n"
+        src = inst.para[0]
+        if src.is_a?(Fixnum) then
+          srct = :mrb_int
+        elsif src.is_a?(Float) then
+          srct = :mrb_float
+        else
+          srct = :mrb_value
+        end
+        dstt = get_ctype(ccgen, oreg, tup)
+        gen_type_conversion(dstt, srct, src)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
       end
     end
 
