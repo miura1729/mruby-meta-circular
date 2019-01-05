@@ -11,6 +11,12 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :MOVE do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        srct = get_ctype(ccgen, inst.inreg[0], tup)
+        dstt = get_ctype(ccgen, inst.outreg[0], tup)
+        src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
+        gen_type_conversion(dstt, srct, src)
+      }
       nil
     end
 
@@ -207,26 +213,44 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ADD do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :+)
+      }
       nil
     end
 
     define_ccgen_rule_op :SUB do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :-)
+      }
       nil
     end
 
     define_ccgen_rule_op :MUL do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :*)
+      }
       nil
     end
 
-    define_ccgen_rule_op :DIV do |ccgen, inst, node, infer, history, tup|
+      define_ccgen_rule_op :DIV do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup)  {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :/)
+      }
       nil
     end
 
     define_ccgen_rule_op :ADDI do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :+)
+      }
       nil
     end
 
     define_ccgen_rule_op :SUBI do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :-)
+      }
       nil
     end
 

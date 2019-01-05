@@ -1,5 +1,23 @@
 module CodeGenC
   class CodeGen
+    def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
+      if inst.outreg[0].refpoint.size > 1 then
+        dst = inst.outreg[0]
+        ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
+        dstt = get_ctype(ccgen, dst, tup)
+        src = yield
+        ccgen.pcode << "v#{dst.id} = #{src};\n"
+      end
+    end
+
+    def self.do_ifnot_multi_use(ccgen, inst, node, ti, history, tup)
+      if inst.outreg[0].refpoint.size < 2 then
+        yield
+      else
+        "v#{inst.outreg[0].id}"
+      end
+    end
+
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
       op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
@@ -143,13 +161,27 @@ module CodeGenC
       end
       case gins.op
       when :MOVE
-        reg_real_value(ccgen, gins.inreg[0], node, tup, ti, history)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          srct = get_ctype(ccgen, gins.inreg[0], tup)
+          dstt = get_ctype(ccgen, gins.outreg[0], tup)
+          src = reg_real_value(ccgen, gins.inreg[0], node, tup, ti, history)
+          gen_type_conversion(dstt, srct, src)
+        }
 
       when :LOADL, :LOADI
         if node.root.export_regs.include?(reg) then
           "v#{reg.id}"
         else
-          gins.para[0]
+          src = gins.para[0]
+          if src.is_a?(Fixnum) then
+            srct = :mrb_int
+          elsif src.is_a?(Float) then
+            srct = :mrb_float
+          else
+            srct = :mrb_value
+          end
+          dstt = get_ctype(ccgen, gins.outreg[0], tup)
+          gen_type_conversion(dstt, srct, src)
         end
 
       when :LOADSYM
@@ -190,22 +222,34 @@ module CodeGenC
         gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>=)
 
       when :ADD
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :+)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :+)
+        }
 
       when :SUB
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :-)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :-)
+        }
 
       when :MUL
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :*)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :*)
+        }
 
       when :DIV
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :/)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :/)
+        }
 
       when :ADDI
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :+)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :+)
+        }
 
       when :SUBI
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :-)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.para[1], :-)
+        }
 
       when :LAMBDA
         res = "("
