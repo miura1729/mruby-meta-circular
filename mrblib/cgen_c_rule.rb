@@ -285,11 +285,27 @@ module CodeGenC
       end
     end
 
+    def self.gen_name_marshal(name)
+      name = name.to_s
+      name.gsub!("_", "_u")
+      name.gsub!("=", "_e")
+      name.gsub!("!", "_E")
+      name.gsub!("@", "_a")
+      name.gsub!("$", "_d")
+      name.gsub!("%", "_p")
+      name.gsub!("+", "_P")
+      name.gsub!("-", "_m")
+      name.gsub!("*", "_A")
+      name
+    end
+
     def self.gen_method_func(name, rectype, tup)
-      "#{name}_#{rectype}_#{tup}"
+      name = gen_name_marshal(name)
+      "#{name}__#{rectype}__#{tup}"
     end
 
     def self.gen_block_func(name, rectype, blkno, tup)
+      name = gen_name_marshal(name)
       "#{name}_#{rectype}_#{blkno}_#{tup}"
     end
 
