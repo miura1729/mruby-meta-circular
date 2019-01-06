@@ -619,6 +619,7 @@ module RiteSSA
             inst.para.push rnode
           end
           dstreg = rnode.retreg
+          dstreg.refpoint.push inst
 #          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 

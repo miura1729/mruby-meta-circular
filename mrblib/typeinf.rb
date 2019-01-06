@@ -235,8 +235,13 @@ module MTypeInf
       @callstack.pop
       if @callstack.size > 0 then
         proc = @callstack[-1][3]
-        gins = saairep.retreg.genpoint
-        if gins.is_a?(RiteSSA::Inst) and gins.op != :GETUPVAR then
+        rets = saairep.retreg.refpoint
+        noesc = rets.all? {|rins|
+          rreg = rins.inreg[0]
+          rreg.is_a?(RiteSSA::ParmReg) or
+          rreg.genpoint.op == :GETUPVAR or rreg.genpoint.op == :LOADSELF
+        }
+        if !noesc then
           saairep.retreg.type.each do |tup, types|
             types.each do |ty|
               ty.place[:return] = true
