@@ -1,7 +1,7 @@
 module CodeGenC
   class CodeGen
     def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
-      if inst.outreg[0].refpoint.size > 1 then
+      if inst.outreg[0].refpoint.size > 2 then
         dst = inst.outreg[0]
         ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
         dstt = get_ctype(ccgen, dst, tup)
@@ -11,10 +11,10 @@ module CodeGenC
     end
 
     def self.do_ifnot_multi_use(ccgen, inst, node, ti, history, tup)
-      if inst.outreg[0].refpoint.size < 2 then
-        yield
+      if inst.outreg[0].refpoint.size < 3 then
+        [yield, false]
       else
-        "v#{inst.outreg[0].id}"
+        ["v#{inst.outreg[0].id}", true]
       end
     end
 
@@ -78,34 +78,45 @@ module CodeGenC
     end
 
     def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
+      valuep = 0
       if reg0.is_a?(RiteSSA::Reg) and reg0.type[tup] then
         reg0.rearrange_type(tup)
-        arg0 = reg_real_value(ccgen, reg0, node, tup, ti, history)
+        arg0, convp = reg_real_value_noconv(ccgen, reg0, node, tup, ti, history)
         case reg0.type[tup].size
         when 1
-          srcs0 = get_ctype(ccgen, reg0, tup)
+          srcs0 = get_ctype(ccgen, reg0, tup, convp)
           srcd0 = get_ctype(ccgen, reg0, tup, false)
+          if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) then
+            # arg0 = reg0.type[tup][0].val
+            valuep |= 1
+          end
         else
           srcs0 = :mrb_value
           srcd0 = :mrb_value
         end
       else
+        valuep |= 1
         arg0 = reg0
         srcd0 = get_ctype(ccgen, gins.inreg[0], tup, false)
       end
 
       if reg1.is_a?(RiteSSA::Reg) and reg1.type[tup] then
         reg1.rearrange_type(tup)
-        arg1 = reg_real_value(ccgen, reg1, node, tup, ti, history)
+        arg1, convp = reg_real_value_noconv(ccgen, reg1, node, tup, ti, history)
         case reg1.type[tup].size
         when 1
-          srcs1 = get_ctype(ccgen, reg1, tup)
+          srcs1 = get_ctype(ccgen, reg1, tup, convp)
           srcd1 = get_ctype(ccgen, reg1, tup, false)
+          if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) then
+            # arg1 = reg1.type[tup][0].val
+            valuep |= 2
+          end
         else
           srcs1 = :mrb_value
           srcd1 = :mrb_value
         end
       else
+        valuep |= 2
         arg1 = reg1
         if gins.inreg[1] then
           srcd1 = get_ctype(ccgen, gins.inreg[1], tup, false)
@@ -125,16 +136,16 @@ module CodeGenC
 
       if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
           (srcd1 == :mrb_int or srcd1 == :mrb_float) then
-        if arg0.class != String and arg1.class != String then
-#            eval "(#{arg0} #{op} #{arg1})"
+        if valuep == 3 then
+#          eval "(#{arg0} #{op} #{arg1})"
           "(#{arg0} #{op} #{arg1})"
         else
           "(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})"
         end
       elsif op == :== and
           srcd0 == srcd1 then
-        if arg0.class != String and arg1.class != String then
-          "(#{arg0} #{op} #{arg1})"
+        if valuep == 3 then
+          eval "(#{arg0} #{op} #{arg1})"
         else
           "(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})"
         end
@@ -147,7 +158,7 @@ module CodeGenC
     end
 
     def self.reg_real_value(ccgen, reg, node, tup, ti, history)
-      rc = reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
+      reg_real_value_noconv(ccgen, reg, node, tup, ti, history)[0]
     end
 
     def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
@@ -155,27 +166,27 @@ module CodeGenC
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
           preg = pnode.exit_reg[reg.genpoint]
-          return reg_real_value(ccgen, preg, pnode, tup, ti, history)
+          return reg_real_value_noconv(ccgen, preg, pnode, tup, ti, history)
         end
 
         if node.enter_link.size == 0 then # TOP of block
           ptype = ti.typetupletab.rev_table[tup][reg.genpoint]
           if ptype.is_a?(Array) and ptype.size == 1 and
               ptype[0].class == MTypeInf::LiteralType then
-            return ptype[0].val
+            return [ptype[0].val, false]
           end
         end
 
         if reg.genpoint == 0 then
-          return "self"
+          return ["self", true]
         else
-          return "v#{reg.id}"
+          return ["v#{reg.id}", true]
         end
       end
 
       gins = reg.genpoint
       if !gins then
-        return "mrb_nil_value()"
+        return ["mrb_nil_value()", false]
       end
       case gins.op
       when :MOVE
@@ -188,7 +199,7 @@ module CodeGenC
 
       when :LOADL, :LOADI
         if node.root.export_regs.include?(reg) then
-          "v#{reg.id}"
+          ["v#{reg.id}", true]
         else
           src = gins.para[0]
           if src.is_a?(Fixnum) then
@@ -199,45 +210,55 @@ module CodeGenC
             srct = :mrb_value
           end
           dstt = get_ctype(ccgen, gins.outreg[0], tup)
-          gen_type_conversion(dstt, srct, src)
+          [gen_type_conversion(dstt, srct, src), false]
         end
 
       when :LOADSYM
-        "mrb_intern_lit(mrb, \"#{gins.para[0]}\")"
+        ["mrb_intern_lit(mrb, \"#{gins.para[0]}\")", false]
 
       when :LOADNIL
-        "mrb_nil_value()"
+        ["mrb_nil_value()", false]
 
       when :LOADSELF
-        "self"
+        ["self", true]
 
       when :GETCONST
         val = gins.para[1]
         vid =  ccgen.clstab[val]
         if vid then
-          vid[1]
+          [vid[1], true]
         else
-          val
+          [val, true]
         end
 
       when :ENTER
         i = gins.outreg.index(reg)
-        reg_real_value(ccgen, gins.inreg[i], node, tup, ti, history)
+        [reg_real_value(ccgen, gins.inreg[i], node, tup, ti, history), false]
 
       when :EQ
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :==)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :==)
+        }
 
       when :LT
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<)
+        }
 
       when :LE
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<=)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<=)
+        }
 
       when :GT
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>)
+        }
 
       when :GE
-        gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>=)
+        do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>=)
+        }
 
       when :ADD
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
@@ -277,11 +298,10 @@ module CodeGenC
           res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
         end
         res += "(gproc)&v#{reg.id})"
-        res
+        [res, true]
 
       else
-        "v#{reg.id}"
-
+        ["v#{reg.id}", true]
       end
     end
 
