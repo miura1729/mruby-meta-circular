@@ -97,7 +97,9 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
-      srct = get_ctype(ccgen, inst.inreg[0], tup)
+      uv = MTypeInf::ContainerType::UNDEF_VALUE
+      elereg = inst.inreg[0].type[tup][0].element[uv]
+      srct = get_ctype(ccgen, elereg, tup)
       dstt = get_ctype(ccgen, inst.outreg[0], tup)
       src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
@@ -121,7 +123,9 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :[]=, Array do |ccgen, inst, node, infer, history, tup|
-      slft = get_ctype(ccgen, inst.inreg[0], tup)
+      uv = MTypeInf::ContainerType::UNDEF_VALUE
+      elereg = inst.inreg[0].type[tup][0].element[uv]
+      slft = get_ctype(ccgen, elereg, tup)
       valt = get_ctype(ccgen, inst.inreg[2], tup)
       slf = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       val = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)

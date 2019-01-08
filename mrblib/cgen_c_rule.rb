@@ -367,7 +367,7 @@ module CodeGenC
           if rc == :array then
             :mrb_value
           else
-            rc
+            "#{rc} *"
           end
         else
           :mrb_value

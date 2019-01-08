@@ -271,12 +271,9 @@ module CodeGenC
       }
 
       aescape = is_escape?(reg)
-      dstt = nil
-      if aescape then
-        dstt = :mrb_value
-      else
-        dstt = get_ctype(ccgen, inst.outreg[0], tup)
-      end
+      uv = MTypeInf::ContainerType::UNDEF_VALUE
+      ereg = inst.outreg[0].type[tup][0].element[uv]
+      dstt = get_ctype(ccgen, ereg, tup)
 
       i = 0
       vals2 = inst.inreg.map {|reg|
