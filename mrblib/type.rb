@@ -39,7 +39,7 @@ module MTypeInf
               return false
             end
 
-            if ele == self then
+            if ele.class == self.class then
               case ele
               when MTypeInf::LiteralType
                 if ele.val != @val then
