@@ -11,6 +11,18 @@ module CodeGenC
       @@ruletab[:CCGEN_METHOD][name][rec] = block
     end
 
+    def self.define_ccgen_rule_class_method(name, rec, &block)
+      rec = class << rec
+              self
+            end
+      @@ruletab[:CCGEN_METHOD] ||= {}
+      @@ruletab[:CCGEN_METHOD][name] ||= {}
+      if @@ruletab[:CCGEN_METHOD][name][rec] then
+        raise "Already defined #{name}"
+      end
+      @@ruletab[:CCGEN_METHOD][name][rec] = block
+    end
+
     define_ccgen_rule_method :-@, Fixnum do |ccgen, inst, node, infer, history, tup|
       srct = get_ctype(ccgen, inst.inreg[0], tup)
       dstt = get_ctype(ccgen, inst.outreg[0], tup)
@@ -28,6 +40,43 @@ module CodeGenC
       src = reg_real_value(ccgen, inst.inreg[0], node, tup, infer, history)
       src = gen_type_conversion(:mrb_float, srct, src)
       src = gen_type_conversion(dstt, :mrb_float, "-#{src}")
+      nreg = inst.outreg[0]
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_class_method :sqrt, Math do |ccgen, inst, node, infer, history, tup|
+      srct = get_ctype(ccgen, inst.inreg[1], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      src = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)
+      src = gen_type_conversion(:mrb_float, srct, src)
+      src = gen_type_conversion(dstt, :mrb_float, "sqrt(#{src})")
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_class_method :sin, Math do |ccgen, inst, node, infer, history, tup|
+      srct = get_ctype(ccgen, inst.inreg[1], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      src = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)
+      src = gen_type_conversion(:mrb_float, srct, src)
+      src = gen_type_conversion(dstt, :mrb_float, "sin(#{src})")
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_class_method :cos, Math do |ccgen, inst, node, infer, history, tup|
+      srct = get_ctype(ccgen, inst.inreg[1], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      src = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)
+      src = gen_type_conversion(:mrb_float, srct, src)
+      src = gen_type_conversion(dstt, :mrb_float, "cos(#{src})")
       nreg = inst.outreg[0]
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
@@ -58,6 +107,18 @@ module CodeGenC
       src = reg_real_value(ccgen, inst.inreg[1], node, tup, infer, history)
       src2 = gen_type_conversion(:mrb_value, srct, src)
       ccgen.pcode << "mrb_p(mrb, #{src2});\n"
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+
+      nil
+    end
+
+    define_ccgen_rule_method :rand, Object do |ccgen, inst, node, infer, history, tup|
+      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      src = "(mrb_float)rand()"
+      src = gen_type_conversion(dstt, :mrb_float, src)
       nreg = inst.outreg[0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
