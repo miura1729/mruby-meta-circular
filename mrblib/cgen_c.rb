@@ -26,6 +26,8 @@ module CodeGenC
 #include <mruby/value.h>
 #include <mruby/array.h>
 #include <mruby/throw.h>
+#include <math.h>
+#include <stdio.h>
 #undef mrb_int
 
 typedef void *gproc;
