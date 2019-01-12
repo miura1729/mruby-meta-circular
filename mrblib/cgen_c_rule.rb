@@ -147,7 +147,7 @@ module CodeGenC
         if valuep == 3 then
           eval "(#{arg0} #{op} #{arg1})"
         else
-          "(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})"
+          "(#{arg0} #{op} #{arg1})"
         end
 
       else
@@ -210,7 +210,7 @@ module CodeGenC
             srct = :mrb_value
           end
           dstt = get_ctype(ccgen, gins.outreg[0], tup)
-          [gen_type_conversion(dstt, srct, src), false]
+          [gen_type_conversion(dstt, srct, src), true]
         end
 
       when :LOADSYM
@@ -291,14 +291,19 @@ module CodeGenC
         }
 
       when :LAMBDA
-        res = "("
-        envreg = gins.para[1]
-        envreg.each do |reg|
-          val = reg_real_value(ccgen, reg, node, tup, ti, history)
-          res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
+        srcdt = get_ctype(ccgen, gins.outreg[0], tup)
+        if srcdt == :mrb_value then
+          ["mrb_proc_new()", false]
+        else
+          res = "("
+          envreg = gins.para[1]
+          envreg.each do |reg|
+            val = reg_real_value(ccgen, reg, node, tup, ti, history)
+            res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
+          end
+          res += "(gproc)&v#{reg.id})"
+          [res, false]
         end
-        res += "(gproc)&v#{reg.id})"
-        [res, true]
 
       else
         ["v#{reg.id}", true]
@@ -367,11 +372,21 @@ module CodeGenC
         return :mrb_bool
       end
 
-      clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
-
-      if clsssa and clsssa.id != 0 then
-        "struct cls#{clsssa.id} *"
+      if rtype.size == 1 then
+        clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
+        ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
+        if clsssa and clsssa.id != 0 then
+          "struct cls#{clsssa.id} *"
+        else
+          :mrb_value
+        end
       else
+        rtype.each do |e|
+          cls = e.class_object
+          clsssa =  RiteSSA::ClassSSA.get_instance(cls)
+          ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
+        end
+
         :mrb_value
       end
     end

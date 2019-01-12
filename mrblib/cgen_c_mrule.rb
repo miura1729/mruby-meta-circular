@@ -275,7 +275,7 @@ module CodeGenC
         if is_escape?(oreg) then
           ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{clsssa.iv.size});\n"
         else
-          clsid = ccgen.using_class[clsssa] ||= ["cls#{clsssa.id}", tup][0]
+          clsid = ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
           ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"
         end
 
