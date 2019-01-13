@@ -273,6 +273,13 @@ module RiteSSA
           inreg = regtab[getarg_b(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
+
+          if getarg_a(code) < getarg_b(code) then
+            # Variable assigment (not parameter set)
+            oldreg = regtab[getarg_a(code)]
+            inst.para.push oldreg
+          end
+
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg

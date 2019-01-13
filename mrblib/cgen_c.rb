@@ -179,6 +179,13 @@ EOS
         args << CodeGen::gen_declare(self, topnode.enter_reg[i], tup)
       end
       rettype = CodeGen::get_ctype(self, block.retreg, tup)
+      if rettype.is_a?(Array) then
+        case rettype[0]
+        when :gproc
+          rettype = :gproc
+        end
+      end
+
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       code_gen_method_aux(block, ti, name, proc, tup)
@@ -193,6 +200,13 @@ EOS
         args << CodeGen::gen_declare(self, topnode.enter_reg[i + 1], tup)
       end
       rettype = CodeGen::get_ctype(self, block.retreg, tup)
+      if rettype.is_a?(Array) then
+        case rettype[0]
+        when :gproc
+          rettype = :gproc
+        end
+      end
+
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
@@ -226,7 +240,7 @@ EOS
             if is_live_reg?(nd, nreg, i) and
                 !(nreg.is_a?(RiteSSA::ParmReg) and nreg.genpoint == 0) then
               sreg = node.exit_reg[i]
-              src = CodeGen::reg_real_value(self, sreg, node, tup, ti, history)
+              src = CodeGen::reg_real_value(self, sreg, nreg,  node, tup, ti, history)
               if declf then
                 @dcode << CodeGen::gen_declare(self, nreg, tup)
                 @dcode << ";\n"

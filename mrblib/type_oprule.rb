@@ -14,6 +14,19 @@ module MTypeInf
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].negative_list = inst.inreg[0].negative_list.clone
       inst.outreg[0].positive_list = inst.inreg[0].positive_list.clone
+      olddreg = inst.para[0]
+      while olddreg.is_a?(RiteSSA::Reg) do
+        if node.root.export_regs.include?(olddreg) then
+          olddreg.add_same(inst.inreg[0])
+          olddreg.flush_type(tup)
+        end
+        ins = olddreg.genpoint
+        if ins.is_a?(RiteSSA::Inst) then
+          olddreg = ins.para[0]
+        else
+          break
+        end
+      end
       nil
     end
 

@@ -4,17 +4,15 @@ module CodeGenC
       if inst.outreg[0].refpoint.size > 2 then
         dst = inst.outreg[0]
         ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
-        dstt = get_ctype(ccgen, dst, tup)
-        src = yield
-        ccgen.pcode << "v#{dst.id} = #{src};\n"
+        ccgen.pcode << "v#{dst.id} = #{yield};\n"
       end
     end
 
     def self.do_ifnot_multi_use(ccgen, inst, node, ti, history, tup)
       if inst.outreg[0].refpoint.size < 3 then
-        [yield, false]
+        yield
       else
-        ["v#{inst.outreg[0].id}", true]
+        ["v#{inst.outreg[0].id}", false]
       end
     end
 
@@ -43,7 +41,7 @@ module CodeGenC
 
           procexport = false
           args = inreg.map {|reg|
-            rs = reg_real_value(ccgen, reg, node, tup, infer, history)
+            rs = (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
             if get_ctype_aux(ccgen, reg, tup) == :gproc then
               procexport = true
             end
@@ -87,7 +85,7 @@ module CodeGenC
           srcs0 = get_ctype(ccgen, reg0, tup, convp)
           srcd0 = get_ctype(ccgen, reg0, tup, false)
           if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) then
-            # arg0 = reg0.type[tup][0].val
+            arg0 = reg0.type[tup][0].val
             valuep |= 1
           end
         else
@@ -96,7 +94,11 @@ module CodeGenC
         end
       else
         valuep |= 1
-        arg0 = reg0
+        if !reg0.is_a?(RiteSSA::Reg) then
+          arg0 = reg0
+        else
+          arg0 = ""
+        end
         srcd0 = get_ctype(ccgen, gins.inreg[0], tup, false)
       end
 
@@ -108,7 +110,7 @@ module CodeGenC
           srcs1 = get_ctype(ccgen, reg1, tup, convp)
           srcd1 = get_ctype(ccgen, reg1, tup, false)
           if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) then
-            # arg1 = reg1.type[tup][0].val
+            arg1 = reg1.type[tup][0].val
             valuep |= 2
           end
         else
@@ -117,7 +119,11 @@ module CodeGenC
         end
       else
         valuep |= 2
-        arg1 = reg1
+        if !reg1.is_a?(RiteSSA::Reg) then
+          arg1 = reg1
+        else
+          arg1 = ""
+        end
         if gins.inreg[1] then
           srcd1 = get_ctype(ccgen, gins.inreg[1], tup, false)
         else
@@ -137,31 +143,38 @@ module CodeGenC
       if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
           (srcd1 == :mrb_int or srcd1 == :mrb_float) then
         if valuep == 3 then
-#          eval "(#{arg0} #{op} #{arg1})"
-          "(#{arg0} #{op} #{arg1})"
+#          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
+          ["(#{arg0} #{op} #{arg1})", srcd0]
         else
-          "(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})"
+          ["(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})", srcd0]
         end
       elsif op == :== and
           srcd0 == srcd1 then
         if valuep == 3 then
-          eval "(#{arg0} #{op} #{arg1})"
+          [eval("(#{arg0} #{op} #{arg1})"), :mrb_bool]
         else
-          "(#{arg0} #{op} #{arg1})"
+          ["(#{arg0} #{op} #{arg1})", :mrb_bool]
         end
 
       else
         #p reg0.type[tup]
         op_send(ccgen, gins, node, ti, history, tup)
-        nil
+        ["v#{gins.outreg[0].id}", srcd0]
       end
     end
 
-    def self.reg_real_value(ccgen, reg, node, tup, ti, history)
-      reg_real_value_noconv(ccgen, reg, node, tup, ti, history)[0]
+    def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history)
+      val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
+      if srct then
+        dstt = get_ctype(ccgen, oreg, tup)
+        gen_type_conversion(dstt, srct, val)
+      else
+        val
+      end
     end
 
     def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
+      srct = get_ctype(ccgen, reg, tup)
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
@@ -178,9 +191,9 @@ module CodeGenC
         end
 
         if reg.genpoint == 0 then
-          return ["self", true]
+          return ["self", srct]
         else
-          return ["v#{reg.id}", true]
+          return ["v#{reg.id}", srct]
         end
       end
 
@@ -191,15 +204,12 @@ module CodeGenC
       case gins.op
       when :MOVE
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          srct = get_ctype(ccgen, gins.inreg[0], tup)
-          dstt = get_ctype(ccgen, gins.outreg[0], tup)
-          src = reg_real_value(ccgen, gins.inreg[0], node, tup, ti, history)
-          gen_type_conversion(dstt, srct, src)
+          [reg_real_value(ccgen, gins.inreg[0], gins.outreg[0], node, tup, ti, history), nil]
         }
 
       when :LOADL, :LOADI
         if node.root.export_regs.include?(reg) then
-          ["v#{reg.id}", true]
+          ["v#{reg.id}", srct]
         else
           src = gins.para[0]
           if src.is_a?(Fixnum) then
@@ -209,8 +219,7 @@ module CodeGenC
           else
             srct = :mrb_value
           end
-          dstt = get_ctype(ccgen, gins.outreg[0], tup)
-          [gen_type_conversion(dstt, srct, src), true]
+          [src, srct]
         end
 
       when :LOADSYM
@@ -220,20 +229,20 @@ module CodeGenC
         ["mrb_nil_value()", false]
 
       when :LOADSELF
-        ["self", true]
+        ["self", srct]
 
       when :GETCONST
         val = gins.para[1]
         vid =  ccgen.clstab[val]
         if vid then
-          [vid[1], true]
+          [vid[1], srct]
         else
-          [val, true]
+          [val, srct]
         end
 
       when :ENTER
         i = gins.outreg.index(reg)
-        [reg_real_value(ccgen, gins.inreg[i], node, tup, ti, history), false]
+        [reg_real_value(ccgen, gins.inreg[i], gins.outreg[i], node, tup, ti, history), srct]
 
       when :EQ
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
@@ -242,22 +251,26 @@ module CodeGenC
 
       when :LT
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<)
+          val, ty = gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<)
+          [val, :mrb_bool]
         }
 
       when :LE
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<=)
+          val, ty = gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :<=)
+          [val, :mrb_bool]
         }
 
       when :GT
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>)
+          val, ty = gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>)
+          [val, :mrb_bool]
         }
 
       when :GE
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>=)
+          val, ty = gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], :>=)
+          [val, :mrb_bool]
         }
 
       when :ADD
@@ -291,22 +304,17 @@ module CodeGenC
         }
 
       when :LAMBDA
-        srcdt = get_ctype(ccgen, gins.outreg[0], tup)
-        if srcdt == :mrb_value then
-          ["mrb_proc_new()", false]
-        else
-          res = "("
-          envreg = gins.para[1]
-          envreg.each do |reg|
-            val = reg_real_value(ccgen, reg, node, tup, ti, history)
-            res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
-          end
-          res += "(gproc)&v#{reg.id})"
-          [res, false]
+        res = "("
+        envreg = gins.para[1]
+        envreg.each do |reg|
+          val = (reg_real_value_noconv(ccgen, reg, node, tup, ti, history))[0]
+          res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
         end
+        res += "(gproc)&v#{reg.id})"
+        [res, srct]
 
       else
-        ["v#{reg.id}", true]
+        ["v#{reg.id}", srct]
       end
     end
 
@@ -417,6 +425,9 @@ module CodeGenC
           rc
         end
 
+      when :gproc
+        [:gproc, reg.type[tup][0].id]
+
       else
         type
       end
@@ -479,7 +490,8 @@ module CodeGenC
         case e
         when :return
           if ty.is_a?(MTypeInf::ContainerType) or
-              ty.is_a?(MTypeInf::UserDefinedType) then
+              ty.is_a?(MTypeInf::UserDefinedType) or
+              ty.is_a?(MTypeInf::ProcType) then
             true
           else
             false
@@ -505,39 +517,53 @@ module CodeGenC
         return src
       end
 
-      case dstt
-      when :mrb_value
-        case srct
+      if dstt.is_a?(Array) then
+        p MTypeInf::ProcType.gettab[dstt[1]]
+        raise "Not support yet #{dstt} #{srct}"
+      else
+        case dstt
+        when :mrb_value
+          if srct.is_a?(Array) then
+            case srct[0]
+            when :gproc
+              p MTypeInf::ProcType.gettab[srct[1]]
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
+          else
+            case srct
+            when :mrb_int
+              "(mrb_fixnum_value(#{src}))"
+
+            when :mrb_float
+              "(mrb_float_value(mrb, #{src}))"
+
+            when :mrb_bool
+              "((#{src}) ? mrb_true_value() : mrb_false_value())"
+
+            when :nil
+              "#{src}"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
+          end
+
         when :mrb_int
-          "(mrb_fixnum_value(#{src}))"
+          "(mrb_fixnum(#{src}))"
 
         when :mrb_float
-          "(mrb_float_value(mrb, #{src}))"
+          "(mrb_float(#{src}))"
 
         when :mrb_bool
-          "((#{src}) ? mrb_true_value() : mrb_false_value())"
+          "(mrb_test(#{src}))"
 
         when :nil
-          "#{src}"
+          "mrb_nil_value()"
 
         else
           raise "Not support yet #{dstt} #{srct}"
         end
-
-      when :mrb_int
-        "(mrb_fixnum(#{src}))"
-
-      when :mrb_float
-        "(mrb_float(#{src}))"
-
-      when :mrb_bool
-        "(mrb_test(#{src}))"
-
-      when :nil
-        "mrb_nil_value()"
-
-      else
-        raise "Not support yet #{dstt} #{srct}"
       end
     end
   end

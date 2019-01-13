@@ -12,7 +12,7 @@ module MTypeInf
     end
 
     typemess = ti.dump_type
-    #print typemess
+    print typemess
     cgen = CodeGenC::CodeGen.new
     cgen.ccode << "/*\n#{typemess}*/\n"
     cgen.code_gen(bproc, ti)
@@ -238,9 +238,13 @@ module MTypeInf
         rets = saairep.retreg.refpoint
         noesc = rets.all? {|rins|
           rreg = rins.inreg[0]
+
           rreg.is_a?(RiteSSA::ParmReg) or
-          rreg.genpoint.op == :GETUPVAR or rreg.genpoint.op == :LOADSELF
+          rreg.genpoint.op == :GETUPVAR or
+          rreg.genpoint.op == :LOADSELF or
+          rreg.genpoint.op == :ENTER
         }
+
         if !noesc then
           saairep.retreg.type.each do |tup, types|
             types.each do |ty|

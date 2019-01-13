@@ -219,12 +219,16 @@ module MTypeInf
   end
 
   class ProcType<BasicType
-    @@num = 0
+    @@tab = []
+
+    def self.gettab
+      @@tab
+    end
 
     def initialize(co, irep, slf, slfreg, env, tups, pproc,  *rest)
       super
-      @id = @@num
-      @@num += 1
+      @id = @@tab.size
+      @@tab.push self
       @irep = irep
       @slf = slf
       @slfreg = slfreg
@@ -256,12 +260,12 @@ module MTypeInf
   end
 
   class FiberType<BasicType
-    @@num = 0
+    @@tab = []
 
     def initialize(co, proc, *rest)
       super
-      @id = @@num
-      @@num += 1
+      @id = @@tab.size
+      @@tab.push self
       @proc = proc
       @ret = RiteSSA::Reg.new(nil)
     end
