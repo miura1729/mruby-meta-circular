@@ -608,7 +608,7 @@ module MTypeInf
 
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|
       slf = inst.inreg[0].flush_type(tup)[tup][0]
-      envtypes = inst.para[1].map {|reg| reg.flush_type(tup)[tup]}
+      envtypes = inst.para[1]
       tups = infer.callstack.map {|e| [e[0], e[1]]}
       cproc = infer.callstack[-1][3]
       pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc)

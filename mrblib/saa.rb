@@ -764,6 +764,7 @@ module RiteSSA
           inst.para.push imregno
           @root.import_regs |= imreg
           @root.reps[bn] = nlambda
+          @root.repsreg.push dstreg
 
         when :CLASS
           a = getarg_a(code)
@@ -864,6 +865,8 @@ module RiteSSA
       iseq = irep.iseq
       @strict = strict
       @reps = []
+      @repsreg = []
+      @is_export_env = false
       @irep = irep
       @target_class = ClassSSA.get_instance(tclass)
       @parent = parent
@@ -923,6 +926,8 @@ module RiteSSA
     attr :regtab
     attr :nodes
     attr :reps
+    attr :repsreg
+    attr_accessor :is_export_env
     attr :retreg
     attr :argtab
     attr :allreg

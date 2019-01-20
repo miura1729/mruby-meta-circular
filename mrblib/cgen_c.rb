@@ -26,6 +26,7 @@ module CodeGenC
 #include <mruby/value.h>
 #include <mruby/array.h>
 #include <mruby/throw.h>
+#include <mruby/proc.h>
 #include <math.h>
 #include <stdio.h>
 #undef mrb_int
@@ -85,17 +86,25 @@ EOS
         fin = true
         @using_method.each do |name, proc, utup|
           if !@defined_method[name] then
+            block = proc.irep
+            block.is_export_env = block.repsreg.any? {|reg|
+              CodeGen::get_ctype(self, reg, utup) == :mrb_value
+            }
             intype = ti.typetupletab.rev_table[utup]
-            code_gen_method(proc.irep, ti, name, proc, utup, intype)
+            code_gen_method(block, ti, name, proc, utup, intype)
             @defined_method[name] = true
             fin = false
           end
         end
 
-        @using_block.each do |name, proc, utup|
+        @using_block.each do |name, proc, utup, procty|
           if !@defined_block[name] then
+            block = proc.irep
+            block.is_export_env = block.repsreg.any? {|reg|
+              CodeGen::get_ctype(self, reg, utup) == :mrb_value
+            }
             intype = ti.typetupletab.rev_table[utup]
-            code_gen_block(proc.irep, ti, name, proc, utup, intype)
+            code_gen_block(block, ti, name, proc, utup, intype, procty)
             @defined_block[name] = true
             fin = false
           end
@@ -139,8 +148,6 @@ EOS
     end
 
     def code_gen_method_aux(block, ti, name, proc, tup)
-      @dcode = ""
-      @pcode = ""
       pproc = proc.parent
       if block.export_regs.size > 0 or
           (pproc and pproc.irep.export_regs.size > 0) then
@@ -156,8 +163,17 @@ EOS
           @scode << "};\n"
         end
         @dcode << "struct env#{proc.id} env;\n"
+        @dcode << "struct REnv *venv = NULL;\n"
       end
-      code_gen_node(block.nodes[0], ti, name, {}, tup)
+      node = block.nodes[0]
+      node.enter_reg.each_with_index {|ireg, i|
+        if node.root.export_regs.include?(ireg) then
+          src = reg_real_value(ccgen, ireg, ureg,
+                         node, tup, infer, history)
+          ccgen.pcode << "env.v#{reg.id} = #{src};\n"
+        end
+      }
+      code_gen_node(node, ti, name, {}, tup)
       if @callstack[-1][1] then
         @dcode << "int ai = mrb_gc_arena_save(mrb);\n"
       end
@@ -171,6 +187,8 @@ EOS
       if !block.nodes[0] then
         return
       end
+      @dcode = ""
+      @pcode = ""
       @callstack.push [proc, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       args = ""
@@ -191,10 +209,16 @@ EOS
       code_gen_method_aux(block, ti, name, proc, tup)
     end
 
-    def code_gen_block(block, ti, name, proc, tup, intype)
-      @callstack.push [proc, nil] # 2nd need mrb_gc_arena_restore generate
+    def code_gen_block(block, ti, name, proc, tup, intype, procty)
+      @dcode = ""
+      @pcode = ""
+      @callstack.push [proc, nil, procty] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
-      args = ", gproc cgproc"
+      if procty == :mrb_value then
+        args = ",mrb_value mrbproc"
+      else
+        args = ", gproc cgproc"
+      end
       intype[1...-2].each_with_index do |ty, i|
         args << ", "
         args << CodeGen::gen_declare(self, topnode.enter_reg[i + 1], tup)
@@ -210,8 +234,15 @@ EOS
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
-      @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
-      @ccode << "#{slfdecl} = proc->self;\n"
+      if procty == :mrb_value then
+        @ccode << "struct RProc *proc;\n"
+        @pcode << "proc = mrb_proc_ptr(mrbproc);\n"
+        @ccode << "#{slfdecl};\n"
+        @pcode << "self = proc->e.env->stack[0];\n"
+      else
+        @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
+        @ccode << "#{slfdecl} = proc->self;\n"
+      end
       code_gen_method_aux(block, ti, name, proc, tup)
     end
 

@@ -246,7 +246,7 @@ module MTypeInf
     end
 
     def inspect
-      "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=#{env}>"
+      "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=#{env.map {|reg| reg.flush_type_alltup(0)[0]}}>"
     end
 
     attr :id

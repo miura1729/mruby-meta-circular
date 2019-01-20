@@ -1,5 +1,32 @@
 module CodeGenC
   class CodeGen
+    def self.set_closure_env(ccgen, inst, node, infer, history, tup)
+      clsreg = inst.outreg[0]
+      proc = ccgen.callstack[-1][0]
+      while clsreg.is_a?(RiteSSA::Reg) do
+        if node.root.export_regs.include?(clsreg) then
+          src = reg_real_value_noconv(ccgen, inst.outreg[0], node, tup, infer, history)[0]
+          inty = get_ctype(ccgen, inst.outreg[0], tup)
+          outty = get_ctype(ccgen, clsreg, tup)
+          if node.root.is_export_env then
+            ccgen.pcode << "if (venv)\n"
+            src2 = gen_type_conversion(ccgen, :mrb_value, inty, src, tup, node, infer, history)
+            pos = proc.irep.export_regs.index(clsreg) + 1
+            ccgen.pcode << "venv->stack[#{pos}] = #{src2};\n"
+          else
+            src2 = gen_type_conversion(ccgen, outty, inty, src, tup, node, infer, history)
+            ccgen.pcode << "env.v#{clsreg.id} = #{src2};\n"
+          end
+        end
+        ins = clsreg.genpoint
+        if ins.is_a?(RiteSSA::Inst) then
+          clsreg = ins.para[0]
+        else
+          break
+        end
+      end
+    end
+
     def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
       if inst.outreg[0].refpoint.size > 2 then
         dst = inst.outreg[0]
@@ -146,7 +173,9 @@ module CodeGenC
 #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
           ["(#{arg0} #{op} #{arg1})", srcd0]
         else
-          ["(#{gen_type_conversion(srcd0, srcs0, arg0)} #{op} #{gen_type_conversion(srcd1, srcs1, arg1)})", srcd0]
+          term0 = gen_type_conversion(ccgen, srcd0, srcs0, arg0, tup, node, ti, history)
+          term1 = gen_type_conversion(ccgen, srcd1, srcs1, arg1, tup, node, ti, history)
+          ["(#{term0} #{op} #{term1})", srcd0]
         end
       elsif op == :== and
           srcd0 == srcd1 then
@@ -167,7 +196,7 @@ module CodeGenC
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
       if srct then
         dstt = get_ctype(ccgen, oreg, tup)
-        gen_type_conversion(dstt, srct, val)
+        gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
       else
         val
       end
@@ -304,14 +333,17 @@ module CodeGenC
         }
 
       when :LAMBDA
-        res = "("
-        envreg = gins.para[1]
-        envreg.each do |reg|
-          val = (reg_real_value_noconv(ccgen, reg, node, tup, ti, history))[0]
-          res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
+        #envreg = gins.para[1]
+        #envreg.each do |reg|
+        #  val = reg_real_value(ccgen, reg, reg, node, tup, ti, history)
+        #  res += "(v#{gins.outreg[0].id}.env->v#{reg.id} = #{val}),"
+        #end
+        if srct == :mrb_value then
+          ["vv#{reg.id}", false]
+        else
+          res = "((gproc)&v#{reg.id})"
+          [res, [:gproc, reg.type[tup][0].id]]
         end
-        res += "(gproc)&v#{reg.id})"
-        [res, srct]
 
       else
         ["v#{reg.id}", srct]
@@ -512,7 +544,7 @@ module CodeGenC
       }
     end
 
-    def self.gen_type_conversion(dstt, srct, src)
+    def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history)
       if dstt == srct then
         return src
       end
@@ -526,7 +558,40 @@ module CodeGenC
           if srct.is_a?(Array) then
             case srct[0]
             when :gproc
-              p MTypeInf::ProcType.gettab[srct[1]]
+              proc = MTypeInf::ProcType.gettab[srct[1]]
+              nval = proc.env.size + 1
+
+              res =  "({\n mrb_value tmpval[#{nval}];\n"
+              res << "struct RProc *tproc;\n"
+
+              if node.root.repsreg.size > 1 then
+                res << "if (venv) {\n"
+                res << "tproc = mrb_proc_new_cfunc(mrb, ((struct proc#{proc.id} *)#{src})->code);\n"
+                res << "tproc->flags |= MRB_PROC_ENVSET;\n"
+                res << "tproc->e.env = venv;\n"
+                res << "}\n"
+                res << "else "
+              end
+
+              res << "{\n"
+              val = "((struct proc#{proc.id} *)(#{src}))->self"
+              slfty = get_ctype(ccgen, proc.slfreg, tup)
+              val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history)
+              res << "tmpval[0] = #{val};\n"
+              proc.env.each_with_index do |srcreg, i|
+                stype = get_ctype(ccgen, srcreg, tup)
+                val = reg_real_value_noconv(ccgen, srcreg, node, tup, ti, history)[0]
+                val = gen_type_conversion(ccgen, :mrb_value, stype, val, tup, node, ti, history)
+                res << "tmpval[#{i + 1}] = #{val};\n"
+              end
+              res << "tproc = mrb_proc_new_cfunc_with_env(mrb, ((struct proc#{proc.id} *)#{src})->code, #{nval}, tmpval);\n"
+              res << "venv = tproc->e.env;\n"
+
+              res << "}\n"
+
+              res << "mrb_obj_value(tproc);\n"
+              res <<  "})"
+              res
             else
               raise "Not support yet #{dstt} #{srct}"
             end
