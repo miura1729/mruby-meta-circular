@@ -170,10 +170,11 @@ module CodeGenC
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
       else
-        src = "#{src}[#{idx}]"
+        srct = get_ctype(ccgen, elereg, tup)
         if srct == :nil then
           src = "mrb_nil_value()"
         else
+          src = "#{src}[#{idx}]"
           src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
         end
       end
