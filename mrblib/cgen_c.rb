@@ -117,7 +117,7 @@ EOS
               @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
             end
             @scode << "};\n"
-            @defined_class[id] = true
+            @defined_class[id] = clsssa
             fin = false
           end
         end
@@ -254,7 +254,8 @@ EOS
         #p ins.op # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
-        rescue NoMethodError => e
+#        rescue NoMethodError => e
+        rescue  Object => e
           p "#{ins.op} #{ins.filename}##{ins.line}"
           raise e
         end
