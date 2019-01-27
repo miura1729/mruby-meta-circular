@@ -23,13 +23,7 @@ module CodeGenC
       if node.root.export_regs.include?(oreg) then
         ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
         src = inst.para[0]
-        if src.is_a?(Fixnum) then
-          srct = :mrb_int
-        elsif src.is_a?(Float) then
-          srct = :mrb_float
-        else
-          srct = :mrb_value
-        end
+        srct = get_ctype_from_robj(src)
         dstt = get_ctype(ccgen, oreg, tup)
         gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
         ccgen.pcode << "v#{oreg.id} = #{src};\n"
@@ -117,11 +111,14 @@ module CodeGenC
       up = inst.para[1]
       ireg = inst.inreg[0]
       oreg = inst.outreg[0]
-      pty = ccgen.callstack[-(up + 1)][2]
-      proc = ccgen.callstack[-(up + 1)][0]
+      proc = ccgen.callstack[-1][0]
+      pty = ccgen.callstack[-1][2]
+      up.times do
+        proc = proc.parent
+      end
       dstt = get_ctype(ccgen, oreg, tup)
 
-      ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
       if pty == :mrb_value then
         pos = proc.env.index(ireg)
         val = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
@@ -139,8 +136,11 @@ module CodeGenC
       up = inst.para[1]
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
-      pty = ccgen.callstack[-(up + 1)][2]
-      proc = ccgen.callstack[-(up + 1)][0]
+      pty = ccgen.callstack[-1][2]
+      proc = ccgen.callstack[-1][0]
+      up.times do
+        proc = proc.parent
+      end
       dstt = get_ctype(ccgen, oreg, tup)
 
       if pty == :mrb_value then

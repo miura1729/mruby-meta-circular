@@ -236,6 +236,7 @@ module MTypeInf
       @tups = tups
       @using_tup = {}
       @parent = pproc
+      @inspect_stack = []
     end
 
     def ==(other)
@@ -246,7 +247,17 @@ module MTypeInf
     end
 
     def inspect
-      "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=#{env.map {|reg| reg.flush_type_alltup(0)[0]}}>"
+      if @inspect_stack.include?(self) then
+        "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=...>"
+      else
+        @inspect_stack.push self
+        envstr = env.map {|reg|
+          reg.flush_type_alltup(0)[0].map {|e| e.inspect}.join('|')
+        }.join(', ')
+        rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
+        @inspect_stack.pop
+        rc
+      end
     end
 
     attr :id
