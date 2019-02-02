@@ -297,7 +297,7 @@ module CodeGenC
       nil
     end
 
-      define_ccgen_rule_op :DIV do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_op :DIV do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup)  {
         gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :/)
       }
