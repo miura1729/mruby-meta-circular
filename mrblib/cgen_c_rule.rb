@@ -276,7 +276,13 @@ module CodeGenC
           if ptype.is_a?(Array) and ptype.size == 1 and
               ptype[0].class == MTypeInf::LiteralType then
             src = ptype[0].val
-            return [src, get_ctype_from_robj(src)]
+            if src == true then
+              return [1, :mrb_bool]
+            elsif src == false then
+              return [0, :mrb_bool]
+            else
+              return [src, get_ctype_from_robj(src)]
+            end
           end
         end
 
@@ -305,6 +311,12 @@ module CodeGenC
           src = gins.para[0]
           [src, get_ctype_from_robj(src)]
         end
+
+      when :LOADT
+        [1, :mrb_bool]
+
+      when :LOADF
+        [0, :mrb_bool]
 
       when :LOADSYM
         ["mrb_intern_lit(mrb, \"#{gins.para[0]}\")", :mrb_value]
