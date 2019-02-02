@@ -29,8 +29,11 @@ module CodeGenC
     def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
       if inst.outreg[0].refpoint.size > 2 then
         dst = inst.outreg[0]
+        val, srct = yield
+        dstt = get_ctype(ccgen, dst, tup)
+        val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history)
         ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
-        ccgen.pcode << "v#{dst.id} = #{yield};\n"
+        ccgen.pcode << "v#{dst.id} = #{val};\n"
       end
     end
 
