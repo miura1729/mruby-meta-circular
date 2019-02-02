@@ -232,7 +232,21 @@ module MTypeInf
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       end
 
+      # Update escape info
+      intype.each_with_index do |tys, i|
+        if tys then
+          tys.each do |ty|
+            saairep.nodes[0].enter_reg[i].type[tup].each do |oty|
+              ty.place.merge!(oty.place)
+              oty.place.merge!(ty.place)
+            end
+          end
+        end
+      end
+
       @callstack.pop
+
+      # Check return value is escape data
       if @callstack.size > 0 then
         proc = @callstack[-1][3]
         rets = saairep.retreg.refpoint
