@@ -92,6 +92,8 @@ module CodeGenC
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
     end
