@@ -25,7 +25,7 @@ module CodeGenC
         src = inst.para[0]
         srct = get_ctype_from_robj(src)
         dstt = get_ctype(ccgen, oreg, tup)
-        gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
         ccgen.pcode << "v#{oreg.id} = #{src};\n"
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
@@ -175,7 +175,8 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
-      cond = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
+      cond, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history)
       r = 0
       inst.inreg[0].type[tup].each do |ty|
         if ty.class_object == NilClass or
@@ -196,7 +197,8 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
-      cond = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
+      cond, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history)
       r = 0
       inst.inreg[0].type[tup].each do |ty|
         if ty.class_object == NilClass or
@@ -325,7 +327,7 @@ module CodeGenC
 
       if aescape then
         vals = inst.inreg.map {|ireg|
-          val, convp = reg_real_value_noconv(ccgen, ireg, ereg, node, tup, infer, history)
+          val, convp = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
           srct = get_ctype(ccgen, ireg, tup)
           gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history)
         }
