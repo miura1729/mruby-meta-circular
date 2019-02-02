@@ -251,19 +251,22 @@ module CodeGenC
         utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
         codeno = ptype.using_tup[utup]
+        outtype0 = get_ctype(ccgen, nreg, tup, false)
         outtype = get_ctype(ccgen, nreg, tup)
         if procty == :mrb_value then
           fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
-          fname = "((#{outtype} (*)())(((void **)#{fname})[#{codeno}]))"
+          fname = "((#{outtype0} (*)())(((void **)#{fname})[#{codeno}]))"
         else
-          fname = "((#{outtype} (*)())((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
+          fname = "((#{outtype0} (*)())((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
         end
         args = inst.inreg.map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
         ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup)
         ccgen.dcode << ";\n"
-        ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+        src = "(#{fname}(mrb, #{args}))"
+        src = gen_type_conversion(ccgen, outtype, outtype0, src, tup, node, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{src};\n"
       end
       nil
     end
