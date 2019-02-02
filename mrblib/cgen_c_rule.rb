@@ -70,14 +70,16 @@ module CodeGenC
           fname = gen_method_func(name, rt, utup)
 
           procexport = false
+          i = 0
+          topnode = node.root.nodes[0]
           args = inreg.map {|reg|
-            rs, srct = (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))
+            rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
             if srct == :gproc then
               procexport = true
             end
-#            dstt = get_ctype(ccgen, oreg, tup)
-#            gen_type_conversion(ccgen, dstt, srct, rs, tup, node, ti, history)
-            rs
+            dstt = get_ctype(ccgen, reg, tup)
+            i = i + 1
+            gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
           }.join(", ")
 
           if outreg then
@@ -102,14 +104,17 @@ module CodeGenC
           return
         end
       end
-      p name
-      ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+      if name != :initialize then
+        p name
+        ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+      end
       nil
     end
 
     def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
       valuep = 0
-      if reg0.is_a?(RiteSSA::Reg) and reg0.type[tup] then
+      if reg0.is_a?(RiteSSA::Reg) then
+        reg0.flush_type(tup)
         reg0.rearrange_type(tup)
         arg0, srcs0 = reg_real_value_noconv(ccgen, reg0, node, tup, ti, history)
         case reg0.type[tup].size
@@ -129,13 +134,15 @@ module CodeGenC
         if !reg0.is_a?(RiteSSA::Reg) then
           arg0 = reg0
         else
-          arg0 = ""
+          arg0 = "v#{reg0.id}"
+""
         end
         srcd0 = get_ctype(ccgen, gins.inreg[0], tup, false)
         srcs0 = srcd0
       end
 
-      if reg1.is_a?(RiteSSA::Reg) and reg1.type[tup] then
+      if reg1.is_a?(RiteSSA::Reg) then
+        reg1.flush_type(tup)
         reg1.rearrange_type(tup)
         arg1, srcs1 = reg_real_value_noconv(ccgen, reg1, node, tup, ti, history)
         case reg1.type[tup].size
@@ -155,37 +162,82 @@ module CodeGenC
         if !reg1.is_a?(RiteSSA::Reg) then
           arg1 = reg1
         else
-          arg1 = ""
+          arg1 = "v#{reg1.id}"
         end
         srcd1 = get_ctype(ccgen, gins.inreg[0], tup, false)
         srcs1 = srcd1
       end
       dstd = get_ctype(ccgen, gins.outreg[0], tup)
-      dsts = get_ctype(ccgen, gins.outreg[0], tup, false)
       src = ""
 
-      if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
-          (srcd1 == :mrb_int or srcd1 == :mrb_float) then
-        if valuep == 3 then
-#          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
-          src = "(#{arg0} #{op} #{arg1})"
+      if [:+, :-, :*, :/].include?(op) then
+        if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
+            (srcd1 == :mrb_int or srcd1 == :mrb_float) then
+          if (srcd0 == :mrb_float or srcd1 == :mrb_float) then
+            dsts = :mrb_float
+            if valuep == 3 then
+              #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
+              src = "(#{arg0} #{op} #{arg1})"
+            else
+              term0 = gen_type_conversion(ccgen, :mrb_float, srcs0, arg0, tup, node, ti, history)
+              term1 = gen_type_conversion(ccgen, :mrb_float, srcs1, arg1, tup, node, ti, history)
+              src = "(#{term0} #{op} #{term1})"
+            end
+          else
+            dsts = :mrb_int
+            if valuep == 3 then
+              #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
+              src = "(#{arg0} #{op} #{arg1})"
+            else
+              term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history)
+              term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history)
+              src = "(#{term0} #{op} #{term1})"
+            end
+          end
         else
-          term0 = gen_type_conversion(ccgen, srcd0, srcs0, arg0, tup, node, ti, history)
-          term1 = gen_type_conversion(ccgen, srcd1, srcs1, arg1, tup, node, ti, history)
-          src = "(#{term0} #{op} #{term1})"
+          #p reg0.type[tup]
+          op_send(ccgen, gins, node, ti, history, tup)
+          src = "v#{gins.outreg[0].id}"
         end
-      elsif op == :== and
-          srcd0 == srcd1 then
+      elsif [:>, :>=, :<, :<=].include?(op) then
+        if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
+            (srcd1 == :mrb_int or srcd1 == :mrb_float) then
+          dsts = :mrb_bool
+          if (srcd0 == :mrb_float or srcd1 == :mrb_float) then
+            if valuep == 3 then
+              #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
+              src = "(#{arg0} #{op} #{arg1})"
+            else
+              term0 = gen_type_conversion(ccgen, :mrb_float, srcs0, arg0, tup, node, ti, history)
+              term1 = gen_type_conversion(ccgen, :mrb_float, srcs1, arg1, tup, node, ti, history)
+              src = "(#{term0} #{op} #{term1})"
+            end
+          else
+            if valuep == 3 then
+              src = eval("(#{arg0} #{op} #{arg1})")
+            else
+              term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history)
+              term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history)
+              src = "(#{term0} #{op} #{term1})"
+            end
+          end
+        else
+          #p reg0.type[tup]
+          op_send(ccgen, gins, node, ti, history, tup)
+          src = "v#{gins.outreg[0].id}"
+        end
+
+      elsif op == :== then
+        dsts = :mrb_bool
         if valuep == 3 then
           src = eval("(#{arg0} #{op} #{arg1})")
         else
+        arg0 = gen_type_conversion(ccgen, srcs1, srcs0, arg0, tup, node, ti, history)
           src = "(#{arg0} #{op} #{arg1})"
         end
 
       else
-        #p reg0.type[tup]
-        op_send(ccgen, gins, node, ti, history, tup)
-        src = "v#{gins.outreg[0].id}"
+        raise "No suche opcode #{op}"
       end
 
       src = gen_type_conversion(ccgen, dstd, dsts, src, tup, node, ti, history)
