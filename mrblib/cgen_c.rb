@@ -256,7 +256,7 @@ EOS
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
 #        rescue NoMethodError => e
         rescue  Object => e
-          p "#{ins.op} #{ins.filename}##{ins.line}"
+          p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para}"
           raise e
         end
       end
