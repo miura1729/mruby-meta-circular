@@ -237,14 +237,23 @@ EOS
       @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
+      pproc = proc.parent
+      envp = block.export_regs.size > 0 or
+        (pproc and pproc.irep.export_regs.size > 0)
       if procty == :mrb_value then
         @ccode << "struct RProc *proc;\n"
         @pcode << "proc = mrb_proc_ptr(mrbproc);\n"
         @ccode << "#{slfdecl};\n"
         @pcode << "self = proc->e.env->stack[0];\n"
+        if envp then
+          @pcode << "env.prev = proc->e.env->stack;\n"
+        end
       else
         @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
         @ccode << "#{slfdecl} = proc->self;\n"
+        if envp then
+          @pcode << "env.prev = proc->env;\n"
+        end
       end
       code_gen_method_aux(block, ti, name, proc, tup)
     end
