@@ -362,22 +362,26 @@ module CodeGenC
       proc = inst.outreg[0].type[tup][0]
       cproc = ccgen.callstack[-1][0]
       pproc = cproc.parent
-      tupsize = proc.using_tup.size
-      if envreg.size > 0 or
-          (pproc and pproc.irep.export_regs.size > 0) then
-        ccgen.hcode << "struct proc#{proc.id} {\n"
-        ccgen.hcode << "int id;\n"
-        ccgen.hcode << "void *code[#{tupsize}];\n"
-        ccgen.hcode << "struct env#{cproc.id} *env;\n"
-      else
-        ccgen.hcode << "struct proc#{proc.id} {\n"
-        ccgen.hcode << "int id;\n"
-        ccgen.hcode << "void *code[#{tupsize}];\n"
-      end
+      if !ccgen.using_proc.include?(proc) then
+        tupnum = proc.using_tup.size
+        if envreg.size > 0 or
+            (pproc and pproc.irep.export_regs.size > 0) then
+          ccgen.hcode << "struct proc#{proc.id} {\n"
+          ccgen.hcode << "int id;\n"
+          ccgen.hcode << "void *code[#{tupnum}];\n"
+          ccgen.hcode << "struct env#{cproc.id} *env;\n"
+        else
+          ccgen.hcode << "struct proc#{proc.id} {\n"
+          ccgen.hcode << "int id;\n"
+          ccgen.hcode << "void *code[#{tupnum}];\n"
+        end
 
-      slfdecl = gen_declare(ccgen, proc.slfreg, tup)
-      ccgen.hcode << "#{slfdecl};\n"
-      ccgen.hcode << "};\n"
+        slfdecl = gen_declare(ccgen, proc.slfreg, tup)
+        ccgen.hcode << "#{slfdecl};\n"
+        ccgen.hcode << "};\n"
+
+        ccgen.using_proc.push proc
+      end
 
       regno = inst.outreg[0].id
       ccgen.pcode << "struct proc#{proc.id} v#{regno};\n"

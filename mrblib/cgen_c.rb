@@ -5,6 +5,7 @@ module CodeGenC
       @using_method = []
       @using_block = []
       @using_class = {}
+      @using_proc = []
       @defined_method = {}
       @defined_block = {}
       @defined_class = {}
@@ -45,6 +46,7 @@ EOS
     attr :using_method
     attr :using_block
     attr :using_class
+    attr :using_proc
 
     attr :clstab
 
