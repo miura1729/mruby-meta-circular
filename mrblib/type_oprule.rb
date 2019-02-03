@@ -611,7 +611,11 @@ module MTypeInf
       envtypes = inst.para[1]
       tups = infer.callstack.map {|e| [e[0], e[1]]}
       cproc = infer.callstack[-1][3]
-      pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc)
+      pty = inst.objcache[nil]
+      if !pty then
+        pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc)
+        inst.objcache[nil] = pty
+      end
       inst.outreg[0].add_type pty, tup
       if cproc then
         cproc.place[pty] = true
