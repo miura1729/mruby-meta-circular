@@ -191,18 +191,18 @@ module CodeGenC
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       elereg = inst.inreg[0].type[tup][0].element[uv]
       slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+      val, valt = reg_real_value_noconv(ccgen, inst.inreg[2], node, tup, infer, history)
       nreg = inst.outreg[0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if is_escape?(inst.inreg[0]) then
         val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
-        src = "mrb_ary_set(mrb, #{slf}, #{idx}, #{val})"
+        ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val});\n"
       else
         srct = get_ctype(ccgen, elereg, tup)
         val = gen_type_conversion(ccgen, srct, valt, val, tup, node, infer, history)
-        src = "#{slf}[#{idx}] = #{val}"
+        ccgen.pcode << "#{slf}[#{idx}] = #{val};\n"
       end
 
       ccgen.pcode << "v#{nreg.id} = #{val};\n"
