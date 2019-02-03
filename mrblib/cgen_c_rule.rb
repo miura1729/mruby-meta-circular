@@ -171,16 +171,16 @@ module CodeGenC
       src = ""
 
       if [:+, :-, :*, :/].include?(op) then
-        if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
-            (srcd1 == :mrb_int or srcd1 == :mrb_float) then
-          if (srcd0 == :mrb_float or srcd1 == :mrb_float) then
-            dsts = :mrb_float
+        if (srcd0 == :mrb_int or srcd0 == :mrb_float2) and
+            (srcd1 == :mrb_int or srcd1 == :mrb_float2) then
+          if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
+            dsts = :mrb_float2
             if valuep == 3 then
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
               src = "(#{arg0} #{op} #{arg1})"
             else
-              term0 = gen_type_conversion(ccgen, :mrb_float, srcs0, arg0, tup, node, ti, history)
-              term1 = gen_type_conversion(ccgen, :mrb_float, srcs1, arg1, tup, node, ti, history)
+              term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history)
+              term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history)
               src = "(#{term0} #{op} #{term1})"
             end
           else
@@ -200,16 +200,16 @@ module CodeGenC
           src = "v#{gins.outreg[0].id}"
         end
       elsif [:>, :>=, :<, :<=].include?(op) then
-        if (srcd0 == :mrb_int or srcd0 == :mrb_float) and
-            (srcd1 == :mrb_int or srcd1 == :mrb_float) then
+        if (srcd0 == :mrb_int or srcd0 == :mrb_float2) and
+            (srcd1 == :mrb_int or srcd1 == :mrb_float2) then
           dsts = :mrb_bool
-          if (srcd0 == :mrb_float or srcd1 == :mrb_float) then
+          if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
             if valuep == 3 then
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
               src = "(#{arg0} #{op} #{arg1})"
             else
-              term0 = gen_type_conversion(ccgen, :mrb_float, srcs0, arg0, tup, node, ti, history)
-              term1 = gen_type_conversion(ccgen, :mrb_float, srcs1, arg1, tup, node, ti, history)
+              term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history)
+              term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history)
               src = "(#{term0} #{op} #{term1})"
             end
           else
