@@ -255,7 +255,7 @@ module CodeGenC
       if src.is_a?(Fixnum) then
         srct = :mrb_int
       elsif src.is_a?(Float) then
-        srct = :mrb_float
+        srct = :mrb_float2
       else
       end
 
@@ -442,7 +442,7 @@ module CodeGenC
 
     TTABLE = {
       Fixnum => :mrb_int,
-      Float => :mrb_float,
+      Float => :mrb_float2,
       Array => :array,
       Range => :range,
       Proc => :gproc,
@@ -674,7 +674,7 @@ module CodeGenC
             when :mrb_int
               "(mrb_fixnum_value(#{src}))"
 
-            when :mrb_float
+            when :mrb_float2
               "(mrb_float_value(mrb, #{src}))"
 
             when :mrb_bool
@@ -693,14 +693,14 @@ module CodeGenC
           when :mrb_value
             "(mrb_fixnum(#{src}))"
 
-          when :mrb_float
+          when :mrb_float2
             "((mrb_int)#{src})"
 
           else
             raise "Not support yet #{dstt} #{srct}"
           end
 
-        when :mrb_float
+        when :mrb_float2
           case srct
           when :mrb_value
             "(mrb_float(#{src}))"

@@ -30,6 +30,7 @@ module CodeGenC
 #include <math.h>
 #include <stdio.h>
 #undef mrb_int
+typedef mrb_float mrb_float2;
 
 typedef void *gproc;
 EOS

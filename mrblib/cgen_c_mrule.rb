@@ -41,8 +41,8 @@ module CodeGenC
       ireg = inst.inreg[0]
       dstt = get_ctype(ccgen, nreg, tup)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_float, srct, src, tup, node, infer, history)
-      src = gen_type_conversion(ccgen, dstt, :mrb_float, "-#{src}", tup, node, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
+      src = gen_type_conversion(ccgen, dstt, :mrb_float2, "-#{src}", tup, node, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -54,8 +54,8 @@ module CodeGenC
       ireg = inst.inreg[1]
       dstt = get_ctype(ccgen, nreg, tup)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_float, srct, src, tup, node, infer, history)
-      src = gen_type_conversion(ccgen, dstt, :mrb_float, "sqrt(#{src})", tup, node, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
+      src = gen_type_conversion(ccgen, dstt, :mrb_float2, "sqrt(#{src})", tup, node, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -67,8 +67,8 @@ module CodeGenC
       ireg = inst.inreg[1]
       dstt = get_ctype(ccgen, nreg, tup)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_float, srct, src, tup, node, infer, history)
-      src = gen_type_conversion(ccgen, dstt, :mrb_float, "sin(#{src})", tup, node, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
+      src = gen_type_conversion(ccgen, dstt, :mrb_float2, "sin(#{src})", tup, node, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -80,8 +80,8 @@ module CodeGenC
       ireg = inst.inreg[1]
       dstt = get_ctype(ccgen, nreg, tup)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_float, srct, src, tup, node, infer, history)
-      src = gen_type_conversion(ccgen, dstt, :mrb_float, "cos(#{src})", tup, node, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
+      src = gen_type_conversion(ccgen, dstt, :mrb_float2, "cos(#{src})", tup, node, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -124,7 +124,7 @@ module CodeGenC
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup)
       src = "(mrb_float)rand()"
-      src = gen_type_conversion(ccgen, dstt, :mrb_float, src, tup, node, infer, history)
+      src = gen_type_conversion(ccgen, dstt, :mrb_float2, src, tup, node, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
