@@ -123,7 +123,7 @@ module CodeGenC
     define_ccgen_rule_method :rand, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup)
-      src = "(mrb_float)rand()"
+      src = "(((mrb_float)(rand() % 65536)) / 65536.0)"
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, src, tup, node, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
