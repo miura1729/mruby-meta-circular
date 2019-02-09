@@ -281,15 +281,18 @@ module CodeGenC
         codeno = ptype.using_tup[utup]
         outtype0 = get_ctype(ccgen, nreg, tup, false)
         outtype = get_ctype(ccgen, nreg, tup)
-        if procty == :mrb_value then
-          fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
-          fname = "((#{outtype0} (*)())(((void **)#{fname})[#{codeno}]))"
-        else
-          fname = "((#{outtype0} (*)())((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
-        end
         args = inst.inreg.map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
+        argt = inst.inreg.map {|reg|
+          gen_declare(ccgen, reg, tup)
+        }.join(", ")
+        if procty == :mrb_value then
+          fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
+          fname = "((#{outtype0} (*)(mrb_state *, #{argt}))(((void **)#{fname})[#{codeno}]))"
+        else
+          fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
+        end
         ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup)
         ccgen.dcode << ";\n"
         src = "(#{fname}(mrb, #{args}))"
