@@ -235,8 +235,13 @@ module CodeGenC
         ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
       end
       retval = reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
-      retty = get_ctype(ccgen, inst.outreg[0], tup)
-      if retty == :mrb_value and is_escape?(inst.outreg[0]) then
+      rettys = inst.outreg[0].type[tup]
+      must_protect = rettys.any? {|e|
+        e.is_a?(MTypeInf::ContainerType) or
+        e.is_a?(MTypeInf::UserDefinedType) or
+        e.is_a?(MTypeInf::ProcType)
+      }
+      if must_protect and is_escape?(inst.outreg[0]) then
         ccgen.pcode << "mrb_gc_protect(mrb, #{retval});\n"
       end
       if retval then
