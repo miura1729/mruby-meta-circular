@@ -239,6 +239,34 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
+      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      argc = inst.para[1]
+      oreg = inst.outreg[0]
+      initsize = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+
+      if recvtypes.size == 1 then
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        ereg = inst.outreg[0].type[tup][0].element[uv]
+        etype = get_ctype_aux(ccgen, ereg, tup)
+        recvt = recvtypes[0].class_object
+
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
+        if is_escape?(oreg) or !initsize then
+          if initsize != "mrb_nil_value()" then
+            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize}));\n"
+#            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
+          else
+            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, 0);\n"
+          end
+          ccgen.callstack[-1][1] = true
+        else
+          ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize});\n"
+        end
+      end
+      nil
+    end
+
     define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
       procty = get_ctype(ccgen, inst.inreg[0], tup)
       intype = inst.inreg.map {|reg| reg.type[tup] || []}
