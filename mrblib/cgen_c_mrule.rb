@@ -315,6 +315,9 @@ module CodeGenC
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
         if is_escape?(oreg) then
           ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{clsssa.iv.size});\n"
+          ccgen.pcode << "for (int i = 0;i < #{clsssa.iv.size}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
+          ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{clsssa.iv.size});\n"
+          ccgen.callstack[-1][1] = true
         else
           clsid = ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
           ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"

@@ -629,7 +629,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :rand, Math.class do |infer, inst, node, tup|
+    define_inf_rule_method :rand, Kernel do |infer, inst, node, tup|
       type = PrimitiveType.new(Float)
       inst.outreg[0].add_type(type, tup)
       nil

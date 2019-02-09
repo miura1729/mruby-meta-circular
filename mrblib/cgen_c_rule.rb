@@ -645,6 +645,7 @@ module CodeGenC
                 res << "tproc->e.env = venv;\n"
                 res << "}\n"
                 res << "else "
+                ccgen.callstack[-1][1] = true
               end
 
               res << "{\n"
@@ -665,6 +666,7 @@ module CodeGenC
 
               res << "mrb_obj_value(tproc);\n"
               res <<  "})"
+              ccgen.callstack[-1][1] = true
               res
             else
               raise "Not support yet #{dstt} #{srct}"

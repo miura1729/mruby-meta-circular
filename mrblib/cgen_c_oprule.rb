@@ -82,9 +82,9 @@ module CodeGenC
 
       if is_escape?(slf) then
         idx = src.genpoint
-        src = "mrb_ary_ref(mrb, self, #{idx});"
+        src = "ARY_PTR(mrb_ary_ptr(self))[#{idx}]"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
-        ccgen.pcode << "v#{dst.id} = #{src}\n"
+        ccgen.pcode << "v#{dst.id} = #{src};\n"
       else
         ccgen.pcode << " v#{dst.id} = self->v#{src.id};\n"
       end
@@ -100,7 +100,9 @@ module CodeGenC
       val = reg_real_value(ccgen, valr, dst, node, tup, infer, history)
       if is_escape?(slf) then
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
-        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
+#        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
+        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{dst.genpoint}] = #{val};\n"
+        ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(self), #{val});\n"
       else
         ccgen.pcode << "self->v#{dst.id} = #{val};\n"
       end
@@ -233,6 +235,10 @@ module CodeGenC
         ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
       end
       retval = reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
+      retty = get_ctype(ccgen, inst.outreg[0], tup)
+      if retty == :mrb_value and is_escape?(inst.outreg[0]) then
+        ccgen.pcode << "mrb_gc_protect(mrb, #{retval});\n"
+      end
       if retval then
         ccgen.pcode << "return #{retval};\n"
       else
