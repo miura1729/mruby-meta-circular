@@ -295,11 +295,14 @@ EOS
         end
       end
 
-      if rc == nil and history[node.exit_link[0]] then
+      if rc then
+        @pcode << rc[0]
+      elsif history[node.exit_link[0]] then
         @pcode << "goto L#{node.exit_link[0].id};\n"
       end
 
-      nxnode = rc ? rc : node.exit_link
+
+      nxnode = rc ? rc[1] : node.exit_link
       nxnode.each do |nd|
         if history[nd] == nil then
           code_gen_node(nd, ti, name, history, tup)

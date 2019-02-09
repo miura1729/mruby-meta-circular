@@ -187,12 +187,12 @@ module CodeGenC
         end
       end
       if cond == true or r == 2 then
-        [node.exit_link[1]]
+        ["", [node.exit_link[1]]]
       elsif cond == false or r == 1 then
-        [node.exit_link[0]]
+        ["", [node.exit_link[0]]]
       else
-        ccgen.pcode << "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
-        [node.exit_link[1], node.exit_link[0]]
+        src = "if (#{cond}) goto L#{node.exit_link[1].id}; else goto L#{node.exit_link[0].id};\n"
+        [src, [node.exit_link[1], node.exit_link[0]]]
       end
     end
 
@@ -209,12 +209,12 @@ module CodeGenC
         end
       end
       if cond == true or r == 2 then
-        [node.exit_link[0]]
+        ["", [node.exit_link[0]]]
       elsif cond == false or r == 1 then
-        [node.exit_link[1]]
+        ["", [node.exit_link[1]]]
       else
-        ccgen.pcode << "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
-        [node.exit_link[0], node.exit_link[1]]
+        src = "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
+        [src, [node.exit_link[0], node.exit_link[1]]]
       end
     end
 
