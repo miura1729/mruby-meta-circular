@@ -152,15 +152,14 @@ EOS
 
     def code_gen_method_aux(block, ti, name, proc, tup)
       pproc = proc.parent
-      if block.export_regs.size > 0 or
-          (pproc and pproc.irep.export_regs.size > 0) then
+      if block.export_regs.size > 0 or pproc
         if !@defined_env[proc] then
           @defined_env[proc] = true
           @scode << "struct env#{proc.id} {\n"
           block.export_regs.each do |reg|
             @scode << "#{CodeGen::gen_declare(self, reg, tup)};\n"
           end
-          if pproc and pproc.irep.export_regs.size > 0 then
+          if pproc then
             @scode << "struct env#{pproc.id} *prev;\n"
           end
           @scode << "};\n"
@@ -238,22 +237,17 @@ EOS
       @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       pproc = proc.parent
-      envp = block.export_regs.size > 0 or
-        (pproc and pproc.irep.export_regs.size > 0)
+      envp = block.export_regs.size > 0 or pproc
       if procty == :mrb_value then
         @ccode << "struct RProc *proc;\n"
         @pcode << "proc = mrb_proc_ptr(mrbproc);\n"
         @ccode << "#{slfdecl};\n"
         @pcode << "self = proc->e.env->stack[0];\n"
-        if envp then
-          @pcode << "env.prev = proc->e.env->stack;\n"
-        end
+        @pcode << "env.prev = proc->e.env->stack;\n"
       else
         @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
         @ccode << "#{slfdecl} = proc->self;\n"
-        if envp then
-          @pcode << "env.prev = proc->env;\n"
-        end
+        @pcode << "env.prev = proc->env;\n"
       end
       code_gen_method_aux(block, ti, name, proc, tup)
     end

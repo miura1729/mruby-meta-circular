@@ -370,8 +370,7 @@ module CodeGenC
       pproc = cproc.parent
       if !ccgen.using_proc.include?(proc) then
         tupnum = proc.using_tup.size
-        if envreg.size > 0 or
-            (pproc and pproc.irep.export_regs.size > 0) then
+        if envreg.size > 0 or pproc then
           ccgen.hcode << "struct proc#{proc.id} {\n"
           ccgen.hcode << "int id;\n"
           ccgen.hcode << "void *code[#{tupnum}];\n"
@@ -393,7 +392,7 @@ module CodeGenC
       ccgen.pcode << "struct proc#{proc.id} v#{regno};\n"
       ccgen.pcode << "v#{regno}.id = #{proc.id};\n"
       ccgen.pcode << "v#{regno}.self = self;\n"
-      if envreg.size > 0 then
+      if envreg.size > 0 or pproc then
         ccgen.pcode << "v#{regno}.env = &env;\n"
       end
       dstt = get_ctype(ccgen, inst.outreg[0], tup)
