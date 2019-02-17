@@ -6,7 +6,7 @@ def foo
   i = 0
   [[:a, 1], ["abc", :foo], [:a, [1]]].each do |x|
     a[x[0]] = x[1]
-    $foo = x
+#    $foo = x
 #    i = i + 1
   end
 

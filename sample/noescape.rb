@@ -1,10 +1,10 @@
-def foo
+def bar
   a = [1, 2, 3]
-  a[0] + a[1] + a[2]
+  a[0] + a[1] + a[2] + a[3]
 end
 
 MTypeInf::inference_main {
-  foo
+  p bar
 }
 
 # main#foo: (main, NilClass) -> Array|NilClass

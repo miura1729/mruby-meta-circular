@@ -11,11 +11,16 @@ module CodeGenC
       @defined_class = {}
       @defined_env = {}
       @callstack = []
-      @scode = ""               # structure definituon
+      @gccode = ""              # GC function definition
+      @scode = ""               # structure definition
       @hcode = ""               # prototype, variable
       @dcode = ""               # local declaration
       @pcode = ""               # program code
       @ccode = ""               # whole program
+
+      @gcsingle_size = 0
+      @prev_gcsignle = []
+      @gccomplex_size = 0
 
       @clstab = {}
       init_code
@@ -34,9 +39,35 @@ module CodeGenC
 typedef mrb_float mrb_float2;
 
 typedef void *gproc;
+struct gctab {
+  int size;
+  int csize;
+  struct gctab *prev;
+  mrb_value **complex;
+  mrb_value *single[0];
+};
+
+void mrb_mark_local(mrb_state *mrb)
+{
+  struct gctab *curtab = (struct gctab *)mrb->ud;
+  while (curtab) {
+    for (int i = curtab->size; i--;) {
+      mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->single[i]));
+    }
+
+    for (int i = curtab->csize; i--;) {
+      mrb_value *cptr = curtab->complex[i];
+      for (int j = 0; cptr[j].value.ttt != MRB_TT_FREE; j++) {
+        mrb_gc_mark(mrb, mrb_basic_ptr(cptr[j]));
+      }
+    }
+    curtab = curtab->prev;
+  }
+}
 EOS
     end
 
+    attr :gccode
     attr :scode
     attr :hcode
     attr :ccode
@@ -49,6 +80,10 @@ EOS
     attr :using_proc
 
     attr :clstab
+
+    attr_accessor :gcsingle_size
+    attr :prev_gcsingle
+    attr_accessor :gccomplex_size
 
     def is_live_reg_aux(node, reg, pos, hash)
       if hash[node] then
@@ -134,7 +169,7 @@ int main(int argc, char **argv)
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
-    main_Object_0(mrb, mrb_top_self(mrb));
+    main_Object_0(mrb, mrb_top_self(mrb), NULL);
   }
   MRB_CATCH(&c_jmp) {
     mrb_p(mrb, mrb_obj_value(mrb->exc));
@@ -179,7 +214,28 @@ EOS
       if @callstack[-1][1] then
         @dcode << "int ai = mrb_gc_arena_save(mrb);\n"
       end
+
+      # create of gctable
+      @dcode << "struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab) + #{@gcsingle_size} * sizeof(mrb_value *));\n"
+      @dcode << "gctab->prev = prevgctab;\n"
+
+      if @gccomplex_size > 0 then
+        @dcode << "gctab->complex = alloca(sizeof(mrb_value *) * #{@gccomplex_size});\n"
+      else
+        @dcode << "gctab->complex = NULL;\n"
+      end
+
+      if @gcsingle_size == 0 then
+        @dcode << "gctab->size = 0;\n"
+      end
+
+      if @gccomplex_size == 0 then
+        @dcode << "gctab->csize = 0;\n"
+      end
+
+      # Construct code
       @ccode << @dcode
+      @ccode << @gccode
       @ccode << @pcode
       @ccode << "}\n"
       @callstack.pop
@@ -190,7 +246,11 @@ EOS
         return
       end
       @dcode = ""
+      @gccode = ""
       @pcode = ""
+      @gcsingle_size = 0
+      @prev_gcsingle = []
+      @gccomplex_size = 0
       @callstack.push [proc, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       args = ""
@@ -206,14 +266,18 @@ EOS
         end
       end
 
-      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
-      @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
+      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "#{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
       code_gen_method_aux(block, ti, name, proc, tup)
     end
 
     def code_gen_block(block, ti, name, proc, tup, intype, procty)
       @dcode = ""
+      @gccode = ""
       @pcode = ""
+      @gcsingle_size = 0
+      @prev_gcsingle = []
+      @gccomplex_size = 0
       @callstack.push [proc, nil, procty] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       if procty == :mrb_value then
@@ -233,8 +297,8 @@ EOS
         end
       end
 
-      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}) {\n"
-      @hcode << "#{rettype} #{name}(mrb_state *#{args});\n"
+      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "#{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       pproc = proc.parent
       envp = block.export_regs.size > 0 or pproc
@@ -266,9 +330,10 @@ EOS
           raise e
         end
       end
+      # @prev_gcsingle.clear
 
       node.exit_link.each do |nd|
-        dclf = nil
+        declf = nil
         if nd.enter_link.size > 1 then
           if nd.enter_link.count {|n| history[n]} == 1 then
             declf = true

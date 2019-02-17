@@ -562,6 +562,7 @@ module RiteSSA
             end
           end
           inst.para.push exp_regset
+          inst.para.push a
 
           dstreg = Reg.new(inst)
           regtab[a] = dstreg

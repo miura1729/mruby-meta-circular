@@ -26,23 +26,65 @@ module CodeGenC
       end
     end
 
+    def self.is_not_assign_emit(outr)
+      outr.refpoint.size < 3 or
+        ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
+        [
+          :SENDB, :SEND, :ARRAY, :MOVE, :GETIV
+        ].include?(outr.genpoint.op))
+    end
+
     def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
-      if inst.outreg[0].refpoint.size > 2 then
-        dst = inst.outreg[0]
+      outr = inst.outreg[0]
+      if !is_not_assign_emit(outr) then
         val, srct = yield
-        dstt = get_ctype(ccgen, dst, tup)
+        dstt = get_ctype(ccgen, outr, tup)
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history)
-        ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
-        ccgen.pcode << "v#{dst.id} = #{val};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup)};\n"
+        ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
 
     def self.do_ifnot_multi_use(ccgen, inst, node, ti, history, tup)
-      if inst.outreg[0].refpoint.size < 3 then
+      outr = inst.outreg[0]
+      if is_not_assign_emit(outr) then
         yield
       else
-        srct = get_ctype(ccgen, inst.outreg[0], tup)
+        srct = get_ctype(ccgen, outr, tup)
         ["v#{inst.outreg[0].id}", srct]
+      end
+    end
+
+    def self.gen_gc_table(ccgen, inst, node, infer, history, tup)
+      regs = inst.para[2]
+      pos = inst.para[4]
+      num = inst.para[1]
+      tabpos = 0
+      prevsize = ccgen.prev_gcsingle.size
+      (pos + num).times do |i|
+        r = regs[i]
+        if !(r.type[tup] and r.type[tup].any? {|ty| is_gcobject?(ty)} and
+            is_escape?(r)) or
+            (r.genpoint.is_a?(Fixnum) and
+            !ccgen.is_live_reg?(node, r, r.genpoint) and
+            i != 0) then
+            next
+        end
+
+        name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
+        if ccgen.prev_gcsingle[tabpos] != name then
+          ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};\n"
+          ccgen.prev_gcsingle[tabpos] = name
+        end
+        tabpos += 1
+      end
+
+      if tabpos > 0 and tabpos != prevsize then
+        ccgen.pcode << "gctab->size = #{tabpos};\n"
+      end
+
+      if tabpos > ccgen.gcsingle_size then
+        ccgen.gcsingle_size = tabpos
       end
     end
 
@@ -81,6 +123,8 @@ module CodeGenC
             i = i + 1
             gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
           }.join(", ")
+          args << ", gctab"
+          gen_gc_table(ccgen, inst, node, infer, history, tup)
 
           if outreg then
             nreg = outreg[0]
@@ -590,13 +634,7 @@ module CodeGenC
       plist.any? {|e, val|
         case e
         when :return
-          if ty.is_a?(MTypeInf::ContainerType) or
-              ty.is_a?(MTypeInf::UserDefinedType) or
-              ty.is_a?(MTypeInf::ProcType) then
-            true
-          else
-            false
-          end
+          is_gcobject?(ty)
 
         when MTypeInf::ProcType
           cache[e.place] = true
@@ -612,6 +650,12 @@ module CodeGenC
           true
         end
       }
+    end
+
+    def self.is_gcobject?(ty)
+      ty.is_a?(MTypeInf::ContainerType) or
+        ty.is_a?(MTypeInf::UserDefinedType) or
+        ty.is_a?(MTypeInf::ProcType)
     end
 
     def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history)

@@ -23,7 +23,7 @@ MTypeInf::inference_main {
     begin
       bazr
     rescue
-      bazr
+#      bazr
       "a"
     end
   end

@@ -18,9 +18,11 @@ end
 def foo
   j = 1
 #  [1, 2, 3].each {|a| p a + j}
-  p [1, 2, 3].map {|a| p a + j}
+  a = [1, 2, 3]
+  a.map {|a| j = j + a;p j}
+  p j
 end
 
 MTypeInf::inference_main {
-  foo
+  p foo
 }

@@ -2,7 +2,7 @@ def bottom_up_tree(item, depth)
   if depth > 0
     item_item = 2 * item
     depth -= 1
-   [bottom_up_tree(item_item - 1, depth), item, bottom_up_tree(item_item, depth)]
+    [bottom_up_tree(item_item - 1, depth), item, bottom_up_tree(item_item,  depth)]
   else
     [nil, item, nil]
   end
@@ -18,13 +18,12 @@ def foo
   if !b.nil? then
     b
   else
-    []
+    [1]
   end
 end
 
 def bar
   a = bottom_up_tree(0, 20)
-  a[1]
 end
 
 MTypeInf::inference_main {

@@ -70,20 +70,20 @@ end
 
 def pboard
 #  return # skip print
-  print "No. #{$no}\n"
+#  print "No. #{$no}\n"
   (0...COL).each{|i|
-    print "|"
+#    print "|"
     (0...ROW-NP).each{|j|
       x = $b[i*ROW+j]
       if x < 0
-        print "..|"
+#        print "..|"
       else
-        printf "%2d|",x+1
+#        printf "%2d|",x+1
       end
     }
-    print "\n"
+#    print "\n"
   }
-  print "\n"
+#  print "\n"
 end
 
 def setpiece(a,pos)

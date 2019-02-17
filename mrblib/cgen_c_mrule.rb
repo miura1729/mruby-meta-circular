@@ -253,15 +253,28 @@ module CodeGenC
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
         if is_escape?(oreg) or !initsize then
+          gen_gc_table(ccgen, inst, node, infer, history, tup)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           if initsize != "mrb_nil_value()" then
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize}));\n"
-#            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
+          ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
+          ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
           else
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, 0);\n"
           end
+          ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
         else
-          ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize});\n"
+          ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
+          if etype == :mrb_value then
+            ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) v#{oreg.id}[i] = mrb_nil_value();\n"
+            ccgen.pcode << "v#{oreg.id}[#{initsize}].value.ttt = MRB_TT_FREE;\n"
+
+            csize = ccgen.gccomplex_size
+            ccgen.gccomplex_size += 1
+            ccgen.pcode << "gctab->complex[#{csize}] = v#{oreg.id};\n"
+            ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
+          end
         end
       end
       nil
@@ -284,9 +297,11 @@ module CodeGenC
         args = inst.inreg.map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
+        args << ", gctab"
         argt = inst.inreg.map {|reg|
           gen_declare(ccgen, reg, tup)
         }.join(", ")
+        argt << ", struct gctab *"
         if procty == :mrb_value then
           fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
           fname = "((#{outtype0} (*)(mrb_state *, #{argt}))(((void **)#{fname})[#{codeno}]))"
@@ -314,9 +329,12 @@ module CodeGenC
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
         if is_escape?(oreg) then
+          gen_gc_table(ccgen, inst, node, infer, history, tup)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{clsssa.iv.size});\n"
           ccgen.pcode << "for (int i = 0;i < #{clsssa.iv.size}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{clsssa.iv.size});\n"
+          ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
         else
           clsid = ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"

@@ -10,26 +10,6 @@ IMAGE_HEIGHT = 64
 NSUBSAMPLES = 2
 NAO_SAMPLES = 8
 
-$rand = Random.new
-$rand.srand(100)
-module Rand
-  # Use xorshift
-  @@x = 123456789
-  @@y = 362436069
-  @@z = 521288629
-  @@w = 88675123
-  BNUM = 1 << 29
-  BNUMF = BNUM.to_f
-  def self.rand
-    x = @@x
-    t = x ^ ((x & 0xfffff) << 11)
-    w = @@w
-    @@x, @@y, @@z = @@y, @@z, w
-    w = @@w = (w ^ (w >> 19) ^ (t ^ (t >> 8)))
-    (w % BNUM) / BNUMF
-  end
-end
-
 class Vec
 #  include Inline
   def initialize(x, y, z)
@@ -231,9 +211,9 @@ class Scene
                 isect.pl.z + eps * isect.n.z)
     nphi.times do |j|
       ntheta.times do |i|
-        r = Rand::rand
+        r = rand
 #        r = $rand.rand
-        phi = 2.0 * 3.14159265 * Rand::rand
+        phi = 2.0 * 3.14159265 * rand
 #        phi = 2.0 * 3.14159265 * $rand.rand
         x = Math.cos(phi) * Math.sqrt(1.0 - r)
         y = Math.sin(phi) * Math.sqrt(1.0 - r)
@@ -256,6 +236,7 @@ class Scene
         else
           0.0
         end
+        1.0
       end
     end
 
@@ -301,6 +282,7 @@ class Scene
             else
               0.0
             end
+            1
           end
         end
 
@@ -310,6 +292,7 @@ class Scene
 #        printf("%c", clamp(r))
 #        printf("%c", clamp(g))
 #        printf("%c", clamp(b))
+        1
       end
     end
   end

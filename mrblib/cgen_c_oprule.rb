@@ -12,7 +12,7 @@ module CodeGenC
 
     define_ccgen_rule_op :MOVE do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
+        reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       }
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
@@ -231,19 +231,8 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
-      if ccgen.callstack[-1][1] then
-        ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
-      end
       retval = reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
       rettys = inst.outreg[0].type[tup]
-      must_protect = rettys.any? {|e|
-        e.is_a?(MTypeInf::ContainerType) or
-        e.is_a?(MTypeInf::UserDefinedType) or
-        e.is_a?(MTypeInf::ProcType)
-      }
-      if must_protect and is_escape?(inst.outreg[0]) then
-        ccgen.pcode << "mrb_gc_protect(mrb, #{retval});\n"
-      end
       if retval then
         ccgen.pcode << "return #{retval};\n"
       else
@@ -348,7 +337,11 @@ module CodeGenC
         ccgen.pcode << "mrb_value tmpele[] = {\n"
         ccgen.pcode << vals.join(', ')
         ccgen.pcode << "\n};\n"
+        ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
+        ccgen.pcode << "for (int i = 0;i < #{vals.size}; i++) ARY_PTR(mrb_ary_ptr(v#{reg.id}))[i] = mrb_nil_value();\n"
+        ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{reg.id}), #{vals.size});\n"
+        ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
         ccgen.callstack[-1][1] = true
         ccgen.pcode << "}\n"
       else
@@ -358,9 +351,16 @@ module CodeGenC
             reg_real_value(ccgen, ireg, ereg, node, tup, infer, history)
           }
 
-          ccgen.pcode << "#{etype} v#{reg.id}[] = {\n"
+          ccgen.pcode << "#{etype} v#{reg.id}[#{vals.size + 1}] = {\n"
           ccgen.pcode << vals.join(', ')
-          ccgen.pcode << "\n};\n"
+          ccgen.pcode << "};\n"
+          if etype == :mrb_value then
+            ccgen.pcode << "v#{reg.id}[#{vals.size}].value.ttt = MRB_TT_FREE;\n"
+            csize = ccgen.gccomplex_size
+            ccgen.gccomplex_size += 1
+            ccgen.pcode << "gctab->complex[#{csize}] = v#{reg.id};\n"
+            ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
+          end
         end
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
