@@ -35,8 +35,15 @@ module CodeGenC
 #include <mruby/proc.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #undef mrb_int
 typedef mrb_float mrb_float2;
+
+#define mrb_float_value2(n) ({\
+  mrb_value rc;               \
+  rc.f = n;                   \
+  rc;                         \
+})
 
 typedef void *gproc;
 struct gctab {
@@ -266,8 +273,8 @@ EOS
         end
       end
 
-      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-      @hcode << "#{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
       code_gen_method_aux(block, ti, name, proc, tup)
     end
 
@@ -297,8 +304,8 @@ EOS
         end
       end
 
-      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-      @hcode << "#{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
+      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "static #{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       pproc = proc.parent
       envp = block.export_regs.size > 0 or pproc

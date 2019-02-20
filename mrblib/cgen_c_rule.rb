@@ -211,7 +211,13 @@ module CodeGenC
         srcd1 = get_ctype(ccgen, gins.inreg[0], tup, false)
         srcs1 = srcd1
       end
-      dstd = get_ctype(ccgen, gins.outreg[0], tup)
+      outr = gins.outreg[0]
+      if outr.refpoint[0].is_a?(RiteSSA::Inst) and
+          [:ADD, :SUB, :MUL, :DIV, :EQ, :GT, :GE, :LT, :LE, :ADDI, :SUBI].include?(outr.refpoint[0].op) then
+        dstd = get_ctype(ccgen, gins.outreg[0], tup, false)
+      else
+        dstd = get_ctype(ccgen, gins.outreg[0], tup)
+      end
       src = ""
 
       if [:+, :-, :*, :/].include?(op) then
@@ -494,10 +500,6 @@ module CodeGenC
     }
 
     def self.get_ctype_aux(ccgen, reg, tup, escheck = true)
-      if escheck and is_escape?(reg) then
-        return :mrb_value
-      end
-
       rtype = reg.type[tup]
       if !rtype then
         # for element of array
@@ -505,6 +507,10 @@ module CodeGenC
         if rtype.nil? then
           return :mrb_value
         end
+      end
+
+      if escheck and is_escape?(reg) then
+        return :mrb_value
       end
 
       cls0 = rtype[0].class_object
@@ -721,7 +727,7 @@ module CodeGenC
               "(mrb_fixnum_value(#{src}))"
 
             when :mrb_float2
-              "(mrb_float_value(mrb, #{src}))"
+              "(mrb_float_value2(#{src}))"
 
             when :mrb_bool
               "((#{src}) ? mrb_true_value() : mrb_false_value())"

@@ -21,7 +21,7 @@ module CodeGenC
     define_ccgen_rule_op :LOADI do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       if node.root.export_regs.include?(oreg) then
-        ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
         src = inst.para[0]
         srct = get_ctype_from_robj(src)
         dstt = get_ctype(ccgen, oreg, tup)
@@ -78,7 +78,7 @@ module CodeGenC
       src = inst.inreg[0]
       srct = get_ctype(ccgen, inst.inreg[0], tup)
       slf = inst.inreg[1]
-      ccgen.dcode << "#{gen_declare(self, dst, tup)};\n"
+      ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
 
       if is_escape?(slf) then
         idx = src.genpoint
@@ -152,7 +152,7 @@ module CodeGenC
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
         ccgen.pcode << "#{dst} = #{val};\n"
       else
-        ccgen.dcode << "#{gen_declare(self, oreg, tup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
         val = reg_real_value(ccgen, ireg, oreg, node, tup, infer, history)
         ccgen.pcode << "proc->env#{"->prev" * up}->v#{oreg.id} = #{val};\n"
       end
