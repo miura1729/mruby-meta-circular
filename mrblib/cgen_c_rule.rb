@@ -471,6 +471,14 @@ module CodeGenC
           [res, [:gproc, reg.type[tup][0].id]]
         end
 
+      when :STRING
+        oreg = gins.outreg[0]
+        if is_escape?(oreg) then
+          ["v#{reg.id}", :mrb_value]
+        else
+          ["\"#{gins.para[0]}\"", "char *"]
+        end
+
       else
         ["v#{reg.id}", srct]
       end
@@ -506,7 +514,8 @@ module CodeGenC
       Array => :array,
       Range => :range,
       Proc => :gproc,
-      NilClass => :mrb_value
+      NilClass => :mrb_value,
+      String => :string
     }
 
     def self.get_ctype_aux(ccgen, reg, tup, escheck = true)
@@ -577,6 +586,13 @@ module CodeGenC
           else
             "#{rc} *"
           end
+        else
+          :mrb_value
+        end
+
+      when :string
+        if escheck and !is_escape?(reg) then
+          "char *"
         else
           :mrb_value
         end

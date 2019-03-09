@@ -367,6 +367,17 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :ARYCAT do |ccgen, inst, node, infer, history, tup|
+    end
+
+    define_ccgen_rule_op :STRING do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      if is_escape?(oreg) then
+        ccgen.dcode << "mrb_value v#{reg.id};\n"
+        ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, \"#{inst.para[0]}\", #{inst.para[0].size});"
+      end
+    end
+
     define_ccgen_rule_op :LAMBDA do |ccgen, inst, node, infer, history, tup|
       # make env struct
       envreg = inst.para[1]
