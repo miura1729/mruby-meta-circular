@@ -108,6 +108,26 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :to_i, Fixnum do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :to_i, Float do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :p, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
@@ -120,11 +140,25 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_method :rand, Object do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :rand, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup)
-      src = "(((mrb_float)(rand() % 65536)) / 65536.0)"
+      src = "(((mrb_float)(rand() % 0x7fffffff)) / (double)0x7fffffff)"
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, src, tup, node, infer, history)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+
+      nil
+    end
+
+    define_ccgen_rule_method :printf, Object do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, nreg, tup)
+      args = inst.inreg.map {|reg|
+        (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
+      }.join(", ")
+      src = "printf(#{args})"
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
