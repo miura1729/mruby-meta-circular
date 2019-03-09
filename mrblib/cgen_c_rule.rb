@@ -769,7 +769,9 @@ module CodeGenC
               "#{src}"
 
             else
-              raise "Not support yet #{dstt} #{srct}"
+              p node.root.irep.disasm
+              p src
+#              raise "Not support yet #{dstt} #{srct}"
             end
           end
 
