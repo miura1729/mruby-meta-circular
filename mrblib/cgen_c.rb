@@ -275,8 +275,10 @@ EOS
         end
       end
 
-      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-      @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+#      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+#      @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "#{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
       code_gen_method_aux(block, ti, name, proc, tup)
     end
 
@@ -306,8 +308,10 @@ EOS
         end
       end
 
-      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-      @hcode << "static #{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
+#      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+#      @hcode << "static #{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
+      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "#{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       pproc = proc.parent
       envp = block.export_regs.size > 0 or pproc
