@@ -330,6 +330,7 @@ EOS
     end
 
     def code_gen_node(node, ti, name, history, tup)
+      @gcsingle_size = 0
       history[node] = true
       @pcode << "L#{node.id}:; \n"
       rc = nil

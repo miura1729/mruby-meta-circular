@@ -252,29 +252,32 @@ module CodeGenC
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
-        if is_escape?(oreg) or !initsize then
+        if is_escape?(oreg) or initsize == "mrb_nil_value()" then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           if initsize != "mrb_nil_value()" then
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize}));\n"
-          ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
-          ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
+            ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
+            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
           else
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, 0);\n"
           end
           ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
         else
-          ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
+          if initsize != "mrb_nil_value()"
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
+          else
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}));\n"
+          end
           if etype == :mrb_value then
             ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) v#{oreg.id}[i] = mrb_nil_value();\n"
             ccgen.pcode << "v#{oreg.id}[#{initsize}].value.ttt = MRB_TT_FREE;\n"
-
-            csize = ccgen.gccomplex_size
-            ccgen.gccomplex_size += 1
-            ccgen.pcode << "gctab->complex[#{csize}] = v#{oreg.id};\n"
-            ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
           end
+          csize = ccgen.gccomplex_size
+          ccgen.gccomplex_size += 1
+          ccgen.pcode << "gctab->complex[#{csize}] = v#{oreg.id};\n"
+          ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
         end
       end
       nil
