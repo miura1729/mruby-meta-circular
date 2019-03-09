@@ -513,7 +513,9 @@ module MTypeInf
         if !cls then
           dmyreg = RiteSSA::Reg.new(nil)
           dmyreg.add_type type, tup
-          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
+          dmyoreg = RiteSSA::Reg.new(nil)
+          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, inst.para[1], nil)
+#          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
         end
 
         inst.outreg[0].add_type type, tup

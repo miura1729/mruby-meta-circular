@@ -51,13 +51,13 @@ module RiteSSA
       @type[tup] = ntype
     end
 
-    def add_type(ty, tup)
+    def add_type(nty, tup)
       type = @type[tup]
       if type.nil? then
-        @type[tup] = [ty]
+        @type[tup] = [nty]
         return nil
       end
-      ty.merge(type)
+      nty.merge(type)
     end
 
     def add_same(st)

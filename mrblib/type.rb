@@ -3,6 +3,7 @@ module MTypeInf
     UNDEF_VALUE = [:undef]
     def initialize(co, *rest)
       @class_object = co
+#      @@place = {}
       @place = {}
     end
 
@@ -16,7 +17,11 @@ module MTypeInf
     end
 
     attr :class_object
-    attr :place
+
+    def place
+#      @@place[@class_object] ||= {}
+      @place
+    end
 
     def merge(arr)
       clsobj = @class_object
@@ -28,8 +33,6 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
-          ele.place.merge!(@place)
-          @place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
@@ -53,12 +56,19 @@ module MTypeInf
                 end
 
               when MTypeInf::ContainerType
+                ele.place.merge!(place)
+                place.merge!(ele.place)
                 if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
                   return false
                 end
 
-              when MTypeInf::UserDefinedType,
-                primobj,
+              when MTypeInf::UserDefinedType
+                ele.place.merge!(place)
+                place.merge!(ele.place)
+
+                return false
+
+              when primobj,
                 MTypeInf::ProcType,
                 MTypeInf::ExceptionType,
                 MTypeInf::SymbolType,
@@ -78,6 +88,8 @@ module MTypeInf
         #        elsif ele < self then
         #
         #        end
+        ele.place.merge!(place)
+        place.merge!(ele.place)
         arr.each_with_index do |ele, i|
           if ele.is_a?(MTypeInf::LiteralType) and ele.val == @val then
             return false
@@ -158,6 +170,11 @@ module MTypeInf
       @element[UNDEF_VALUE] = reg
       reg = RiteSSA::Reg.new(nil)
       @key = reg
+      @place = {}
+    end
+
+    def place
+      @place
     end
 
     def ==(other)

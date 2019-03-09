@@ -116,7 +116,7 @@ module CodeGenC
           topnode = node.root.nodes[0]
           args = inreg.map {|reg|
             rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
-            if srct == :gproc then
+            if srct.is_a?(Array) and srct[0] == :gproc then
               procexport = true
             end
             dstt = get_ctype(ccgen, reg, tup)
@@ -161,13 +161,18 @@ module CodeGenC
         reg0.flush_type(tup)
         reg0.rearrange_type(tup)
         arg0, srcs0 = reg_real_value_noconv(ccgen, reg0, node, tup, ti, history)
-        case reg0.type[tup].size
-        when 1
-          srcd0 = get_ctype(ccgen, reg0, tup, false)
-          if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) then
-            srcs0 = srcd0
-            arg0 = reg0.type[tup][0].val
-            valuep |= 1
+        if reg0.type[tup] then
+          case reg0.type[tup].size
+          when 1
+            srcd0 = get_ctype(ccgen, reg0, tup, false)
+            if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
+              srcs0 = srcd0
+              arg0 = reg0.type[tup][0].val
+              valuep |= 1
+            end
+          else
+            srcs0 = :mrb_value
+            srcd0 = :mrb_value
           end
         else
           srcs0 = :mrb_value
@@ -189,13 +194,18 @@ module CodeGenC
         reg1.flush_type(tup)
         reg1.rearrange_type(tup)
         arg1, srcs1 = reg_real_value_noconv(ccgen, reg1, node, tup, ti, history)
-        case reg1.type[tup].size
-        when 1
-          srcd1 = get_ctype(ccgen, reg1, tup, false)
-          if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) then
-            srcs1 = srcd1
-            arg1 = reg1.type[tup][0].val
-            valuep |= 2
+        if reg1.type[tup] then
+          case reg1.type[tup].size
+          when 1
+            srcd1 = get_ctype(ccgen, reg1, tup, false)
+            if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
+              srcs1 = srcd1
+              arg1 = reg1.type[tup][0].val
+              valuep |= 2
+            end
+          else
+            srcs1 = :mrb_value
+            srcd1 = :mrb_value
           end
         else
           srcs1 = :mrb_value
@@ -294,9 +304,9 @@ module CodeGenC
       [src, dstd]
     end
 
-    def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history)
+    def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history, escheck = true)
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
-      dstt = get_ctype(ccgen, oreg, tup)
+      dstt = get_ctype(ccgen, oreg, tup, escheck)
       gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
     end
 
@@ -553,7 +563,14 @@ module CodeGenC
       when :array
         if escheck and !is_escape?(reg) then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
-          ereg = reg.type[tup][0].element[uv]
+          tys = reg.type[tup]
+          if !tys then
+            tys = reg.type[reg.type.keys[0]]
+            if !tys then
+              return :mrb_value
+            end
+          end
+          ereg = tys[0].element[uv]
           rc = get_ctype_aux(ccgen, ereg, tup, escheck)
           if rc == :array then
             :mrb_value
@@ -607,7 +624,7 @@ module CodeGenC
     def self.is_escape?(reg, cache = {})
       res = @@escape_cache[reg]
       if res then
-        res
+        return res
       end
 
       if cache[reg] then

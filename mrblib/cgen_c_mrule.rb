@@ -329,7 +329,7 @@ module CodeGenC
         utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
         codeno = ptype.using_tup[utup]
-        outtype0 = get_ctype(ccgen, nreg, tup, false)
+        outtype0 = get_ctype(ccgen, ptype.irep.retreg, tup)
         outtype = get_ctype(ccgen, nreg, tup)
         args = inst.inreg.map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]

@@ -109,7 +109,7 @@ module MTypeInf
       # update place infomation
       if types then
         types.each do |ty|
-          ty.place[inst.inreg[1]] = true
+          ty.place[inst.inreg[1]] = [:SETIV, inst.line]
         end
       end
       nil
@@ -210,7 +210,7 @@ module MTypeInf
       types = inst.outreg[0].flush_type(otup, tup)[otup]
       # update place infomation
       types.each do |ty|
-        ty.place[proc] = true
+        ty.place[proc] = :SETUPVAR
       end
 
       nil
@@ -487,7 +487,7 @@ module MTypeInf
         if arg0type[0].class_object == Fixnum or
             arg0type[0].class_object == Float then
 #          ty = PrimitiveType.new(Float)
-          ty = PrimitiveType.new(Fixnum)
+          ty = PrimitiveType.new(arg0type[0].class_object)
           inst.outreg[0].add_type ty, tup
         end
       end
@@ -529,7 +529,7 @@ module MTypeInf
         stype.keys.each do |ttup|
           types = stype[ttup]
           types.each do |ty|
-            ty.place[nreg] = true
+            ty.place[nreg] = :ARRAY
           end
         end
         type.element[i] = nreg
@@ -618,7 +618,7 @@ module MTypeInf
       end
       inst.outreg[0].add_type pty, tup
       if cproc then
-        cproc.place[pty] = true
+        cproc.place[pty] = :LAMBDA
       end
 
       nil
