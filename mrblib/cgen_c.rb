@@ -23,6 +23,7 @@ module CodeGenC
       @gccomplex_size = 0
 
       @clstab = {}
+      @proctab = {}
       init_code
     end
 
@@ -87,6 +88,7 @@ EOS
     attr :using_proc
 
     attr :clstab
+    attr :proctab
 
     attr_accessor :gcsingle_size
     attr :prev_gcsingle

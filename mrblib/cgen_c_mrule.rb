@@ -306,7 +306,8 @@ module CodeGenC
           fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
           fname = "((#{outtype0} (*)(mrb_state *, #{argt}))(((void **)#{fname})[#{codeno}]))"
         else
-          fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
+          #fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
+          fname = ccgen.proctab[ptype][codeno]
         end
         ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup)
         ccgen.dcode << ";\n"
