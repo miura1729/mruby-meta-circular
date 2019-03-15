@@ -96,6 +96,11 @@ module CodeGenC
     def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
       intype = inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       intype[0] = [intype[0][0]]
+      if !intype[0][0]
+        p tup
+        p inreg[0].type
+        p intype
+      end
       rectype = intype[0][0].class_object
       mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
       rectype.ancestors.each do |rt|
@@ -150,6 +155,12 @@ module CodeGenC
       end
       if name != :initialize then
         p name
+        p intype
+        p inreg[1]
+        p tup 
+        p infer.typetupletab.rev_table[22]
+        p infer.typetupletab.rev_table[tup]
+       p inst.line
         ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
       end
       nil
