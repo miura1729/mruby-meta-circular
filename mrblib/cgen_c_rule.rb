@@ -63,8 +63,8 @@ module CodeGenC
       prevsize = ccgen.prev_gcsingle.size
       (pos + num).times do |i|
         r = regs[i]
-        if !(r.type[tup] and r.type[tup].any? {|ty| is_gcobject?(ty)} and
-            is_escape?(r)) or
+        if !(r.type[tup] and r.type[tup].any? {|ty| ty.is_gcobject?} and
+            r.is_escape?(tup)) or
             (r.genpoint.is_a?(Fixnum) and
             !ccgen.is_live_reg?(node, r, r.genpoint) and
             i != 0) then
@@ -473,7 +473,7 @@ module CodeGenC
 
       when :STRING
         oreg = gins.outreg[0]
-        if is_escape?(oreg) then
+        if oreg.is_escape?(tup) then
           ["v#{reg.id}", :mrb_value]
         else
           ["\"#{gins.para[0]}\"", "char *"]
@@ -528,7 +528,7 @@ module CodeGenC
         end
       end
 
-      if escheck and is_escape?(reg) then
+      if escheck and reg.is_escape?(tup) then
         return :mrb_value
       end
 
@@ -570,7 +570,7 @@ module CodeGenC
       type = get_ctype_aux(ccgen, reg, tup, escheck)
       case type
       when :array
-        if escheck and !is_escape?(reg) then
+        if escheck and !reg.is_escape?(tup) then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           tys = reg.type[tup]
           if !tys then
@@ -591,7 +591,7 @@ module CodeGenC
         end
 
       when :string
-        if escheck and !is_escape?(reg) then
+        if escheck and !reg.is_escape?(tup) then
           "char *"
         else
           :mrb_value
@@ -635,66 +635,6 @@ module CodeGenC
       else
         "#{type} #{regnm}"
       end
-    end
-
-    def self.is_escape?(reg, cache = {})
-      res = @@escape_cache[reg]
-      if res then
-        return res
-      end
-
-      if cache[reg] then
-        @@escape_cache[reg] = false
-        return false
-      end
-      cache[reg] = true
-
-      reg.type.each do |tup, tys|
-        tys.each do |ty|
-          if is_escape_aux(ty, ty.place, cache) then
-            @@escape_cache[reg] = true
-            return true
-          end
-        end
-      end
-
-      @@escape_cache[reg] = false
-      false
-    end
-
-    def self.is_escape_aux(ty, plist, cache)
-      if plist.size == 0 then
-        return false
-      end
-      if cache[plist] then
-        return false
-      end
-
-      plist.any? {|e, val|
-        case e
-        when :return
-          is_gcobject?(ty)
-
-        when MTypeInf::ProcType
-          cache[e.place] = true
-          is_escape_aux(ty, e.place, cache)
-
-        when RiteSSA::Reg
-          is_escape?(e, cache)
-
-        when TrueClass
-          true
-
-        else
-          true
-        end
-      }
-    end
-
-    def self.is_gcobject?(ty)
-      ty.is_a?(MTypeInf::ContainerType) or
-        ty.is_a?(MTypeInf::UserDefinedType) or
-        ty.is_a?(MTypeInf::ProcType)
     end
 
     def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history)

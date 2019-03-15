@@ -1,5 +1,6 @@
 module RiteSSA
   class Storable
+    @@escape_cache = {}
     @@num = 0
 
     def initialize(ins)
@@ -139,6 +140,49 @@ module RiteSSA
       filter_type(types)
     end
 
+    def is_escape?(tup = nil, cache = {})
+#      res = @@escape_cache[self]
+#      if res then
+#        return res
+#      end
+
+      if cache[self] then
+#        @@escape_cache[self] = false
+        return false
+      end
+      cache[self] = true
+
+      if tup then
+        # dirty hack (not proff)
+        unless @type[tup]
+          p @type
+          p tup
+          p @genpoint
+          p @refpoint[0].irep.disasm
+#          return true
+        end
+
+        @type[tup].each do |ty|
+          if ty.is_escape?(cache) then
+            #            @@escape_cache[self] = true
+            return true
+          end
+        end
+      else
+        @type.each do |tp, tys|
+          tys.each do |ty|
+            if ty.is_escape?(cache) then
+              #            @@escape_cache[self] = true
+              return true
+            end
+          end
+        end
+      end
+
+#      @@escape_cache[self] = false
+      false
+    end
+
     attr_accessor :positive_list
     attr_accessor :negative_list
     attr :genpoint
@@ -201,6 +245,7 @@ module RiteSSA
     attr :pc
     attr :op
     attr :node
+    attr :irep
     attr_accessor :objcache
   end
 

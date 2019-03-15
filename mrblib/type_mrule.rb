@@ -235,8 +235,10 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type(tup)
-      valreg.type[tup].each do |ty|
-        ty.place[inst.inreg[0]] = true
+      if valreg.type[tup] then
+        valreg.type[tup].each do |ty|
+          ty.place[inst.inreg[0]] = true
+        end
       end
       nil
     end

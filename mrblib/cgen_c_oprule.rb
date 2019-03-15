@@ -80,7 +80,7 @@ module CodeGenC
       slf = inst.inreg[1]
       ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
 
-      if is_escape?(slf) then
+      if slf.is_escape?(tup) then
         idx = src.genpoint
         src = "ARY_PTR(mrb_ary_ptr(self))[#{idx}]"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
@@ -98,7 +98,7 @@ module CodeGenC
       slf = inst.inreg[1]
       valr = inst.inreg[0]
       val = reg_real_value(ccgen, valr, dst, node, tup, infer, history)
-      if is_escape?(slf) then
+      if slf.is_escape?(tup) then
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
 #        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{dst.genpoint}] = #{val};\n"
@@ -320,7 +320,7 @@ module CodeGenC
 
     define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
       reg = inst.outreg[0]
-      aescape = is_escape?(reg)
+      aescape = reg.is_escape?(tup)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       ereg = inst.outreg[0].type[tup][0].element[uv]
       etype = get_ctype_aux(ccgen, ereg, tup)
@@ -372,7 +372,7 @@ module CodeGenC
 
     define_ccgen_rule_op :STRING do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      if is_escape?(oreg) then
+      if oreg.is_escape?(tup) then
         ccgen.dcode << "mrb_value v#{reg.id};\n"
         ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, \"#{inst.para[0]}\", #{inst.para[0].size});"
       end

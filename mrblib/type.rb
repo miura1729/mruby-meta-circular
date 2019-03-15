@@ -1,15 +1,17 @@
 module MTypeInf
   class BasicType
     UNDEF_VALUE = [:undef]
+    @@place = {}
     def initialize(co, *rest)
       @class_object = co
-#      @@place = {}
+#      @@place[@class_object] = {}
       @place = {}
     end
 
     def ==(other)
       self.class == other.class &&
-      @class_object == other.class_object
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)
@@ -19,7 +21,7 @@ module MTypeInf
     attr :class_object
 
     def place
-#      @@place[@class_object] ||= {}
+#      @@place[@class_object]
       @place
     end
 
@@ -33,6 +35,8 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
+          ele.place.merge!(place)
+#          place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
@@ -56,16 +60,11 @@ module MTypeInf
                 end
 
               when MTypeInf::ContainerType
-                ele.place.merge!(place)
-                place.merge!(ele.place)
                 if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
                   return false
                 end
 
               when MTypeInf::UserDefinedType
-                ele.place.merge!(place)
-                place.merge!(ele.place)
-
                 return false
 
               when primobj,
@@ -88,8 +87,6 @@ module MTypeInf
         #        elsif ele < self then
         #
         #        end
-        ele.place.merge!(place)
-        place.merge!(ele.place)
         arr.each_with_index do |ele, i|
           if ele.is_a?(MTypeInf::LiteralType) and ele.val == @val then
             return false
@@ -102,7 +99,7 @@ module MTypeInf
     end
 
     def inspect_aux(hist)
-      @class_object.inspect
+      "#{@class_object.inspect} e=#{is_escape?}"
     end
 
     def inspect
@@ -112,12 +109,56 @@ module MTypeInf
     def inspecto_element
       inspect
     end
+
+    def is_escape?(cache = {})
+      plist = place
+      if plist.size == 0 then
+        return false
+      end
+      if cache[plist] then
+        return false
+      end
+
+      plist.any? {|e, val|
+        case e
+        when :return
+          is_gcobject?
+
+        when ProcType
+          cache[e.place] = true
+          e.is_escape?(cache)
+
+        when RiteSSA::Reg
+#          e.is_escape?(nil, cache)
+          true
+
+        when TrueClass
+          true
+
+        else
+          true
+        end
+      }
+    end
+
+    def is_gcobject?
+      false
+    end
   end
 
   class PrimitiveType<BasicType
   end
 
   class ExceptionType<BasicType
+    def is_gcobject?
+      true
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
+    end
   end
 
   class LiteralType<BasicType
@@ -129,16 +170,17 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
-        @val == other.val
+        @val == other.val &&
+        is_escape? == other.is_escape?
     end
 
     def inspect_aux(hist)
       case  @val
       when NilClass, TrueClass, FalseClass
-        "#{@class_object.inspect}"
+        "#{@class_object.inspect} e=#{is_escape?}"
 
       else
-        "#{@class_object.inspect} val=#{@val.inspect}"
+        "#{@class_object.inspect} e=#{is_escape?} val=#{@val.inspect}"
       end
     end
 
@@ -157,7 +199,7 @@ module MTypeInf
     end
 
     def inspect_aux(hist)
-      "#{@class_object.inspect}(:#{@val})"
+      "#{@class_object.inspect}(:#{@val}) e=#{is_escape?}"
     end
   end
 
@@ -181,7 +223,7 @@ module MTypeInf
 #      self.class == other.class &&
 #        @class_object == other.class_object &&
 #        @element == other.element
-      equal?(other)
+      equal?(other) && is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)
@@ -194,7 +236,7 @@ module MTypeInf
 
     def inspect_aux(hist)
       if hist[self] then
-        return "<#{@class_object} ...>"
+        return "<#{@class_object} e=#{is_escape?} ...>"
       end
       hist[self] = true
 
@@ -207,7 +249,7 @@ module MTypeInf
         end
       end
       hist.delete(self)
-      "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
+      "#{@class_object.inspect} e=#{is_escape?}<#{elearr.uniq.join('|')}>"
     end
 
     def inspecto
@@ -229,6 +271,10 @@ module MTypeInf
 
     def inspect_element
       "<#{@class_object} element=...>"
+    end
+
+    def is_gcobject?
+      true
     end
 
     attr :element
@@ -260,7 +306,8 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @irep == other.irep &&
-        @env == other.env
+        @env == other.env &&
+        is_escape? == other.is_escape?
     end
 
     def inspect
@@ -275,6 +322,10 @@ module MTypeInf
         @inspect_stack.pop
         rc
       end
+    end
+
+    def is_gcobject?
+      true
     end
 
     attr :id
@@ -300,11 +351,16 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @proc == other.proc
+        @proc == other.proc &&
+        is_escape? == other.is_escape?
     end
 
     def inspect
       "#{@class_object.inspect}<proc=#{@proc} ret =#{@ret.type}>"
+    end
+
+    def is_gcobject?
+      true
     end
 
     attr :id
@@ -317,6 +373,16 @@ module MTypeInf
 
     def initialize(co, *rest)
       super
+    end
+
+    def is_gcobject?
+      true
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
   end
 

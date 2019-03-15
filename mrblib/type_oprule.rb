@@ -72,7 +72,8 @@ module MTypeInf
 
     define_inf_rule_op :SETGLOBAL do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
-      types = inst.outreg[0].flush_type_alltup(tup)[tup]
+      types = inst.outreg[0].flush_type(tup)[tup]
+
       # update place infomation
       if types then
         types.each do |ty|
@@ -80,7 +81,7 @@ module MTypeInf
         end
       end
       p inst.para[0]
-      p inst.outreg[0].flush_type_alltup(tup)
+      p inst.outreg[0].type
       p inst.outreg[0].get_type(tup)
       p inst.inreg[0].negative_list
       p inst.inreg[0].positive_list
@@ -354,7 +355,7 @@ module MTypeInf
       inst.inreg[0..-2].each do |reg|
         reg.flush_type(tup)
       end
-      inst.inreg[-1].add_type(LiteralType.new(NilClass, nil), tup)
+      inst.inreg[-1].add_type(PrimitiveType.new(NilClass), tup)
 
       rule_send_common(infer, inst, node, tup, history)
       nil
@@ -427,7 +428,7 @@ module MTypeInf
       elsif arg0type then
         if arg1type then
           if arg1type.any? {|e| e.class_object == NilClass} then
-            inst.outreg[0].add_type LiteralType.new(NilClass, nil), tup
+            inst.outreg[0].add_type PrimitiveType.new(NilClass), tup
           end
 
           arg0type.each do |ty|
@@ -483,7 +484,7 @@ module MTypeInf
 
     define_inf_rule_op :DIV do |infer, inst, node, tup, history|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
-      arg1type = inst.inreg[0].flush_type(tup)[tup]
+      arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg0type then
         if arg0type[0].class_object == Fixnum or

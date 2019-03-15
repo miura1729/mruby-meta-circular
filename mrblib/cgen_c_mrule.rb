@@ -204,7 +204,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      if is_escape?(inst.inreg[0]) then
+      if inst.inreg[0].is_escape?(tup) then
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
       else
@@ -230,7 +230,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      if is_escape?(inst.inreg[0]) then
+      if inst.inreg[0].is_escape?(tup) then
         val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
         ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val});\n"
       else
@@ -262,7 +262,7 @@ module CodeGenC
       nreg = inst.outreg[0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup)
       ccgen.dcode << ";\n"
-      if is_escape?(inst.inreg[0]) then
+      if inst.inreg[0].is_escape?(tup) then
         src = "ARY_LEN(mrb_ary_ptr(#{src}))"
         src = gen_type_conversion(ccgen, dstt, :mrb_int, src, tup, node, infer, history)
       else
@@ -286,7 +286,7 @@ module CodeGenC
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
-        if is_escape?(oreg) or initsize == "mrb_nil_value()" then
+        if oreg.is_escape?(tup) or initsize == "mrb_nil_value()" then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           if initsize != "mrb_nil_value()" then
@@ -366,7 +366,7 @@ module CodeGenC
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
-        if is_escape?(oreg) then
+        if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{clsssa.iv.size});\n"
@@ -380,7 +380,7 @@ module CodeGenC
 
         inreg[0] = oreg
         op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
-        if is_escape?(oreg) then
+        if oreg.is_escape?(tup) then
           ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
         end
       end

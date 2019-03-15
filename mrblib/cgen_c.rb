@@ -1,6 +1,5 @@
 module CodeGenC
   class CodeGen
-    @@escape_cache = {}
     def initialize
       @using_method = []
       @using_block = []
@@ -124,7 +123,7 @@ EOS
       block = proc.irep
       topobj = TOP_SELF
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
-      nilty = MTypeInf::LiteralType.new(NilClass,  nil)
+      nilty = MTypeInf::PrimitiveType.new(NilClass)
       intype = [[ty], nil, nil]
       code_gen_method(block, ti, :main_Object_0, proc, 0, intype)
 
@@ -215,7 +214,7 @@ EOS
       node.enter_reg.each_with_index {|ireg, i|
         if node.root.export_regs.include?(ireg) then
           src = reg_real_value(ccgen, ireg, ureg,
-                         node, tup, infer, history)
+                         node, tup, ti, history)
           ccgen.pcode << "env.v#{reg.id} = #{src};\n"
         end
       }
@@ -341,6 +340,7 @@ EOS
 #        rescue NoMethodError => e
         rescue  Object => e
           p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para}"
+          p "#{ti.typetupletab.rev_table[tup]} (#{tup})"
           raise e
         end
       end
