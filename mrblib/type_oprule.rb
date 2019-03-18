@@ -536,10 +536,10 @@ module MTypeInf
           end
         end
         type.element[i] = nreg
-        nilreg.add_same inst.inreg[i]
+        nilreg.add_same nreg
       end
-      nilreg.flush_type(tup)
 
+      nilreg.flush_type(tup)
       inst.outreg[0].add_type type, tup
     end
 

@@ -48,6 +48,18 @@ module MTypeInf
 
             if ele.class == self.class then
               case ele
+              when MTypeInf::SymbolType
+                arr.push self
+                arr.uniq!
+                return false
+
+              when primobj,
+                MTypeInf::ProcType,
+                MTypeInf::ExceptionType,
+                MTypeInf::FiberType
+
+                return false
+
               when MTypeInf::LiteralType
                 if ele.val != @val then
                   if ele.class_object != Class  then
@@ -65,14 +77,6 @@ module MTypeInf
                 end
 
               when MTypeInf::UserDefinedType
-                return false
-
-              when primobj,
-                MTypeInf::ProcType,
-                MTypeInf::ExceptionType,
-                MTypeInf::SymbolType,
-                MTypeInf::FiberType
-
                 return false
 
               else
