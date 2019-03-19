@@ -103,7 +103,8 @@ module MTypeInf
     end
 
     def inspect_aux(hist)
-      "#{@class_object.inspect} e=#{is_escape?}"
+#      "#{@class_object.inspect}"
+      "#{@class_object.inspect}"
     end
 
     def inspect
@@ -181,10 +182,10 @@ module MTypeInf
     def inspect_aux(hist)
       case  @val
       when NilClass, TrueClass, FalseClass
-        "#{@class_object.inspect} e=#{is_escape?}"
+        "#{@class_object.inspect}"
 
       else
-        "#{@class_object.inspect} e=#{is_escape?} val=#{@val.inspect}"
+        "#{@class_object.inspect} val=#{@val.inspect}"
       end
     end
 
@@ -203,7 +204,7 @@ module MTypeInf
     end
 
     def inspect_aux(hist)
-      "#{@class_object.inspect}(:#{@val}) e=#{is_escape?}"
+      "#{@class_object.inspect}(:#{@val})"
     end
   end
 
@@ -240,7 +241,7 @@ module MTypeInf
 
     def inspect_aux(hist)
       if hist[self] then
-        return "<#{@class_object} e=#{is_escape?} ...>"
+        return "<#{@class_object} ...>"
       end
       hist[self] = true
 
@@ -253,7 +254,7 @@ module MTypeInf
         end
       end
       hist.delete(self)
-      "#{@class_object.inspect} e=#{is_escape?}<#{elearr.uniq.join('|')}>"
+      "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
     end
 
     def inspecto
