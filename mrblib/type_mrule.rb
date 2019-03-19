@@ -627,6 +627,18 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :send, Kernel do |infer, inst, node, tup|
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      mname = intype[1]
+      intype = intype[0] + intype[2..-1]
+      outr = inst.outreg[0]
+      mname.each do |sym|
+        mn = sym.val
+        rule_send_common_aux(infer, inst, node, tup, mn, intype, inst.inreg[0], outr, intype.size, nil)
+      end
+      nil
+    end
+
     define_inf_rule_class_method :sqrt, Math do |infer, inst, node, tup|
       type = PrimitiveType.new(Float)
       inst.outreg[0].add_type(type, tup)
