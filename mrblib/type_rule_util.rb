@@ -249,9 +249,9 @@ module MTypeInf
                 end
 
               elsif @@ruby_methodtab[:method_missing] and
-                  @@ruby_methodtab[:method_missing][cls] then
+                  @@ruby_methodtab[:method_missing][slfcls] then
                 name2 = :method_missing
-                procssa = @@ruby_methodtab[:method_missing][cls]
+                procssa = @@ruby_methodtab[:method_missing][slfcls]
                 irepssa = procssa.irep
 
               else
@@ -289,11 +289,14 @@ module MTypeInf
           if irep then
             p0 = Proc::search_proc(slf, :method_missing)
             procssa = make_ssablock(p0)
-            @@ruby_methodtab[name][slfcls] = procssa
+            @@ruby_methodtab[:method_missing][slf] = procssa
             irepssa = procssa.irep
-            clsobj = ClassSSA.get_instance(slfcls)
-            clsobj.method[name] = irepssa
+            clsobj = RiteSSA::ClassSSA.get_instance(slf)
+            clsobj.method[:method_missing] = irepssa
             intype[0] = [ty]
+            ncls = SymbolType.instance(Symbol, name)
+            p ncls
+            intype = [intype[0], [ncls]] + intype[1..-1]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
             outreg.add_same irepssa.retreg
