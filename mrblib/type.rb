@@ -10,8 +10,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
-        is_escape? == other.is_escape?
+        @class_object == other.class_object
     end
 
     def type_equal(other, tup)
@@ -161,8 +160,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
-        is_escape? == other.is_escape?
+        @class_object == other.class_object
     end
   end
 
@@ -175,8 +173,7 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
-        @val == other.val &&
-        is_escape? == other.is_escape?
+        @val == other.val
     end
 
     def inspect_aux(hist)
@@ -225,10 +222,10 @@ module MTypeInf
     end
 
     def ==(other)
-#      self.class == other.class &&
-#        @class_object == other.class_object &&
-#        @element == other.element
-      equal?(other) && is_escape? == other.is_escape?
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @element == other.element
+#      equal?(other)# && is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)
@@ -311,8 +308,7 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @irep == other.irep &&
-        @env == other.env &&
-        is_escape? == other.is_escape?
+        @env == other.env
     end
 
     def inspect
@@ -321,7 +317,12 @@ module MTypeInf
       else
         @inspect_stack.push self
         envstr = env.map {|reg|
-          reg.flush_type_alltup(0)[0].map {|e| e.inspect}.join('|')
+          envty = reg.flush_type_alltup(0)[0]
+          if envty then
+            envty.map {|e| e.inspect}.join('|')
+          else
+            ''
+          end
         }.join(', ')
         rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
         @inspect_stack.pop
@@ -356,8 +357,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @proc == other.proc &&
-        is_escape? == other.is_escape?
+        @proc == other.proc
     end
 
     def inspect
@@ -386,8 +386,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
-        is_escape? == other.is_escape?
+        @class_object == other.class_object
     end
   end
 

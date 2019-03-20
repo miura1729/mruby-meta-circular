@@ -316,9 +316,11 @@ module MTypeInf
         tys = reg.type[tup]
         if tys then
           tys.each do |ty|
-            node.enter_reg[i].type[tup].each do |oty|
-              ty.place.merge!(oty.place)
-              oty.place.merge!(ty.place)
+            if node.enter_reg[i].type[tup] then
+              node.enter_reg[i].type[tup].each do |oty|
+                ty.place.merge!(oty.place)
+                oty.place.merge!(ty.place)
+              end
             end
           end
         end
