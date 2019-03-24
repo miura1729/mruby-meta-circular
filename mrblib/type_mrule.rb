@@ -115,13 +115,15 @@ module MTypeInf
                   inst.outreg[0].add_same altele
                   altele.flush_type_alltup(tup)
                 else
-                  arrele[no].flush_type_alltup(tup)
+#                  arrele[no].flush_type_alltup(tup)
                   inst.outreg[0].add_same arrele[no]
                 end
+                inst.outreg[0].flush_type_alltup(tup, false)
 
               when MTypeInf::PrimitiveType
                 inst.outreg[0].add_same altele
-                altele.flush_type_alltup(tup)
+                # altele.flush_type_alltup(tup)
+                inst.outreg[0].flush_type_alltup(tup, false)
 
               else
                 raise "Not supported in Array::[]"
@@ -222,7 +224,8 @@ module MTypeInf
               when MTypeInf::PrimitiveType
                 arrele.each do |idx, reg|
                   reg.add_same valreg
-                  reg.flush_type_alltup(tup)
+#                  reg.flush_type_alltup(tup)
+                  reg.flush_type(tup)
                 end
                 inst.outreg[0].add_same valreg
 
