@@ -197,6 +197,7 @@ module MTypeInf
       proc = infer.callstack[-1][3]
       stpos = proc.tups.index {|item| item[0] == frame}
       otup = proc.tups[stpos][1]
+
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type(tup, otup)
       inst.outreg[0].negative_list = inst.inreg[0].negative_list.clone
@@ -615,8 +616,9 @@ module MTypeInf
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|
       slf = inst.inreg[0].flush_type(tup)[tup][0]
       envtypes = inst.para[1]
-      tups = infer.callstack.map {|e| [e[0], e[1]]}
       cproc = infer.callstack[-1][3]
+      cstop = infer.callstack[-1]
+      tups = [[cstop[0], cstop[1]]] + cproc.tups
       pty = inst.objcache[nil]
       if !pty then
         pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc)
