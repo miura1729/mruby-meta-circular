@@ -101,17 +101,13 @@ module MTypeInf
       return true
     end
 
-    def inspect_aux(hist)
+    def inspect_aux(hist, level)
 #      "#{@class_object.inspect}"
       "#{@class_object.inspect}"
     end
 
-    def inspect
-      inspect_aux({})
-    end
-
-    def inspecto_element
-      inspect
+    def inspect(level = 0)
+      inspect_aux({}, level)
     end
 
     def is_escape?(cache = {})
@@ -176,13 +172,17 @@ module MTypeInf
         @val == other.val
     end
 
-    def inspect_aux(hist)
+    def inspect_aux(hist, level)
       case  @val
       when NilClass, TrueClass, FalseClass
         "#{@class_object.inspect}"
 
       else
-        "#{@class_object.inspect} val=#{@val.inspect}"
+        if level < 1 then
+          "#{@class_object.inspect} val=#{@val.inspect}"
+        else
+          "#{@class_object.inspect}"
+        end
       end
     end
 
@@ -200,8 +200,12 @@ module MTypeInf
       end
     end
 
-    def inspect_aux(hist)
-      "#{@class_object.inspect}(:#{@val})"
+    def inspect_aux(hist, level)
+      if level < 2 then
+        "#{@class_object.inspect}(:#{@val})"
+      else
+        "#{@class_object.inspect}"
+      end
     end
   end
 
@@ -236,7 +240,7 @@ module MTypeInf
       return other.element[UNDEF_VALUE] == @element[nil]
     end
 
-    def inspect_aux(hist)
+    def inspect_aux(hist, level)
       if hist[self] then
         return "<#{@class_object} ...>"
       end
@@ -246,32 +250,19 @@ module MTypeInf
       @element.each do |key0, ele|
         ele.type.each do |tup, tys|
           ele.get_type(tup).each do |ty|
-            elearr << ty.inspect_aux(hist)
+            elearr << ty.inspect_aux(hist, level)
           end
         end
       end
       hist.delete(self)
-      "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
-    end
-
-    def inspecto
-      res = "<#{@class_object} element=["
-      @element.each do |key, val|
-        res << "#{key.inspect}="
-        val.type.each do |tup, tys|
-          res << "#{tup} = ["
-          val.get_type(tup).each do |ty|
-            res << "#{ty.inspect_element}|"
-          end
-          res << "]\n"
-        end
-        res << "\n"
+      if level < 3 then
+        "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
+      else
+        "#{@class_object.inspect}<>"
       end
-      res << "]>"
-      res
     end
 
-    def inspect_element
+    def inspect_element(level)
       "<#{@class_object} element=...>"
     end
 
@@ -311,20 +302,28 @@ module MTypeInf
         @env == other.env
     end
 
-    def inspect
+    def inspect(level = 0)
       if @inspect_stack.include?(self) then
-        "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=...>"
+        if level < 1 then
+          "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=...>"
+        else
+          "#{@class_object.inspect}<>"
+        end
       else
         @inspect_stack.push self
         envstr = env.map {|reg|
           envty = reg.flush_type_alltup(0)[0]
           if envty then
-            envty.map {|e| e.inspect}.join('|')
+            envty.map {|e| e.inspect(level)}.join('|')
           else
             ''
           end
         }.join(', ')
-        rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
+        if level < 1 then
+          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
+        else
+          rc = "#{@class_object.inspect}<>"
+        end
         @inspect_stack.pop
         rc
       end
@@ -360,8 +359,12 @@ module MTypeInf
         @proc == other.proc
     end
 
-    def inspect
-      "#{@class_object.inspect}<proc=#{@proc} ret =#{@ret.type}>"
+    def inspect(level = 0)
+      if level < 1 then
+        "#{@class_object.inspect}<proc=#{@proc} ret =#{@ret.type}>"
+      else
+        "#{@class_object.inspect}<>"
+      end
     end
 
     def is_gcobject?

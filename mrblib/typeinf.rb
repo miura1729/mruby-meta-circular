@@ -1,9 +1,12 @@
 TOP_SELF = Object.new
 
 module MTypeInf
-  def self.inference_main(&b)
+  DEFAULT_OPTION = {
+    :dump_level => 0
+  }
+  def self.inference_main(option = DEFAULT_OPTION, &b)
     irep = Irep::get_proc_irep(b)
-    ti = TypeInferencer.new
+    ti = TypeInferencer.new(option)
 
     b = RiteSSA::Block.new(irep, nil, TOP_SELF.class, true)
     bproc = ti.inference_top(b)
@@ -87,7 +90,8 @@ module MTypeInf
   class TypeInferencer
     @@ruletab ||= {}
     @@methodtab ||= {}
-    def initialize
+    def initialize(option)
+      @option = option
       @typetupletab = TypeTupleTab.new
       @callstack = []
       @messages = {}
@@ -95,12 +99,14 @@ module MTypeInf
       @exception = []
     end
 
+    attr :option
     attr :typetupletab
     attr :callstack
     attr :messages
     attr :exception
 
     def dump_method(name, node)
+      level = @option[:dump_level]
       mess = ""
       node.retreg.flush_type_alltup(0)[0]
       types = node.retreg.type
@@ -108,7 +114,7 @@ module MTypeInf
       exceptions = node.export_exception.type
       exfmt = []
       exceptions.each do |arg, types|
-        exfmt.push types.map {|ele| ele.inspect}.join(' ,')
+        exfmt.push types.map {|ele| ele.inspect(level)}.join(' ,')
       end
       exfmt.uniq!
       if types.size == 0 then
@@ -119,7 +125,7 @@ module MTypeInf
             next
           end
           args = args.map {|tys|
-            tys.map {|ele| ele.inspect}.join('|')
+            tys.map {|ele| ele.inspect(level)}.join('|')
           }.join(', ')
           if exfmt.size != 0 then
             mess << "  #{name}: (#{args}) ->  (throws #{exfmt.join(',')}) \n"
@@ -135,9 +141,9 @@ module MTypeInf
             next
           end
           args = args.map {|tys|
-            tys.map {|ele| ele.inspect}.join('|')
+            tys.map {|ele| ele.inspect(level)}.join('|')
           }.join(', ')
-          type = types.map {|ele| ele.inspect}
+          type = types.map {|ele| ele.inspect(level)}
           type = type.join('|')
           if exfmt.size != 0 then
             mess << "  #{name}: (#{args}) -> #{type} throws #{exfmt.join(',')} \n"
@@ -156,12 +162,13 @@ module MTypeInf
 
     def dump_type
       mess = ""
+      level = @option[:dump_level]
       RiteSSA::ClassSSA.all_classssa.each do |cls, clsobj|
         mess << "Class #{cls}\n"
         mess << " Instance variables\n"
         clsobj.iv.each do |iv, reg|
           types =reg.flush_type_alltup(0)[0] || []
-          type = types.map {|ele| ele.inspect}.join('|')
+          type = types.map {|ele| ele.inspect(level)}.join('|')
           mess << "  #{iv}: #{type}\n"
         end
         mess << "\n methodes \n"
