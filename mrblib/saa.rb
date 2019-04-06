@@ -458,6 +458,8 @@ module RiteSSA
           inreg = regtab[getarg_a(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
+          dstvar = @root.target_class.get_constant(name)
+          inst.outreg.push dstvar
 
         when :GETMCNST
           name = @irep.syms[getarg_bx(code)]
@@ -1098,6 +1100,15 @@ module RiteSSA
       else
         npos = @cv.size
         @cv[name] = InstanceVariable.new(name, npos)
+      end
+    end
+
+    def get_constant(name)
+      if @constant[name] then
+        @constant[name]
+      else
+        npos = @constant.size
+        @constant[name] = InstanceVariable.new(name, npos)
       end
     end
 

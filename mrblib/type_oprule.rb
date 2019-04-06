@@ -138,31 +138,49 @@ module MTypeInf
       name = inst.para[0]
       proc = node.root
       const = nil
-      while proc and !const
-        const = proc.target_class.const_get(name)
-        proc = proc.parent
-      end
-      inst.para.push const
-      cls = TypeSource[const.class]
+      const = proc.target_class.constant[name]
       type = nil
-      if cls then
-        type = cls.new(const.class, const)
-
-      elsif const.is_a?(Class) and const.ancestors.index(Exception) then
-        type = ExceptionType.new(const)
-
+      if const then
+        inst.outreg[0].add_same(const)
+        inst.outreg[0].flush_type_alltup(tup)
       else
-        if const.is_a?(Module) then
-          type = LiteralType.new(const.singleton_class, const)
-        else
-          type = LiteralType.new(const.class, const)
+
+        # Constant setting out of mmc
+        while proc and !const
+          const = proc.target_class.const_get(name)
+          proc = proc.parent
         end
+        inst.para.push const
+        cls = TypeSource[const.class]
+        if cls then
+          type = cls.new(const.class, const)
+
+        elsif const.is_a?(Class) and const.ancestors.index(Exception) then
+          type = ExceptionType.new(const)
+
+        else
+          if const.is_a?(Module) then
+            type = LiteralType.new(const.singleton_class, const)
+          else
+            type = LiteralType.new(const.class, const)
+          end
+        end
+        inst.outreg[0].add_type(type, tup)
       end
-      inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_op :SETCONST do |infer, inst, node, tup, history|
+      inst.inreg[0].flush_type(tup)
+      inst.outreg[0].add_same(inst.inreg[0])
+
+      types = inst.outreg[0].flush_type_alltup(tup)[tup]
+      # update place infomation
+      if types then
+        types.each do |ty|
+          ty.place[true] = [:SETCONST, inst.line]
+        end
+      end
       nil
     end
 
@@ -216,8 +234,10 @@ module MTypeInf
       inst.outreg[0].add_same(inst.inreg[0])
       types = inst.outreg[0].flush_type(otup, tup)[otup]
       # update place infomation
-      types.each do |ty|
-        ty.place[proc] = :SETUPVAR
+      if types then
+        types.each do |ty|
+          ty.place[proc] = :SETUPVAR
+        end
       end
 
       nil
