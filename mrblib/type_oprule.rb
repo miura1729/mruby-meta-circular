@@ -700,7 +700,12 @@ module MTypeInf
           inst.objcache[supobj] = regcls
           cls = regcls
         else
-          cls = Class.new(supobj)
+          begin
+            cls = Class.new(supobj)
+          rescue
+            p sup[0].val
+            cls = Class.new(sup[0].val)
+          end
           inst.objcache[supobj] = cls
         end
         clobj = RiteSSA::ClassSSA.get_instance(cls)
