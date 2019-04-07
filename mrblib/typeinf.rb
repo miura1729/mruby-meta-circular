@@ -237,7 +237,8 @@ module MTypeInf
         end
       end
 
-      @callstack.push [saairep, tup, argc, proc]
+      # last element (nil) is current caller instruction for using SUPER
+      @callstack.push [saairep, tup, argc, proc, nil]
       inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       i = 0
       oldtype = true

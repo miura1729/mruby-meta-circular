@@ -272,6 +272,7 @@ module MTypeInf
           if irepssa then
             intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
+            infer.callstack[-1][4] = [name, inst]
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if outreg then
               outreg.add_same irepssa.retreg

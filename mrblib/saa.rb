@@ -623,7 +623,7 @@ module RiteSSA
         when :SUPER
           a = getarg_a(code)
           num = getarg_c(code)
-          inreg = regtab[a]
+          inreg = regtab[0]
           inreg.refpoint.push inst
           inst.inreg.push inreg  # push self
           inst.para.push num

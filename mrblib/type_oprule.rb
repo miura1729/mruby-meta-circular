@@ -394,11 +394,20 @@ module MTypeInf
     end
 
     define_inf_rule_op :SUPER do |infer, inst, node, tup, history|
-      inst.inreg.each do |reg|
-        reg.flush_type(tup)
-      end
+      intype = inst.inreg.map { |reg|
+        reg.flush_type(tup)[tup]
+      }
+      name = infer.callstack[-2][4][0]
 
+      reccls = intype[0][0].class_object
+      supcls = reccls.superclass
+      rect = UserDefinedType.new(supcls)
+      recreg = RiteSSA::Reg.new(nil)
+      recreg.add_type rect, tup
+      oreg = inst.outreg[0]
+      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, oreg, inst.para[1], nil)
 #      rule_send_common(infer, inst, node, tup, history)
+      nil
     end
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|
