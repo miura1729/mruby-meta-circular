@@ -101,15 +101,29 @@ module MTypeInf
     #  end
 
     define_inf_rule_op :GETIV do |infer, inst, node, tup, history|
-      inst.inreg[0].flush_type_alltup(tup)
-      inst.outreg[0].add_same(inst.inreg[0])
+      name = inst.para[0]
+      slf = inst.inreg[1]
+      slfcls = slf.flush_type(tup)[tup][0].class_object
+      inreg = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
+
+      inreg.flush_type_alltup(tup)
+      inst.outreg[0].add_same(inreg)
       #p inst.para[0]
       nil
     end
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
-      inst.inreg[0].flush_type(tup)
-      inst.outreg[0].add_same(inst.inreg[0])
+      inreg = inst.inreg[0]
+      inreg.flush_type(tup)
+      inst.outreg[0].add_same(inreg)
+      name = inst.para[0]
+
+      slf = inst.inreg[1]
+      slfcls = slf.flush_type(tup)[tup][0].class_object
+      slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
+      slfiv.add_same(inreg)
+      slfiv.flush_type_alltup(tup)
+
       types = inst.outreg[0].flush_type_alltup(tup)[tup]
 
       # update place infomation

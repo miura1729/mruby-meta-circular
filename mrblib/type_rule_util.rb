@@ -270,7 +270,7 @@ module MTypeInf
           end
 
           if irepssa then
-            intype[0] = [ty]
+            #intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
@@ -294,7 +294,7 @@ module MTypeInf
             irepssa = procssa.irep
             clsobj = RiteSSA::ClassSSA.get_instance(slf)
             clsobj.method[:method_missing] = irepssa
-            intype[0] = [ty]
+            #intype[0] = [ty]
             ncls = SymbolType.instance(Symbol, name)
             p ncls
             intype = [intype[0], [ncls]] + intype[1..-1]
