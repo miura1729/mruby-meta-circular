@@ -245,7 +245,20 @@ module MTypeInf
                   ivreg.flush_type_alltup(tup)
 
                 else
-                  cont.call(infer, inst, node, tup)
+                  if argc == 127 then
+                    intype = []
+                    intype.push inst.inreg[0].flush_type(tup)[tup]
+                    argary = inst.inreg[1].flush_type(tup)[tup][0]
+                    argele = argary.element
+                    largc = argele.size - 1
+                    largc.times do |i|
+                      intype.push argele[i].flush_type(tup)[tup]
+                    end
+                    intype.push inst.inreg[2].flush_type(tup)[tup]
+                  else
+                    intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+                  end
+                  cont.call(infer, inst, node, tup, intype)
                 end
 
               elsif @@ruby_methodtab[:method_missing] and
@@ -328,6 +341,19 @@ module MTypeInf
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)
+    end
+
+    def self.rule_kernel_send(infer, inst, node, tup, intype)
+      p intype
+      mname = intype[1]
+      intype = [intype[0]] + intype[2..-1]
+      outr = inst.outreg[0]
+      p mname
+      mname.each do |sym|
+        mn = sym.val
+        rule_send_common_aux(infer, inst, node, tup, mn, intype, inst.inreg[0], outr, intype.size, nil)
+      end
+      nil
     end
 
     def self.rule_ary_push_common(infer, inst, node, tup)
