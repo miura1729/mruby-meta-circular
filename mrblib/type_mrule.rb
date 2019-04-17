@@ -764,9 +764,19 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :current, Fiber do |infer, inst, node, tup|
-      proc = infer.callstack[-1][3]
-      type = FiberType.new(Fiber, proc)
+      type = infer.fiber
+      if type == nil then
+        type = FiberType.new(Fiber, nil)
+      end
       inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+
+    define_inf_rule_class_method :yield, Fiber do |infer, inst, node, tup|
+      fibt = infer.fiber
+      fibt.ret.add_same inst.inreg[1]
+      fibt.ret.flush_type_alltup(tup)
       nil
     end
 
@@ -792,7 +802,10 @@ module MTypeInf
       dmyreg.add_type proc[0], tup
       ninst.outreg.push dmyreg
 
+      curfib = infer.fiber
+      infer.fiber = type
       rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
+      infer.fiber = curfib
 
       inst.outreg[0].add_type type, tup
       nil
@@ -805,5 +818,16 @@ module MTypeInf
       inst.outreg[0].add_type(type, tup)
       nil
     end
+
+    define_inf_rule_method :resume, Fiber do |infer, inst, node, tup|
+      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      intype[0].each do  |fibslf|
+        if fibslf.class_object == Fiber then
+          inst.outreg[0].add_same fibslf.ret
+          inst.outreg[0].flush_type(tup)
+        end
+      end
+      nil
+      end
   end
 end

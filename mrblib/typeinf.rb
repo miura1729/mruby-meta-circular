@@ -97,6 +97,7 @@ module MTypeInf
       @messages = {}
       @step = 1
       @exception = []
+      @fiber = nil
     end
 
     attr :option
@@ -104,6 +105,7 @@ module MTypeInf
     attr :callstack
     attr :messages
     attr :exception
+    attr_accessor :fiber
 
     def dump_method(name, node)
       level = @option[:dump_level]
