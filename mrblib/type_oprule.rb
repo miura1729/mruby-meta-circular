@@ -115,21 +115,22 @@ module MTypeInf
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
       inreg = inst.inreg[0]
       inreg.flush_type(tup)
-      inst.outreg[0].add_same(inreg)
       name = inst.para[0]
 
       slf = inst.inreg[1]
       slfcls = slf.flush_type(tup)[tup][0].class_object
       slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
       slfiv.add_same(inreg)
-      slfiv.flush_type_alltup(tup)
+      slfiv.flush_type(tup)
 
-      types = inst.outreg[0].flush_type_alltup(tup)[tup]
+      types = slfiv.flush_type(tup)[tup]
 
       # update place infomation
       if types then
         types.each do |ty|
-          ty.place[inst.inreg[1]] = [:SETIV, inst.line]
+          if ty then
+            ty.place[inst.inreg[1]] = [:SETIV, inst.line]
+          end
         end
       end
       nil
