@@ -228,6 +228,7 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
+        @element.size == other.element.size &&
         @element == other.element
 #      equal?(other)# && is_escape? == other.is_escape?
     end
