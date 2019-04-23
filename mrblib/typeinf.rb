@@ -204,6 +204,9 @@ module MTypeInf
       intype.each_with_index do |tys, i|
         if tys then
           tys.each do |ty|
+            if !saairep.nodes[0].enter_reg[i] then
+              saairep.nodes[0].enter_reg.push RiteSSA::ParmReg.new(i)
+            end
             if saairep.nodes[0].enter_reg[i].add_type(ty, tup) then
               fixp = false
             end
