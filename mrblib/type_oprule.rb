@@ -495,9 +495,8 @@ module MTypeInf
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg1type and arg1type[0].class_object == Float then
-        arg1type.each do |ty|
-          inst.outreg[0].add_type ty, tup
-        end
+        ty = PrimitiveType.new(Float)
+        inst.outreg[0].add_type ty, tup
 
       elsif arg0type then
         arg0type.each do |ty|
@@ -515,9 +514,8 @@ module MTypeInf
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg1type and arg1type[0].class_object == Float then
-        arg1type.each do |ty|
-          inst.outreg[0].add_type ty, tup
-        end
+        ty = PrimitiveType.new(Float)
+        inst.outreg[0].add_type ty, tup
 
       elsif arg0type then
         arg0type.each do |ty|
