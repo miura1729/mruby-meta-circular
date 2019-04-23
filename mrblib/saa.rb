@@ -775,7 +775,7 @@ module RiteSSA
 
           inst.para.push num
           inst.para.push initno
-          num.times do |i|
+          (num * 2).times do |i|
             inst.inreg.push regtab[initno + i]
           end
 

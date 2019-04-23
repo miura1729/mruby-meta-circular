@@ -693,6 +693,9 @@ module MTypeInf
         if idxtypes then
           idx = idxtypes[0].class_object
           type.element[idx] = nreg
+          idxtypes.each do |idxt|
+            type.key.add_type idxt, 0
+          end
         end
         udefreg.add_same inst.inreg[i * 2 + 1]
       end

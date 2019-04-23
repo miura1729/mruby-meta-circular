@@ -682,6 +682,50 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :keys, Hash do |infer, inst, node, tup|
+      hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      ra = ContainerType.new(Array)
+      raele = ra.element
+      raele[0] ||= RiteSSA::Reg.new(nil)
+
+      hashtypes.each do |hasht|
+        if hasht.class_object == Hash then
+          raele[0].add_same hasht.key
+          raele[0].flush_type_alltup(tup)
+        end
+      end
+      inst.outreg[0].add_type ra, tup
+
+      nil
+    end
+
+    define_inf_rule_method :values, Hash do |infer, inst, node, tup|
+      hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      ra = ContainerType.new(Array)
+      raele = ra.element
+
+      hashtypes.each do |hasht|
+        if hasht.class_object == Hash then
+          i = 0
+          hasht.element.each do |key, ele|
+            raele[i] ||= RiteSSA::Reg.new(nil)
+            raele[i].add_same ele
+            raele[i].flush_type_alltup(tup)
+            i = i + 1
+          end
+        end
+      end
+      inst.outreg[0].add_type ra, tup
+
+      nil
+    end
+
+    define_inf_rule_method :size, Hash do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :[], Hash do |infer, inst, node, tup|
       if inst.inreg.size != 3 then
         raise "multiple argument not support yet in Hash::[]"
