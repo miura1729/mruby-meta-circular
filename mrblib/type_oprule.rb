@@ -297,7 +297,7 @@ module MTypeInf
       argc = infer.callstack[-1][2]
       len = m1 + o + r + m2
 
-      if argc == 127 then
+      if argc == 127 and false then
         certup = infer.callstack[-2][1]
         arytypes = inst.inreg[0].flush_type(tup)[tup]
         arytypes.each do |arytype|

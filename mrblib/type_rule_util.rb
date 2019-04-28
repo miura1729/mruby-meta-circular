@@ -195,6 +195,26 @@ module MTypeInf
       end
     end
 
+    def self.make_intype(infer, inst, node, tup, argc = nil)
+      argc = inst.para[1] if argc == nil
+      if argc == 127 then
+        argary = inst.inreg[1].flush_type(tup)[tup][0]
+        argeles = argary.element[0].flush_type(tup)[tup]
+        argeles.each do |arr|
+          intype = [inst.inreg[0].flush_type(tup)[tup]]
+          aele = arr.element
+          largc = aele.size - 1
+          largc.times do |i|
+            intype[i + 1] = aele[i].flush_type_alltup(tup)[tup]
+          end
+          intype.push inst.inreg[2].flush_type(tup)[tup]
+          yield intype
+        end
+      else
+        yield inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      end
+    end
+
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
       ntup = 0
       recvtypes = recreg.get_type(tup)
@@ -245,19 +265,6 @@ module MTypeInf
                   ivreg.flush_type_alltup(tup)
 
                 else
-                  if argc == 127 then
-                    intype = []
-                    intype.push inst.inreg[0].flush_type(tup)[tup]
-                    argary = inst.inreg[1].flush_type(tup)[tup][0]
-                    argele = argary.element
-                    largc = argele.size - 1
-                    largc.times do |i|
-                      intype.push argele[i].flush_type(tup)[tup]
-                    end
-                    intype.push inst.inreg[2].flush_type(tup)[tup]
-                  else
-                    intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-                  end
                   cont.call(infer, inst, node, tup, intype)
                 end
 
@@ -309,7 +316,6 @@ module MTypeInf
             clsobj.method[:method_missing] = irepssa
             #intype[0] = [ty]
             ncls = SymbolType.instance(Symbol, name)
-            p ncls
             intype = [intype[0], [ncls]] + intype[1..-1]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
@@ -334,21 +340,20 @@ module MTypeInf
     def self.rule_send_common(infer, inst, node, tup, history)
       name = inst.para[0]
       argc = inst.para[1]
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      recreg = inst.inreg[0]
+      make_intype(inffer, inst, node, tup, argc) do |intype|
+        recreg = inst.inreg[0]
 
-      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc, history)
+        rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc, history)
+      end
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)
     end
 
     def self.rule_kernel_send(infer, inst, node, tup, intype)
-      p intype
       mname = intype[1]
       intype = [intype[0]] + intype[2..-1]
       outr = inst.outreg[0]
-      p mname
       mname.each do |sym|
         mn = sym.val
         rule_send_common_aux(infer, inst, node, tup, mn, intype, inst.inreg[0], outr, intype.size, nil)

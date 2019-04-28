@@ -502,44 +502,47 @@ module MTypeInf
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
       argc = inst.para[1]
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+      make_intype(inffer, inst, node, tup) do |intype|
 
-      recvtypes.each do |rtype|
-        ntype = rtype.val
-        cls = TypeSource[ntype]
-        type = nil
-        if  cls then
-          type = cls.new(ntype)
-        else
-          type = UserDefinedType.new(ntype)
+        recvtypes.each do |rtype|
+          ntype = rtype.val
+          cls = TypeSource[ntype]
+          type = nil
+          if  cls then
+            type = cls.new(ntype)
+          else
+            type = UserDefinedType.new(ntype)
+          end
+          intype[0] = [type]
+
+          if !cls then
+            dmyreg = RiteSSA::Reg.new(nil)
+            dmyreg.add_type type, tup
+            dmyoreg = RiteSSA::Reg.new(nil)
+            rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, inst.para[1], nil)
+            #          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
+          end
+
+          inst.outreg[0].add_type type, tup
         end
-        intype[0] = [type]
-
-        if !cls then
-          dmyreg = RiteSSA::Reg.new(nil)
-          dmyreg.add_type type, tup
-          dmyoreg = RiteSSA::Reg.new(nil)
-          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, inst.para[1], nil)
-#          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
-        end
-
-        inst.outreg[0].add_type type, tup
       end
       nil
     end
 
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      ptype = intype[0][0]
-      intype[0] = [ptype.slf]
-      ntup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
-      if !ptype.using_tup[ntup] then
-        curpos = ptype.using_tup.size
-        ptype.using_tup[ntup] = curpos
+      make_intype(inffer, inst, node, tup) do |intype|
+        #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+        ptype = intype[0][0]
+        intype[0] = [ptype.slf]
+        ntup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
+        if !ptype.using_tup[ntup] then
+          curpos = ptype.using_tup.size
+          ptype.using_tup[ntup] = curpos
+        end
+        irepssa = ptype.irep
+        infer.inference_block(irepssa, intype, ntup, inst.para[1], ptype)
+        inst.outreg[0].add_same irepssa.retreg
       end
-      irepssa = ptype.irep
-      infer.inference_block(irepssa, intype, ntup, inst.para[1], ptype)
-      inst.outreg[0].add_same irepssa.retreg
       inst.outreg[0].flush_type(tup, ntup)
       nil
     end
@@ -825,33 +828,34 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :new, Fiber do |infer, inst, node, tup|
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      proc = intype.pop
-      type = FiberType.new(Fiber, proc[0])
+      make_intype(inffer, inst, node, tup) do |intype|
+        proc = intype.pop
+        type = FiberType.new(Fiber, proc[0])
 
-      argc = inst.para[1]
+        argc = inst.para[1]
 
-      intype[0] = [type]
-      intype = [proc] + intype + [[]]
-      ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node) #33 is :send maybe
-      intype.each {|tys|
-        nreg = RiteSSA::Reg.new(nil)
-        tys.each do |ty|
-          nreg.add_type ty, tup
-        end
-        ninst.inreg.push nreg
-      }
+        intype[0] = [type]
+        intype = [proc] + intype + [[]]
+        ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node) #33 is :send maybe
+        intype.each {|tys|
+          nreg = RiteSSA::Reg.new(nil)
+          tys.each do |ty|
+            nreg.add_type ty, tup
+          end
+          ninst.inreg.push nreg
+        }
 
-      dmyreg = RiteSSA::Reg.new(nil)
-      dmyreg.add_type proc[0], tup
-      ninst.outreg.push dmyreg
+        dmyreg = RiteSSA::Reg.new(nil)
+        dmyreg.add_type proc[0], tup
+        ninst.outreg.push dmyreg
 
-      curfib = infer.fiber
-      infer.fiber = type
-      rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
-      infer.fiber = curfib
+        curfib = infer.fiber
+        infer.fiber = type
+        rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
+        infer.fiber = curfib
 
-      inst.outreg[0].add_type type, tup
+        inst.outreg[0].add_type type, tup
+      end
       nil
     end
 
@@ -864,11 +868,12 @@ module MTypeInf
     end
 
     define_inf_rule_method :resume, Fiber do |infer, inst, node, tup|
-      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      intype[0].each do  |fibslf|
-        if fibslf.class_object == Fiber then
-          inst.outreg[0].add_same fibslf.ret
-          inst.outreg[0].flush_type(tup)
+      make_intype(inffer, inst, node, tup) do |intype|
+        intype[0].each do  |fibslf|
+          if fibslf.class_object == Fiber then
+            inst.outreg[0].add_same fibslf.ret
+            inst.outreg[0].flush_type(tup)
+          end
         end
       end
       nil
