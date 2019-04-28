@@ -99,9 +99,9 @@ module MTypeInf
       end
       if type && type.size == 1 then
         condtype = type[0].class_object
-      elsif atype and addtional_type_spec and
-          (atype.all? {|e| addtional_type_spec.include?(e.class_object)} or
-          atype.all? {|e| !addtional_type_spec.include?(e.class_object)}) then
+      elsif atype and addtional_type_spec and atscl = addtional_type_spec.map {|e| e.class_object} and
+          (atype.all? {|e| atscl.include?(e.class_object)} or
+          atype.all? {|e| !atscl.include?(e.class_object)}) then
         condtype = (notp ^ addtional_type_spec.include?(atype[0].class_object)).class
       else
         condtype = nil
