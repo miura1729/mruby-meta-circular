@@ -340,7 +340,7 @@ module MTypeInf
     def self.rule_send_common(infer, inst, node, tup, history)
       name = inst.para[0]
       argc = inst.para[1]
-      make_intype(inffer, inst, node, tup, argc) do |intype|
+      make_intype(infer, inst, node, tup, argc) do |intype|
         recreg = inst.inreg[0]
 
         rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc, history)
