@@ -542,8 +542,8 @@ module MTypeInf
         irepssa = ptype.irep
         infer.inference_block(irepssa, intype, ntup, inst.para[1], ptype)
         inst.outreg[0].add_same irepssa.retreg
+        inst.outreg[0].flush_type(tup, ntup)
       end
-      inst.outreg[0].flush_type(tup, ntup)
       nil
     end
 
