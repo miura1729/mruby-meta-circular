@@ -199,20 +199,32 @@ module MTypeInf
       argc = inst.para[1] if argc == nil
       if argc == 127 then
         argary = inst.inreg[1].flush_type(tup)[tup][0]
-        argeles = argary.element[0].flush_type(tup)[tup]
-        argeles.each do |arr|
-          intype = [inst.inreg[0].flush_type(tup)[tup]]
-          aele = arr.element
-          largc = aele.size - 1
-          largc.times do |i|
-            intype[i + 1] = aele[i].flush_type_alltup(tup)[tup]
+        argeles = argary.element[0].flush_type_alltup(tup)[tup]
+        if argeles then
+          argeles.each do |arr|
+            intype = [inst.inreg[0].flush_type(tup)[tup]]
+            if arr.class_object == Array then
+              aele = arr.element
+              largc = aele.size - 1
+              largc.times do |i|
+                intype[i + 1] = aele[i].flush_type_alltup(tup)[tup]
+              end
+            else
+              intype[1] = [arr]
+            end
+            intype.push inst.inreg[2].flush_type(tup)[tup]
+            yield intype
           end
-          intype.push inst.inreg[2].flush_type(tup)[tup]
-          yield intype
+        else
+          arg0 = inst.inreg[0].flush_type(tup)[tup]
+          arg2 = inst.inreg[2].flush_type(tup)[tup]
+          yield [arg0, arg2]
         end
       else
         yield inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       end
+
+      nil
     end
 
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
@@ -345,6 +357,7 @@ module MTypeInf
 
         rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc, history)
       end
+      nil
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)

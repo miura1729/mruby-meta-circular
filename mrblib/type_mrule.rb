@@ -502,7 +502,7 @@ module MTypeInf
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
       argc = inst.para[1]
-      make_intype(inffer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype|
 
         recvtypes.each do |rtype|
           ntype = rtype.val
@@ -530,7 +530,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
-      make_intype(inffer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype|
         #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         ptype = intype[0][0]
         intype[0] = [ptype.slf]
@@ -828,7 +828,7 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :new, Fiber do |infer, inst, node, tup|
-      make_intype(inffer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype|
         proc = intype.pop
         type = FiberType.new(Fiber, proc[0])
 
@@ -868,7 +868,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :resume, Fiber do |infer, inst, node, tup|
-      make_intype(inffer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype|
         intype[0].each do  |fibslf|
           if fibslf.class_object == Fiber then
             inst.outreg[0].add_same fibslf.ret
@@ -877,6 +877,6 @@ module MTypeInf
         end
       end
       nil
-      end
+    end
   end
 end
