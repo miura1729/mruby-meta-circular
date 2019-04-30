@@ -997,6 +997,7 @@ module RiteSSA
 
         when :JMP
           res.push (pos + getarg_sbx(ins))
+          res.push (pos + 1)
 
         when :ONERR
           res.push (pos + getarg_sbx(ins))

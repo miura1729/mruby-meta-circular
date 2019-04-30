@@ -251,6 +251,8 @@ module MTypeInf
     end
 
     define_inf_rule_op :JMP do |infer, inst, node, tup, history|
+      infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
+      true
     end
 
     define_inf_rule_op :JMPIF do |infer, inst, node, tup, history|
