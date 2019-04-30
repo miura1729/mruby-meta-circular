@@ -153,35 +153,27 @@ module MTypeInf
       name = inst.para[0]
       proc = node.root
       const = nil
-      const = proc.target_class.constant[name]
-      type = nil
-      if const then
-        inst.outreg[0].add_same(const)
-        inst.outreg[0].flush_type_alltup(tup)
-      else
-
-        # Constant setting out of mmc
-        while proc and !const
-          const = proc.target_class.const_get(name)
-          proc = proc.parent
-        end
-        inst.para.push const
-        cls = TypeSource[const.class]
-        if cls then
-          type = cls.new(const.class, const)
-
-        elsif const.is_a?(Class) and const.ancestors.index(Exception) then
-          type = ExceptionType.new(const)
-
-        else
-          if const.is_a?(Module) then
-            type = LiteralType.new(const.singleton_class, const)
-          else
-            type = LiteralType.new(const.class, const)
-          end
-        end
-        inst.outreg[0].add_type(type, tup)
+      while proc and !const
+        const = proc.target_class.const_get(name)
+        proc = proc.parent
       end
+      inst.para.push const
+      cls = TypeSource[const.class]
+      type = nil
+      if cls then
+        type = cls.new(const.class, const)
+
+      elsif const.is_a?(Class) and const.ancestors.index(Exception) then
+        type = ExceptionType.new(const)
+
+      else
+        if const.is_a?(Module) then
+          type = LiteralType.new(const.singleton_class, const)
+        else
+          type = LiteralType.new(const.class, const)
+        end
+      end
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
