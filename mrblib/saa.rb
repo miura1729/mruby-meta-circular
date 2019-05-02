@@ -448,6 +448,9 @@ module RiteSSA
         when :GETCONST
           name = @irep.syms[getarg_bx(code)]
           inst.para.push name
+          srcreg = @root.target_class.get_constant(name)
+          srcreg.refpoint.push inst
+          inst.inreg.push srcreg
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
