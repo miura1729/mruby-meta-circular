@@ -205,13 +205,14 @@ module MTypeInf
             intype = [inst.inreg[0].flush_type(tup)[tup]]
             if arr.class_object == Array then
               aele = arr.element
-              largc = aele.size - 1
-              largc.times do |i|
-                intype[i + 1] = aele[i].flush_type_alltup(tup)[tup]
-              end
             else
-              intype[1] = [arr]
+              aele = argary.element
             end
+            largc = aele.size - 1
+            largc.times do |i|
+              intype[i + 1] = aele[i].flush_type_alltup(tup)[tup]
+            end
+
             intype.push inst.inreg[2].flush_type(tup)[tup]
             yield intype
           end
