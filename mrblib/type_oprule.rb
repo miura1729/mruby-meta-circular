@@ -737,12 +737,42 @@ module MTypeInf
           end
           inst.objcache[supobj] = cls
         end
-        clobj = RiteSSA::ClassSSA.get_instance(cls)
+        clsobj = RiteSSA::ClassSSA.get_instance(cls)
         outer.const_set(name, cls)
       end
 
       clstype = LiteralType.new(cls.singleton_class, cls)
       inst.outreg[0].add_type clstype, tup
+      nil
+    end
+
+    define_inf_rule_op :MODULE do |infer, inst, node, tup, history|
+      name = inst.para[0]
+      base = inst.inreg[0].flush_type(tup)[tup]
+      if base[0].class_object == NilClass then
+        outer = node.root.target_class
+      else
+        outer = base[0].class_object
+      end
+      mod = inst.objcache[nil]
+      if !mod then
+        begin
+          regmod = Object.const_get(name)
+        rescue
+        end
+        if regmod then
+          inst.objcache[nil] = regmod
+          mod = regmod
+        else
+          mod = Module.new
+          inst.objcache[nil] = mod
+        end
+        modobj = RiteSSA::ClassSSA.get_instance(mod)
+      end
+
+      modtype = LiteralType.new(mod.class, mod)
+      outer.const_set(name, mod)
+      inst.outreg[0].add_type modtype, tup
       nil
     end
 

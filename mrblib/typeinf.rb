@@ -166,7 +166,7 @@ module MTypeInf
       mess = ""
       level = @option[:dump_level]
       RiteSSA::ClassSSA.all_classssa.each do |cls, clsobj|
-        mess << "Class #{cls}\n"
+        mess << "#{cls.class} #{cls}\n"
         mess << " Instance variables\n"
         clsobj.iv.each do |iv, reg|
           types =reg.flush_type_alltup(0)[0] || []
