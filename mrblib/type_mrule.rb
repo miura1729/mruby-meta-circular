@@ -252,6 +252,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :reverse, Array do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
       rule_ary_push_common(infer, inst, node, tup)
     end
