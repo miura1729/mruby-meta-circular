@@ -469,6 +469,16 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :append_features, Module do |infer, inst, node, tup|
+      make_intype(infer, inst, node, tup, inst.para[1]) do |intype|
+        slf = intype[1][0].val
+        mod = intype[0][0].val
+        p slf
+        slf.include mod
+      end
+      nil
+    end
+
     define_inf_rule_method :attr_reader, Module do |infer, inst, node, tup|
       make_intype(infer, inst, node, tup, inst.para[1]) do |intype|
         intype[1..-2].each do |symty|
