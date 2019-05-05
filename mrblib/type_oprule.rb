@@ -306,7 +306,7 @@ module MTypeInf
       psize = inst.para[1].size
       n = inreg.size
       while n <= psize
-        inreg[n] = inst.para[1][n]
+        inreg[n] = inst.para[1][n + 1]
         n = n + 1
       end
 
@@ -374,7 +374,7 @@ module MTypeInf
             inst.objcache[tup] = type = ContainerType.new(Array)
           end
 
-          (argc - m1 - o + 1).times do |i|
+          (argc - m1 - o).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(nil)
             nreg.add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
@@ -382,7 +382,7 @@ module MTypeInf
           end
 
           inst.outreg[m1 + o].type[tup] = [type]
-          inst.outreg[m1 + o + 1].add_same inreg[argc + 1]
+          inst.outreg[m1 + o + 1].add_same inreg[argc]
           inst.outreg[m1 + o + 1].flush_type(tup)
         else
           inst.outreg[m1 + o].add_same argv[m1 + o]
