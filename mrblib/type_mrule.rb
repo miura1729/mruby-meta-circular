@@ -473,7 +473,6 @@ module MTypeInf
       make_intype(infer, inst, node, tup, inst.para[1]) do |intype|
         slf = intype[1][0].val
         mod = intype[0][0].val
-        p slf
         slf.include mod
       end
       nil

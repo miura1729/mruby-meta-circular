@@ -203,10 +203,10 @@ module MTypeInf
       fixp = true
       intype.each_with_index do |tys, i|
         if tys then
+          if !saairep.nodes[0].enter_reg[i] then
+            saairep.nodes[0].enter_reg[i] = RiteSSA::ParmReg.new(i)
+          end
           tys.each do |ty|
-            if !saairep.nodes[0].enter_reg[i] then
-              saairep.nodes[0].enter_reg.push RiteSSA::ParmReg.new(i)
-            end
             if saairep.nodes[0].enter_reg[i].add_type(ty, tup) then
               fixp = false
             end
@@ -293,10 +293,15 @@ module MTypeInf
 
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
-        node.enter_reg[i].add_same ireg
-        node.enter_reg[i].flush_type(tup)
-        node.enter_reg[i].negative_list = ireg.negative_list.clone
-        node.enter_reg[i].positive_list = ireg.positive_list.clone
+        if ireg then
+          if !node.enter_reg[i] then
+            node.enter_reg[i] = RiteSSA::ParmReg.new(i)
+          end
+          node.enter_reg[i].add_same ireg
+          node.enter_reg[i].flush_type(tup)
+          node.enter_reg[i].negative_list = ireg.negative_list.clone
+          node.enter_reg[i].positive_list = ireg.positive_list.clone
+        end
       end
 
       node.ext_iseq.each do |ins|
@@ -326,13 +331,15 @@ module MTypeInf
 
       # Update escape info
       in_reg.each_with_index do |reg, i|
-        tys = reg.type[tup]
-        if tys then
-          tys.each do |ty|
-            if node.enter_reg[i].type[tup] then
-              node.enter_reg[i].type[tup].each do |oty|
-                ty.place.merge!(oty.place)
-                oty.place.merge!(ty.place)
+        if reg then
+          tys = reg.type[tup]
+          if tys then
+            tys.each do |ty|
+              if node.enter_reg[i].type[tup] then
+                node.enter_reg[i].type[tup].each do |oty|
+                  ty.place.merge!(oty.place)
+                  oty.place.merge!(ty.place)
+                end
               end
             end
           end

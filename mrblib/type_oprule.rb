@@ -297,13 +297,22 @@ module MTypeInf
       o = (ax >> 13) & 0x1f
       r = (ax >> 12) & 0x1
       m2 = (ax >> 7) & 0x1f
+      inreg = inst.inreg.clone
 
       argc = infer.callstack[-1][2]
       len = m1 + o + r + m2
 
+      # Process for many arguments
+      psize = inst.para[1].size
+      n = inreg.size
+      while n <= psize
+        inreg[n] = inst.para[1][n]
+        n = n + 1
+      end
+
       if argc == 127 and false then
         certup = infer.callstack[-2][1]
-        arytypes = inst.inreg[0].flush_type(tup)[tup]
+        arytypes = inreg[0].flush_type(tup)[tup]
         arytypes.each do |arytype|
           ele = arytype.element
           anum = ele.keys.size - 1
@@ -333,12 +342,12 @@ module MTypeInf
             inst.outreg[m1 + o].add_type(type, tup)
           end
 
-          inst.outreg[len].add_same inst.inreg[1]
+          inst.outreg[len].add_same inreg[1]
           inst.outreg[len].flush_type(tup)
         end
       else
-        inst.inreg[0].flush_type(tup)
-        arg0 = inst.inreg[0].get_type(tup)
+        inreg[0].flush_type(tup)
+        arg0 = inreg[0].get_type(tup)
         cls = nil
         argv = nil
         if arg0 and arg0[0] then
@@ -351,7 +360,7 @@ module MTypeInf
             r.flush_type_alltup(tup)
           end
         else
-          argv = inst.inreg
+          argv = inreg
         end
 
         (m1 + o).times do |i|
@@ -365,7 +374,7 @@ module MTypeInf
             inst.objcache[tup] = type = ContainerType.new(Array)
           end
 
-          (argc - m1 - o).times do |i|
+          (argc - m1 - o + 1).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(nil)
             nreg.add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
@@ -373,7 +382,7 @@ module MTypeInf
           end
 
           inst.outreg[m1 + o].type[tup] = [type]
-          inst.outreg[m1 + o + 1].add_same inst.inreg[argc]
+          inst.outreg[m1 + o + 1].add_same inreg[argc + 1]
           inst.outreg[m1 + o + 1].flush_type(tup)
         else
           inst.outreg[m1 + o].add_same argv[m1 + o]

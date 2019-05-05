@@ -656,6 +656,7 @@ module RiteSSA
 
         when :ENTER
           inst.para.push getarg_ax(code)
+          inst.para.push @enter_reg
           regtab[1..-1].each_with_index do |reg, i|
             inst.inreg.push reg
             dstreg = Reg.new(inst)
