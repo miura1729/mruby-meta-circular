@@ -6,11 +6,13 @@ module MTypeInf
       @class_object = co
 #      @@place[@class_object] = {}
       @place = {}
+      @escape_cache = false
     end
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)
@@ -103,7 +105,7 @@ module MTypeInf
 
     def inspect_aux(hist, level)
 #      "#{@class_object.inspect}"
-      "#{@class_object.inspect}"
+      "#{@class_object.inspect} e=#{is_escape?}"
     end
 
     def inspect(level = 0)
@@ -111,6 +113,9 @@ module MTypeInf
     end
 
     def is_escape?(cache = {})
+      if @escape_cache then
+        return true
+      end
       plist = place
       if plist.size == 0 then
         return false
@@ -122,21 +127,21 @@ module MTypeInf
       plist.any? {|e, val|
         case e
         when :return
-          is_gcobject?
+          @escape_cache = is_gcobject?
 
         when ProcType
           cache[e.place] = true
-          e.is_escape?(cache)
+          @escape_cache = e.is_escape?(cache)
 
         when RiteSSA::Reg
 #          e.is_escape?(nil, cache)
-          true
+          @escape_cache = true
 
         when TrueClass
-          true
+          @escape_cache = true
 
         else
-          true
+          @escape_cache = true
         end
       }
     end
@@ -156,7 +161,8 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
   end
 
@@ -169,7 +175,8 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
-        @val == other.val
+        @val == other.val &&
+        is_escape? == other.is_escape?
     end
 
     def inspect_aux(hist, level)
@@ -229,7 +236,8 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @element.size == other.element.size &&
-        @element == other.element
+        @element == other.element &&
+        is_escape? == other.is_escape?
 #      equal?(other)# && is_escape? == other.is_escape?
     end
 
@@ -300,7 +308,8 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @irep == other.irep &&
-        @env == other.env
+        @env == other.env &&
+        is_escape? == other.is_escape?
     end
 
     def inspect(level = 0)
@@ -357,7 +366,8 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @proc == other.proc
+        @proc == other.proc &&
+        is_escape? == other.is_escape?
     end
 
     def inspect(level = 0)
@@ -390,7 +400,8 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
   end
 

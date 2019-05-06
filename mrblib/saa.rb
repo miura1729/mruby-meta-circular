@@ -155,11 +155,11 @@ module RiteSSA
       if tup then
         # dirty hack (not proff)
         unless @type[tup]
-          p @type
-          p tup
-          p @genpoint
-          p @refpoint[0].irep.disasm
-#          return true
+#          p @type
+#          p tup
+#          p @genpoint
+#          p @refpoint[0].irep.disasm
+          return true
         end
 
         @type[tup].each do |ty|

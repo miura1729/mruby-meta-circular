@@ -261,6 +261,11 @@ EOS
       @gccomplex_size = 0
       @callstack.push [proc, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
+      recvr = topnode.enter_reg[0]
+      if !recvr.type[tup] then
+        # not traverse yet. Maybe escape analysis
+        ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
+      end
       args = ""
       intype[0...-2].each_with_index do |ty, i|
         args << ", "

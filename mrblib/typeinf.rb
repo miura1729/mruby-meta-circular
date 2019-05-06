@@ -15,8 +15,7 @@ module MTypeInf
     end
 
     typemess = ti.dump_type
-    print typemess
-    return
+    #print typemess
     cgen = CodeGenC::CodeGen.new
     cgen.ccode << "/*\n#{typemess}*/\n"
     cgen.code_gen(bproc, ti)

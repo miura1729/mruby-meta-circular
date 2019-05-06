@@ -153,7 +153,7 @@ module CodeGenC
           return
         end
       end
-      if name != :initialize then
+      if name != :initialize and false then
         p name
         p intype
         p inreg[1]
