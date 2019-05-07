@@ -208,7 +208,11 @@ module CodeGenC
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
       else
-        srct = get_ctype(ccgen, elereg, tup)
+        etup = tup
+        if elereg.type[etup] == nil then
+          etup = elereg.type.keys[0]
+        end
+        srct = get_ctype(ccgen, elereg, etup)
         if srct == :nil then
           src = "mrb_nil_value()"
         else
@@ -282,7 +286,6 @@ module CodeGenC
       if recvtypes.size == 1 then
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = inst.outreg[0].type[tup][0].element[uv]
-        etype = get_ctype_aux(ccgen, ereg, tup)
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
@@ -299,6 +302,11 @@ module CodeGenC
           ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
         else
+          etup = tup
+          if ereg.type[tup] == nil then
+            etup = ereg.type.keys[0]
+          end
+          etype = get_ctype_aux(ccgen, ereg, etup)
           if initsize != "mrb_nil_value()"
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
           else
@@ -329,7 +337,7 @@ module CodeGenC
         utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
         codeno = ptype.using_tup[utup]
-        outtype0 = get_ctype(ccgen, ptype.irep.retreg, tup)
+        outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup)
         outtype = get_ctype(ccgen, nreg, tup)
         args = inst.inreg.map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]

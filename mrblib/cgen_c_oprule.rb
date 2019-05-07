@@ -140,20 +140,25 @@ module CodeGenC
       ireg = inst.inreg[0]
       pty = ccgen.callstack[-1][2]
       proc = ccgen.callstack[-1][0]
-      up.times do
-        proc = proc.parent
+      frame = inst.para[0]
+      ptup = 0
+      proc.tups.each do |f, t|
+        if frame == f then
+          ptup = t
+          break
+        end
       end
-      dstt = get_ctype(ccgen, oreg, tup)
+      dstt = get_ctype(ccgen, oreg, ptup)
 
       if pty == :mrb_value then
         pos = proc.env.index(oreg)
         dst = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
-        val = reg_real_value(ccgen, ireg, oreg, node, tup, infer, history)
+        val = reg_real_value2(ccgen, ireg, oreg, node, tup, pttup, infer, history)
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
         ccgen.pcode << "#{dst} = #{val};\n"
       else
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
-        val = reg_real_value(ccgen, ireg, oreg, node, tup, infer, history)
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, ptup)};\n"
+        val = reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, infer, history)
         ccgen.pcode << "proc->env#{"->prev" * up}->v#{oreg.id} = #{val};\n"
       end
       nil

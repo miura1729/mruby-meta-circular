@@ -153,14 +153,9 @@ module CodeGenC
           return
         end
       end
-      if name != :initialize and false then
-        p name
-        p intype
-        p inreg[1]
-        p tup 
-        p infer.typetupletab.rev_table[22]
-        p infer.typetupletab.rev_table[tup]
-       p inst.line
+      if name != :initialize then
+        p inst.filename
+        p inst.line
         ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
       end
       nil
@@ -319,6 +314,12 @@ module CodeGenC
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
       dstt = get_ctype(ccgen, oreg, tup, escheck)
       gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
+    end
+
+    def self.reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, ti, history, escheck = true)
+      val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
+      dstt = get_ctype(ccgen, oreg, ptup, escheck)
+      gen_type_conversion(ccgen, dstt, srct, val, ptup, node, ti, history)
     end
 
     def self.get_ctype_from_robj(src)
@@ -532,6 +533,9 @@ module CodeGenC
     def self.get_ctype_aux(ccgen, reg, tup, escheck = true)
       rtype = reg.type[tup]
       if !rtype then
+        p tup
+        p reg.type
+        raise
         # for element of array
         rtype = reg.type[reg.type.keys[0]]
         if rtype.nil? then
@@ -591,7 +595,11 @@ module CodeGenC
             end
           end
           ereg = tys[0].element[uv]
-          rc = get_ctype_aux(ccgen, ereg, tup, escheck)
+          etup = tup
+          if ereg.type[etup] == nil then
+            etup = ereg.type.keys[0]
+          end
+          rc = get_ctype_aux(ccgen, ereg, etup, escheck)
           if rc == :array then
             :mrb_value
           else
@@ -637,7 +645,11 @@ module CodeGenC
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.type[tup][0].element[uv]
-        etype = get_ctype_aux(ccgen, ereg, tup)
+        etup = tup
+        if ereg.type[tup] == nil then
+          etup = ereg.type.keys[0]
+        end
+        etype = get_ctype_aux(ccgen, ereg, etup)
         "#{etype} *#{regnm}"
 
       when :nil
