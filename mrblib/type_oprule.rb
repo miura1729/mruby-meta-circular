@@ -129,7 +129,7 @@ module MTypeInf
       if types then
         types.each do |ty|
           if ty then
-            ty.place[inst.inreg[1]] = [:SETIV, inst.line]
+            ty.place[slf] = [:SETIV, inst.line]
           end
         end
       end

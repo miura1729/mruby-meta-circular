@@ -259,7 +259,7 @@ module MTypeInf
           tys.each do |ty|
             saairep.nodes[0].enter_reg[i].type[tup].each do |oty|
               ty.place.merge!(oty.place)
-              oty.place.merge!(ty.place)
+#              oty.place.merge!(ty.place)
             end
           end
         end
@@ -303,28 +303,14 @@ module MTypeInf
         end
       end
 
+      rc = nil
       node.ext_iseq.each do |ins|
         #p ins.line
         #p ins.filename
         #p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
         rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         if rc then
-          # Update escape info
-          in_reg.each_with_index do |reg, i|
-            tys = reg.type[tup]
-            if tys then
-              tys.each do |ty|
-                if node.enter_reg[i].type[tup] then
-                  node.enter_reg[i].type[tup].each do |oty|
-                    ty.place.merge!(oty.place)
-                    oty.place.merge!(ty.place)
-                  end
-                end
-              end
-            end
-          end
-          # escape for customized contination (see OP_JMPNOT)
-          return
+          break
         end
       end
 
@@ -334,15 +320,20 @@ module MTypeInf
           tys = reg.type[tup]
           if tys then
             tys.each do |ty|
-              if node.enter_reg[i].type[tup] then
-                node.enter_reg[i].type[tup].each do |oty|
+              otypes = node.enter_reg[i].type[tup]
+              if otypes then
+                otypes.each do |oty|
                   ty.place.merge!(oty.place)
-                  oty.place.merge!(ty.place)
+#                  oty.place.merge!(ty.place)
                 end
               end
             end
           end
         end
+      end
+
+      if rc then
+        return
       end
 
       history[node] ||= []

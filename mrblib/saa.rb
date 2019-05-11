@@ -141,14 +141,8 @@ module RiteSSA
     end
 
     def is_escape?(tup = nil, cache = {})
-#      res = @@escape_cache[self]
-#      if res then
-#        return res
-#      end
-
       if cache[self] then
-#        @@escape_cache[self] = false
-        return false
+        return cache[self]
       end
       cache[self] = true
 
@@ -164,22 +158,20 @@ module RiteSSA
 
         @type[tup].each do |ty|
           if ty.is_escape?(cache) then
-            #            @@escape_cache[self] = true
             return true
           end
         end
       else
+        # Repeat All cache
         @type.each do |tp, tys|
           tys.each do |ty|
             if ty.is_escape?(cache) then
-              #            @@escape_cache[self] = true
               return true
             end
           end
         end
       end
 
-#      @@escape_cache[self] = false
       false
     end
 

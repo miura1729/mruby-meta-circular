@@ -36,8 +36,8 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
-          ele.place.merge!(place)
-#          place.merge!(ele.place)
+          #ele.place.merge!(place)
+          place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
@@ -134,8 +134,8 @@ module MTypeInf
           @escape_cache = e.is_escape?(cache)
 
         when RiteSSA::Reg
-#          e.is_escape?(nil, cache)
-          @escape_cache = true
+          e.is_escape?(nil, cache)
+          #@escape_cache = true
 
         when TrueClass
           @escape_cache = true
