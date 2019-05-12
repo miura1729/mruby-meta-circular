@@ -63,20 +63,36 @@ module CodeGenC
       prevsize = ccgen.prev_gcsingle.size
       (pos + num).times do |i|
         r = regs[i]
-        if !(r.type[tup] and r.type[tup].any? {|ty| ty.is_gcobject?} and
+        if r.type[tup] and r.type[tup][0].is_gcobject? and
+            !r.is_escape?(tup) then
+#          cls0 = r.type[tup][0].class_object
+#          clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
+#          name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
+#          clsssa.iv.each do |nm, reg|
+#            ename = "#{name}->v#{reg.id}"
+#            if ccgen.prev_gcsingle[tabpos] != ename then
+#              ccgen.pcode << "gctab->single[#{tabpos}] = &#{ename};\n"
+#              ccgen.prev_gcsingle[tabpos] = ename
+#            end
+#            tabpos += 1
+#          end
+
+        elsif !(r.type[tup] and r.type[tup].any? {|ty| ty.is_gcobject?} and
             r.is_escape?(tup)) or
             (r.genpoint.is_a?(Fixnum) and
             !ccgen.is_live_reg?(node, r, r.genpoint) and
             i != 0) then
-            next
-        end
 
-        name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
-        if ccgen.prev_gcsingle[tabpos] != name then
-          ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};\n"
-          ccgen.prev_gcsingle[tabpos] = name
+          # Do nothing
+
+        else
+          name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
+          if ccgen.prev_gcsingle[tabpos] != name then
+            ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};\n"
+            ccgen.prev_gcsingle[tabpos] = name
+          end
+          tabpos += 1
         end
-        tabpos += 1
       end
 
       if tabpos > 0 and tabpos != prevsize then
@@ -400,7 +416,7 @@ module CodeGenC
         ["self", srct]
 
       when :GETCONST
-        val = gins.para[1]
+        val = gins.outreg[0].type[tup][0].val
         vid =  ccgen.clstab[val]
         if vid then
           [vid[1], srct]

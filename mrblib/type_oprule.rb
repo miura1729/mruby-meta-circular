@@ -170,7 +170,7 @@ module MTypeInf
         cls = TypeSource[const.class]
         type = nil
         if cls then
-          type = cls.new(const.class, const)
+          type = LiteralType.new(const.class, const)
 
         elsif const.is_a?(Class) and const.ancestors.index(Exception) then
           type = ExceptionType.new(const)

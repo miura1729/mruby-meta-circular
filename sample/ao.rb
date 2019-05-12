@@ -289,9 +289,9 @@ class Scene
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-#        printf("%c", clamp(r))
-#        printf("%c", clamp(g))
-#        printf("%c", clamp(b))
+        #printf("%c", clamp(r))
+        #printf("%c", clamp(g))
+        #printf("%c", clamp(b))
         1
       end
     end

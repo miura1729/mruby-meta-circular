@@ -64,7 +64,8 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
-      val = inst.para[1]
+      val = inst.outreg[0].type[tup][0].val
+
       if !(val.is_a?(Fixnum) or val.is_a?(Float)) then
         ccgen.clstab[val] = [inst.para[0], "const#{ccgen.clstab.size}"]
       end

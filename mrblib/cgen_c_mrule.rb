@@ -295,9 +295,10 @@ module CodeGenC
           if initsize != "mrb_nil_value()" then
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize}));\n"
             ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
-            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
+p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
           else
-            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, 0);\n"
+            asiz = inst.outreg[0].type[tup][0].element.size
+            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{asiz});\n"
           end
           ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
@@ -384,6 +385,20 @@ module CodeGenC
         else
           clsid = ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
           ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"
+          csize = ccgen.gcobject_size
+          i = 0
+          clsssa.iv.each do |name, reg|
+            if !reg.type.values[0][0].is_gcobject? then
+              next
+            end
+            code = "v#{oreg.id}->v#{reg.id} = mrb_nil_value();\n"
+            code << "gctab->object[#{csize + i}] = &v#{oreg.id}->v#{reg.id};"
+            code <<  "/* #{name} */\n"
+            ccgen.pcode << code
+            ccgen.gcobject_size += 1
+            i += 1
+          end
+          ccgen.pcode << "gctab->osize = #{ccgen.gcobject_size};\n"
         end
 
         inreg[0] = oreg

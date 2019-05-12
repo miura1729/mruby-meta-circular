@@ -20,6 +20,7 @@ module CodeGenC
       @gcsingle_size = 0
       @prev_gcsignle = []
       @gccomplex_size = 0
+      @gcobject_size = 0
 
       @clstab = {}
       @proctab = {}
@@ -49,8 +50,10 @@ typedef void *gproc;
 struct gctab {
   int size;
   int csize;
+  int osize;
   struct gctab *prev;
   mrb_value **complex;
+  mrb_value **object;
   mrb_value *single[0];
 };
 
@@ -60,6 +63,10 @@ void mrb_mark_local(mrb_state *mrb)
   while (curtab) {
     for (int i = curtab->size; i--;) {
       mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->single[i]));
+    }
+
+    for (int i = curtab->osize; i--;) {
+      mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->object[i]));
     }
 
     for (int i = curtab->csize; i--;) {
@@ -92,6 +99,7 @@ EOS
     attr_accessor :gcsingle_size
     attr :prev_gcsingle
     attr_accessor :gccomplex_size
+    attr_accessor :gcobject_size
 
     def is_live_reg_aux(node, reg, pos, hash)
       if hash[node] then
@@ -120,6 +128,8 @@ EOS
     end
 
     def code_gen(proc, ti)
+#      p ti.typetupletab.rev_table[94]
+#      p ti.typetupletab.rev_table[94][0][0].place
       block = proc.irep
       topobj = TOP_SELF
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
@@ -160,7 +170,8 @@ EOS
           if !@defined_class[id] then
             @scode << "struct #{id} {\n"
             clsssa.iv.each do |name, reg|
-              @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
+#              @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
+              @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
             end
             @scode << "};\n"
             @defined_class[id] = clsssa
@@ -233,13 +244,15 @@ EOS
         @dcode << "gctab->complex = NULL;\n"
       end
 
-      if @gcsingle_size == 0 then
-        @dcode << "gctab->size = 0;\n"
+      if @gcobject_size > 0 then
+        @dcode << "gctab->object = alloca(sizeof(mrb_value *) * #{@gcobject_size});\n"
+      else
+        @dcode << "gctab->object = NULL;\n"
       end
 
-      if @gccomplex_size == 0 then
-        @dcode << "gctab->csize = 0;\n"
-      end
+      @dcode << "gctab->size = 0;\n"
+      @dcode << "gctab->csize = 0;\n"
+      @dcode << "gctab->osize = 0;\n"
 
       # Construct code
       @ccode << @dcode
@@ -259,6 +272,7 @@ EOS
       @gcsingle_size = 0
       @prev_gcsingle = []
       @gccomplex_size = 0
+      @gcobject_size = 0
       @callstack.push [proc, nil, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
@@ -293,6 +307,7 @@ EOS
       @gcsingle_size = 0
       @prev_gcsingle = []
       @gccomplex_size = 0
+      @gcobject_size = 0
       @callstack.push [proc, nil, procty] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
