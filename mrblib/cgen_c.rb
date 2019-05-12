@@ -17,6 +17,7 @@ module CodeGenC
       @pcode = ""               # program code
       @ccode = ""               # whole program
 
+      @gcsingle_psize = 0
       @gcsingle_size = 0
       @prev_gcsignle = []
       @gccomplex_size = 0
@@ -96,6 +97,7 @@ EOS
     attr :clstab
     attr :proctab
 
+    attr_accessor :gcsingle_psize
     attr_accessor :gcsingle_size
     attr :prev_gcsingle
     attr_accessor :gccomplex_size
@@ -235,24 +237,29 @@ EOS
       end
 
       # create of gctable
-      @dcode << "struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab) + #{@gcsingle_size} * sizeof(mrb_value *));\n"
-      @dcode << "gctab->prev = prevgctab;\n"
+      if (@gcsingle_size + @gccomplex_size + @gcobject_size) > 0 then
+        @dcode << "struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab) + #{@gcsingle_size} * sizeof(mrb_value *));\n"
+        @dcode << "gctab->prev = prevgctab;\n"
 
-      if @gccomplex_size > 0 then
-        @dcode << "gctab->complex = alloca(sizeof(mrb_value *) * #{@gccomplex_size});\n"
+        if @gccomplex_size > 0 then
+          @dcode << "gctab->complex = alloca(sizeof(mrb_value *) * #{@gccomplex_size});\n"
+        else
+          @dcode << "gctab->complex = NULL;\n"
+        end
+
+        if @gcobject_size > 0 then
+          @dcode << "gctab->object = alloca(sizeof(mrb_value *) * #{@gcobject_size});\n"
+        else
+          @dcode << "gctab->object = NULL;\n"
+        end
+
+        @dcode << "gctab->size = 0;\n"
+        @dcode << "gctab->csize = 0;\n"
+        @dcode << "gctab->osize = 0;\n"
+        @gcsingle_psize = 0
       else
-        @dcode << "gctab->complex = NULL;\n"
+        @dcode << "struct gctab *gctab = prevgctab;\n"
       end
-
-      if @gcobject_size > 0 then
-        @dcode << "gctab->object = alloca(sizeof(mrb_value *) * #{@gcobject_size});\n"
-      else
-        @dcode << "gctab->object = NULL;\n"
-      end
-
-      @dcode << "gctab->size = 0;\n"
-      @dcode << "gctab->csize = 0;\n"
-      @dcode << "gctab->osize = 0;\n"
 
       # Construct code
       @ccode << @dcode
@@ -293,10 +300,10 @@ EOS
         end
       end
 
-#      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-#      @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
-      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-      @hcode << "#{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+#      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+#      @hcode << "#{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
       code_gen_method_aux(block, ti, name, proc, tup)
     end
 
@@ -332,10 +339,10 @@ EOS
         end
       end
 
-#      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-#      @hcode << "static #{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
-      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-      @hcode << "#{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
+      @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+      @hcode << "static #{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
+#      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+#      @hcode << "#{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
       slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
       pproc = proc.parent
       envp = block.export_regs.size > 0 or pproc
@@ -354,7 +361,6 @@ EOS
     end
 
     def code_gen_node(node, ti, name, history, tup)
-      @gcsingle_size = 0
       history[node] = true
       @pcode << "L#{node.id}:; \n"
       rc = nil

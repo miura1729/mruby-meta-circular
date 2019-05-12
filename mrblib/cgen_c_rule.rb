@@ -95,8 +95,9 @@ module CodeGenC
         end
       end
 
-      if tabpos > 0 and tabpos != prevsize then
+      if tabpos != ccgen.gcsingle_psize then
         ccgen.pcode << "gctab->size = #{tabpos};\n"
+        ccgen.gcsingle_psize = tabpos
       end
 
       if tabpos > ccgen.gcsingle_size then
