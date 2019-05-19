@@ -146,7 +146,7 @@ EOS
           if !@defined_method[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
-              CodeGen::get_ctype(self, reg, utup) == :mrb_value
+              CodeGen::get_ctype(self, reg, utup, ti) == :mrb_value
             }
             intype = ti.typetupletab.rev_table[utup]
             code_gen_method(block, ti, name, proc, utup, intype)
@@ -159,7 +159,7 @@ EOS
           if !@defined_block[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
-              CodeGen::get_ctype(self, reg, utup) == :mrb_value
+              CodeGen::get_ctype(self, reg, utup, ti) == :mrb_value
             }
             intype = ti.typetupletab.rev_table[utup]
             code_gen_block(block, ti, name, proc, utup, intype, procty)
@@ -168,16 +168,18 @@ EOS
           end
         end
 
-        @using_class.each do |clsssa, id|
-          if !@defined_class[id] then
-            @scode << "struct #{id} {\n"
-            clsssa.iv.each do |name, reg|
-#              @scode << "#{CodeGen::gen_declare(self, reg, 0)}; /* #{name} */\n"
-              @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
+        @using_class.each do |clsssa, tupid|
+          tupid.each do |tup, id|
+            if !@defined_class[id] then
+              @scode << "struct #{id} {\n"
+              clsssa.iv.each do |name, reg|
+                @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)}; /* #{name} */\n"
+                # @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
+              end
+              @scode << "};\n"
+              @defined_class[id] = clsssa
+              fin = false
             end
-            @scode << "};\n"
-            @defined_class[id] = clsssa
-            fin = false
           end
         end
       end
@@ -213,7 +215,7 @@ EOS
           @defined_env[proc] = true
           @scode << "struct env#{proc.id} {\n"
           block.export_regs.each do |reg|
-            @scode << "#{CodeGen::gen_declare(self, reg, tup)};\n"
+            @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)};\n"
           end
           if pproc then
             @scode << "struct env#{pproc.id} *prev;\n"
@@ -290,9 +292,9 @@ EOS
       args = ""
       intype[0...-2].each_with_index do |ty, i|
         args << ", "
-        args << CodeGen::gen_declare(self, topnode.enter_reg[i], tup)
+        args << CodeGen::gen_declare(self, topnode.enter_reg[i], tup, ti)
       end
-      rettype = CodeGen::get_ctype(self, block.retreg, tup)
+      rettype = CodeGen::get_ctype(self, block.retreg, tup, ti)
       if rettype.is_a?(Array) then
         case rettype[0]
         when :gproc
@@ -329,9 +331,9 @@ EOS
       end
       intype[1...-2].each_with_index do |ty, i|
         args << ", "
-        args << CodeGen::gen_declare(self, topnode.enter_reg[i + 1], tup)
+        args << CodeGen::gen_declare(self, topnode.enter_reg[i + 1], tup, ti)
       end
-      rettype = CodeGen::get_ctype(self, block.retreg, tup)
+      rettype = CodeGen::get_ctype(self, block.retreg, tup, ti)
       if rettype.is_a?(Array) then
         case rettype[0]
         when :gproc
@@ -343,7 +345,7 @@ EOS
       @hcode << "static #{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
 #      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
 #      @hcode << "#{rettype} #{name}(mrb_state *#{args}, struct gctab *);\n"
-      slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup)
+      slfdecl = CodeGen::gen_declare(self, topnode.enter_reg[0], tup, ti)
       pproc = proc.parent
       envp = block.export_regs.size > 0 or pproc
       if procty == :mrb_value then
@@ -390,7 +392,7 @@ EOS
               sreg = node.exit_reg[i]
               src = CodeGen::reg_real_value(self, sreg, nreg,  node, tup, ti, history)
               if declf then
-                @dcode << CodeGen::gen_declare(self, nreg, tup)
+                @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
                 @dcode << ";\n"
               end
               @pcode << "v#{nreg.id} = #{src};\n"

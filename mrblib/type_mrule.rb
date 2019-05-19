@@ -240,7 +240,7 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          ty.place[inst.inreg[0]] = true
+          ty.place[arrtypes[0]] = true
         end
       end
       nil

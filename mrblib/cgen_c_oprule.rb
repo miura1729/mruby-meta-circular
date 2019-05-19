@@ -21,10 +21,10 @@ module CodeGenC
     define_ccgen_rule_op :LOADI do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       if node.root.export_regs.include?(oreg) then
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         src = inst.para[0]
         srct = get_ctype_from_robj(src)
-        dstt = get_ctype(ccgen, oreg, tup)
+        dstt = get_ctype(ccgen, oreg, tup, infer)
         src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
         ccgen.pcode << "v#{oreg.id} = #{src};\n"
       end
@@ -75,11 +75,11 @@ module CodeGenC
 
     define_ccgen_rule_op :GETIV do |ccgen, inst, node, infer, history, tup|
       dst = inst.outreg[0]
-      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src = inst.inreg[0]
-      srct = get_ctype(ccgen, inst.inreg[0], tup)
+      srct = get_ctype(ccgen, inst.inreg[0], tup, infer)
       slf = inst.inreg[1]
-      ccgen.dcode << "#{gen_declare(ccgen, dst, tup)};\n"
+      ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
 
       if slf.is_escape?(tup) then
         idx = src.genpoint
@@ -95,7 +95,7 @@ module CodeGenC
 
     define_ccgen_rule_op :SETIV do |ccgen, inst, node, infer, history, tup|
       dst = inst.outreg[0]
-      dstt = get_ctype(ccgen, dst, tup)
+      dstt = get_ctype(ccgen, dst, tup, infer)
       slf = inst.inreg[1]
       valr = inst.inreg[0]
       val = reg_real_value(ccgen, valr, dst, node, tup, infer, history)
@@ -119,9 +119,9 @@ module CodeGenC
       up.times do
         proc = proc.parent
       end
-      dstt = get_ctype(ccgen, oreg, tup)
+      dstt = get_ctype(ccgen, oreg, tup, infer)
 
-      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
       if pty == :mrb_value then
         pos = proc.env.index(ireg)
         val = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
@@ -149,7 +149,7 @@ module CodeGenC
           break
         end
       end
-      dstt = get_ctype(ccgen, oreg, ptup)
+      dstt = get_ctype(ccgen, oreg, ptup, infer)
 
       if pty == :mrb_value then
         pos = proc.env.index(oreg)
@@ -158,7 +158,7 @@ module CodeGenC
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
         ccgen.pcode << "#{dst} = #{val};\n"
       else
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, ptup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, ptup, infer)};\n"
         val = reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, infer, history)
         ccgen.pcode << "proc->env#{"->prev" * up}->v#{oreg.id} = #{val};\n"
       end
@@ -329,12 +329,12 @@ module CodeGenC
       aescape = reg.is_escape?(tup)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       ereg = inst.outreg[0].type[tup][0].element[uv]
-      etype = get_ctype_aux(ccgen, ereg, tup)
+      etype = get_ctype_aux(ccgen, ereg, tup, infer)
 
       if aescape then
         vals = inst.inreg.map {|ireg|
           val, convp = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-          srct = get_ctype(ccgen, ireg, tup)
+          srct = get_ctype(ccgen, ireg, tup, infer)
           gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history)
         }
 
@@ -345,13 +345,12 @@ module CodeGenC
         ccgen.pcode << "\n};\n"
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
-        ccgen.pcode << "for (int i = 0;i < #{vals.size}; i++) ARY_PTR(mrb_ary_ptr(v#{reg.id}))[i] = mrb_nil_value();\n"
         ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{reg.id}), #{vals.size});\n"
         ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
         ccgen.callstack[-1][1] = true
         ccgen.pcode << "}\n"
       else
-        type = get_ctype_aux(ccgen, reg, tup)
+        type = get_ctype_aux(ccgen, reg, tup, infer)
         if type == :array then
           vals = inst.inreg.map {|ireg|
             reg_real_value(ccgen, ireg, ereg, node, tup, infer, history)
@@ -403,7 +402,7 @@ module CodeGenC
           ccgen.hcode << "void *code[#{tupnum}];\n"
         end
 
-        slfdecl = gen_declare(ccgen, proc.slfreg, tup)
+        slfdecl = gen_declare(ccgen, proc.slfreg, tup, infer)
         ccgen.hcode << "#{slfdecl};\n"
         ccgen.hcode << "};\n"
 
@@ -417,7 +416,7 @@ module CodeGenC
       if envreg.size > 0 or pproc then
         ccgen.pcode << "v#{regno}.env = &env;\n"
       end
-      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       proc.using_tup.each do |tp, i|
         bfunc = gen_block_func("p#{proc.id}", proc.slf.class_object, inst.para[3], tp)
 #        ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"

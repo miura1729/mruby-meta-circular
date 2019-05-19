@@ -26,11 +26,11 @@ module CodeGenC
     define_ccgen_rule_method :-@, Fixnum do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[0]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_int, srct, src, tup, node, infer, history)
       src = gen_type_conversion(ccgen, dstt, :mrb_int, "-#{src}", tup, node, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
@@ -39,11 +39,11 @@ module CodeGenC
     define_ccgen_rule_method :-@, Float do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[0]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, "-#{src}", tup, node, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
@@ -52,11 +52,11 @@ module CodeGenC
     define_ccgen_rule_class_method :sqrt, Math do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[1]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, "sqrt(#{src})", tup, node, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
@@ -65,11 +65,11 @@ module CodeGenC
     define_ccgen_rule_class_method :sin, Math do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[1]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, "sin(#{src})", tup, node, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
@@ -78,11 +78,11 @@ module CodeGenC
     define_ccgen_rule_class_method :cos, Math do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[1]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_float2, srct, src, tup, node, infer, history)
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, "cos(#{src})", tup, node, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
@@ -92,7 +92,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
-      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
@@ -102,7 +102,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
-      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
@@ -112,7 +112,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
-      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
@@ -122,7 +122,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
-      ccgen.dcode << gen_declare(ccgen, oreg, tup)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
@@ -133,7 +133,7 @@ module CodeGenC
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
       ccgen.pcode << "mrb_p(mrb, #{src2});\n"
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
 
@@ -142,10 +142,10 @@ module CodeGenC
 
     define_ccgen_rule_method :rand, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src = "(((mrb_float)(rand() % 0x7fffffff)) / (double)0x7fffffff)"
       src = gen_type_conversion(ccgen, dstt, :mrb_float2, src, tup, node, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
 
@@ -154,12 +154,12 @@ module CodeGenC
 
     define_ccgen_rule_method :printf, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      dstt = get_ctype(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       args = inst.inreg.map {|reg|
         (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
       }.join(", ")
       src = "printf(#{args})"
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
 
@@ -168,8 +168,8 @@ module CodeGenC
 
     define_ccgen_rule_method :!, TrueClass do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      dstt = get_ctype(ccgen, nreg, tup)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
@@ -182,8 +182,8 @@ module CodeGenC
 
     define_ccgen_rule_method :nil?, Array do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      dstt = get_ctype(ccgen, nreg, tup)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
@@ -199,9 +199,9 @@ module CodeGenC
       elereg = inst.inreg[0].type[tup][0].element[uv]
       nreg = inst.outreg[0]
       aryreg = inst.inreg[0]
-      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if inst.inreg[0].is_escape?(tup) then
@@ -212,7 +212,7 @@ module CodeGenC
         if elereg.type[etup] == nil then
           etup = elereg.type.keys[0]
         end
-        srct = get_ctype(ccgen, elereg, etup)
+        srct = get_ctype(ccgen, elereg, etup, infer)
         if srct == :nil then
           src = "mrb_nil_value()"
         else
@@ -231,14 +231,14 @@ module CodeGenC
       slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[2], node, tup, infer, history)
       nreg = inst.outreg[0]
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if inst.inreg[0].is_escape?(tup) then
         val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
         ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val});\n"
       else
-        srct = get_ctype(ccgen, elereg, tup)
+        srct = get_ctype(ccgen, elereg, tup, infer)
         val = gen_type_conversion(ccgen, srct, valt, val, tup, node, infer, history)
         ccgen.pcode << "#{slf}[#{idx}] = #{val};\n"
       end
@@ -248,10 +248,10 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :push, Array do |ccgen, inst, node, infer, history, tup|
-      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
@@ -261,10 +261,10 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :length, Array do |ccgen, inst, node, infer, history, tup|
-      dstt = get_ctype(ccgen, inst.outreg[0], tup)
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
       nreg = inst.outreg[0]
-      ccgen.dcode << gen_declare(ccgen, nreg, tup)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) then
         src = "ARY_LEN(mrb_ary_ptr(#{src}))"
@@ -288,7 +288,7 @@ module CodeGenC
         ereg = inst.outreg[0].type[tup][0].element[uv]
         recvt = recvtypes[0].class_object
 
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         if oreg.is_escape?(tup) or initsize == "mrb_nil_value()" then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
@@ -307,7 +307,7 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
           if ereg.type[tup] == nil then
             etup = ereg.type.keys[0]
           end
-          etype = get_ctype_aux(ccgen, ereg, etup)
+          etype = get_ctype_aux(ccgen, ereg, etup, infer)
           if initsize != "mrb_nil_value()"
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
           else
@@ -327,7 +327,7 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
     end
 
     define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
-      procty = get_ctype(ccgen, inst.inreg[0], tup)
+      procty = get_ctype(ccgen, inst.inreg[0], tup, infer)
       intype = inst.inreg.map {|reg| reg.type[tup] || []}
       ptype = intype[0][0]
       proc = inst.inreg[0]
@@ -338,14 +338,14 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
         utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
         codeno = ptype.using_tup[utup]
-        outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup)
-        outtype = get_ctype(ccgen, nreg, tup)
+        outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
+        outtype = get_ctype(ccgen, nreg, tup, infer)
         args = inst.inreg.map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
         args << ", gctab"
         argt = inst.inreg.map {|reg|
-          gen_declare(ccgen, reg, tup)
+          gen_declare(ccgen, reg, tup, infer)
         }.join(", ")
         argt << ", struct gctab *"
         if procty == :mrb_value then
@@ -355,7 +355,7 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
           #fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
           fname = ccgen.proctab[ptype][codeno]
         end
-        ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup)
+        ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup, infer)
         ccgen.dcode << ";\n"
         src = "(#{fname}(mrb, #{args}))"
         src = gen_type_conversion(ccgen, outtype, outtype0, src, tup, node, infer, history)
@@ -374,7 +374,7 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
       if recvtypes.size == 1 then
         recvt = recvtypes[0].class_object
 
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
@@ -383,7 +383,18 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{clsssa.iv.size});\n"
           ccgen.callstack[-1][1] = true
         else
-          clsid = ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
+          ccgen.using_class[clsssa] ||= {}
+          ivtypes = []
+          clsssa.iv.each do |nm, reg|
+            ivtypes.push reg.flush_type(tup)[tup]
+          end
+          ivtup = infer.typetupletab.get_tupple_id(ivtypes, MTypeInf::PrimitiveType.new(NilClass), tup)
+          clsssa.iv.each do |nm, reg|
+            if reg.type[tup] then
+              reg.type[ivtup] = reg.type[tup].map {|e| e}
+            end
+          end
+          clsid = ccgen.using_class[clsssa][ivtup] ||= "cls#{clsssa.id}_#{ivtup}"
           ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"
           csize = ccgen.gcobject_size
           i = 0

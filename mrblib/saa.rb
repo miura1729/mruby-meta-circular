@@ -140,12 +140,7 @@ module RiteSSA
       filter_type(types)
     end
 
-    def is_escape?(tup = nil, cache = {})
-      if cache[self] then
-        return cache[self]
-      end
-      cache[self] = true
-
+    def is_escape?(tup)
       if tup then
         # dirty hack (not proff)
         unless @type[tup]
@@ -157,15 +152,16 @@ module RiteSSA
         end
 
         @type[tup].each do |ty|
-          if ty.is_escape?(cache) then
+          if ty.is_escape? then
             return true
           end
         end
       else
+        raise
         # Repeat All cache
         @type.each do |tp, tys|
           tys.each do |ty|
-            if ty.is_escape?(cache) then
+            if ty.is_escape? then
               return true
             end
           end

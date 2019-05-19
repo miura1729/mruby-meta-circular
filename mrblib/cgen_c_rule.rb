@@ -6,7 +6,7 @@ module CodeGenC
       while clsreg.is_a?(RiteSSA::Reg) do
         if node.root.export_regs.include?(clsreg) then
           src, inty = reg_real_value_noconv(ccgen, inst.outreg[0], node, tup, infer, history)
-          outty = get_ctype(ccgen, clsreg, tup)
+          outty = get_ctype(ccgen, clsreg, tup, infer)
           if node.root.is_export_env then
             ccgen.pcode << "if (venv)\n"
             src2 = gen_type_conversion(ccgen, :mrb_value, inty, src, tup, node, infer, history)
@@ -38,9 +38,9 @@ module CodeGenC
       outr = inst.outreg[0]
       if !is_not_assign_emit(outr) then
         val, srct = yield
-        dstt = get_ctype(ccgen, outr, tup)
+        dstt = get_ctype(ccgen, outr, tup, infer)
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history)
-        ccgen.dcode << "#{gen_declare(ccgen, outr, tup)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};\n"
         ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
@@ -50,7 +50,7 @@ module CodeGenC
       if is_not_assign_emit(outr) then
         yield
       else
-        srct = get_ctype(ccgen, outr, tup)
+        srct = get_ctype(ccgen, outr, tup, ti)
         ["v#{inst.outreg[0].id}", srct]
       end
     end
@@ -141,7 +141,7 @@ module CodeGenC
             if srct.is_a?(Array) and srct[0] == :gproc then
               procexport = true
             end
-            dstt = get_ctype(ccgen, reg, tup)
+            dstt = get_ctype(ccgen, reg, tup, infer)
             i = i + 1
             gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
           }.join(", ")
@@ -150,7 +150,7 @@ module CodeGenC
 
           if outreg then
             nreg = outreg[0]
-            ccgen.dcode << gen_declare(ccgen, nreg, tup)
+            ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
             ccgen.dcode << ";\n"
             ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
           else
@@ -187,8 +187,8 @@ module CodeGenC
         if reg0.type[tup] then
           case reg0.type[tup].size
           when 1
-            srcd0 = get_ctype(ccgen, reg0, tup, false)
-            if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
+            srcd0 = get_ctype(ccgen, reg0, tup, ti, false)
+            if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) then
               srcs0 = srcd0
               arg0 = reg0.type[tup][0].val
               valuep |= 1
@@ -209,7 +209,7 @@ module CodeGenC
           arg0 = "v#{reg0.id}"
 ""
         end
-        srcd0 = get_ctype(ccgen, gins.inreg[0], tup, false)
+        srcd0 = get_ctype(ccgen, gins.inreg[0], tup, ti, false)
         srcs0 = srcd0
       end
 
@@ -220,8 +220,8 @@ module CodeGenC
         if reg1.type[tup] then
           case reg1.type[tup].size
           when 1
-            srcd1 = get_ctype(ccgen, reg1, tup, false)
-            if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
+            srcd1 = get_ctype(ccgen, reg1, tup, ti, false)
+            if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) then
               srcs1 = srcd1
               arg1 = reg1.type[tup][0].val
               valuep |= 2
@@ -241,15 +241,15 @@ module CodeGenC
         else
           arg1 = "v#{reg1.id}"
         end
-        srcd1 = get_ctype(ccgen, gins.inreg[0], tup, false)
+        srcd1 = get_ctype(ccgen, gins.inreg[0], tup, ti, false)
         srcs1 = srcd1
       end
       outr = gins.outreg[0]
       if outr.refpoint[0].is_a?(RiteSSA::Inst) and
           [:ADD, :SUB, :MUL, :DIV, :EQ, :GT, :GE, :LT, :LE, :ADDI, :SUBI].include?(outr.refpoint[0].op) then
-        dstd = get_ctype(ccgen, gins.outreg[0], tup, false)
+        dstd = get_ctype(ccgen, gins.outreg[0], tup, ti, false)
       else
-        dstd = get_ctype(ccgen, gins.outreg[0], tup)
+        dstd = get_ctype(ccgen, gins.outreg[0], tup, ti)
       end
       src = ""
 
@@ -329,13 +329,13 @@ module CodeGenC
 
     def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history, escheck = true)
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
-      dstt = get_ctype(ccgen, oreg, tup, escheck)
+      dstt = get_ctype(ccgen, oreg, tup, ti, escheck)
       gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
     end
 
     def self.reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, ti, history, escheck = true)
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
-      dstt = get_ctype(ccgen, oreg, ptup, escheck)
+      dstt = get_ctype(ccgen, oreg, ptup, ti, escheck)
       gen_type_conversion(ccgen, dstt, srct, val, ptup, node, ti, history)
     end
 
@@ -352,7 +352,7 @@ module CodeGenC
     end
 
     def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
-      srct = get_ctype(ccgen, reg, tup)
+      srct = get_ctype(ccgen, reg, tup, ti)
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
@@ -389,7 +389,7 @@ module CodeGenC
       case gins.op
       when :MOVE
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          otype = get_ctype(ccgen, gins.outreg[0], tup)
+          otype = get_ctype(ccgen, gins.outreg[0], tup, ti)
           [reg_real_value(ccgen, gins.inreg[0], gins.outreg[0], node, tup, ti, history), otype]
         }
 
@@ -547,12 +547,12 @@ module CodeGenC
       String => :string
     }
 
-    def self.get_ctype_aux(ccgen, reg, tup, escheck = true)
+    def self.get_ctype_aux(ccgen, reg, tup, infer, escheck = true)
       rtype = reg.type[tup]
       if !rtype then
         p tup
         p reg.type
-        raise
+#        raise
         # for element of array
         rtype = reg.type[reg.type.keys[0]]
         if rtype.nil? then
@@ -581,9 +581,20 @@ module CodeGenC
 
       if rtype.size == 1 then
         clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
-        ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
+        ccgen.using_class[clsssa] ||= {}
+        ivtypes = []
+        clsssa.iv.each do |nm, reg|
+          ivtypes.push reg.flush_type(tup)[tup]
+        end
+        ivtup = infer.typetupletab.get_tupple_id(ivtypes, MTypeInf::PrimitiveType.new(NilClass), tup)
+        clsssa.iv.each do |nm, reg|
+          if reg.type[tup] then
+            reg.type[ivtup] = reg.type[tup].map {|e| e}
+          end
+        end
+        ccgen.using_class[clsssa][ivtup] ||= "cls#{clsssa.id}_#{ivtup}"
         if clsssa and clsssa.id != 0 then
-          "struct cls#{clsssa.id} *"
+          "struct cls#{clsssa.id}_#{ivtup} *"
         else
           :mrb_value
         end
@@ -591,15 +602,16 @@ module CodeGenC
         rtype.each do |e|
           cls = e.class_object
           clsssa =  RiteSSA::ClassSSA.get_instance(cls)
-          ccgen.using_class[clsssa] ||= "cls#{clsssa.id}"
+          ccgen.using_class[clsssa] ||= {}
+          ccgen.using_class[clsssa][tup] ||= "cls#{clsssa.id}_#{tup}"
         end
 
         :mrb_value
       end
     end
 
-    def self.get_ctype(ccgen, reg, tup, escheck = true)
-      type = get_ctype_aux(ccgen, reg, tup, escheck)
+    def self.get_ctype(ccgen, reg, tup, infer, escheck = true)
+      type = get_ctype_aux(ccgen, reg, tup, infer, escheck)
       case type
       when :array
         if escheck and !reg.is_escape?(tup) then
@@ -616,7 +628,7 @@ module CodeGenC
           if ereg.type[etup] == nil then
             etup = ereg.type.keys[0]
           end
-          rc = get_ctype_aux(ccgen, ereg, etup, escheck)
+          rc = get_ctype_aux(ccgen, ereg, etup, infer, escheck)
           if rc == :array then
             :mrb_value
           else
@@ -635,7 +647,7 @@ module CodeGenC
 
       when :range
         ereg = reg.type[tup][0].element[0]
-        rc = get_ctype_aux(ccgen, ereg, tup)
+        rc = get_ctype_aux(ccgen, ereg, tup, infer)
         if rc == :array then
           :mrb_value
         else
@@ -650,8 +662,8 @@ module CodeGenC
       end
     end
 
-    def self.gen_declare(ccgen, reg, tup)
-      type = get_ctype_aux(ccgen, reg, tup)
+    def self.gen_declare(ccgen, reg, tup, infer)
+      type = get_ctype_aux(ccgen, reg, tup, infer)
       if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else
@@ -666,7 +678,7 @@ module CodeGenC
         if ereg.type[tup] == nil then
           etup = ereg.type.keys[0]
         end
-        etype = get_ctype_aux(ccgen, ereg, etup)
+        etype = get_ctype_aux(ccgen, ereg, etup, infer)
         "#{etype} *#{regnm}"
 
       when :nil
@@ -713,12 +725,12 @@ module CodeGenC
 
               res << "{\n"
               val = "((struct proc#{proc.id} *)(#{src}))->self"
-              slfty = get_ctype(ccgen, proc.slfreg, tup)
+              slfty = get_ctype(ccgen, proc.slfreg, tup, infer)
               val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history)
               res << "tmpval[0] = #{val};\n"
               proc.env.each_with_index do |srcreg, i|
                 val = reg_real_value_noconv(ccgen, srcreg, node, tup, ti, history)[0]
-                stype = get_ctype(ccgen, srcreg, tup)
+                stype = get_ctype(ccgen, srcreg, tup, infer)
                 val = gen_type_conversion(ccgen, :mrb_value, stype, val, tup, node, ti, history)
                 res << "tmpval[#{i + 1}] = #{val};\n"
               end
@@ -751,7 +763,7 @@ module CodeGenC
             else
               p node.root.irep.disasm
               p src
-#              raise "Not support yet #{dstt} #{srct}"
+              #raise "Not support yet #{dstt} #{srct}"
             end
           end
 
@@ -786,7 +798,7 @@ module CodeGenC
           "mrb_nil_value()"
 
         else
-          raise "Not support yet #{dstt} #{srct}"
+          #raise "Not support yet #{dstt} #{srct}"
         end
       end
     end

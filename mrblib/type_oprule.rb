@@ -118,7 +118,8 @@ module MTypeInf
       name = inst.para[0]
 
       slf = inst.inreg[1]
-      slfcls = slf.flush_type(tup)[tup][0].class_object
+      slftype = slf.flush_type(tup)[tup][0]
+      slfcls = slftype.class_object
       slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
       slfiv.add_same(inreg)
       slfiv.flush_type(tup)
@@ -129,7 +130,7 @@ module MTypeInf
       if types then
         types.each do |ty|
           if ty then
-            ty.place[slf] = [:SETIV, inst.line]
+            ty.place[slftype] = [:SETIV, inst.line]
           end
         end
       end

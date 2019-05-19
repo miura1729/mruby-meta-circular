@@ -112,15 +112,16 @@ module MTypeInf
       inspect_aux({}, level)
     end
 
-    def is_escape?(cache = {})
+    def is_escape?
+      if !is_gcobject? then
+        return false
+      end
+
       if @escape_cache then
         return true
       end
-      plist = place
+      plist = @place
       if plist.size == 0 then
-        return false
-      end
-      if cache[plist] then
         return false
       end
 
@@ -129,18 +130,13 @@ module MTypeInf
         when :return
           @escape_cache = is_gcobject?
 
-        when ProcType
-          cache[e.place] = true
-          @escape_cache = e.is_escape?(cache)
-
-        when RiteSSA::Reg
-          e.is_escape?(nil, cache)
-          #@escape_cache = true
-
-        when TrueClass
-          @escape_cache = true
+        when ProcType,
+          UserDefinedType,
+          ContainerType
+          @escape_cache = e.is_escape?
 
         else
+          # true ... etc
           @escape_cache = true
         end
       }
@@ -186,9 +182,9 @@ module MTypeInf
 
       else
         if level < 1 then
-          "#{@class_object.inspect} val=#{@val.inspect}"
+          "#{@class_object.inspect} val=#{@val.inspect} e=#{is_escape?}"
         else
-          "#{@class_object.inspect}"
+          "#{@class_object.inspect} e=#{is_escape?}"
         end
       end
     end
