@@ -64,7 +64,12 @@ module MTypeInf
               when MTypeInf::LiteralType
                 if ele.val != @val then
                   if ele.class_object != Class  then
-                    arr[i] = primobj.new(ele.class_object)
+                    if @val.is_a?(Numeric) then
+                      positive = ele.val >= 0 && @val >= 0
+                      arr[i] = NumericType.new(ele.class_object, positive)
+                    else
+                      arr[i] = primobj.new(ele.class_object)
+                    end
                     return false
                   end
 
@@ -148,6 +153,19 @@ module MTypeInf
   end
 
   class PrimitiveType<BasicType
+  end
+
+  class NumericType<PrimitiveType
+    def initialize(co, positive = false, *rest)
+      super
+      @positive = positive
+    end
+
+    def inspect_aux(hist, level)
+      "#{@class_object.inspect} e=#{is_escape?} pos =#{@positive}"
+    end
+
+    attr_accessor :positive
   end
 
   class ExceptionType<BasicType
@@ -247,7 +265,7 @@ module MTypeInf
 
     def inspect_aux(hist, level)
       if hist[self] then
-        return "<#{@class_object} ...>"
+        return "<#{@class_object} ...> e=#{is_escape?}"
       end
       hist[self] = true
 
@@ -261,9 +279,9 @@ module MTypeInf
       end
       hist.delete(self)
       if level < 3 then
-        "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
+        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?}"
       else
-        "#{@class_object.inspect}<>"
+        "#{@class_object.inspect}<> e=#{is_escape?}"
       end
     end
 
@@ -403,8 +421,8 @@ module MTypeInf
 
   TypeSource = {
     NilClass => PrimitiveType,
-    Fixnum => PrimitiveType,
-    Float => PrimitiveType,
+    Fixnum => NumericType,
+    Float => NumericType,
     Symbol => PrimitiveType,
     TrueClass => PrimitiveType,
     FalseClass => PrimitiveType,

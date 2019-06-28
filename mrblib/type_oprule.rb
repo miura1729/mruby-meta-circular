@@ -484,7 +484,7 @@ module MTypeInf
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg1type and arg1type[0].class_object == Float then
-        ty = PrimitiveType.new(Float)
+        ty = NumericType.new(Float, false)
         inst.outreg[0].add_type ty, tup
 
       elsif arg0type then
@@ -495,7 +495,7 @@ module MTypeInf
 
           arg0type.each do |ty|
             if ty.is_a?(LiteralType) then
-              ty = PrimitiveType.new(ty.class_object)
+              ty = NumericType.new(ty.class_object, false)
             end
             inst.outreg[0].add_type ty, tup
           end
@@ -509,13 +509,13 @@ module MTypeInf
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg1type and arg1type[0].class_object == Float then
-        ty = PrimitiveType.new(Float)
+        ty = NumericType.new(Float, false)
         inst.outreg[0].add_type ty, tup
 
       elsif arg0type then
         arg0type.each do |ty|
           if ty.is_a?(LiteralType) then
-            ty = PrimitiveType.new(ty.class_object)
+            ty = NumericType.new(ty.class_object, false)
           end
           inst.outreg[0].add_type ty, tup
         end
@@ -528,13 +528,13 @@ module MTypeInf
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
       if arg1type and arg1type[0].class_object == Float then
-        ty = PrimitiveType.new(Float)
+        ty = NumericType.new(Float, false)
         inst.outreg[0].add_type ty, tup
 
       elsif arg0type then
         arg0type.each do |ty|
           if ty.is_a?(LiteralType) then
-            ty = PrimitiveType.new(ty.class_object)
+            ty = NumericType.new(ty.class_object, false)
           end
           inst.outreg[0].add_type ty, tup
         end
@@ -550,7 +550,7 @@ module MTypeInf
         if arg0type[0].class_object == Fixnum or
             arg0type[0].class_object == Float then
 #          ty = PrimitiveType.new(Float)
-          ty = PrimitiveType.new(arg0type[0].class_object)
+          ty = NumericType.new(arg0type[0].class_object, false)
           inst.outreg[0].add_type ty, tup
         end
       end
@@ -565,7 +565,8 @@ module MTypeInf
       if arg0type then
         arg0type.each do |ty|
           if ty.is_a?(LiteralType) then
-            ty = PrimitiveType.new(ty.class_object)
+            postive = ty.val >= 0 && inst.para[1] >= 0
+            ty = NumericType.new(ty.class_object, postive)
           end
           #ty = PrimitiveType.new(ty.class_object)
           inst.outreg[0].add_type ty, tup
@@ -575,7 +576,19 @@ module MTypeInf
     end
 
     define_inf_rule_op :SUBI do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:ADDI].call(infer, inst, node, tup)
+      arg0type = inst.inreg[0].flush_type(tup)[tup]
+      arg1type = LiteralType.new(Fixnum, inst.para[1])
+
+      if arg0type then
+        arg0type.each do |ty|
+          if ty.is_a?(LiteralType) then
+            ty = NumericType.new(ty.class_object, false)
+          end
+          #ty = PrimitiveType.new(ty.class_object)
+          inst.outreg[0].add_type ty, tup
+        end
+      end
+      nil
     end
 
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|

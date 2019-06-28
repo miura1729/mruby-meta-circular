@@ -25,32 +25,32 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_f, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :to_i, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :>>, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
 
     define_inf_rule_method :&, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :|, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -63,25 +63,25 @@ module MTypeInf
     end
 
     define_inf_rule_method :%, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :to_f, Float do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :to_i, Float do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :<=>, Object do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -297,19 +297,19 @@ module MTypeInf
     end
 
     define_inf_rule_method :length, Array do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :size, Array do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :__ary_index, Array do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
@@ -368,7 +368,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :index, Array do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
@@ -569,13 +569,13 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_f, String do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :to_i, String do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -587,7 +587,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :size, String do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -609,7 +609,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :index, String do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
@@ -657,25 +657,25 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :sqrt, Math do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :rand, Kernel do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :cos, Math.class do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :sin, Math.class do |infer, inst, node, tup|
-      type = PrimitiveType.new(Float)
+      type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -739,7 +739,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :size, Hash do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
       nil
     end
