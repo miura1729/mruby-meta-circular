@@ -11,6 +11,15 @@ module CodeGenC
       @@ruletab[:CCGEN_METHOD][name][rec] = block
     end
 
+    def self.alias_ccgen_rule_method(nname, oname, rec)
+      @@ruletab[:CCGEN_METHOD] ||= {}
+      @@ruletab[:CCGEN_METHOD][nname] ||= {}
+      if @@ruletab[:CCGEN_METHOD][nname][rec] then
+        raise "Already defined #{name}"
+      end
+      @@ruletab[:CCGEN_METHOD][nname][rec] = @@ruletab[:CCGEN_METHOD][oname][rec]
+    end
+
     def self.define_ccgen_rule_class_method(name, rec, &block)
       rec = class << rec
               self
@@ -140,6 +149,18 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :__printstr__, Kernel do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+      src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
+      ccgen.pcode << "mrb_printstr(mrb, #{src2});\n"
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+
+      nil
+    end
+
     define_ccgen_rule_method :rand, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
@@ -152,7 +173,7 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_method :printf, Object do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :printf, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
       args = inst.inreg.map {|reg|
@@ -277,6 +298,8 @@ module CodeGenC
       nil
     end
 
+    alias_ccgen_rule_method :size, :length, Array
+
     define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       argc = inst.para[1]
@@ -364,6 +387,28 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
       nil
     end
 
+    define_ccgen_rule_method :to_s, String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :[], String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :new, Class do |ccgen, inst, node, infer, history, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       argc = inst.para[1]
@@ -384,11 +429,12 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
           ccgen.callstack[-1][1] = true
         else
           ccgen.using_class[clsssa] ||= {}
-          ivtypes = []
+          nilobj = MTypeInf::PrimitiveType.new(NilClass)
+          ivtypes = [nilobj]
           clsssa.iv.each do |nm, reg|
             ivtypes.push reg.flush_type(tup)[tup]
           end
-          ivtup = infer.typetupletab.get_tupple_id(ivtypes, MTypeInf::PrimitiveType.new(NilClass), tup)
+          ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
           clsssa.iv.each do |nm, reg|
             if reg.type[tup] then
               reg.type[ivtup] = reg.type[tup].map {|e| e}

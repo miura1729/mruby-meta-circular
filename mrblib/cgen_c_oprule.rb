@@ -378,8 +378,30 @@ module CodeGenC
     define_ccgen_rule_op :STRING do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
-        ccgen.dcode << "mrb_value v#{reg.id};\n"
+        ccgen.dcode << "mrb_value v#{oreg.id};\n"
         ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, \"#{inst.para[0]}\", #{inst.para[0].size});"
+      end
+    end
+
+    define_ccgen_rule_op :STRCAT do |ccgen, inst, node, infer, history, tup|
+      ireg0 = inst.inreg[0]
+      ireg1 = inst.inreg[1]
+      oreg = inst.outreg[0]
+      val0 = reg_real_value(ccgen, ireg0, ireg0, node, tup, infer, history)
+      val1 = reg_real_value(ccgen, ireg1, ireg1, node, tup, infer, history)
+      ccgen.dcode << "mrb_value v#{oreg.id};\n"
+      if ireg0.is_escape?(tup) then
+        if ireg1.is_escape?(tup) then
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, \"#{val0}\", #{val1});"
+        else
+          ccgen.pcode << "v#{oreg.id} =mrb_str_cat_cstr(mrb, \"#{val0}\", #{val1});"
+        end
+      else
+        if ireg1.is_escape?(tup) then
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, mrb_str_new(mrb, \"#{val0}\"), #{val1});"
+        else
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, mrb_str_new(mrb, \"#{val0}\"), #{val1});"
+        end
       end
     end
 

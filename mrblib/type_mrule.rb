@@ -622,7 +622,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :__printstr__, Object do |infer, inst, node, tup|
+    define_inf_rule_method :__printstr__, Kernel do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       nil
     end

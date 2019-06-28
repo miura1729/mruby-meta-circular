@@ -582,17 +582,20 @@ module CodeGenC
       if rtype.size == 1 then
         clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
         ccgen.using_class[clsssa] ||= {}
-        ivtypes = []
+        nilobj = MTypeInf::PrimitiveType.new(NilClass)
+        ivtypes = [nilobj]
         clsssa.iv.each do |nm, reg|
           ivtypes.push reg.flush_type(tup)[tup]
         end
-        ivtup = infer.typetupletab.get_tupple_id(ivtypes, MTypeInf::PrimitiveType.new(NilClass), tup)
-        clsssa.iv.each do |nm, reg|
-          if reg.type[tup] then
-            reg.type[ivtup] = reg.type[tup].map {|e| e}
+        ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
+        if !ccgen.using_class[clsssa][ivtup] then
+          clsssa.iv.each do |nm, reg|
+            if reg.type[tup] then
+              reg.type[ivtup] = reg.type[tup].dup
+            end
           end
+          ccgen.using_class[clsssa][ivtup] = "cls#{clsssa.id}_#{ivtup}"
         end
-        ccgen.using_class[clsssa][ivtup] ||= "cls#{clsssa.id}_#{ivtup}"
         if clsssa and clsssa.id != 0 then
           "struct cls#{clsssa.id}_#{ivtup} *"
         else
@@ -603,7 +606,7 @@ module CodeGenC
           cls = e.class_object
           clsssa =  RiteSSA::ClassSSA.get_instance(cls)
           ccgen.using_class[clsssa] ||= {}
-          ccgen.using_class[clsssa][tup] ||= "cls#{clsssa.id}_#{tup}"
+          ccgen.using_class[clsssa][tup] ||= "cls#{clsssa.id}_#{ivtup}"
         end
 
         :mrb_value
@@ -760,9 +763,13 @@ module CodeGenC
             when :nil
               "#{src}"
 
+            when "char *"
+              "(mrb_str_new_cstr(mrb, #{src}))"
+
             else
               p node.root.irep.disasm
               p src
+              p "Not support yet #{dstt} #{srct}"
               #raise "Not support yet #{dstt} #{srct}"
             end
           end
