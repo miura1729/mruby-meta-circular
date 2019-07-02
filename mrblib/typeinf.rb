@@ -308,7 +308,12 @@ module MTypeInf
         #p ins.line
         #p ins.filename
         #p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
-        rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
+        begin
+          rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
+        rescue Object => e
+          p "#{ins.op} #{ins.filename}##{ins.line}"
+          raise e
+        end
         if rc then
           break
         end
