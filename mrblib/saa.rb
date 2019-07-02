@@ -643,8 +643,18 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :ENTER
-          inst.para.push getarg_ax(code)
+          arg = getarg_ax(code)
+          o = (arg >> 13) & 0x1f
+          inst.para.push arg
           inst.para.push @enter_reg
+          if o > 0 then
+            jmps = []
+            (o + 1).times do |i|
+              ipc = pc + i + 1
+              jmps.push @root.nodes[ipc]
+            end
+            inst.para.push jmps
+          end
           regtab[1..-1].each_with_index do |reg, i|
             inst.inreg.push reg
             dstreg = Reg.new(inst)
@@ -938,6 +948,8 @@ module RiteSSA
         end
         dag = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
         @nodes[bg] = dag
+      end
+      @nodes.each do |pos, dag|
         dag.make_ext_iseq
       end
 

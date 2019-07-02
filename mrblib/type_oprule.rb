@@ -293,6 +293,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :ENTER do |infer, inst, node, tup, history|
+      rc = nil
       ax = inst.para[0]
       m1 = (ax >> 18) & 0x1f
       o = (ax >> 13) & 0x1f
@@ -389,9 +390,18 @@ module MTypeInf
           inst.outreg[m1 + o].add_same argv[m1 + o]
           inst.outreg[m1 + o].flush_type(tup)
         end
+
+        if o != 0 and argc > m1 + m2 then
+          pos = argc - m1 - m2
+          nnode = inst.para[2][pos]
+          ereg = [node.enter_reg[0]] + inst.outreg
+          infer.inference_node(nnode, tup, ereg, history)
+
+          rc = true
+        end
       end
 
-      nil
+      rc
     end
 
     define_inf_rule_op :ARGARY do |infer, inst, node, tup, history|
