@@ -809,5 +809,25 @@ module CodeGenC
         end
       end
     end
+
+    def self.gen_array_range_check(ccgen, inst, tup, idx)
+      idxty = inst.inreg[1].type[tup][0]
+      aryty = inst.inreg[0].type[tup][0]
+      rc = idx
+      case idxty
+      when  MTypeInf::LiteralType
+        idxval = idxty.val
+        if idxval < 0 then
+          rc = "#{aryty.val.size - idxval}"
+        end
+
+      when  MTypeInf::NumericType
+        posp = idxty.positive
+        if !posp then
+          rc = "((#{idx} < 0) ? #{aryty.element.size} - #{idx}  : #{idx})"
+        end
+      end
+      rc
+    end
   end
 end

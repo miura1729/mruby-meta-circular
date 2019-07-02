@@ -380,6 +380,8 @@ module CodeGenC
       if oreg.is_escape?(tup) then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
         ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, \"#{inst.para[0]}\", #{inst.para[0].size});"
+      else
+        ccgen.dcode << "char *v#{oreg.id} = \"#{inst.para[0]}\";\n"
       end
     end
 

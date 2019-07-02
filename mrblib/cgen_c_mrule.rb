@@ -237,7 +237,7 @@ module CodeGenC
         if srct == :nil then
           src = "mrb_nil_value()"
         else
-          src = "#{src}[#{idx}]"
+          src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx)}]"
           src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
         end
       end
@@ -261,7 +261,7 @@ module CodeGenC
       else
         srct = get_ctype(ccgen, elereg, tup, infer)
         val = gen_type_conversion(ccgen, srct, valt, val, tup, node, infer, history)
-        ccgen.pcode << "#{slf}[#{idx}] = #{val};\n"
+        ccgen.pcode << "#{slf}[#{gen_array_range_check(ccgen, inst, tup, idx)}] = #{val};\n"
       end
 
       ccgen.pcode << "v#{nreg.id} = #{val};\n"
@@ -318,7 +318,7 @@ module CodeGenC
           if initsize != "mrb_nil_value()" then
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize}));\n"
             ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
-p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
+            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
           else
             asiz = inst.outreg[0].type[tup][0].element.size
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{asiz});\n"
@@ -400,11 +400,20 @@ p            ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});
 
     define_ccgen_rule_method :[], String do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      ireg = inst.inreg[0]
-      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
-
+      strreg = inst.inreg[0]
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      src, srct = reg_real_value_noconv(ccgen, strreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
+      idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+      if inst.inreg[0].is_a?(MTypeInf::StringType) then
+        src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx)}]"
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+      else
+        src = "mrb_str_aref(mrb, #{src}, #{idx})"
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
+      end
+
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
     end

@@ -165,10 +165,16 @@ module MTypeInf
       "#{@class_object.inspect} e=#{is_escape?} pos =#{@positive}"
     end
 
-    attr_accessor :positive
+    attr :positive
   end
 
   class ExceptionType<BasicType
+    def is_gcobject?
+      true
+    end
+  end
+
+  class StringType<BasicType
     def is_gcobject?
       true
     end
@@ -426,7 +432,7 @@ module MTypeInf
     Symbol => PrimitiveType,
     TrueClass => PrimitiveType,
     FalseClass => PrimitiveType,
-    String => PrimitiveType,
+    String => StringType,
 
     Array => ContainerType,
     Hash => ContainerType,
