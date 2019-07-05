@@ -47,6 +47,7 @@ module MTypeInf
 
     define_inf_rule_op :LOADNIL do |infer, inst, node, tup, history|
       rule_literal_commin(infer, inst, node, tup)
+      nil
     end
 
     define_inf_rule_op :LOADSELF do |infer, inst, node, tup, history|

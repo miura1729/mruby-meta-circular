@@ -940,16 +940,18 @@ module RiteSSA
       @import_regs = []
 
       @regtab = nil
+
       block_head = collect_block_head(iseq)
       block_head.each_cons(2) do |bg, ed|
+        dag = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
+        @nodes[bg] = dag
+      end
+
+      @nodes.each do |pos, dag|
         @regtab = [ParmReg.new(0)]
         (@irep.nregs - 1).times do |i|
           @regtab.push ParmReg.new(i + 1)
         end
-        dag = RiteDAGNode.new(irep, bg, iseq[bg...ed], self)
-        @nodes[bg] = dag
-      end
-      @nodes.each do |pos, dag|
         dag.make_ext_iseq
       end
 
