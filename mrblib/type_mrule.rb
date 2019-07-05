@@ -68,6 +68,13 @@ module MTypeInf
       nil
     end
 
+
+    define_inf_rule_method :**, Fixnum do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :to_f, Float do |infer, inst, node, tup|
       type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
@@ -694,6 +701,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :first, Range do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0].type[tup][0].element[0]
+      inst.outreg[0].flush_type_alltup(tup)
+      nil
+    end
+
     define_inf_rule_method :last, Range do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0].type[tup][0].element[1]
       inst.outreg[0].flush_type_alltup(tup)
@@ -701,10 +714,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :exclude_end?, Range do |infer, inst, node, tup|
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0].type[tup][0].element[2]
+      inst.outreg[0].flush_type_alltup(tup)
       nil
     end
 
