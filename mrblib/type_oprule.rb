@@ -850,15 +850,20 @@ module MTypeInf
       if !type then
         inst.objcache[nil] = type = ContainerType.new(Range)
       end
-      type.element[ContainerType::UNDEF_VALUE]
       nreg = type.element[0] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[0]
       type.element[0] = nreg
       type.element[0].flush_type(tup)
+
       nreg = type.element[1] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[1]
       type.element[1] = nreg
       type.element[1].flush_type(tup)
+
+      nreg = type.element[2] || RiteSSA::Reg.new(nil)
+      nreg.add_same inst.inreg[2]
+      type.element[2] = nreg
+      type.element[2].flush_type(tup)
 
       inst.outreg[0].add_type type, tup
     end
