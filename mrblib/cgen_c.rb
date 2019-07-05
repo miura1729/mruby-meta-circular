@@ -390,7 +390,7 @@ EOS
             if is_live_reg?(nd, nreg, i) and
                 !(nreg.is_a?(RiteSSA::ParmReg) and nreg.genpoint == 0) then
               sreg = node.exit_reg[i]
-              src = CodeGen::reg_real_value(self, sreg, nreg,  node, tup, ti, history)
+              src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
               if declf then
                 @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
                 @dcode << ";\n"

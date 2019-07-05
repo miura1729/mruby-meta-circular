@@ -728,12 +728,12 @@ module CodeGenC
 
               res << "{\n"
               val = "((struct proc#{proc.id} *)(#{src}))->self"
-              slfty = get_ctype(ccgen, proc.slfreg, tup, infer)
+              slfty = get_ctype(ccgen, proc.slfreg, tup, ti)
               val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history)
               res << "tmpval[0] = #{val};\n"
               proc.env.each_with_index do |srcreg, i|
                 val = reg_real_value_noconv(ccgen, srcreg, node, tup, ti, history)[0]
-                stype = get_ctype(ccgen, srcreg, tup, infer)
+                stype = get_ctype(ccgen, srcreg, tup, ti)
                 val = gen_type_conversion(ccgen, :mrb_value, stype, val, tup, node, ti, history)
                 res << "tmpval[#{i + 1}] = #{val};\n"
               end
