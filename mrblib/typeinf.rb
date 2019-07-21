@@ -77,6 +77,7 @@ module MTypeInf
 
           return nn[1]
         end
+        types[i] = cn[0]
         node = cn[1]
       end
 

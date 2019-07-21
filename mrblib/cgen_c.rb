@@ -290,9 +290,17 @@ EOS
         ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
       end
       args = ""
-      intype[0...-2].each_with_index do |ty, i|
+      intype[0...-2].each_with_index do |tys, i|
         args << ", "
-        args << CodeGen::gen_declare(self, topnode.enter_reg[i], tup, ti)
+        ereg = topnode.enter_reg[i]
+        ereg.type[tup].each do |bty|
+          if bty then
+            tys.each do |ty|
+              bty.place.merge!(ty.place)
+            end
+          end
+        end
+        args << CodeGen::gen_declare(self, ereg, tup, ti)
       end
       rettype = CodeGen::get_ctype(self, block.retreg, tup, ti)
       if rettype.is_a?(Array) then
