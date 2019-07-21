@@ -330,18 +330,22 @@ module MTypeInf
             type = inst.objcache[tup]
             if !type then
               inst.objcache[tup] = type = ContainerType.new(Array)
+              type.element[uv] = RiteSSA::Reg.new(nil)
             end
 
             (anum - m1 - o).times do |i|
               nreg = type.element[i] || RiteSSA::Reg.new(nil)
               if ele[m1 + o +  i] then
                 nreg.add_same ele[m1 + o +  i]
+                type.element[uv].add_same  ele[m1 + o +  i]
               else
-                nreg.add_same ele[ContainerType::UNDEF_VALUE]
+                nreg.add_same ele[uv]
+                type.element[uv].add_same  ele[uv]
               end
               nreg.flush_type_alltup(tup)
               type.element[i] = nreg
             end
+            type.element[uv].flush_type(tup)
 
             inst.outreg[m1 + o].add_type(type, tup)
           end
@@ -376,14 +380,17 @@ module MTypeInf
           type = inst.objcache[tup]
           if !type then
             inst.objcache[tup] = type = ContainerType.new(Array)
+            type.element[uv] = RiteSSA::Reg.new(nil)
           end
 
           (argc - m1 - o).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(nil)
             nreg.add_same argv[m1 + o +  i]
+            type.element[uv].add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
             type.element[i] = nreg
           end
+          type.element[uv].flush_type(tup)
 
           inst.outreg[m1 + o].type[tup] = [type]
           inst.outreg[m1 + o + 1].add_same inreg[argc]

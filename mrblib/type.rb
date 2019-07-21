@@ -135,8 +135,11 @@ module MTypeInf
         when :return
           @escape_cache = is_gcobject?
 
-        when ProcType,
-          UserDefinedType,
+        when ProcType
+          # for debug ProcType is independing.
+          @escape_cache = e.is_escape?
+
+        when UserDefinedType,
           ContainerType
           @escape_cache = e.is_escape?
 
