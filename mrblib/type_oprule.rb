@@ -301,6 +301,7 @@ module MTypeInf
       r = (ax >> 12) & 0x1
       m2 = (ax >> 7) & 0x1f
       inreg = inst.inreg.clone
+      uv = ContainerType::UNDEF_VALUE
 
       argc = infer.callstack[-1][2]
       len = m1 + o + r + m2

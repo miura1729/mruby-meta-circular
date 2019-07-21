@@ -328,7 +328,7 @@ module CodeGenC
             ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
           else
             asiz = inst.outreg[0].type[tup][0].element.size
-            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{asiz});\n"
+            ccgen.pcode << "v#{oreg.id} = alloca(#{asiz});\n"
           end
           ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
@@ -448,7 +448,11 @@ module CodeGenC
           nilobj = MTypeInf::PrimitiveType.new(NilClass)
           ivtypes = [nilobj]
           clsssa.iv.each do |nm, reg|
-            ivtypes.push reg.flush_type(tup)[tup]
+            val = reg.flush_type(tup)[tup]
+            if !val then
+              val = reg.flush_type_alltup(tup)[tup]
+            end
+            ivtypes.push val
           end
           ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
           clsssa.iv.each do |nm, reg|

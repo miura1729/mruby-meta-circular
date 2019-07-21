@@ -87,7 +87,9 @@ module CodeGenC
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
         ccgen.pcode << "v#{dst.id} = #{src};\n"
       else
-        ccgen.pcode << " v#{dst.id} = self->v#{src.id};\n"
+        src = "self->v#{src.id}"
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        ccgen.pcode << " v#{dst.id} = #{src};\n"
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
@@ -98,14 +100,16 @@ module CodeGenC
       dstt = get_ctype(ccgen, dst, tup, infer)
       slf = inst.inreg[1]
       valr = inst.inreg[0]
-      val = reg_real_value(ccgen, valr, dst, node, tup, infer, history)
+      valt = get_ctype(ccgen, valr, tup, infer)
+      val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
       if slf.is_escape?(tup) then
-        val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
+        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
 #        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{dst.genpoint}] = #{val};\n"
         ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(self), #{val});\n"
       else
-        ccgen.pcode << "self->v#{dst.id} = #{val};\n"
+        val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history)
+        ccgen.pcode << "self->v#{dst.id} = #{val}; /* #{valt} -> #{dstt} */\n"
       end
       nil
     end
