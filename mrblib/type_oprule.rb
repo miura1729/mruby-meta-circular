@@ -718,7 +718,7 @@ module MTypeInf
       end
       inst.outreg[0].add_type pty, tup
       if cproc then
-        cproc.place[pty] = :LAMBDA
+        cproc.place[pty] = [:LAMBDA, "#{inst.filename}##{inst.line}"]
       end
 
       nil
