@@ -449,7 +449,7 @@ module MTypeInf
 
       reccls = intype[0][0].class_object
       supcls = reccls.superclass
-      rect = UserDefinedType.new(supcls)
+      rect = UserDefinedType.new(supcls, inst)
       recreg = RiteSSA::Reg.new(nil)
       recreg.add_type rect, tup
       oreg = inst.outreg[0]

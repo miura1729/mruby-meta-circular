@@ -460,7 +460,8 @@ module CodeGenC
               reg.type[ivtup] = reg.type[tup].map {|e| e}
             end
           end
-          clsid = ccgen.using_class[clsssa][ivtup] ||= "cls#{clsssa.id}_#{ivtup}"
+          clsid = "cls#{clsssa.id}_#{ivtup}"
+          ccgen.using_class[clsssa][ivtup] ||= [oreg.type[tup][0], clsid]
           ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"
           csize = ccgen.gcobject_size
           i = 0
@@ -468,7 +469,11 @@ module CodeGenC
             if !reg.type.values[0][0].is_gcobject? then
               next
             end
-            code = "v#{oreg.id}->v#{reg.id} = mrb_nil_value();\n"
+            if reg.is_escape?(ivtup) then
+              code = "v#{oreg.id}->v#{reg.id} = mrb_nil_value();\n"
+            else
+              code = "v#{oreg.id}->v#{reg.id} = NULL;\n"
+            end
             code << "gctab->object[#{csize + i}] = &v#{oreg.id}->v#{reg.id};"
             code <<  "/* #{name} */\n"
             ccgen.pcode << code

@@ -4,6 +4,7 @@ module MTypeInf
     @@place = {}
     def initialize(co, *rest)
       @class_object = co
+      @hometown = nil
 #      @@place[@class_object] = {}
       @place = {}
       @escape_cache = false
@@ -20,6 +21,7 @@ module MTypeInf
     end
 
     attr :class_object
+    attr :hometown
 
     def place
 #      @@place[@class_object]
@@ -117,7 +119,7 @@ module MTypeInf
       inspect_aux({}, level)
     end
 
-    def is_escape?
+    def is_escape?(strobj = true)
       if !is_gcobject? then
         return false
       end
@@ -133,15 +135,37 @@ module MTypeInf
       plist.any? {|e, val|
         case e
         when :return
-          @escape_cache = is_gcobject?
+          if strobj == true then
+            @escape_cache = is_gcobject?
+          elsif val[strobj.hometown] then
+            @escape_cache = is_gcobject?
+          else
+            false
+          end
 
         when ProcType
           # for debug ProcType is independing.
           @escape_cache = e.is_escape?
 
-        when UserDefinedType,
-          ContainerType
+        when UserDefinedType
+          if strobj == true or strobj.class_object == e.class_object then
+            @escape_cache = e.is_escape?
+
+          else
+            p plist
+            p strobj
+            false
+          end
+
+        when ContainerType
           @escape_cache = e.is_escape?
+
+        when :returniv
+          if strobj == true or strobj.class_object == val[0].class_object then
+            @escape_cache = true
+          else
+            false
+          end
 
         else
           # true ... etc
@@ -413,8 +437,9 @@ module MTypeInf
   class UserDefinedType<BasicType
     @@class_tab = {}
 
-    def initialize(co, *rest)
+    def initialize(co, ht, *rest)
       super
+      @hometown = ht
     end
 
     def is_gcobject?
@@ -424,6 +449,7 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
+#        @hometown == other.hometown &&
         is_escape? == other.is_escape?
     end
   end

@@ -547,7 +547,7 @@ module CodeGenC
       String => :string
     }
 
-    def self.get_ctype_aux(ccgen, reg, tup, infer, escheck = true)
+    def self.get_ctype_aux(ccgen, reg, tup, infer, strobj = true)
       rtype = reg.type[tup]
       if !rtype then
         p tup
@@ -560,7 +560,7 @@ module CodeGenC
         end
       end
 
-      if escheck and reg.is_escape?(tup) then
+      if strobj and reg.is_escape?(tup, strobj) then
         return :mrb_value
       end
 
@@ -598,7 +598,7 @@ module CodeGenC
               reg.type[ivtup] = reg.type[tup].dup
             end
           end
-          ccgen.using_class[clsssa][ivtup] = "cls#{clsssa.id}_#{ivtup}"
+          ccgen.using_class[clsssa][ivtup] = [rtype[0], "cls#{clsssa.id}_#{ivtup}"]
         end
         if clsssa and clsssa.id != 0 then
           "struct cls#{clsssa.id}_#{ivtup} *"
@@ -617,7 +617,7 @@ module CodeGenC
             clsssa =  RiteSSA::ClassSSA.get_instance(cls)
             ccgen.using_class[clsssa] ||= {}
             ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
-            ccgen.using_class[clsssa][ivtup] ||= "cls#{clsssa.id}_#{ivtup}"
+            ccgen.using_class[clsssa][ivtup] ||= [e, "cls#{clsssa.id}_#{ivtup}"]
           end
         end
 
@@ -625,11 +625,11 @@ module CodeGenC
       end
     end
 
-    def self.get_ctype(ccgen, reg, tup, infer, escheck = true)
-      type = get_ctype_aux(ccgen, reg, tup, infer, escheck)
+    def self.get_ctype(ccgen, reg, tup, infer, strobj = true)
+      type = get_ctype_aux(ccgen, reg, tup, infer, strobj)
       case type
       when :array
-        if escheck and !reg.is_escape?(tup) then
+        if strobj and !reg.is_escape?(tup, strobj) then
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           tys = reg.type[tup]
           if !tys then
@@ -643,7 +643,7 @@ module CodeGenC
           if ereg.type[etup] == nil then
             etup = ereg.type.keys[0]
           end
-          rc = get_ctype_aux(ccgen, ereg, etup, infer, escheck)
+          rc = get_ctype_aux(ccgen, ereg, etup, infer, strobj)
           if rc == :array then
             :mrb_value
           else
@@ -654,7 +654,7 @@ module CodeGenC
         end
 
       when :string
-        if escheck and !reg.is_escape?(tup) then
+        if strobj and !reg.is_escape?(tup, strobj) then
           "char *"
         else
           :mrb_value
@@ -673,12 +673,17 @@ module CodeGenC
         [:gproc, reg.type[tup][0].id]
 
       else
+#        if reg.type[tup]
+#          p reg.type[tup][0].class_object
+#        else
+#          p "Unnown #{type}"
+#        end
         type
       end
     end
 
-    def self.gen_declare(ccgen, reg, tup, infer)
-      type = get_ctype_aux(ccgen, reg, tup, infer)
+    def self.gen_declare(ccgen, reg, tup, infer, strobj = true)
+      type = get_ctype_aux(ccgen, reg, tup, infer, strobj)
       if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else
@@ -693,7 +698,7 @@ module CodeGenC
         if ereg.type[tup] == nil then
           etup = ereg.type.keys[0]
         end
-        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        etype = get_ctype_aux(ccgen, ereg, etup, infer, strobj)
         "#{etype} *#{regnm}"
 
       when :nil

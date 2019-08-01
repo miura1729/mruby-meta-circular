@@ -169,11 +169,13 @@ EOS
         end
 
         @using_class.each do |clsssa, tupid|
-          tupid.each do |tup, id|
+          tupid.each do |tup, val|
+            strobj = val[0]
+            id = val[1]
             if !@defined_class[id] then
               @scode << "struct #{id} {\n"
               clsssa.iv.each do |name, reg|
-                @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)}; /* #{name} */\n"
+                @scode << "#{CodeGen::gen_declare(self, reg, tup, ti, strobj)}; /* #{name} */\n"
                 # @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
               end
               @scode << "};\n"

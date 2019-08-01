@@ -281,10 +281,27 @@ module MTypeInf
           rreg.genpoint.op == :ENTER
         }
 
+        ivvar = rets.all? {|rins|
+          rreg = rins.inreg[0]
+
+          if rreg.genpoint.is_a?(RiteSSA::Inst) then
+            rreg.genpoint.op == :GETIV
+          else
+            false
+          end
+        }
+
         if !noesc then
           saairep.retreg.type.each do |tup, types|
             types.each do |ty|
-              ty.place[:return] = saairep.nodes[0].ext_iseq[0].line
+              if ivvar then
+                ty.place[:returniv] = [intype[0][0],
+                  saairep.nodes[0].ext_iseq[0].line]
+              else
+                ty.place[:return] ||= {}
+#                ty.place[:return].push saairep.nodes[0].ext_iseq[0].line
+                ty.place[:return][ty.hometown] = saairep.nodes[0].ext_iseq[0].line
+              end
             end
           end
         end

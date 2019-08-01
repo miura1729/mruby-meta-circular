@@ -247,7 +247,7 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          ty.place[arrtypes[0]] = true
+          ty.place[arrtypes[0]] = [:[]=]
         end
       end
       nil
@@ -533,7 +533,7 @@ module MTypeInf
           if  cls then
             type = cls.new(ntype)
           else
-            type = UserDefinedType.new(ntype)
+            type = UserDefinedType.new(ntype, inst)
           end
           intype[0] = [type]
 
