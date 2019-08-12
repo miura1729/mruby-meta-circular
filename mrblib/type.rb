@@ -7,7 +7,7 @@ module MTypeInf
       @hometown = nil
 #      @@place[@class_object] = {}
       @place = {}
-      @escape_cache = false
+      @escape_cache = nil
     end
 
     def ==(other)
@@ -38,7 +38,7 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
-          #ele.place.merge!(place)
+          ele.place.merge!(place)
           place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
@@ -119,57 +119,46 @@ module MTypeInf
       inspect_aux({}, level)
     end
 
-    def is_escape?(strobj = true)
+    def is_escape?(hist = {})
       if !is_gcobject? then
         return false
       end
 
       if @escape_cache then
-        return true
+        return @escape_cache
       end
-      plist = @place
+
+      if hist[self] then
+        return false
+      end
+      hist[self] = true
+
+      plist = place
       if plist.size == 0 then
         return false
       end
 
-      plist.any? {|e, val|
+      @escape_cache = plist.any? {|e, val|
         case e
         when :return
-          if strobj == true then
-            @escape_cache = is_gcobject?
-          elsif val[strobj.hometown] then
-            @escape_cache = is_gcobject?
-          else
-            false
-          end
+          true
 
         when ProcType
           # for debug ProcType is independing.
-          @escape_cache = e.is_escape?
+          e.is_escape?(hist)
 
         when UserDefinedType
-          if strobj == true or strobj.class_object == e.class_object then
-            @escape_cache = e.is_escape?
-
-          else
-            p plist
-            p strobj
-            false
-          end
+          e.is_escape?(hist)
 
         when ContainerType
-          @escape_cache = e.is_escape?
+          e.is_escape?(hist)
 
         when :returniv
-          if strobj == true or strobj.class_object == val[0].class_object then
-            @escape_cache = true
-          else
-            false
-          end
+            true
 
         else
           # true ... etc
-          @escape_cache = true
+          true
         end
       }
     end
@@ -273,10 +262,6 @@ module MTypeInf
       reg = RiteSSA::Reg.new(nil)
       @key = reg
       @place = {}
-    end
-
-    def place
-      @place
     end
 
     def ==(other)
@@ -436,20 +421,26 @@ module MTypeInf
 
   class UserDefinedType<BasicType
     @@class_tab = {}
+    @@place = {}
 
     def initialize(co, ht, *rest)
       super
       @hometown = ht
+      @@place[ht] ||= {}
     end
 
     def is_gcobject?
       true
     end
 
+    def place
+      @@place[@hometown]
+    end
+
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
-#        @hometown == other.hometown &&
+        @hometown == other.hometown &&
         is_escape? == other.is_escape?
     end
   end

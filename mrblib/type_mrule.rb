@@ -530,7 +530,7 @@ module MTypeInf
           ntype = rtype.val
           cls = TypeSource[ntype]
           type = nil
-          if  cls then
+          if cls then
             type = cls.new(ntype)
           else
             type = UserDefinedType.new(ntype, inst)

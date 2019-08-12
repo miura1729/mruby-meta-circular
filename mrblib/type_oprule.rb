@@ -90,7 +90,7 @@ module MTypeInf
         p inst.inreg[0].positive_list
         p tup
         p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
-#        p inst.inreg[0].type[tup].map {|ty| ty.place}
+        p inst.inreg[0].type[tup].map {|ty| ty.place}
       end
       nil
     end

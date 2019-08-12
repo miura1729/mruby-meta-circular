@@ -170,12 +170,11 @@ EOS
 
         @using_class.each do |clsssa, tupid|
           tupid.each do |tup, val|
-            strobj = val[0]
-            id = val[1]
+            id = val
             if !@defined_class[id] then
               @scode << "struct #{id} {\n"
               clsssa.iv.each do |name, reg|
-                @scode << "#{CodeGen::gen_declare(self, reg, tup, ti, strobj)}; /* #{name} */\n"
+                @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)}; /* #{name} */\n"
                 # @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
               end
               @scode << "};\n"
@@ -416,7 +415,6 @@ EOS
       elsif history[node.exit_link[0]] then
         @pcode << "goto L#{node.exit_link[0].id};\n"
       end
-
 
       nxnode = rc ? rc[1] : node.exit_link
       nxnode.each do |nd|

@@ -50,12 +50,11 @@ module MTypeInf
 
     def get_tupple_id(types, proc, tup)
       node = @table
-      types = types.dup
       types = types.map {|nty|
         if nty.is_a?(Array) then
-          nty.clone
+          nty.map {|e| e.dup}
         else
-          nty
+          nty.dup
         end
       }
 

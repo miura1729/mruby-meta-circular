@@ -461,7 +461,7 @@ module CodeGenC
             end
           end
           clsid = "cls#{clsssa.id}_#{ivtup}"
-          ccgen.using_class[clsssa][ivtup] ||= [oreg.type[tup][0], clsid]
+          ccgen.using_class[clsssa][ivtup] ||= clsid
           ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"
           csize = ccgen.gcobject_size
           i = 0
@@ -484,7 +484,9 @@ module CodeGenC
         end
 
         inreg[0] = oreg
-        op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
+        op_send_initialize(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
+        # op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
+
         if oreg.is_escape?(tup) then
           ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
         end

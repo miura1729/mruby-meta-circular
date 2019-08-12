@@ -140,7 +140,7 @@ module RiteSSA
       filter_type(types)
     end
 
-    def is_escape?(tup, strobj = true)
+    def is_escape?(tup)
       if tup then
         # dirty hack (not proff)
         unless @type[tup]
@@ -152,7 +152,7 @@ module RiteSSA
         end
 
         @type[tup].each do |ty|
-          if ty.is_escape?(strobj) then
+          if ty.is_escape? then
             return true
           end
         end
