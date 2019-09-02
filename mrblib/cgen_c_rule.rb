@@ -63,8 +63,9 @@ module CodeGenC
       prevsize = ccgen.prev_gcsingle.size
       (pos + num).times do |i|
         r = regs[i]
-        if r.type[tup] and r.type[tup][0].is_gcobject? and
-            !r.is_escape?(tup) then
+        if r == nil or
+            (r.type[tup] and r.type[tup][0].is_gcobject? and
+            !r.is_escape?(tup)) then
 #          cls0 = r.type[tup][0].class_object
 #          clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
 #          name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]

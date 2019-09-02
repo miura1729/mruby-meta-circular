@@ -58,6 +58,14 @@ module RiteSSA
         @type[tup] = [nty]
         return nil
       end
+      if nty.is_a?(MTypeInf::UserDefinedType) then
+        clsssa = ClassSSA::get_instance(nty.class_object)
+        clsssa.iv.each do |nm, reg|
+          if !reg.type[tup] then
+            reg.flush_type_alltup(tup)
+          end
+        end
+      end
       nty.merge(type)
     end
 

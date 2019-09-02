@@ -38,7 +38,7 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
-          ele.place.merge!(place)
+          #ele.place.merge!(place)
           place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
@@ -154,7 +154,7 @@ module MTypeInf
           e.is_escape?(hist)
 
         when :returniv
-            true
+          val[0].is_escape?(hist)
 
         else
           # true ... etc
@@ -215,6 +215,12 @@ module MTypeInf
         is_escape? == other.is_escape?
     end
 
+    def type_equal(other, tup)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        is_escape? == other.is_escape?
+    end
+
     def inspect_aux(hist, level)
       case  @val
       when NilClass, TrueClass, FalseClass
@@ -271,14 +277,6 @@ module MTypeInf
         @element == other.element &&
         is_escape? == other.is_escape?
 #      equal?(other)# && is_escape? == other.is_escape?
-    end
-
-    def type_equal(other, tup)
-      if self.class != other.class ||
-          @class_object != other.class_object then
-        return false
-      end
-      return other.element[UNDEF_VALUE] == @element[nil]
     end
 
     def inspect_aux(hist, level)
@@ -420,27 +418,47 @@ module MTypeInf
   end
 
   class UserDefinedType<BasicType
-    @@class_tab = {}
-    @@place = {}
+    @@instances = []
+    # @@place = {}
 
     def initialize(co, ht, *rest)
       super
       @hometown = ht
-      @@place[ht] ||= {}
+      #@@place[ht] ||= {}
+      @place = {}
+#      @@instances.push self
     end
+
+#    def initialize_copy(obj)
+#      @@instances.push self
+#    end
+
+#    def self.reset_hometown
+#      @@instances.each do |ins|
+#        ins.hometown = nil
+#      end
+#    end
 
     def is_gcobject?
       true
     end
 
     def place
-      @@place[@hometown]
+      # @@place[@hometown]
+      @place
     end
 
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
+        is_escape? == other.is_escape?
+    end
+
+    def type_equal(other, tup)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+#        @hometown == other.hometown &&
         is_escape? == other.is_escape?
     end
   end

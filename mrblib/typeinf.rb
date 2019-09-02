@@ -40,7 +40,7 @@ module MTypeInf
       end
 
       t1.size.times do |i|
-        if t1[i] != t2[i] or !t1[i].type_equal(t2[i], tup) then
+        if !t1[i].type_equal(t2[i], tup) then
           return false
         end
       end
@@ -48,7 +48,7 @@ module MTypeInf
       return true
     end
 
-    def get_tupple_id(types, proc, tup)
+    def get_tupple_id(types, proc, tup, ext = false)
       node = @table
       types = types.map {|nty|
         if nty.is_a?(Array) then
@@ -60,9 +60,19 @@ module MTypeInf
 
       types.push proc
       types.push nil
+
       types.each_with_index do |ty, i|
-#        cn = node.find {|te| cmp_types(te[0], ty, tup)}
-        cn = node.find {|te| te[0] == ty}
+        if ext then
+          cn = node.find {|te|
+            te[0] == ty
+          }
+        else
+          cn = node.find {|te|
+            cmp_types(te[0], ty, tup)
+          }
+        end
+
+        #        cn = node.find {|te| te[0] == ty}
         if cn.nil? then
           onn = nn = []
           types[i..-1].each do |nty|
@@ -255,6 +265,10 @@ module MTypeInf
 
       # Update escape info
       intype.each_with_index do |tys, i|
+#        if i > saairep.irep.nlocals + 1 then
+        if i > saairep.irep.nlocals then
+          break
+        end
         if tys then
           tys.each do |ty|
             saairep.nodes[0].enter_reg[i].type[tup].each do |oty|
@@ -309,6 +323,10 @@ module MTypeInf
 
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
+#        if i > node.irep.nlocals + 1 then
+        if i > node.irep.nlocals then
+          break
+        end
         if ireg then
           if !node.enter_reg[i] then
             node.enter_reg[i] = RiteSSA::ParmReg.new(i)
@@ -338,6 +356,10 @@ module MTypeInf
 
       # Update escape info
       in_reg.each_with_index do |reg, i|
+#        if i > node.irep.nlocals + 1 then
+        if i > node.irep.nlocals then
+          break
+        end
         if reg then
           tys = reg.type[tup]
           if tys then

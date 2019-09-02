@@ -107,7 +107,9 @@ module MTypeInf
       slfcls = slf.flush_type(tup)[tup][0].class_object
       inreg = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
 
-      inreg.flush_type_alltup(tup)
+      if inreg.flush_type(tup).size == 0 then
+        inreg.flush_type_alltup(tup)
+      end
       inst.outreg[0].add_same(inreg)
       #p inst.para[0]
       nil
