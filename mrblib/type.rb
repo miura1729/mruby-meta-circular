@@ -1,11 +1,9 @@
 module MTypeInf
   class BasicType
     UNDEF_VALUE = [:undef]
-    @@place = {}
     def initialize(co, *rest)
       @class_object = co
       @hometown = nil
-#      @@place[@class_object] = {}
       @place = {}
       @escape_cache = nil
     end
@@ -22,11 +20,7 @@ module MTypeInf
 
     attr :class_object
     attr_accessor :hometown
-
-    def place
-#      @@place[@class_object]
-      @place
-    end
+    attr_accessor :place
 
     def merge(arr)
       clsobj = @class_object
@@ -38,8 +32,6 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
-          #ele.place.merge!(place)
-          place.merge!(ele.place)
           if ele.class_object == clsobj then
             if ele.is_a?(primobj) then
               return false
@@ -268,7 +260,6 @@ module MTypeInf
       @element[UNDEF_VALUE] = reg
       reg = RiteSSA::Reg.new(nil)
       @key = reg
-      @place = {}
     end
 
     def ==(other)
@@ -420,13 +411,10 @@ module MTypeInf
 
   class UserDefinedType<BasicType
     @@instances = []
-    # @@place = {}
 
     def initialize(co, ht, *rest)
       super
       @hometown = ht
-      #@@place[ht] ||= {}
-      @place = {}
 #      @@instances.push self
     end
 
@@ -442,11 +430,6 @@ module MTypeInf
 
     def is_gcobject?
       true
-    end
-
-    def place
-      # @@place[@hometown]
-      @place
     end
 
     def ==(other)

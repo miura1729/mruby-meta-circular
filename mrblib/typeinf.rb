@@ -52,9 +52,11 @@ module MTypeInf
       node = @table
       types = types.map {|nty|
         if nty.is_a?(Array) then
-          nty.map {|e| e.dup}
+          nty.map {|e| e = e.dup; e.place = e.place.dup; e}
         else
-          nty.dup
+          nty = nty.dup
+          nty.place = nty.place.dup
+          nty
         end
       }
 

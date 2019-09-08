@@ -303,6 +303,7 @@ EOS
         end
         args << CodeGen::gen_declare(self, ereg, tup, ti)
       end
+
       rettype = CodeGen::get_ctype(self, block.retreg, tup, ti)
       if rettype.is_a?(Array) then
         case rettype[0]
