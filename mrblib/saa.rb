@@ -272,6 +272,7 @@ module RiteSSA
     attr :enter_reg
     attr_accessor :exit_reg
     attr :id
+    attr :irep
 
     def get_export_reg(reps, level)
       exres = []
@@ -299,7 +300,7 @@ module RiteSSA
     end
 
     def make_ext_iseq
-      @enter_reg = regtab.clone
+      @enter_reg = regtab.dup
       @ext_iseq = []
       pc = @pos
 
@@ -888,7 +889,7 @@ module RiteSSA
       regtab.each do |reg|
         reg.refpoint.push inst
       end
-      @exit_reg = regtab.clone
+      @exit_reg = regtab.dup
     end
 
     def regtab

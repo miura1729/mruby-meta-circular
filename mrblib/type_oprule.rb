@@ -133,7 +133,12 @@ module MTypeInf
       if types then
         types.each do |ty|
           if ty then
-            ty.place[slftype] = [:SETIV, inst.line]
+            if infer.callstack[-2] and
+                infer.callstack[-2][0].irep == slftype.hometown.irep then
+              ty.place[slftype] = [:SETIV, inst.line]
+            else
+              ty.place[true] = [:SETIV, inst.line]
+            end
           end
         end
       end

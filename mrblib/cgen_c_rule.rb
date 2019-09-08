@@ -112,9 +112,10 @@ module CodeGenC
     end
 
     def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
-      intype = inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-      intype[0] = [intype[0][0]]
+      intype = inreg.map {|reg| reg.type[tup] || []}
+#      intype[0] = [intype[0][0]]
       if !intype[0][0]
+        p name
         p tup
         p inreg[0].type
         p intype
@@ -641,14 +642,14 @@ module CodeGenC
           end
           ivtypes.push val
         end
-        ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
+        ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
         if !ccgen.using_class[clsssa][ivtup] then
           clsssa.iv.each do |nm, reg|
             if reg.type[tup] then
               reg.type[ivtup] = reg.type[tup].dup
             end
           end
-          ccgen.using_class[clsssa][ivtup] = "cls#{clsssa.id}_#{ivtup}"
+          ccgen.using_class[clsssa][ivtup] = ["cls#{clsssa.id}_#{ivtup}", rtype[0].hometown]
         end
         if clsssa and clsssa.id != 0 then
           "struct cls#{clsssa.id}_#{ivtup} *"
@@ -666,8 +667,8 @@ module CodeGenC
             cls = e.class_object
             clsssa =  RiteSSA::ClassSSA.get_instance(cls)
             ccgen.using_class[clsssa] ||= {}
-            ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
-            ccgen.using_class[clsssa][ivtup] ||= "cls#{clsssa.id}_#{ivtup}"
+            ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
+            ccgen.using_class[clsssa][ivtup] ||= ["cls#{clsssa.id}_#{ivtup}", ety.hometown]
           end
         end
 

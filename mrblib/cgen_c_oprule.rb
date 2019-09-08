@@ -63,6 +63,17 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :SETGLOBAL do |ccgen, inst, node, infer, history, tup|
+      p "FOO"
+      p tup
+      p infer.typetupletab.rev_table[tup]
+      p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
+      inst.inreg[0].type.each do |tp, tys|
+        p "#{tp} #{tys.map {|ty| ty.place}}"
+      end
+      nil
+    end
+
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
       val = inst.outreg[0].type[tup][0].val
 

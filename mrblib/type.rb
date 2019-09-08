@@ -21,7 +21,7 @@ module MTypeInf
     end
 
     attr :class_object
-    attr :hometown
+    attr_accessor :hometown
 
     def place
 #      @@place[@class_object]
@@ -218,6 +218,7 @@ module MTypeInf
     def type_equal(other, tup)
       self.class == other.class &&
         @class_object == other.class_object &&
+        @val == other.val &&
         is_escape? == other.is_escape?
     end
 

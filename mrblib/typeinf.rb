@@ -200,8 +200,8 @@ module MTypeInf
       bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil)
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
-      # @step += 1
-      #inference_block(saairep, intype, tup, 2, nil)
+       @step += 1
+      inference_block(saairep, intype, tup, 2, bproc)
       bproc
     end
 
