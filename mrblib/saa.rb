@@ -53,6 +53,16 @@ module RiteSSA
     end
 
     def add_type(nty, tup)
+      rc = add_type_noplace(nty, tup)
+      @type[tup].each do |ele|
+        #ele.place.merge!(place)
+        nty.place.merge!(ele.place)
+      end
+      rc
+    end
+
+
+    def add_type_noplace(nty, tup)
       type = @type[tup]
       if type.nil? then
         @type[tup] = [nty]

@@ -224,7 +224,8 @@ module CodeGenC
 
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      elereg = inst.inreg[0].type[tup][0].element[uv]
+      eele = inst.inreg[0].type[tup][0].element
+      elereg = eele[uv]
       nreg = inst.outreg[0]
       aryreg = inst.inreg[0]
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
@@ -308,14 +309,17 @@ module CodeGenC
     alias_ccgen_rule_method :size, :length, Array
 
     define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
-      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      #recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      recvtypes = inst.inreg[0].flush_type(tup)[tup]
       argc = inst.para[1]
       oreg = inst.outreg[0]
+      otype = oreg.type[tup][0]
       initsize = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
 
-      if recvtypes.size == 1 then
+      if recvtypes.size == 1 and inst.outreg[0].type[tup][0].immidiate_only then
         uv = MTypeInf::ContainerType::UNDEF_VALUE
-        ereg = inst.outreg[0].type[tup][0].element[uv]
+        eele = inst.outreg[0].type[tup][0].element
+        ereg = eele[uv]
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
@@ -338,7 +342,19 @@ module CodeGenC
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
-          ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
+          if otype.place.keys.any? {|e|
+              e.is_a?(MTypeInf::UserDefinedType) or
+              e == :return_fst or
+              (e.is_a?(MTypeInf::ContainerType) and
+                e.place.keys.any? {|e1|
+                  e1.is_a?(MTypeInf::UserDefinedType) or
+                  e1 == :return_fst
+                })
+            } then
+            ccgen.pcode << "v#{oreg.id} = malloc(sizeof(#{etype}) * #{initsize + 1});\n"
+          else
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
+          end
           if etype == :mrb_value then
             ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) v#{oreg.id}[i] = mrb_nil_value();\n"
             ccgen.pcode << "v#{oreg.id}[#{initsize}].value.ttt = MRB_TT_FREE;\n"
@@ -422,11 +438,13 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :new, Class do |ccgen, inst, node, infer, history, tup|
-      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+#      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+      recvtypes = inst.inreg[0].flush_type(tup)[tup]
       argc = inst.para[1]
       inreg = inst.inreg.clone
       oreg = inst.outreg[0]
-      clsssa = RiteSSA::ClassSSA.get_instance(oreg.type[tup][0].class_object)
+      otype = oreg.type[tup][0]
+      clsssa = RiteSSA::ClassSSA.get_instance(otype.class_object)
 
       if recvtypes.size == 1 then
         recvt = recvtypes[0].class_object
@@ -456,9 +474,21 @@ module CodeGenC
               reg.type[ivtup] = reg.type[tup].map {|e| e}
             end
           end
-          clsid = "cls#{clsssa.id}_#{ivtup}"
+          clsid = ["cls#{clsssa.id}_#{ivtup}", otype.hometown]
           ccgen.using_class[clsssa][ivtup] ||= clsid
-          ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid}));\n"
+          if otype.place.keys.any? {|e|
+              e.is_a?(MTypeInf::UserDefinedType) or
+              e == :return_fst or
+              (e.is_a?(MTypeInf::ContainerType) and
+                e.place.keys.any? {|e1|
+                  e1.is_a?(MTypeInf::UserDefinedType) or
+                  e1 == :return_fst
+                })
+            } then
+            ccgen.pcode << "v#{oreg.id} = malloc(sizeof(struct #{clsid[0]}));\n"
+          else
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid[0]}));\n"
+          end
           csize = ccgen.gcobject_size
           i = 0
           clsssa.iv.each do |name, reg|

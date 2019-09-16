@@ -689,7 +689,8 @@ module CodeGenC
               return :mrb_value
             end
           end
-          ereg = tys[0].element[uv]
+          eele = tys[0].element
+          ereg = eele[uv]
           etup = tup
           if ereg.type[etup] == nil then
             etup = ereg.type.keys[0]

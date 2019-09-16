@@ -122,7 +122,7 @@ module MTypeInf
                   inst.outreg[0].add_same altele
                   altele.flush_type_alltup(tup)
                 else
-#                  arrele[no].flush_type_alltup(tup)
+                  arrele[no].flush_type_alltup(tup)
                   inst.outreg[0].add_same arrele[no]
                 end
                 inst.outreg[0].flush_type_alltup(tup, false)
@@ -234,6 +234,7 @@ module MTypeInf
 #                  reg.flush_type_alltup(tup)
                   reg.flush_type(tup)
                 end
+                arrt.immidiate_only = false
                 inst.outreg[0].add_same valreg
 
               else
@@ -247,7 +248,12 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          ty.place[arrtypes[0]] = [:[]=]
+          if infer.callstack[-2] and
+              infer.callstack[-2][0].irep == arrtypes[0].hometown.irep then
+            ty.place[arrtypes[0]] = [:[]=]
+          else
+            ty.place[true] = [:[]=]
+          end
         end
       end
       nil
@@ -530,8 +536,12 @@ module MTypeInf
           ntype = rtype.val
           cls = TypeSource[ntype]
           type = nil
-          if cls then
+          if cls == ContainerType then
+            type = cls.new(ntype, inst)
+
+          elsif cls then
             type = cls.new(ntype)
+
           else
             type = UserDefinedType.new(ntype, inst)
           end
@@ -542,7 +552,7 @@ module MTypeInf
             dmyreg.add_type type, tup
             dmyoreg = RiteSSA::Reg.new(nil)
             rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, inst.para[1], nil)
-            #          rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
+            # rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
           end
 
           inst.outreg[0].add_type type, tup
@@ -722,7 +732,7 @@ module MTypeInf
 
     define_inf_rule_method :keys, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      ra = ContainerType.new(Array)
+      ra = ContainerType.new(Array, inst)
       raele = ra.element
       raele[0] ||= RiteSSA::Reg.new(nil)
 
@@ -739,7 +749,7 @@ module MTypeInf
 
     define_inf_rule_method :values, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      ra = ContainerType.new(Array)
+      ra = ContainerType.new(Array, inst)
       raele = ra.element
 
       hashtypes.each do |hasht|

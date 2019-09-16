@@ -170,7 +170,8 @@ EOS
 
         @using_class.each do |clsssa, tupid|
           tupid.each do |tup, val|
-            id = val
+            id = val[0]
+            hometown = val[1]
             if !@defined_class[id] then
               @scode << "struct #{id} {\n"
               clsssa.iv.each do |name, reg|

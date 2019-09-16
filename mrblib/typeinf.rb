@@ -109,6 +109,7 @@ module MTypeInf
       @step = 1
       @exception = []
       @fiber = nil
+      @allocate_object = []
     end
 
     attr :option
@@ -313,9 +314,14 @@ module MTypeInf
                 ty.place[:returniv] = [intype[0][0],
                   saairep.nodes[0].ext_iseq[0].line]
               else
-                ty.place[:return] ||= {}
-#                ty.place[:return].push saairep.nodes[0].ext_iseq[0].line
-                ty.place[:return][ty.hometown] = saairep.nodes[0].ext_iseq[0].line
+                cpos = saairep.nodes[0].ext_iseq[0].line
+                if ty.hometown and saairep.irep == ty.hometown.irep then
+                  ty.place[:return_fst] ||= {}
+                  ty.place[:return_fst][ty.hometown] = cpos
+                else
+                  ty.place[:return] ||= {}
+                  ty.place[:return][ty.hometown] = cpos
+                end
               end
             end
           end

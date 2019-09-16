@@ -135,6 +135,9 @@ module MTypeInf
         when :return
           true
 
+        when :return_fst
+          false
+
         when ProcType
           # for debug ProcType is independing.
           e.is_escape?(hist)
@@ -147,6 +150,7 @@ module MTypeInf
 
         when :returniv
           val[0].is_escape?(hist)
+          #true
 
         else
           # true ... etc
@@ -252,14 +256,16 @@ module MTypeInf
   end
 
   class ContainerType<BasicType
-    def initialize(co, *rest)
+    def initialize(co, ht, *rest)
       super
       @element = {}
+      @hometown = ht
       reg = RiteSSA::Reg.new(nil)
 #      reg.add_type PrimitiveType.new(NilClass, nil), 0
       @element[UNDEF_VALUE] = reg
       reg = RiteSSA::Reg.new(nil)
       @key = reg
+      @immidiate_only = true
     end
 
     def ==(other)
@@ -303,6 +309,7 @@ module MTypeInf
 
     attr :element
     attr :key
+    attr_accessor :immidiate_only
   end
 
   class ProcType<BasicType
@@ -462,6 +469,10 @@ module MTypeInf
   }
   TypeTable = {}
   TypeSource.each do |ty, cl|
-    TypeTable[ty] = cl.new(ty)
+    if cl == ContainerType then
+      TypeTable[ty] = cl.new(ty, nil)
+    else
+      TypeTable[ty] = cl.new(ty)
+    end
   end
 end
