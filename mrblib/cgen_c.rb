@@ -378,12 +378,12 @@ EOS
       @pcode << "L#{node.id}:; \n"
       rc = nil
       node.ext_iseq.each do |ins|
-        #p ins.op # for debug
+#         p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
 #        rescue NoMethodError => e
         rescue  Object => e
-#          p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para}"
+          p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para}"
 #          p "#{ti.typetupletab.rev_table[tup]} (#{tup})"
           raise e
         end

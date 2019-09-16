@@ -78,7 +78,7 @@ module MTypeInf
       # update place infomation
       if types then
         types.each do |ty|
-          ty.place[true] = :GETGLOBAL
+#          ty.place[true] = :GETGLOBAL
         end
       end
       if true then
@@ -89,8 +89,11 @@ module MTypeInf
         p inst.inreg[0].negative_list
         p inst.inreg[0].positive_list
         p tup
+        p inst.inreg[0].type
         p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
-        p inst.inreg[0].type[tup].map {|ty| ty.place}
+        inst.inreg[0].type.each do |tp, tys|
+          p "#{tp} #{tys.map {|ty| ty.place}}"
+        end
       end
       nil
     end

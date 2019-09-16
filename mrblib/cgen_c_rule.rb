@@ -599,11 +599,12 @@ module CodeGenC
     def self.get_ctype_aux(ccgen, reg, tup, infer)
       rtype = reg.type[tup]
       if !rtype then
+        p caller
         p "#{tup} #{infer.typetupletab.rev_table[tup]}"
         reg.type.keys.uniq.each {|tp|
           p "  #{tp} #{infer.typetupletab.rev_table[tp]}"
         }
-        raise
+        #raise
         # for element of array
         rtype = reg.type[reg.type.keys[0]]
         if rtype.nil? then

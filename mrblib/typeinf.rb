@@ -10,6 +10,7 @@ module MTypeInf
 
     b = RiteSSA::Block.new(irep, nil, TOP_SELF.class, true)
     bproc = ti.inference_top(b)
+    #UserDefinedType.reset_hometown
     ti.messages.each do |message, cnt|
       print message
     end
@@ -149,6 +150,7 @@ module MTypeInf
         end
       else
         types.each do |arg, types|
+#           mess << "(#{arg}) " #Raw tup for debug
           args = @typetupletab.rev_table[arg]
           args =  args[0..-3]
           if args.size == 1 then
@@ -299,7 +301,6 @@ module MTypeInf
 
         ivvar = rets.all? {|rins|
           rreg = rins.inreg[0]
-
           if rreg.genpoint.is_a?(RiteSSA::Inst) then
             rreg.genpoint.op == :GETIV
           else
