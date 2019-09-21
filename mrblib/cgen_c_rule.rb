@@ -135,6 +135,22 @@ module CodeGenC
           utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
           fname = gen_method_func(name, rt, utup)
 
+          regs =  proc.irep.allocate_reg[utup]
+          if regs
+            regs = regs.uniq
+            regstr = ""
+            rets = regs.inject([]) {|res, reg|
+              rsize = gen_typesize(ccgen, reg, utup, infer)
+              if rsize then
+                res << rsize
+              end
+              res
+            }
+            if rets.size > 0 then
+              ccgen.caller_alloc_size += 1
+              ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+            end
+          end
           procexport = false
           i = 0
           topnode = node.root.nodes[0]
@@ -596,7 +612,7 @@ module CodeGenC
       String => :string
     }
 
-    def self.get_ctype_aux(ccgen, reg, tup, infer)
+    def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
       rtype = reg.type[tup]
       if !rtype then
         p caller
@@ -653,7 +669,7 @@ module CodeGenC
           ccgen.using_class[clsssa][ivtup] = ["cls#{clsssa.id}_#{ivtup}", rtype[0].hometown]
         end
         if clsssa and clsssa.id != 0 then
-          "struct cls#{clsssa.id}_#{ivtup} *"
+          ["struct cls#{clsssa.id}_#{ivtup} ", "*"]
         else
           :mrb_value
         end
@@ -674,6 +690,15 @@ module CodeGenC
         end
 
         :mrb_value
+      end
+    end
+
+    def self.get_ctype_aux(ccgen, reg, tup, infer)
+      type = get_ctype_aux_aux(ccgen, reg, tup, infer)
+      if type.is_a?(Array) then
+        type.join
+      else
+        type
       end
     end
 
@@ -759,6 +784,51 @@ module CodeGenC
 
       else
         "#{type} #{regnm}"
+      end
+    end
+
+    def self.gen_typesize(ccgen, reg, tup, infer)
+      otype = reg.type[tup][0]
+      if otype.place.keys.any? {|e|
+          e.is_a?(MTypeInf::UserDefinedType) or
+          e == :return_fst or
+          (e.is_a?(MTypeInf::ContainerType) and
+            e.place.keys.any? {|e1|
+              e1.is_a?(MTypeInf::UserDefinedType) or
+              e1 == :return_fst
+            })
+        } then
+
+        type = get_ctype_aux_aux(ccgen, reg, tup, infer)
+
+        case type
+        when :array
+          uv = MTypeInf::ContainerType::UNDEF_VALUE
+          eele = reg.type[tup][0].element
+          ereg = eele[uv]
+          etup = tup
+          if ereg.type[tup] == nil then
+            etup = ereg.type.keys[0]
+          end
+          etype = get_ctype_aux(ccgen, ereg, etup, infer)
+          if etype != :rvalue then
+            return "(sizeof(#{etype}) * #{eele.size + 1})"
+          else
+            return nil
+          end
+
+        when :nil
+          return nil
+
+        when :mrb_value
+          return nil
+
+        else
+          if type.is_a?(Array) then
+            type = type[0]
+          end
+          return "(sizeof(#{type}))"
+        end
       end
     end
 

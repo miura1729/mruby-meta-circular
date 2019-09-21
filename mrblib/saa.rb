@@ -957,6 +957,7 @@ module RiteSSA
       @ensuretab = []
       @export_regs = []
       @import_regs = []
+      @allocate_reg = {}
 
       @regtab = nil
 
@@ -1020,6 +1021,7 @@ module RiteSSA
     attr :strict
     attr_accessor :export_regs
     attr_accessor :import_regs
+    attr_accessor :allocate_reg
 
     def collect_block_head(iseq)
       res = [0]

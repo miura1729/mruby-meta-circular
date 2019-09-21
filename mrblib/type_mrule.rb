@@ -248,8 +248,7 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          if infer.callstack[-2] and
-              infer.callstack[-2][0].irep == arrtypes[0].hometown.irep then
+          if node.irep == arrtypes[0].hometown.irep then
             ty.place[arrtypes[0]] = [:[]=]
           else
             ty.place[true] = [:[]=]
@@ -544,6 +543,7 @@ module MTypeInf
 
           else
             type = UserDefinedType.new(ntype, inst)
+
           end
           intype[0] = [type]
 
@@ -558,6 +558,8 @@ module MTypeInf
           inst.outreg[0].add_type type, tup
         end
       end
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push inst.outreg[0]
       nil
     end
 
@@ -733,6 +735,8 @@ module MTypeInf
     define_inf_rule_method :keys, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
       ra = ContainerType.new(Array, inst)
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push ra
       raele = ra.element
       raele[0] ||= RiteSSA::Reg.new(nil)
 
@@ -764,6 +768,8 @@ module MTypeInf
         end
       end
       inst.outreg[0].add_type ra, tup
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push inst.outreg[0]
 
       nil
     end

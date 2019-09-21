@@ -351,7 +351,8 @@ module CodeGenC
                   e1 == :return_fst
                 })
             } then
-            ccgen.pcode << "v#{oreg.id} = malloc(sizeof(#{etype}) * #{initsize + 1});\n"
+            ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
+            ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * #{initsize + 1};\n"
           else
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
           end
@@ -485,7 +486,8 @@ module CodeGenC
                   e1 == :return_fst
                 })
             } then
-            ccgen.pcode << "v#{oreg.id} = malloc(sizeof(struct #{clsid[0]}));\n"
+            ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
+            ccgen.pcode << "prevgctab->caller_alloc += sizeof(struct #{clsid[0]});\n"
           else
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid[0]}));\n"
           end

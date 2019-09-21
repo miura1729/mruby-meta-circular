@@ -641,6 +641,8 @@ module MTypeInf
       end
 
       nilreg.flush_type(tup)
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push inst.outreg[0]
       inst.outreg[0].add_type type, tup
     end
 
@@ -673,6 +675,8 @@ module MTypeInf
       end
 
       inst.outreg[0].add_type type, tup
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push inst.outreg[0]
       nil
     end
 
@@ -756,6 +760,8 @@ module MTypeInf
       end
       udefreg.flush_type(tup)
 
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push inst.outreg[0]
       inst.outreg[0].add_type type, tup
     end
 
@@ -882,6 +888,8 @@ module MTypeInf
       type.element[2] = nreg
       type.element[2].flush_type(tup)
 
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push inst.outreg[0]
       inst.outreg[0].add_type type, tup
     end
   end

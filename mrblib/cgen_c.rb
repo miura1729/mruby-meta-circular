@@ -22,6 +22,7 @@ module CodeGenC
       @prev_gcsignle = []
       @gccomplex_size = 0
       @gcobject_size = 0
+      @caller_alloc_size = 0
 
       @clstab = {}
       @proctab = {}
@@ -55,6 +56,7 @@ struct gctab {
   struct gctab *prev;
   mrb_value **complex;
   mrb_value **object;
+  void *caller_alloc;
   mrb_value *single[0];
 };
 
@@ -102,6 +104,7 @@ EOS
     attr :prev_gcsingle
     attr_accessor :gccomplex_size
     attr_accessor :gcobject_size
+    attr_accessor :caller_alloc_size
 
     def is_live_reg_aux(node, reg, pos, hash)
       if hash[node] then
@@ -241,7 +244,8 @@ EOS
       end
 
       # create of gctable
-      if (@gcsingle_size + @gccomplex_size + @gcobject_size) > 0 then
+      gcsiz = @gcsingle_size + @gccomplex_size + @gcobject_size + @caller_alloc_size
+      if gcsiz > 0 then
         @dcode << "struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab) + #{@gcsingle_size} * sizeof(mrb_value *));\n"
         @dcode << "gctab->prev = prevgctab;\n"
 
@@ -284,6 +288,7 @@ EOS
       @prev_gcsingle = []
       @gccomplex_size = 0
       @gcobject_size = 0
+      @caller_alloc_size = 0
       @callstack.push [proc, nil, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
@@ -328,6 +333,7 @@ EOS
       @prev_gcsingle = []
       @gccomplex_size = 0
       @gcobject_size = 0
+      @caller_alloc_size = 0
       @callstack.push [proc, nil, procty] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
