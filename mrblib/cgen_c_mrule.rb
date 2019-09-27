@@ -380,6 +380,24 @@ module CodeGenC
         # store proc object only 1 kind.
         utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
+
+        regs =  ptype.irep.allocate_reg[utup]
+        if regs
+          regs = regs.uniq
+          regstr = ""
+          rets = regs.inject([]) {|res, reg|
+            rsize = gen_typesize(ccgen, reg, utup, infer)
+            if rsize then
+              res << rsize
+            end
+            res
+          }
+          if rets.size > 0 then
+            ccgen.caller_alloc_size += 1
+            ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+          end
+        end
+
         codeno = ptype.using_tup[utup]
         outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
         outtype = get_ctype(ccgen, nreg, tup, infer)

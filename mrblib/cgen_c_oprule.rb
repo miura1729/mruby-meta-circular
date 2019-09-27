@@ -459,7 +459,8 @@ module CodeGenC
       proc.using_tup.each do |tp, i|
         bfunc = gen_block_func("p#{proc.id}", proc.slf.class_object, inst.para[3], tp)
 #        ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"
-        minf = [bfunc, proc, tp, dstt]
+        pproc = ccgen.callstack[-1][0]
+        minf = [bfunc, proc, tp, dstt, pproc]
         ccgen.proctab[proc] ||= []
         ccgen.proctab[proc][i] = bfunc;
         ccgen.using_block.push minf

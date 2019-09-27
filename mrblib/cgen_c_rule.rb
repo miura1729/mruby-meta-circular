@@ -180,7 +180,8 @@ module CodeGenC
               ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
             end
           end
-          minf = [fname, proc, utup]
+          pproc = ccgen.callstack[-1][0]
+          minf = [fname, proc, utup, pproc]
           if ccgen.using_method.index(minf) == nil then
             ccgen.using_method.push minf
           end

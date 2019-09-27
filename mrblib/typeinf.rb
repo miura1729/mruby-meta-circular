@@ -15,11 +15,13 @@ module MTypeInf
       print message
     end
 
-    typemess = ti.dump_type
+    #cgen.ccode << "/*\n#{typemess}*/\n"
     #print typemess
+
     cgen = CodeGenC::CodeGen.new
-    cgen.ccode << "/*\n#{typemess}*/\n"
     cgen.code_gen(bproc, ti)
+    typemess = ti.dump_type
+    cgen.ccode << "/*\n#{typemess}*/\n"
     print cgen.ccode
   end
 
@@ -49,7 +51,7 @@ module MTypeInf
       return true
     end
 
-    def get_tupple_id(types, proc, tup, ext = false)
+    def get_tupple_id(types, proc, tup, ext = true)
       node = @table
       types = types.map {|nty|
         if nty.is_a?(Array) then

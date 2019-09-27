@@ -140,32 +140,32 @@ EOS
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
       nilty = MTypeInf::PrimitiveType.new(NilClass)
       intype = [[ty], nil, nil]
-      code_gen_method(block, ti, :main_Object_0, proc, 0, intype)
+      code_gen_method(block, ti, :main_Object_0, proc, 0, intype, nil)
 
       fin = false
       while !fin
         fin = true
-        @using_method.each do |name, proc, utup|
+        @using_method.each do |name, proc, utup, pproc|
           if !@defined_method[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
               CodeGen::get_ctype(self, reg, utup, ti) == :mrb_value
             }
             intype = ti.typetupletab.rev_table[utup]
-            code_gen_method(block, ti, name, proc, utup, intype)
+            code_gen_method(block, ti, name, proc, utup, intype, pproc)
             @defined_method[name] = true
             fin = false
           end
         end
 
-        @using_block.each do |name, proc, utup, procty|
+        @using_block.each do |name, proc, utup, procty, pproc|
           if !@defined_block[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
               CodeGen::get_ctype(self, reg, utup, ti) == :mrb_value
             }
             intype = ti.typetupletab.rev_table[utup]
-            code_gen_block(block, ti, name, proc, utup, intype, procty)
+            code_gen_block(block, ti, name, proc, utup, intype, procty, pproc)
             @defined_block[name] = true
             fin = false
           end
@@ -213,7 +213,7 @@ EOS
       @ccode = @scode + @hcode + main + @ccode
     end
 
-    def code_gen_method_aux(block, ti, name, proc, tup)
+    def code_gen_method_aux(block, ti, name, proc, tup, pproc)
       pproc = proc.parent
       if block.export_regs.size > 0 or pproc
         if !@defined_env[proc] then
@@ -277,7 +277,7 @@ EOS
       @callstack.pop
     end
 
-    def code_gen_method(block, ti, name, proc, tup, intype)
+    def code_gen_method(block, ti, name, proc, tup, intype, pproc)
       if !block.nodes[0] then
         return
       end
@@ -322,10 +322,10 @@ EOS
       @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
 #      @ccode << "#{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
 #      @hcode << "#{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
-      code_gen_method_aux(block, ti, name, proc, tup)
+      code_gen_method_aux(block, ti, name, proc, tup, pproc)
     end
 
-    def code_gen_block(block, ti, name, proc, tup, intype, procty)
+    def code_gen_block(block, ti, name, proc, tup, intype, procty, pproc)
       @dcode = ""
       @gccode = ""
       @pcode = ""
@@ -376,7 +376,7 @@ EOS
         @ccode << "#{slfdecl} = proc->self;\n"
         @pcode << "env.prev = proc->env;\n"
       end
-      code_gen_method_aux(block, ti, name, proc, tup)
+      code_gen_method_aux(block, ti, name, proc, tup, pproc)
     end
 
     def code_gen_node(node, ti, name, history, tup)
