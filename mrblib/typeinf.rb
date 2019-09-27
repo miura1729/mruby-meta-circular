@@ -279,7 +279,7 @@ module MTypeInf
         if tys then
           tys.each do |ty|
             saairep.nodes[0].enter_reg[i].type[tup].each do |oty|
-              ty.place.merge!(oty.place)
+#              ty.place.merge!(oty.place)
 #              oty.place.merge!(ty.place)
             end
           end
@@ -378,7 +378,7 @@ module MTypeInf
               otypes = node.enter_reg[i].type[tup]
               if otypes then
                 otypes.each do |oty|
-                  ty.place.merge!(oty.place)
+#                  ty.place.merge!(oty.place)
 #                  oty.place.merge!(ty.place)
                 end
               end

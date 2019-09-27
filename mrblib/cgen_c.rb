@@ -291,22 +291,21 @@ EOS
       @caller_alloc_size = 0
       @callstack.push [proc, nil, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
+      intype[0...-2].each_with_index do |tys, i|
+        ereg = topnode.enter_reg[i]
+        ereg.type[tup] = tys.dup
+      end
       recvr = topnode.enter_reg[0]
-      if !recvr.type[tup] then
+      if !block.retreg.type[tup] then
         # not traverse yet. Maybe escape analysis
+
+        ti.callstack.push [pproc.irep, nil, nil, pproc, nil]
         ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
       end
       args = ""
       intype[0...-2].each_with_index do |tys, i|
         args << ", "
         ereg = topnode.enter_reg[i]
-        ereg.type[tup].each do |bty|
-          if bty then
-            tys.each do |ty|
-              bty.place.merge!(ty.place)
-            end
-          end
-        end
         args << CodeGen::gen_declare(self, ereg, tup, ti)
       end
 
