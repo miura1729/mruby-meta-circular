@@ -118,15 +118,15 @@ module MTypeInf
     end
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
-      inreg = inst.inreg[0]
-      inreg.flush_type(tup)
+      valreg = inst.inreg[0]
+      valtype = valreg.flush_type(tup)[tup][0]
       name = inst.para[0]
 
       slf = inst.inreg[1]
       slftype = slf.flush_type(tup)[tup][0]
       slfcls = slftype.class_object
       slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
-      slfiv.add_same(inreg)
+      slfiv.add_same(valreg)
       slfiv.flush_type_alltup(tup)
 
       types = slfiv.flush_type(tup)[tup]
@@ -135,12 +135,7 @@ module MTypeInf
       if types then
         types.each do |ty|
           if ty then
-            if infer.callstack[-2] and
-                infer.callstack[-2][0].irep == slftype.hometown.irep then
-              ty.place[slftype] = [:SETIV, inst.line]
-            else
-              ty.place[true] = [:SETIV, inst.line]
-            end
+            ty.place[slftype] = [:SETIV, inst.line]
           end
         end
       end
