@@ -1,0 +1,49 @@
+diff --git a/build_config.rb b/build_config.rb
+index 1429837b..6aaf1eae 100644
+--- a/build_config.rb
++++ b/build_config.rb
+@@ -22,7 +22,11 @@ MRuby::Build.new do |conf|
+   # conf.gem :git => 'git@github.com:iij/mruby-io.git', :branch => 'master', :options => '-v'
+ 
+   # include the default GEMs
++  conf.gem :core => 'mruby-eval'
++  conf.gem :core => 'mruby-fiber'
++  conf.gem :core => 'mruby-math'
+   conf.gembox 'default'
++  conf.gem '../../work/mruby-meta-circular/'
+   # C compiler settings
+   # conf.cc do |cc|
+   #   cc.command = ENV['CC'] || 'gcc'
+diff --git a/include/mrbconf.h b/include/mrbconf.h
+index cc28acfa..3853b8fa 100644
+--- a/include/mrbconf.h
++++ b/include/mrbconf.h
+@@ -47,6 +47,7 @@
+ /* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 */
+ //#define MRB_INT64
+ 
++#define MRB_NAN_BOXING
+ /* if no specific integer type is chosen */
+ #if !defined(MRB_INT16) && !defined(MRB_INT32) && !defined(MRB_INT64)
+ # if defined(MRB_64BIT) && !defined(MRB_NAN_BOXING)
+@@ -59,7 +60,6 @@
+ #endif
+ 
+ /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITHOUT_FLOAT */
+-//#define MRB_NAN_BOXING
+ 
+ /* define on big endian machines; used by MRB_NAN_BOXING */
+ //#define MRB_ENDIAN_BIG
+diff --git a/src/variable.c b/src/variable.c
+index de36efac..e3124f46 100644
+--- a/src/variable.c
++++ b/src/variable.c
+@@ -321,7 +321,7 @@ mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
+ MRB_API void
+ mrb_iv_check(mrb_state *mrb, mrb_sym iv_name)
+ {
+-  if (!mrb_iv_p(mrb, iv_name)) {
++  if (!mrb_iv_p(mrb, iv_name) && 0) {
+     mrb_name_error(mrb, iv_name, "'%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name));
+   }
+ }
