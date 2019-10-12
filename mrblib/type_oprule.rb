@@ -15,6 +15,7 @@ module MTypeInf
       inst.outreg[0].negative_list = inst.inreg[0].negative_list.clone
       inst.outreg[0].positive_list = inst.inreg[0].positive_list.clone
       olddreg = inst.para[0]
+      [].push node.class        #  for GC bug (q & d hack)
       while olddreg.is_a?(RiteSSA::Reg) do
         if node.root.export_regs.include?(olddreg) then
           olddreg.add_same(inst.inreg[0])
@@ -179,7 +180,7 @@ module MTypeInf
           type = LiteralType.new(const.class, const)
 
         elsif const.is_a?(Class) and const.ancestors.index(Exception) then
-          type = ExceptionType.new(const)
+          type = LiteralType.new(const.class, const)
 
         else
           if const.is_a?(Module) then
@@ -218,7 +219,7 @@ module MTypeInf
         type = cls.new(const.class, const)
 
       elsif const.is_a?(Class) and const.ancestors.index(Exception) then
-        type = ExceptionType.new(const)
+        type = LiteralType.new(const.class, const)
 
       else
         if const.is_a?(Module) then
@@ -318,7 +319,7 @@ module MTypeInf
         n = n + 1
       end
 
-      if argc == 127 and false then
+      if argc == 127 then
         certup = infer.callstack[-2][1]
         arytypes = inreg[0].flush_type(tup)[tup]
         arytypes.each do |arytype|

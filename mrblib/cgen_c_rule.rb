@@ -648,10 +648,10 @@ module CodeGenC
         return :mrb_bool
       end
 
+      nilobj = MTypeInf::PrimitiveType.new(NilClass)
       if rtype.size == 1 then
         clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
         ccgen.using_class[clsssa] ||= {}
-        nilobj = MTypeInf::PrimitiveType.new(NilClass)
         ivtypes = [nilobj]
         clsssa.iv.each do |nm, reg|
           val = reg.flush_type(tup)[tup]
@@ -681,11 +681,11 @@ module CodeGenC
           clsssa.iv.each do |nm, reg|
             ivtypes.push reg.flush_type(tup)[tup]
           end
+          ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
           rtype.each do |e|
             cls = e.class_object
             clsssa =  RiteSSA::ClassSSA.get_instance(cls)
             ccgen.using_class[clsssa] ||= {}
-            ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
             ccgen.using_class[clsssa][ivtup] ||= ["cls#{clsssa.id}_#{ivtup}", ety.hometown]
           end
         end

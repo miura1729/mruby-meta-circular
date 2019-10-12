@@ -214,15 +214,15 @@ module MTypeInf
             end
 
             intype.push inst.inreg[2].flush_type(tup)[tup]
-            yield intype
+            yield intype, intype.size - 2
           end
         else
           arg0 = inst.inreg[0].flush_type(tup)[tup]
           arg2 = inst.inreg[2].flush_type(tup)[tup]
-          yield [arg0, arg2]
+          yield [arg0, arg2], 0
         end
       else
-        yield inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
+        yield inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}, argc
       end
 
       nil
@@ -353,10 +353,10 @@ module MTypeInf
     def self.rule_send_common(infer, inst, node, tup, history)
       name = inst.para[0]
       argc = inst.para[1]
-      make_intype(infer, inst, node, tup, argc) do |intype|
+      make_intype(infer, inst, node, tup, argc) do |intype, argc2|
         recreg = inst.inreg[0]
 
-        rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc, history)
+        rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc2, history)
       end
       nil
     end

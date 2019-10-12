@@ -248,11 +248,7 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          if node.irep == arrtypes[0].hometown.irep then
-            ty.place[arrtypes[0]] = [:[]=]
-          else
-            ty.place[true] = [:[]=]
-          end
+          ty.place[arrtypes[0]] = [:[]=]
         end
       end
       nil
@@ -482,7 +478,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :append_features, Module do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup, inst.para[1]) do |intype|
+      make_intype(infer, inst, node, tup, inst.para[1]) do |intype, argc|
         slf = intype[1][0].val
         mod = intype[0][0].val
         slf.include mod
@@ -491,7 +487,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :attr_reader, Module do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup, inst.para[1]) do |intype|
+      make_intype(infer, inst, node, tup, inst.para[1]) do |intype, argc|
         intype[1..-2].each do |symty|
           if symty then
             symcls = symty[0]
@@ -508,7 +504,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :attr_writer, Module do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup, inst.para[1]) do |intype|
+      make_intype(infer, inst, node, tup, inst.para[1]) do |intype, argc|
         intype[1..-2].each do |symty|
           if symty then
             symcls = symty[0]
@@ -528,8 +524,7 @@ module MTypeInf
     define_inf_rule_method :new, Class do |infer, inst, node, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
-      argc = inst.para[1]
-      make_intype(infer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype, argc|
 
         recvtypes.each do |rtype|
           ntype = rtype.val
@@ -551,7 +546,7 @@ module MTypeInf
             dmyreg = RiteSSA::Reg.new(nil)
             dmyreg.add_type type, tup
             dmyoreg = RiteSSA::Reg.new(nil)
-            rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, inst.para[1], nil)
+            rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, argc, nil)
             # rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
           end
 
@@ -564,7 +559,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype, argc|
         #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         ptype = intype[0][0]
         intype[0] = [ptype.slf]
@@ -574,7 +569,7 @@ module MTypeInf
           ptype.using_tup[ntup] = curpos
         end
         irepssa = ptype.irep
-        infer.inference_block(irepssa, intype, ntup, inst.para[1], ptype)
+        infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg
         inst.outreg[0].flush_type(tup, ntup)
       end
@@ -879,15 +874,15 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :new, Fiber do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup) do |intype|
-        proc = intype.pop
+      make_intype(infer, inst, node, tup) do |intype, argc|
+        proc = intype[-1]
         type = FiberType.new(Fiber, proc[0])
 
-        argc = inst.para[1]
-
         intype[0] = [type]
-        intype = [proc] + intype + [[]]
+        intype = [proc] + intype
         ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node) #33 is :send maybe
+        ninst.para.push :call
+        ninst.para.push argc + 1
         intype.each {|tys|
           nreg = RiteSSA::Reg.new(nil)
           tys.each do |ty|
@@ -902,7 +897,7 @@ module MTypeInf
 
         curfib = infer.fiber
         infer.fiber = type
-        rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, inst.para[1], nil)
+        rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, argc, nil)
         infer.fiber = curfib
 
         inst.outreg[0].add_type type, tup
@@ -919,7 +914,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :resume, Fiber do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup) do |intype|
+      make_intype(infer, inst, node, tup) do |intype, argc|
         intype[0].each do  |fibslf|
           if fibslf.class_object == Fiber then
             inst.outreg[0].add_same fibslf.ret
