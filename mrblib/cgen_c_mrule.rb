@@ -359,11 +359,11 @@ module CodeGenC
           if etype == :mrb_value then
             ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) v#{oreg.id}[i] = mrb_nil_value();\n"
             ccgen.pcode << "v#{oreg.id}[#{initsize}].value.ttt = MRB_TT_FREE;\n"
+            csize = ccgen.gccomplex_size
+            ccgen.gccomplex_size += 1
+            ccgen.pcode << "gctab->complex[#{csize}] = v#{oreg.id};\n"
+            ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
           end
-          csize = ccgen.gccomplex_size
-          ccgen.gccomplex_size += 1
-          ccgen.pcode << "gctab->complex[#{csize}] = v#{oreg.id};\n"
-          ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
         end
       end
       nil

@@ -136,7 +136,12 @@ module MTypeInf
       if types then
         types.each do |ty|
           if ty then
-            ty.place[slftype] = [:SETIV, inst.line]
+            if (!ty.is_a?(UserDefinedType) or
+                ty.hometown.irep == slftype.hometown.irep) then
+              ty.place[slftype] = [:SETIV, inst.line]
+            else
+              ty.place[true] = [:SETIV, inst.line]
+            end
           end
         end
       end

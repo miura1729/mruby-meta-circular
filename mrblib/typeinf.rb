@@ -15,14 +15,12 @@ module MTypeInf
       print message
     end
 
-    #cgen.ccode << "/*\n#{typemess}*/\n"
-    #print typemess
-
     cgen = CodeGenC::CodeGen.new
     cgen.code_gen(bproc, ti)
     typemess = ti.dump_type
     cgen.ccode << "/*\n#{typemess}*/\n"
     print cgen.ccode
+    #print typemess
   end
 
   class TypeTupleTab
