@@ -268,22 +268,6 @@ module MTypeInf
         inference_node(saairep.nodes[0], tup, saairep.nodes[0].enter_reg, {})
       end
 
-      # Update escape info
-      intype.each_with_index do |tys, i|
-#        if i > saairep.irep.nlocals + 1 then
-        if i > saairep.irep.nlocals then
-          break
-        end
-        if tys then
-          tys.each do |ty|
-            saairep.nodes[0].enter_reg[i].type[tup].each do |oty|
-#              ty.place.merge!(oty.place)
-#              oty.place.merge!(ty.place)
-            end
-          end
-        end
-      end
-
       @callstack.pop
 
       # Check return value is escape data
@@ -332,7 +316,6 @@ module MTypeInf
 
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
-#        if i > node.irep.nlocals + 1 then
         if i > node.irep.nlocals then
           break
         end
@@ -360,28 +343,6 @@ module MTypeInf
         end
         if rc then
           break
-        end
-      end
-
-      # Update escape info
-      in_reg.each_with_index do |reg, i|
-#        if i > node.irep.nlocals + 1 then
-        if i > node.irep.nlocals then
-          break
-        end
-        if reg then
-          tys = reg.type[tup]
-          if tys then
-            tys.each do |ty|
-              otypes = node.enter_reg[i].type[tup]
-              if otypes then
-                otypes.each do |oty|
-#                  ty.place.merge!(oty.place)
-#                  oty.place.merge!(ty.place)
-                end
-              end
-            end
-          end
         end
       end
 

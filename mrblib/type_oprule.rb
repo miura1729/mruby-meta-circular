@@ -127,8 +127,12 @@ module MTypeInf
       slftype = slf.flush_type(tup)[tup][0]
       slfcls = slftype.class_object
       slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
+      oty = slfiv.type[tup]
       slfiv.add_same(valreg)
-      slfiv.flush_type_alltup(tup)
+      cty = slfiv.flush_type_alltup(tup)[tup]
+      if oty != cty then
+        slftype.version += 1
+      end
 
       types = slfiv.flush_type(tup)[tup]
 

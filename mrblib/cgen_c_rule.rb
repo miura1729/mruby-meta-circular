@@ -138,7 +138,6 @@ module CodeGenC
           regs =  proc.irep.allocate_reg[utup]
           if regs
             regs = regs.uniq
-            regstr = ""
             rets = regs.inject([]) {|res, reg|
               rsize = gen_typesize(ccgen, reg, utup, infer)
               if rsize then

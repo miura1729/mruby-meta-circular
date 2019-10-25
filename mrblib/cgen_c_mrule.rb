@@ -414,7 +414,9 @@ module CodeGenC
           fname = "((#{outtype0} (*)(mrb_state *, #{argt}))(((void **)#{fname})[#{codeno}]))"
         else
           #fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
-          fname = ccgen.proctab[ptype][codeno]
+          minf = ccgen.proctab[ptype][codeno]
+          fname = minf[0]
+          ccgen.using_block.push minf
         end
         ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup, infer)
         ccgen.dcode << ";\n"

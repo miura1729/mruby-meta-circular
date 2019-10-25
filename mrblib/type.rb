@@ -6,6 +6,7 @@ module MTypeInf
       @hometown = nil
       @place = {}
       @escape_cache = nil
+      @version = 0
     end
 
     def ==(other)
@@ -21,6 +22,7 @@ module MTypeInf
     attr :class_object
     attr_accessor :hometown
     attr_accessor :place
+    attr_accessor :version
 
     def merge(arr)
       clsobj = @class_object
@@ -169,7 +171,7 @@ module MTypeInf
 
   class NumericType<PrimitiveType
     def initialize(co, positive = false, *rest)
-      super
+      super(co, *rest)
       @positive = positive
     end
 
@@ -200,7 +202,7 @@ module MTypeInf
 
   class LiteralType<BasicType
     def initialize(co, val, *rest)
-      super
+      super(co, *rest)
       @val = val
     end
 
@@ -257,7 +259,7 @@ module MTypeInf
 
   class ContainerType<BasicType
     def initialize(co, ht, *rest)
-      super
+      super(co, *rest)
       @element = {}
       @hometown = ht
       reg = RiteSSA::Reg.new(nil)
@@ -320,7 +322,7 @@ module MTypeInf
     end
 
     def initialize(co, irep, slf, slfreg, env, tups, pproc,  *rest)
-      super
+      super(co, *rest)
       @id = @@tab.size
       @@tab.push self
       @irep = irep
@@ -386,7 +388,7 @@ module MTypeInf
     @@tab = []
 
     def initialize(co, proc, *rest)
-      super
+      super(co, *rest)
       @id = @@tab.size
       @@tab.push self
       @proc = proc
@@ -420,7 +422,7 @@ module MTypeInf
     @@instances = []
 
     def initialize(co, ht, *rest)
-      super
+      super(co, *rest)
       @hometown = ht
 #      @@instances.push self
     end
@@ -443,6 +445,7 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
+        @version == other.version &&
         is_escape? == other.is_escape?
     end
 
@@ -450,6 +453,7 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
 #        @hometown == other.hometown &&
+        @version == other.version &&
         is_escape? == other.is_escape?
     end
   end

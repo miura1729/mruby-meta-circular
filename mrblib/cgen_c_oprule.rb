@@ -462,8 +462,7 @@ module CodeGenC
         pproc = ccgen.callstack[-1][0]
         minf = [bfunc, proc, tp, dstt, pproc]
         ccgen.proctab[proc] ||= []
-        ccgen.proctab[proc][i] = bfunc;
-        ccgen.using_block.push minf
+        ccgen.proctab[proc][i] = minf
       end
 
       if node.root.is_export_env then

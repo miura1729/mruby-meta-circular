@@ -248,7 +248,12 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          ty.place[arrtypes[0]] = [:[]=]
+          if (!ty.is_a?(UserDefinedType) or
+              ty.hometown.irep == arrtypes[0].hometown.irep) then
+            ty.place[arrtypes[0]] = [:[]=]
+          else
+            ty.place[true] = [:[]=]
+          end
         end
       end
       nil
@@ -524,6 +529,8 @@ module MTypeInf
     define_inf_rule_method :new, Class do |infer, inst, node, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
+      oargc = infer.callstack[-1][2]
+      types = inst.outreg[0].type[tup]
       make_intype(infer, inst, node, tup) do |intype, argc|
 
         recvtypes.each do |rtype|
@@ -540,14 +547,19 @@ module MTypeInf
             type = UserDefinedType.new(ntype, inst)
 
           end
-          intype[0] = [type]
+
+          if types and types.size != 0 then
+            intype[0] = types
+            type = types[0]
+          else
+            intype[0] = [type]
+          end
 
           if !cls then
             dmyreg = RiteSSA::Reg.new(nil)
             dmyreg.add_type type, tup
             dmyoreg = RiteSSA::Reg.new(nil)
             rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyoreg, argc, nil)
-            # rule_send_common_aux(infer, inst, node, tup, :initialize, intype, dmyreg, dmyreg, inst.para[1], nil)
           end
 
           inst.outreg[0].add_type type, tup
