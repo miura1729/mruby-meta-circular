@@ -49,7 +49,12 @@ module MTypeInf
     def self.rule_jmpif_common(infer, inst, node, tup, history, bidx)
       notp = false
       typemethodp = false
+
       genp = inst.inreg[0].genpoint
+      if genp.is_a?(Fixnum) then
+        genp = history[nil][-1].exit_reg[genp].genpoint
+      end
+
       if genp.is_a?(RiteSSA::Inst) then
         while genp.op == :SEND and genp.para[0] == :!
           notp = !notp
@@ -112,7 +117,10 @@ module MTypeInf
             (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
           enode = enode.exit_link[bidx]
         end
+        history[nil] ||= []
+        history[nil].push node
         infer.inference_node(enode, tup, node.exit_reg, history)
+        history[nil].pop
         true
 
       elsif type and type.size == 1 then
@@ -121,7 +129,10 @@ module MTypeInf
             (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
           enode = enode.exit_link[1 - bidx]
         end
+        history[nil] ||= []
+        history[nil].push node
         infer.inference_node(enode, tup, node.exit_reg, history)
+        history[nil].pop
         true
 
       elsif typemethodp then
@@ -132,7 +143,10 @@ module MTypeInf
           greg.refpoint.each do |reg|
             reg.outreg[0].positive_list.push  addtional_type_spec
           end
+          history[nil] ||= []
+          history[nil].push node
           infer.inference_node(nd, tup, node.exit_reg, history)
+          history[nil].pop
           greg.positive_list.pop
           greg.refpoint.each do |reg|
             reg.outreg[0].positive_list.pop
@@ -144,14 +158,21 @@ module MTypeInf
           greg.refpoint.each do |reg|
             reg.outreg[0].negative_list.push addtional_type_spec
           end
+          history[nil] ||= []
+          history[nil].push node
           infer.inference_node(nd, tup, node.exit_reg, history)
+          history[nil].pop
           greg.negative_list.pop
           greg.refpoint.each do |reg|
             reg.outreg[0].negative_list.pop
           end
         else
+          history[nil] ||= []
+          history[nil].push node
           infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
+          history[nil][-1] = node
           infer.inference_node(node.exit_link[1], tup, node.exit_reg, history)
+          history[nil].pop
         end
 
         true
@@ -166,7 +187,10 @@ module MTypeInf
       if pos then
         infer.exception.clear
         rescuenode = node.root.nodes[pos]
+        history[nil] ||= []
+        history[nil].push node
         infer.inference_node(rescuenode, tup, inst.para[2], history)
+        history[nil].pop
       end
 
       infer.exception.each do |exreg|

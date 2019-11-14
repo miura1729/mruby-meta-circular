@@ -137,11 +137,15 @@ module MTypeInf
       types = slfiv.flush_type(tup)[tup]
 
       # update place infomation
+      previrep = infer.callstack[-2][0].irep
+      curirep = infer.callstack[-1][0].irep
       if types then
         types.each do |ty|
           if ty then
-            if (!ty.is_a?(UserDefinedType) or
-                ty.hometown.irep == slftype.hometown.irep) then
+            if !ty.is_a?(UserDefinedType) or
+                ty.hometown.irep == slftype.hometown.irep or
+                (previrep == slftype.hometown.irep and
+                curirep == ty.hometown.irep and false) then
               ty.place[slftype] = [:SETIV, inst.line]
             else
               ty.place[true] = [:SETIV, inst.line]
@@ -277,7 +281,10 @@ module MTypeInf
     end
 
     define_inf_rule_op :JMP do |infer, inst, node, tup, history|
+      history[nil] ||= []
+      history[nil].push node
       infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
+      history[nil].pop
       true
     end
 

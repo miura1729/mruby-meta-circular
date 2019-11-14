@@ -246,10 +246,14 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type(tup)
+      previrep = infer.callstack[-2][0].irep
+      curirep = infer.callstack[-1][0].irep
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
           if (!ty.is_a?(UserDefinedType) or
-              ty.hometown.irep == arrtypes[0].hometown.irep) then
+              ty.hometown.irep == arrtypes[0].hometown.irep) or
+              (previrep == arrtypes[0].hometown.irep and
+              curirep == ty.hometown.irep) then
             ty.place[arrtypes[0]] = [:[]=]
           else
             ty.place[true] = [:[]=]

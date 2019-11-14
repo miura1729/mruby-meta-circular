@@ -351,12 +351,15 @@ module MTypeInf
       end
 
       history[node] ||= []
+      history[nil] ||= []
+      history[nil].push node
       node.exit_link.each do |nd|
         if history[node].index(nd) == nil then
           history[node].push nd
           inference_node(nd, tup, node.exit_reg, history)
         end
       end
+      history[nil].pop
     end
   end
 end
