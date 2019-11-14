@@ -247,6 +247,7 @@ module MTypeInf
           # GC bug?
           a = name
           b = slfcls
+          dmy = @@ruby_methodtab[name] # for GC bug
           procssa = @@ruby_methodtab[name][slfcls]
           irepssa = nil
           if procssa.nil? then

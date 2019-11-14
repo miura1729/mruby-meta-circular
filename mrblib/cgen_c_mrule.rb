@@ -334,7 +334,6 @@ module CodeGenC
           ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize});\n"
           ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
-          ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
           ccgen.callstack[-1][1] = true
         else
           etup = tup
@@ -536,10 +535,6 @@ module CodeGenC
         inreg[0] = oreg
         #op_send_initialize(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
          op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
-
-        if oreg.is_escape?(tup) then
-          ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
-        end
       end
       nil
     end

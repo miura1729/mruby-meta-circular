@@ -254,6 +254,9 @@ module CodeGenC
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
       retval = reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
       rettys = inst.outreg[0].type[tup]
+      if node.root.allocate_reg.keys.size > 0 then
+        ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
+      end
       if retval then
         ccgen.pcode << "return #{retval};\n"
       else
@@ -361,7 +364,6 @@ module CodeGenC
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
         ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{reg.id}), #{vals.size});\n"
-        ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
         ccgen.callstack[-1][1] = true
         ccgen.pcode << "}\n"
       else

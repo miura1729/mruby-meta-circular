@@ -215,6 +215,7 @@ EOS
 
     def code_gen_method_aux(block, ti, name, proc, tup, pproc)
       pproc = proc.parent
+      allocsize = block.allocate_reg.keys.size
       if block.export_regs.size > 0 or pproc
         if !@defined_env[proc] then
           @defined_env[proc] = true
@@ -239,7 +240,7 @@ EOS
         end
       }
       code_gen_node(node, ti, name, {}, tup)
-      if @callstack[-1][1] then
+      if allocsize > 0 then
         @dcode << "int ai = mrb_gc_arena_save(mrb);\n"
       end
 
@@ -273,6 +274,9 @@ EOS
       @ccode << @dcode
       @ccode << @gccode
       @ccode << @pcode
+      if allocsize > 0 then
+        @ccode << "mrb_gc_arena_restore(mrb, ai);\n"
+      end
       @ccode << "}\n"
       @callstack.pop
     end
