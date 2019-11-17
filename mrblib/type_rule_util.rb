@@ -341,13 +341,13 @@ module MTypeInf
           if existf then
             break
           end
-        end
-        if !existf then
-          # No method fuound
+
+          # method missing
           irep = Irep::get_irep_instance(slf, :method_missing)
           if irep then
             p0 = Proc::search_proc(slf, :method_missing)
             procssa = make_ssablock(p0)
+            @@ruby_methodtab[:method_missing] ||= {}
             @@ruby_methodtab[:method_missing][slf] = procssa
             irepssa = procssa.irep
             clsobj = RiteSSA::ClassSSA.get_instance(slf)
@@ -358,12 +358,16 @@ module MTypeInf
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
             outreg.add_same irepssa.retreg
-          else
-            mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
-            # print mess #for debug
-            infer.messages[mess] ||= 0
-            infer.messages[mess] += 1
+            existf = true
+            break
           end
+        end
+
+        if !existf then
+          mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
+          # print mess #for debug
+          infer.messages[mess] ||= 0
+          infer.messages[mess] += 1
         end
       end
 
