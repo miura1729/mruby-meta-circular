@@ -81,6 +81,9 @@ module MTypeInf
               when MTypeInf::UserDefinedType
                 return false
 
+              when MTypeInf::TypeVarType
+                return false
+
               else
                 raise self
               end
