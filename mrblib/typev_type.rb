@@ -7,10 +7,17 @@ end
 
 module MTypeInf
   class TypeVarType<BasicType
+    @@id = 0
     def initialize(co, *rest)
       super(co, *rest)
       @using_method = {}
       @sub_type_var = {}
+      @name = @@id
+      @@id = @@id + 1
+    end
+
+    def inspect_aux(hist, level)
+      "TV#{@name}"
     end
 
     attr :using_method
@@ -29,7 +36,6 @@ module MTypeInf
     define_inf_rule_method :missing, TypeVariable do |infer, inst, node, tup|
       block = inst.inreg[2].type[tup][0]
       if block.is_a?(ProcType) then
-        p "foo"
         make_intype(infer, inst, node, tup) do |intype, argc|
           #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
           intype[0] = [block.slf]
@@ -42,7 +48,7 @@ module MTypeInf
         end
       end
 
-      inst.outreg[0].add_type inst.inreg[0].type[tup][0], tup
+      inst.outreg[0].add_type TypeVarType.new(TypeVariable), tup
       nil
     end
   end
