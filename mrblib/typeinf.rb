@@ -2,7 +2,7 @@ TOP_SELF = Object.new
 
 module MTypeInf
   DEFAULT_OPTION = {
-    :dump_level => 0
+    :dump_level => 1
   }
   def self.inference_main(option = DEFAULT_OPTION, &b)
     irep = Irep::get_proc_irep(b)
@@ -16,7 +16,7 @@ module MTypeInf
     end
 
     cgen = CodeGenC::CodeGen.new
-    cgen.code_gen(bproc, ti)
+#    cgen.code_gen(bproc, ti)
     typemess = ti.dump_type
     cgen.ccode << "/*\n#{typemess}*/\n"
     print cgen.ccode
@@ -122,7 +122,8 @@ module MTypeInf
 
     def dump_method(name, node)
       level = @option[:dump_level]
-      mess = ""
+      mess = []
+      messes = ""
       node.retreg.flush_type_alltup(0)[0]
       types = node.retreg.type
       node.export_exception.flush_type_alltup(0)[0]
@@ -143,9 +144,9 @@ module MTypeInf
             tys.map {|ele| ele.inspect(level)}.join('|')
           }.join(', ')
           if exfmt.size != 0 then
-            mess << "  #{name}: (#{args}) ->  (throws #{exfmt.join(',')}) \n"
+            mess << "#{name} (#{args}) ->  (throws #{exfmt.join(',')})"
           else
-            mess << "  #{name}: (#{args}) ->  \n"
+            mess << "#{name} (#{args}) ->  "
           end
         end
       else
@@ -157,30 +158,49 @@ module MTypeInf
             next
           end
           args = args.map {|tys|
-            tys.map {|ele| ele.inspect(level)}.join('|')
+            tys.map {|ele|
+              if ele.is_a?(ProcType) and name != "" then
+                dump_method("", ele.irep)
+              else
+                ele.inspect(level)
+              end
+            }.join('|')
           }.join(', ')
           type = types.map {|ele| ele.inspect(level)}
           type = type.join('|')
           if exfmt.size != 0 then
-            mess << "  #{name}: (#{args}) -> #{type} throws #{exfmt.join(',')} \n"
+            mess << "#{name} (#{args}) -> #{type} throws #{exfmt.join(',')} "
           else
-            mess << "  #{name}: (#{args}) -> #{type} \n"
+            mess << "#{name} (#{args}) -> #{type} "
           end
         end
       end
 
-      node.reps.each do |blk|
-        mess << dump_method("#{name} block", blk)
+      if name != "" and false then
+        node.reps.each do |blk|
+          messes << dump_method("#{name} block", blk)
+        end
       end
-
-      mess
+      mess.uniq.join("\n  ")
     end
 
     def dump_type
       mess = ""
       level = @option[:dump_level]
       RiteSSA::ClassSSA.all_classssa.each do |cls, clsobj|
-        mess << "#{cls.class} #{cls}\n"
+        if cls == TypeVariable then
+          acls = cls.ancestors[1]
+          mblk = clsobj.method.values[0]
+          sreg = mblk.regtab[0]
+          slftype = sreg.type.values[0][0]
+          tvpara = slftype.sub_type_var.map {|name, ty| ty }
+          interface = slftype.using_method.map {|name, ty|
+            name.val
+          }
+          mess << "#{acls.class} #{acls} #{tvpara} #{interface} \n"
+        else
+          mess << "#{cls.class} #{cls}\n"
+        end
         mess << " Instance variables\n"
         clsobj.iv.each do |iv, reg|
           types =reg.flush_type_alltup(0)[0] || []
@@ -189,7 +209,8 @@ module MTypeInf
         end
         mess << "\n methodes \n"
         clsobj.method.each do |name, node|
-          mess << dump_method(name, node)
+          mess << "  " + dump_method(name, node)
+          mess << "\n"
         end
         mess << "\n"
       end

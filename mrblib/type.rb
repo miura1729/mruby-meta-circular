@@ -108,8 +108,8 @@ module MTypeInf
     end
 
     def inspect_aux(hist, level)
-#      "#{@class_object.inspect}"
-      "#{@class_object.inspect} e=#{is_escape?}"
+      "#{@class_object.inspect}"
+#      "#{@class_object.inspect} e=#{is_escape?}"
     end
 
     def inspect(level = 0)
@@ -179,7 +179,8 @@ module MTypeInf
     end
 
     def inspect_aux(hist, level)
-      "#{@class_object.inspect} e=#{is_escape?} pos =#{@positive}"
+#      "#{@class_object.inspect} e=#{is_escape?} pos =#{@positive}"
+      "#{@class_object.inspect}"
     end
 
     attr :positive
@@ -230,9 +231,11 @@ module MTypeInf
 
       else
         if level < 1 then
-          "#{@class_object.inspect} val=#{@val.inspect} e=#{is_escape?}"
+#          "#{@class_object.inspect} val=#{@val.inspect} e=#{is_escape?}"
+          "#{@class_object.inspect} val=#{@val.inspect}"
         else
-          "#{@class_object.inspect} e=#{is_escape?}"
+#          "#{@class_object.inspect} e=#{is_escape?}"
+          "#{@class_object.inspect}"
         end
       end
     end
@@ -298,9 +301,11 @@ module MTypeInf
       end
       hist.delete(self)
       if level < 3 then
-        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?}"
+#        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?}"
+        "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
       else
-        "#{@class_object.inspect}<> e=#{is_escape?}"
+#        "#{@class_object.inspect}<> e=#{is_escape?}"
+        "#{@class_object.inspect}<>"
       end
     end
 
@@ -447,7 +452,7 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
-        @hometown == other.hometown &&
+#        @hometown == other.hometown &&
         @version == other.version &&
         is_escape? == other.is_escape?
     end
