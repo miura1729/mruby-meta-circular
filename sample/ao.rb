@@ -5,8 +5,8 @@
 # mruby version by Hideki Miura
 #
 
-IMAGE_WIDTH = 64
-IMAGE_HEIGHT = 64
+IMAGE_WIDTH = 256
+IMAGE_HEIGHT = 256
 NSUBSAMPLES = 2
 NAO_SAMPLES = 8
 
@@ -21,7 +21,7 @@ class Vec
   def x=(v); @x = v; end
   def y=(v); @y = v; end
   def z=(v); @z = v; end
-  def x; @x; end
+  def x; @x ; end
   def y; @y; end
   def z; @z; end
 
@@ -30,9 +30,9 @@ class Vec
   end
 
   def vsub(b)
+#    Vec.new(x - b.x, y - b.y, z - b.z)
     Vec.new(@x - b.x, @y - b.y, @z - b.z)
   end
-#  make_inline_method  :vsub
 
   def vcross(b)
     Vec.new(@y * b.z - @z * b.y,
@@ -43,9 +43,9 @@ class Vec
 
   def vdot(b)
     r = @x * b.x + @y * b.y + @z * b.z
+#    r = x * b.x + y * b.y + z * b.z
     r
   end
- # make_inline_method  :vdot
 
   def vlength
     Math.sqrt(@x * @x + @y * @y + @z * @z)
@@ -62,7 +62,6 @@ class Vec
     end
     v
   end
-#  make_inline_method  :vnormalize
 end
 
 
@@ -91,6 +90,7 @@ class Sphere
                           ray.org.z + ray.dir.z * t)
         n = isect.pl.vsub(@center)
         isect.n = n.vnormalize
+        nil
       end
     end
   end
@@ -122,6 +122,7 @@ class Plane
       isect.pl = Vec.new(ray.org.x + t * ray.dir.x,
                         ray.org.y + t * ray.dir.y,
                         ray.org.z + t * ray.dir.z)
+      nil
     end
   end
 end
@@ -182,10 +183,12 @@ def otherBasis(basis, n)
   end
 
   basis[0] = basis[1].vcross(basis[2])
+  # $foo = basis[0]
   basis[0] = basis[0].vnormalize
 
   basis[1] = basis[2].vcross(basis[0])
   basis[1] = basis[1].vnormalize
+  nil
 end
 
 class Scene
@@ -195,6 +198,7 @@ class Scene
     @spheres[1] = Sphere.new(Vec.new(-0.5, 0.0, -3.0), 0.5)
     @spheres[2] = Sphere.new(Vec.new(1.0, 0.0, -2.2), 0.5)
     @plane = Plane.new(Vec.new(0.0, -0.5, 0.0), Vec.new(0.0, 1.0, 0.0))
+    nil
   end
 
   def ambient_occlusion(isect)
@@ -219,6 +223,7 @@ class Scene
         y = Math.sin(phi) * Math.sqrt(1.0 - r)
         z = Math.sqrt(r)
 
+        $foo = basis[0]
         rx = x * basis[0].x + y * basis[1].x + z * basis[2].x
         ry = x * basis[0].y + y * basis[1].y + z * basis[2].y
         rz = x * basis[0].z + y * basis[1].z + z * basis[2].z
@@ -236,7 +241,6 @@ class Scene
         else
           0.0
         end
-        1.0
       end
     end
 
@@ -282,16 +286,18 @@ class Scene
             else
               0.0
             end
-            1
           end
         end
 
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-        #printf("%c", clamp(r))
-        #printf("%c", clamp(g))
-        #printf("%c", clamp(b))
+#        printf("%c", clamp(r))
+#        printf("%c", clamp(g))
+#        printf("%c", clamp(b))
+        clamp(r)
+        clamp(g)
+        clamp(b)
         1
       end
     end
@@ -299,7 +305,10 @@ class Scene
 end
 
 def top
-  Scene.new.render(IMAGE_WIDTH, IMAGE_HEIGHT, NSUBSAMPLES)
+  a = Scene.new
+  a.render(IMAGE_WIDTH, IMAGE_HEIGHT, NSUBSAMPLES)
+#  $foo = a
+  nil
 end
 
 MTypeInf::inference_main {

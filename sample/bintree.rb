@@ -26,10 +26,10 @@ def bar
   a = bottom_up_tree(0, 20)
 end
 
-MTypeInf::inference_main {
+#MTypeInf::inference_main {
   foo
   bar
-}
+#}
 
 # main#foo: (main, NilClass) -> Array|NilClass
 # main#bottom_up_tree: (main, Fixnum, Fixnum, NilClass) -> Array

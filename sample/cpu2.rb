@@ -1,3 +1,4 @@
+MTypeInf::inference_main {
       ADDRESSING_MODES = {
         :ctl =>  [:imm,   :zpg, :imm, :abs, nil,    :zpg_x, nil,    :abs_x],
         :rmw =>  [:imm,   :zpg, :imm, :abs, nil,    :zpg_y, nil,    :abs_y],
@@ -136,7 +137,6 @@ def foo
   #$dispatch[0]
 end
 
-MTypeInf::inference_main {
   #    $dispatch = []
 
       foo

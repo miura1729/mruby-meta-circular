@@ -156,8 +156,8 @@ class NeuralNetwork
     @output_layer= a
 
     @input_layer.product(@hidden_layer).each do |source, dest|
-      $foo = source
-      $bar = dest
+#      $foo = source
+#      $bar = dest
       synapse = Synapse.new(source, dest, prng)
       source.synapses_out << synapse
       dest.synapses_in << synapse
