@@ -523,21 +523,27 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[1].flush_type(tup)[tup]
 
-      if arg1type and arg1type[0].class_object == Float then
-        ty = NumericType.new(Float, false)
-        inst.outreg[0].add_type ty, tup
+      arg0cls = arg0type[0].class_object
+      if !(arg0cls == Fixnum or arg0cls == Float) then
+        @@ruletab[:OP][:SEND].call(infer, inst, node, tup)
 
-      elsif arg0type then
-        if arg1type then
-          if arg1type.any? {|e| e.class_object == NilClass} then
-            inst.outreg[0].add_type PrimitiveType.new(NilClass), tup
-          end
+      else
+        if arg1type and arg1type[0].class_object == Float then
+          ty = NumericType.new(Float, false)
+          inst.outreg[0].add_type ty, tup
 
-          arg0type.each do |ty|
-            if ty.is_a?(LiteralType) then
-              ty = NumericType.new(ty.class_object, false)
+        elsif arg0type then
+          if arg1type then
+            if arg1type.any? {|e| e.class_object == NilClass} then
+              inst.outreg[0].add_type PrimitiveType.new(NilClass), tup
             end
-            inst.outreg[0].add_type ty, tup
+
+            arg0type.each do |ty|
+              if ty.is_a?(LiteralType) then
+                ty = NumericType.new(ty.class_object, false)
+              end
+              inst.outreg[0].add_type ty, tup
+            end
           end
         end
       end
@@ -602,14 +608,20 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = LiteralType.new(Fixnum, inst.para[1])
 
-      if arg0type then
-        arg0type.each do |ty|
-          if ty.is_a?(LiteralType) then
-            postive = ty.val >= 0 && inst.para[1] >= 0
-            ty = NumericType.new(ty.class_object, postive)
+      arg0cls = arg0type[0].class_object
+      if !(arg0cls == Fixnum or arg0cls == Float) then
+        @@ruletab[:OP][:SEND].call(infer, inst, node, tup)
+      else
+
+        if arg0type then
+          arg0type.each do |ty|
+            if ty.is_a?(LiteralType) then
+              postive = ty.val >= 0 && inst.para[1] >= 0
+              ty = NumericType.new(ty.class_object, postive)
+            end
+            #ty = PrimitiveType.new(ty.class_object)
+            inst.outreg[0].add_type ty, tup
           end
-          #ty = PrimitiveType.new(ty.class_object)
-          inst.outreg[0].add_type ty, tup
         end
       end
       nil

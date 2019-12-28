@@ -84,6 +84,12 @@ module MTypeInf
               when MTypeInf::TypeVarType
                 return false
 
+              when MTypeInf::RegClassType
+                return false
+
+              when MTypeInf::ExpType
+                return false
+
               else
                 raise self
               end

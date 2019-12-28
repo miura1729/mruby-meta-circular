@@ -84,6 +84,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :GETMCNST do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :GETIV do |ccgen, inst, node, infer, history, tup|
       dst = inst.outreg[0]
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)

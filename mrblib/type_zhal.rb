@@ -1,0 +1,222 @@
+module HAL
+  class RawWord
+  end
+
+  class RawInt8
+  end
+
+  class RawInt16
+  end
+
+  class RawIn32
+  end
+
+  class RawInt64
+  end
+
+  class RawUword
+  end
+
+  class RawUint8
+  end
+
+  class RawUint16
+  end
+
+  class RawUin32
+  end
+
+  class RawUint64
+  end
+
+  class CPU
+  end
+
+  class Regs
+  end
+
+  class Reg
+  end
+
+  class Mem
+  end
+
+  class BinExp
+  end
+
+  class UniExp
+  end
+end
+
+module MTypeInf
+  class RegClassType<BasicType
+    def initialize(co, id, *rest)
+      super(co, *rest)
+      @regid = id
+    end
+
+    attr :regid
+  end
+
+  class ExpType<BasicType
+    def initialize(co, op, term0, term1, *rest)
+      super(co, *rest)
+      @opcode = op
+      @term0 = term0
+      @term1 = term1
+    end
+
+    attr :opcode
+    attr :term0
+    attr :term1
+  end
+
+  class TypeInferencer
+    define_inf_rule_method :regs, HAL::CPU do |infer, inst, node, tup|
+      type = UserDefinedType.new(HAL::Regs, inst)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :[], HAL::Regs do |infer, inst, node, tup|
+      idx = inst.inreg[1].flush_type(tup)[tup][0]
+      type = RegClassType.new(HAL::Reg, idx.val)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :[]=, HAL::Regs do |infer, inst, node, tup|
+      type = UserDefinedType.new(HAL::Reg, inst)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :+, HAL::Reg do |infer, inst, node, tup|
+      term0 = inst.inreg[0].flush_type(tup)[tup][0]
+      if inst.inreg[1] then
+        term1 = inst.inreg[1].flush_type(tup)[tup][0]
+      else
+        term1 = LiteralType.new(Fixnum, inst.para[1])
+      end
+      type = ExpType.new(HAL::BinExp, :+, term0, term1)
+      p type
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :mem, HAL::CPU do |infer, inst, node, tup|
+      type = UserDefinedType.new(HAL::Mem, inst)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :[], HAL::Mem do |infer, inst, node, tup|
+      siztype = inst.inreg[2].get_type(tup)[0]
+      ctype = nil
+      case siztype.val
+      when 1
+        ctype = RawUint8
+
+      when 2
+        ctype = RawUint16
+
+      when 4
+f        ctype = RawUint32
+
+      when 8
+        ctype = RawUint64
+
+      when nil
+        ctype = RawUword
+      end
+
+      type = NumericType.new(ctype, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+  end
+end
+
+module CodeGenC
+  class CodeGen
+    define_ccgen_rule_method :regs, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_method :mem, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_method :[], HAL::Regs do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    def self.op2mnemonic(op)
+      p ({:+ => "add",
+        :- => "sub",
+        :& => "and",
+        :| => "or",
+        :- => "xor",
+        :! => "not",
+        :-@=> "neg"}[op])
+    end
+
+    define_ccgen_rule_method :[]=, HAL::Regs do |ccgen, inst, node, infer, history, tup|
+      idxtype = inst.inreg[1].flush_type(tup)[tup][0]
+      valtype = inst.inreg[2].flush_type(tup)[tup][0]
+
+      dst = ""
+      src = ""
+      if idxtype.class_object == Symbol then
+        case idxtype.val
+        when :rax, :rbx, :rcx, :rdx, :rsp, :rbp, :rdi, :rsi
+          dst = "%%" + idxtype.val.to_s
+          mnemonic = "mov"
+
+        else
+          raise "Not support reg"
+        end
+
+      else
+        raise "Regname must be Symbol (ex. :rax)"
+      end
+
+      if valtype.class_object == Fixnum then
+        exp = valtype.val
+        src = exp
+
+      elsif valtype.class_object == HAL::Reg then
+        src = "%%" + valtype.regid.to_s
+
+      elsif valtype.class_object == HAL::BinExp then
+        if valtype.term0.regid == idxtype.val then
+          mnemonic = op2mnemonic(valtype.opcode)
+          if valtype.term1.class_object == HAL::Reg then
+            src = "%%" + valtype.term1.regid.to_s
+          else
+            src = valtype.term1.val.to_s
+          end
+
+        else
+          # This condition not support normally
+        end
+
+      elsif valtype.class_object == HAL::UniExp then
+        if valtype.term1.regid == idxtype.val then
+          mnemonic = op2mnemonic(valtype.opcode)
+          src = valtype.term1.val.to_s
+
+        else
+          # This condition not support normally
+        end
+      end
+
+      ccgen.pcode << "asm volatile (\"#{mnemonic} #{src}, #{dst}\");\n"
+      nil
+    end
+
+    define_ccgen_rule_method :+, HAL::Reg do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+  end
+end
