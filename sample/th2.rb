@@ -17,6 +17,11 @@ def boot
   regs[:rax] = regs[:rbx]
   regs[:rax] = regs[:rax] + 1
   regs[:rax] = regs[:rax] + regs[:rbx]
+  mem[regs[:rax]] = regs[:rax]
+  mem[regs[:rax] + 4] = regs[:rax]
+  regs[:rax] = mem[regs[:rax] + 4]
+  regs[:rax] = mem[regs[:rax]]
+  regs[:rax] = mem[regs[:rax]] + 1
   nil
 end
 

@@ -87,6 +87,9 @@ module MTypeInf
               when MTypeInf::RegClassType
                 return false
 
+              when MTypeInf::MemClassType
+                return false
+
               when MTypeInf::ExpType
                 return false
 
