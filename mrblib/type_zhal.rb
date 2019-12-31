@@ -72,6 +72,42 @@ module MTypeInf
   end
 
   class TypeInferencer
+    define_inf_rule_class_method :new, HAL::CPU do |infer, inst, node, tup|
+      type = UserDefinedType.new(HAL::CPU, inst)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :jmp, HAL::CPU do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :label, HAL::CPU do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :byte, HAL::CPU do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :short, HAL::CPU do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :long, HAL::CPU do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :regs, HAL::CPU do |infer, inst, node, tup|
       type = UserDefinedType.new(HAL::Regs, inst)
       inst.outreg[0].add_type(type, tup)
@@ -86,7 +122,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :[]=, HAL::Regs do |infer, inst, node, tup|
-      type = UserDefinedType.new(HAL::Reg, inst)
+      idx = inst.inreg[1].flush_type(tup)[tup][0]
+      type = RegClassType.new(HAL::Reg, idx)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -99,7 +136,6 @@ module MTypeInf
         term1 = LiteralType.new(Fixnum, inst.para[1])
       end
       type = ExpType.new(HAL::BinExp, :+, term0, term1)
-      p type
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -121,7 +157,7 @@ module MTypeInf
         ctype = RawUint16
 
       when 4
-f        ctype = RawUint32
+        ctype = RawUint32
 
       when 8
         ctype = RawUint64
@@ -139,7 +175,44 @@ end
 
 module CodeGenC
   class CodeGen
+    define_ccgen_rule_class_method :new, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_method :regs, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_method :jmp, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      label = inst.inreg[1].flush_type(tup)[tup][0].val
+      ccgen.pcode << "asm volatile (\"jmp #{label.to_s}\");\n"
+      nil
+    end
+
+    define_ccgen_rule_method :label, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      label = inst.inreg[1].flush_type(tup)[tup][0].val
+      ccgen.pcode << "asm volatile (\"#{label.to_s}:\");\n"
+      nil
+    end
+
+    define_ccgen_rule_method :byte, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      val = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0].to_s
+      val = eval(val)
+      ccgen.pcode << "asm volatile (\".byte #{val.to_s}\");\n"
+      nil
+    end
+
+    define_ccgen_rule_method :short, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      val = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0].to_s
+      val = eval(val)
+      ccgen.pcode << "asm volatile (\".short #{val.to_s}\");\n"
+      nil
+    end
+
+    define_ccgen_rule_method :long, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+      val = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0].to_s
+      val = eval(val)
+      ccgen.pcode << "asm volatile (\".long #{val.to_s}\");\n"
       nil
     end
 
@@ -152,13 +225,13 @@ module CodeGenC
     end
 
     def self.op2mnemonic(op)
-      p ({:+ => "add",
-        :- => "sub",
-        :& => "and",
-        :| => "or",
-        :- => "xor",
-        :! => "not",
-        :-@=> "neg"}[op])
+      ({:+ => "add",
+          :- => "sub",
+          :& => "and",
+          :| => "or",
+          :- => "xor",
+          :! => "not",
+          :-@=> "neg"}[op])
     end
 
     define_ccgen_rule_method :[]=, HAL::Regs do |ccgen, inst, node, infer, history, tup|
@@ -170,7 +243,7 @@ module CodeGenC
       if idxtype.class_object == Symbol then
         case idxtype.val
         when :rax, :rbx, :rcx, :rdx, :rsp, :rbp, :rdi, :rsi
-          dst = "%%" + idxtype.val.to_s
+          dst = "%" + idxtype.val.to_s
           mnemonic = "mov"
 
         else
@@ -184,18 +257,21 @@ module CodeGenC
       if valtype.class_object == Fixnum then
         exp = valtype.val
         src = exp
+        ccgen.pcode << "asm volatile (\"#{mnemonic} #{src}, #{dst}\");\n"
 
       elsif valtype.class_object == HAL::Reg then
-        src = "%%" + valtype.regid.to_s
+        src = "%" + valtype.regid.to_s
+        ccgen.pcode << "asm volatile (\"#{mnemonic} #{src}, #{dst}\");\n"
 
       elsif valtype.class_object == HAL::BinExp then
         if valtype.term0.regid == idxtype.val then
           mnemonic = op2mnemonic(valtype.opcode)
           if valtype.term1.class_object == HAL::Reg then
-            src = "%%" + valtype.term1.regid.to_s
+            src = "%" + valtype.term1.regid.to_s
           else
             src = valtype.term1.val.to_s
           end
+          ccgen.pcode << "asm volatile (\"#{mnemonic} #{src}, #{dst}\");\n"
 
         else
           # This condition not support normally
@@ -204,14 +280,13 @@ module CodeGenC
       elsif valtype.class_object == HAL::UniExp then
         if valtype.term1.regid == idxtype.val then
           mnemonic = op2mnemonic(valtype.opcode)
-          src = valtype.term1.val.to_s
+          ccgen.pcode << "asm volatile (\"#{mnemonic} #{dst}\");\n"
 
         else
           # This condition not support normally
         end
       end
 
-      ccgen.pcode << "asm volatile (\"#{mnemonic} #{src}, #{dst}\");\n"
       nil
     end
 

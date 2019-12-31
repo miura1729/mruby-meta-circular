@@ -611,6 +611,7 @@ module MTypeInf
       arg0cls = arg0type[0].class_object
       if !(arg0cls == Fixnum or arg0cls == Float) then
         @@ruletab[:OP][:SEND].call(infer, inst, node, tup)
+
       else
 
         if arg0type then
