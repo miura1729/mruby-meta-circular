@@ -48,6 +48,9 @@ module HAL
   end
 end
 
+module MMC
+end
+
 module MTypeInf
   class RegClassType<BasicType
     def initialize(co, id, *rest)
@@ -159,7 +162,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :[], HAL::Mem do |infer, inst, node, tup|
+    def self.mem_type(inst, tup)
       idx = inst.inreg[1].flush_type(tup)[tup][0]
       type = nil
       if idx.class_object == Fixnum then
@@ -189,6 +192,22 @@ module MTypeInf
         type = MemClassType.new(HAL::Mem, idx)
       end
 
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :[]=, HAL::Mem do |infer, inst, node, tup|
+      mem_type(inst, tup)
+      nil
+    end
+
+    define_inf_rule_method :[], HAL::Mem do |infer, inst, node, tup|
+      mem_type(inst, tup)
+      nil
+    end
+
+    define_inf_rule_class_method :attribute, MMC do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -269,8 +288,16 @@ module CodeGenC
           dst = "%" + idxtype.val.to_s
           mnemonic = "mov"
 
+        when :eax, :ebx, :ecx, :edx, :esp, :ebp, :edi, :esi
+          dst = "%" + idxtype.val.to_s
+          mnemonic = "mov"
+
+        when :ax, :bx, :cx, :dx, :sp, :bp, :di, :si
+          dst = "%" + idxtype.val.to_s
+          mnemonic = "mov"
+
         else
-          raise "Not support reg"
+          raise "Not support reg #{idxtype.val}"
         end
 
       else
@@ -375,6 +402,12 @@ module CodeGenC
       end
 
       nil
+    end
+
+    define_ccgen_rule_class_method :attribute, MMC do |ccgen, inst, node, infer, history, tup|
+      attrname = inst.inreg[1].flush_type(tup)[tup][0]
+      attrval = inst.inreg[2].flush_type(tup)[tup][0]
+      ccgen.tmp_attribute[attrname.val] = attrval.val
     end
   end
 end

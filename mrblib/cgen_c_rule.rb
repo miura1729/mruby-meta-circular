@@ -180,7 +180,7 @@ module CodeGenC
             end
           end
           pproc = ccgen.callstack[-1][0]
-          minf = [fname, proc, utup, pproc]
+          minf = [fname, proc, utup, pproc, name]
           if ccgen.using_method.index(minf) == nil then
             ccgen.using_method.push minf
           end

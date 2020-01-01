@@ -479,6 +479,20 @@ module CodeGenC
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
+
+    define_ccgen_rule_op :METHOD do |ccgen, inst, node, infer, history, tup|
+      if ccgen.tmp_attribute.size != 0 then
+        rt = inst.inreg[0].type(tup)[0][0].val
+        name = inst.para[0]
+        ccgen.method_attribute[[name, rt]] = ccgen.tmp_attribute.dup
+        ccgen.tmp_attribute.clear
+      end
+      nil
+    end
+
+    define_ccgen_rule_op :TCLASS do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
   end
 end
 
