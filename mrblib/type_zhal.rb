@@ -422,9 +422,9 @@ module CodeGenC
 
     define_ccgen_rule_method :static_cast, HAL::Mem do |ccgen, inst, node, infer, history, tup|
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0].to_s
-      target = get_ctype(ccgen, inst.inreg[2], tup, infer, false)
+      target = get_ctype(ccgen, inst.outreg[0], tup, infer, false)
       oreg = inst.outreg[0]
-      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)}:\n"
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
       ccgen.pcode << "v#{oreg.id} = ((#{target})(#{idx}));\n"
 
       nil
