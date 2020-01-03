@@ -5,16 +5,16 @@ MTypeInf::inference_main {
     regs = cpu.regs
     mem = cpu.mem
     #  $foo = regs
-    cpu.jmp(:skip)
+    cpu.jmp("1f")
 
     # BIOS Parametor
     cpu.byte 0
     cpu.byte 0
     cpu.byte 0
     cpu.byte 0
-    cpu.long 0xcafebab + 123
+    cpu.long 0
 
-    cpu.label(:skip)
+    cpu.label(1)
     regs[:sp] = 0x7c00
     regs[:ax] = regs[:bx]
     regs[:ax] = regs[:ax] + 1

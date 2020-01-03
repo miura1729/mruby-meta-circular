@@ -393,7 +393,7 @@ EOS
         @ccode << "#{slfdecl} = proc->self;\n"
         @pcode << "env.prev = proc->env;\n"
       end
-      code_gen_method_aux(block, ti, name, proc, tup, pproc)
+      code_gen_method_aux(block, ti, name, proc, tup, pproc, nil)
     end
 
     def code_gen_node(node, ti, name, history, tup)
@@ -401,7 +401,7 @@ EOS
       @pcode << "L#{node.id}:; \n"
       rc = nil
       node.ext_iseq.each do |ins|
-#         p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
+        #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
 #        rescue NoMethodError => e

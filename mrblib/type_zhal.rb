@@ -14,6 +14,9 @@ module HAL
   class RawInt64
   end
 
+  class RawAddress
+  end
+
   class RawUword
   end
 
@@ -196,13 +199,26 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :[], HAL::Mem do |infer, inst, node, tup|
+      mem_type(inst, tup)
+      nil
+    end
+
     define_inf_rule_method :[]=, HAL::Mem do |infer, inst, node, tup|
       mem_type(inst, tup)
       nil
     end
 
-    define_inf_rule_method :[], HAL::Mem do |infer, inst, node, tup|
-      mem_type(inst, tup)
+    define_inf_rule_method :static_cast, HAL::Mem do |infer, inst, node, tup|
+      oty = inst.inreg[2].flush_type(tup)[tup][0]
+      type = UserDefinedStaticType.new(oty.val, inst)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :static_allocate, HAL::Mem do |infer, inst, node, tup|
+      type = PrimitiveType.new(HAL::RawAddress)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
@@ -404,10 +420,60 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :static_cast, HAL::Mem do |ccgen, inst, node, infer, history, tup|
+      idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0].to_s
+      target = get_ctype(ccgen, inst.inreg[2], tup, infer, false)
+      oreg = inst.outreg[0]
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)}:\n"
+      ccgen.pcode << "v#{oreg.id} = ((#{target})(#{idx}));\n"
+
+      nil
+    end
+
+    define_ccgen_rule_method :static_allocate, HAL::Mem do |ccgen, inst, node, infer, history, tup|
+
+      oreg = inst.outreg[0]
+      type = get_ctype_aux_aux(ccgen, inst.inreg[1], tup, infer)
+      if type.is_a?(Array) then
+        dtype = type[0]
+        type = type.join
+      end
+
+      regnm = "v#{oreg.id}"
+
+      case dtype
+      when :array
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        ereg = reg.type[tup][0].element[uv]
+        etup = tup
+        if ereg.type[tup] == nil then
+          etup = ereg.type.keys[0]
+        end
+        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        ccgen.dcode << "#{type} v#{oreg.id};\n"
+        ccgen.hcode << "#{etype} #{regnm}_ent[];\n"
+        ccgen.pcode << "v#{oreg.id} = ((#{etype})(#{regnm}_ent));\n"
+
+      when :nil
+        ccgen.dcode << "#{type} v#{oreg.id};\n"
+        ccgen.hcode << "mrb_value #{regnm}_ent;\n"
+        ccgen.pcode << "v#{oreg.id} = ((#{type})(&#{regnm}_ent));\n"
+
+      else
+        ccgen.dcode << "#{type} v#{oreg.id};\n"
+        ccgen.hcode << "#{dtype} #{regnm}_ent;\n"
+        ccgen.pcode << "v#{oreg.id} = ((#{type})(&#{regnm}_ent));\n"
+      end
+
+      nil
+    end
+
     define_ccgen_rule_class_method :attribute, MMC do |ccgen, inst, node, infer, history, tup|
       attrname = inst.inreg[1].flush_type(tup)[tup][0]
       attrval = inst.inreg[2].flush_type(tup)[tup][0]
       ccgen.tmp_attribute[attrname.val] = attrval.val
+
+      nil
     end
   end
 end

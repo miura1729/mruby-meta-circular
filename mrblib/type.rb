@@ -475,6 +475,12 @@ module MTypeInf
     end
   end
 
+  class UserDefinedStaticType<UserDefinedType
+    def is_gcobject?
+      false
+    end
+  end
+
   TypeSource = {
     NilClass => PrimitiveType,
     Fixnum => NumericType,
