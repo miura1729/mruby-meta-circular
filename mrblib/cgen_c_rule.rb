@@ -637,9 +637,18 @@ module CodeGenC
         return :mrb_value
       end
 
+      rtypesize = rtype.size
       cls0 = rtype[0].class_object
+
+      # not escape and pointer type is nullable.
+      if cls0 == NilClass and rtype.size == 2 then
+        cls0 = rtype[1].class_object
+        rtypesize = 1
+      end
+
       if rtype.all? {|e| e.class_object == cls0} then
         res = TTABLE[cls0]
+        rtypesize = 1
         if res then
           return res
         end
@@ -653,7 +662,7 @@ module CodeGenC
       end
 
       nilobj = MTypeInf::PrimitiveType.new(NilClass)
-      if rtype.size == 1 then
+      if rtypesize == 1 then
         clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
         ccgen.using_class[clsssa] ||= {}
         ivtypes = [nilobj]
