@@ -430,6 +430,9 @@ EOS
                 @dcode << ";\n"
               end
               @pcode << "v#{nreg.id} = #{src};\n"
+              if node.root.export_regs.include?(nreg) then
+                @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"
+              end
             end
           end
         end
