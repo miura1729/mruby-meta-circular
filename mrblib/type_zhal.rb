@@ -217,13 +217,32 @@ module MTypeInf
     end
 
     define_inf_rule_method :static_allocate, HAL::Mem do |infer, inst, node, tup|
-      type = PrimitiveType.new(HAL::RawAddress)
+      oty = inst.inreg[1].flush_type(tup)[tup][0]
+      type = UserDefinedStaticType.new(oty.val, inst)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_class_method :attribute, MMC do |infer, inst, node, tup|
       type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_class_method :class_sizeof, MMC do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_class_method :instance_sizeof, MMC do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_class_method :offsetof, MMC do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -474,6 +493,28 @@ module CodeGenC
       ccgen.tmp_attribute[attrname.val] = attrval.val
 
       nil
+    end
+
+    define_ccgen_rule_class_method :class_sizeof, MMC do |ccgen, inst, node, infer, history, tup|
+      klassobj = inst.inreg[1].flush_type(tup)[tup][0].val
+
+      nil
+    end
+
+    define_ccgen_rule_class_method :instance_sizeof, MMC do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      type = get_ctype_aux_aux(ccgen, inst.inreg[1], tup, infer)
+      ccgen.pcode << "v#{oreg.id} = sizeof(#{trype});"
+    end
+
+    define_ccgen_rule_class_method :offsetof, MMC do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      name = inst.inreg[2].flush_type(tup)[tup][0].val
+      cty = inst.inreg[1].type[tup][0]
+      cls =ClassSSA.get_instance(cty.class_object)
+      ctype = get_ctype_aux_aux(ccgen, inst.inreg[1], tup, infer)
+      ivval = cls.iv[name]
+      ccgen.pcode << "v#{oreg.id} = (((#{ctype} *)0)->v#{ivval.id});"
     end
   end
 end
