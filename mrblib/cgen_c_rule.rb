@@ -844,6 +844,7 @@ module CodeGenC
           return "(sizeof(#{type}))"
         end
       end
+      nil
     end
 
     def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history)
