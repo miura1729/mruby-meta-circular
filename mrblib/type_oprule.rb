@@ -145,7 +145,9 @@ module MTypeInf
             if !ty.is_a?(UserDefinedType) or
                 ty.hometown.irep == slftype.hometown.irep or
                 (previrep == slftype.hometown.irep and
-                curirep == ty.hometown.irep and false) then
+                  curirep == ty.hometown.irep) or
+                (curirep == slftype.hometown.irep and
+                  ty.place.keys.include?(:return_fst)) then
               ty.place[slftype] = [:SETIV, inst.line]
             else
               ty.place[true] = [:SETIV, inst.line]

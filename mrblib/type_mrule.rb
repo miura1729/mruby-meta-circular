@@ -253,7 +253,9 @@ module MTypeInf
           if (!ty.is_a?(UserDefinedType) or
               ty.hometown.irep == arrtypes[0].hometown.irep) or
               (previrep == arrtypes[0].hometown.irep and
-              curirep == ty.hometown.irep) then
+                curirep == ty.hometown.irep) or
+              (curirep == arrtypes[0].hometown.irep and
+                ty.place.keys.include?(:return_fst)) then
             ty.place[arrtypes[0]] = [:[]=]
           else
             ty.place[true] = [:[]=]
