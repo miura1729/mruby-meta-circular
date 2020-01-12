@@ -130,16 +130,16 @@ module MTypeInf
         return false
       end
 
-      if @escape_cache then
-        return @escape_cache
-      end
+     if @escape_cache then
+       return @escape_cache
+     end
 
       if hist[self] then
         return false
       end
       hist[self] = true
 
-      plist = place
+      plist = @place
       if plist.size == 0 then
         return false
       end
@@ -156,11 +156,29 @@ module MTypeInf
           # for debug ProcType is independing.
           e.is_escape?(hist)
 
-        when UserDefinedType
-          e.is_escape?(hist)
+        when UserDefinedType, ContainerType
+          if e.is_escape?(hist) then
+            true
 
-        when ContainerType
-          e.is_escape?(hist)
+          elsif e.hometown.irep == @hometown.irep or
+              val[0] == @hometown.irep then
+            false
+
+          elsif ps = e.place[:return_fst] and psary = ps[e.hometown.irep] and
+              psary[0] == @hometown.irep then
+              false
+
+          elsif pv = plist[:return_fst] and pvary = pv.values[0] then
+            if e.hometown.irep == pvary[0] or pvary[0] == val[0] then
+              false
+
+            else
+              true
+            end
+
+          else
+            true
+          end
 
         when :returniv
           val[0].is_escape?(hist)

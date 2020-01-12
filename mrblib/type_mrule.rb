@@ -250,15 +250,8 @@ module MTypeInf
       curirep = infer.callstack[-1][0].irep
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          if (!ty.is_a?(UserDefinedType) or
-              ty.hometown.irep == arrtypes[0].hometown.irep) or
-              (previrep == arrtypes[0].hometown.irep and
-                curirep == ty.hometown.irep) or
-              (curirep == arrtypes[0].hometown.irep and
-                ty.place.keys.include?(:return_fst)) then
-            ty.place[arrtypes[0]] = [:[]=]
-          else
-            ty.place[true] = [:[]=]
+          arrtypes.each do |at|
+            ty.place[at] = [inst.irep, :[]=, inst.line]
           end
         end
       end

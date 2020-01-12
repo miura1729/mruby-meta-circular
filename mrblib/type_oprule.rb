@@ -93,7 +93,8 @@ module MTypeInf
         p inst.inreg[0].type
         p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
         inst.inreg[0].type.each do |tp, tys|
-          p "#{tp} #{tys.map {|ty| ty.place}}"
+          p "#{tp} #{tys.map {|ty| ty.place.keys}}"
+#          p "#{tp} #{tys.map {|ty| ty.place}}"
         end
       end
       nil
@@ -129,7 +130,7 @@ module MTypeInf
       slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
       oty = slfiv.type[tup]
       slfiv.add_same(valreg)
-      cty = slfiv.flush_type_alltup(tup)[tup]
+      cty = slfiv.flush_type_alltup(tup)[tup] 
       if oty != cty then
         slftype.version += 1
       end
@@ -141,18 +142,7 @@ module MTypeInf
       curirep = infer.callstack[-1][0].irep
       if types then
         types.each do |ty|
-          if ty then
-            if !ty.is_a?(UserDefinedType) or
-                ty.hometown.irep == slftype.hometown.irep or
-                (previrep == slftype.hometown.irep and
-                  curirep == ty.hometown.irep) or
-                (curirep == slftype.hometown.irep and
-                  ty.place.keys.include?(:return_fst)) then
-              ty.place[slftype] = [:SETIV, inst.line]
-            else
-              ty.place[true] = [:SETIV, inst.line]
-            end
-          end
+          ty.place[slftype] = [inst.irep, :SETIV, inst.line]
         end
       end
       nil
