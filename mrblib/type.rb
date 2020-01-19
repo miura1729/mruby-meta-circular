@@ -4,6 +4,7 @@ module MTypeInf
     def initialize(co, *rest)
       @class_object = co
       @hometown = nil
+      @phometown = nil
       @place = {}
       @escape_cache = nil
       @version = 0
@@ -21,6 +22,7 @@ module MTypeInf
 
     attr :class_object
     attr_accessor :hometown
+    attr_accessor :phometown
     attr_accessor :place
     attr_accessor :version
 
@@ -160,23 +162,25 @@ module MTypeInf
           if e.is_escape?(hist) then
             true
 
-          elsif e.hometown.irep == @hometown.irep or
-              val[0] == @hometown.irep then
+          elsif e.hometown.irep == @hometown.irep then
+#              val[1] == @hometown.irep or
+#              val[0] == @hometown.irep then
             false
 
-          elsif ps = e.place[:return_fst] and psary = ps[e.hometown.irep] and
-              psary[0] == @hometown.irep then
-              false
+          elsif e.phometown == @hometown.irep then
+            false
 
-          elsif pv = plist[:return_fst] and pvary = pv.values[0] then
-            if e.hometown.irep == pvary[0] or pvary[0] == val[0] then
-              false
+#          elsif e.phometown == @phometown then
+#            false
 
-            else
-              true
-            end
+          elsif e.hometown.irep == @phometown then
+#              @phometown == val[1] or
+#              @phometown == val[0] then
+            false
 
           else
+#            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometown.line(0)}"
+            p "LINE #{@hometown.irep.line(0)} #{@phometown.line(0)} #{e.hometown.irep.line(0)} #{e.phometown.line(0)}"
             true
           end
 
@@ -291,10 +295,11 @@ module MTypeInf
   end
 
   class ContainerType<BasicType
-    def initialize(co, ht, *rest)
+    def initialize(co, ht, pht, *rest)
       super(co, *rest)
       @element = {}
       @hometown = ht
+      @phometown = pht
       reg = RiteSSA::Reg.new(nil)
 #      reg.add_type PrimitiveType.new(NilClass, nil), 0
       @element[UNDEF_VALUE] = reg
@@ -307,6 +312,8 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @element.size == other.element.size &&
+        @hometown == other.hometown &&
+#        @phometown == other.phometown &&
         @element == other.element &&
         is_escape? == other.is_escape?
 #      equal?(other)# && is_escape? == other.is_escape?
@@ -456,9 +463,10 @@ module MTypeInf
   class UserDefinedType<BasicType
     @@instances = []
 
-    def initialize(co, ht, *rest)
+    def initialize(co, ht, pht, *rest)
       super(co, *rest)
       @hometown = ht
+      @phometown = pht
 #      @@instances.push self
     end
 
@@ -480,6 +488,7 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
+#        @phometown == other.phometown &&
         @version == other.version &&
         is_escape? == other.is_escape?
     end
@@ -488,6 +497,7 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
+#        @phometown == other.phometown &&
         @version == other.version &&
         is_escape? == other.is_escape?
     end
@@ -515,7 +525,7 @@ module MTypeInf
   TypeTable = {}
   TypeSource.each do |ty, cl|
     if cl == ContainerType then
-      TypeTable[ty] = cl.new(ty, nil)
+      TypeTable[ty] = cl.new(ty, nil, nil)
     else
       TypeTable[ty] = cl.new(ty)
     end

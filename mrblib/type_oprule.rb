@@ -121,7 +121,7 @@ module MTypeInf
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
       valreg = inst.inreg[0]
-      valtype = valreg.flush_type(tup)[tup][0]
+      valtype = valreg.flush_type(tup)[tup]
       name = inst.para[0]
 
       slf = inst.inreg[1]
@@ -130,7 +130,7 @@ module MTypeInf
       slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
       oty = slfiv.type[tup]
       slfiv.add_same(valreg)
-      cty = slfiv.flush_type_alltup(tup)[tup] 
+      cty = slfiv.flush_type_alltup(tup)[tup]
       if oty != cty then
         slftype.version += 1
       end
@@ -140,9 +140,10 @@ module MTypeInf
       # update place infomation
       previrep = infer.callstack[-2][0].irep
       curirep = infer.callstack[-1][0].irep
-      if types then
-        types.each do |ty|
-          ty.place[slftype] = [inst.irep, :SETIV, inst.line]
+
+      if valtype then
+        valtype.each do |ty|
+          ty.place[slftype] = [curirep, previrep, :SETIV, inst.line]
         end
       end
       nil
@@ -342,7 +343,7 @@ module MTypeInf
           if r == 1 then
             type = inst.objcache[tup]
             if !type then
-              inst.objcache[tup] = type = ContainerType.new(Array, inst)
+              inst.objcache[tup] = type = ContainerType.new(Array, inst, infer.callstack[-2][0].irep)
               type.element[uv] = RiteSSA::Reg.new(nil)
             end
 
@@ -392,7 +393,7 @@ module MTypeInf
         if r == 1 then
           type = inst.objcache[tup]
           if !type then
-            inst.objcache[tup] = type = ContainerType.new(Array, inst)
+            inst.objcache[tup] = type = ContainerType.new(Array, inst, infer.callstack[-2][0].irep)
             type.element[uv] = RiteSSA::Reg.new(nil)
           end
 
@@ -462,7 +463,7 @@ module MTypeInf
 
       reccls = intype[0][0].class_object
       supcls = reccls.superclass
-      rect = UserDefinedType.new(supcls, inst)
+      rect = UserDefinedType.new(supcls, inst, infer.callstack[-2][0].irep)
       recreg = RiteSSA::Reg.new(nil)
       recreg.add_type rect, tup
       oreg = inst.outreg[0]
@@ -639,7 +640,7 @@ module MTypeInf
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|
       type = inst.objcache[nil]
       if !type then
-        inst.objcache[nil] = type = ContainerType.new(Array, inst)
+        inst.objcache[nil] = type = ContainerType.new(Array, inst, infer.callstack[-2][0].irep)
       end
       nilreg = type.element[ContainerType::UNDEF_VALUE]
       inst.para[0].times do |i|
@@ -668,7 +669,7 @@ module MTypeInf
       eletype = inst.inreg[1].flush_type(tup)[tup][0]
       type = inst.objcache[tup]
       if !type then
-        inst.objcache[tup] = type = ContainerType.new(Array, inst)
+        inst.objcache[tup] = type = ContainerType.new(Array, inst, infer.callstack[-2][0].irep)
       end
       arrtype.element.each do |key, reg|
         type.element[key] ||= RiteSSA::Reg.new(nil)
@@ -757,7 +758,7 @@ module MTypeInf
     define_inf_rule_op :HASH do |infer, inst, node, tup, history|
       type = inst.objcache[nil]
       if !type then
-        inst.objcache[nil] = type = ContainerType.new(Hash, inst)
+        inst.objcache[nil] = type = ContainerType.new(Hash, inst, infer.callstack[-2][0].irep)
       end
       type.element[ContainerType::UNDEF_VALUE] ||= RiteSSA::Reg.new(nil)
       udefreg = type.element[ContainerType::UNDEF_VALUE]
@@ -888,7 +889,7 @@ module MTypeInf
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|
       type = inst.objcache[nil]
       if !type then
-        inst.objcache[nil] = type = ContainerType.new(Range, inst)
+        inst.objcache[nil] = type = ContainerType.new(Range, inst, infer.callstack[-2][0].irep)
       end
       nreg = type.element[0] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[0]

@@ -323,7 +323,7 @@ module MTypeInf
                 cpos = saairep.nodes[0].ext_iseq[0].line
                 if ty.hometown and saairep.irep == ty.hometown.irep then
                   ty.place[:return_fst] ||= {}
-                  ty.place[:return_fst][ty.hometown.irep] = [proc.irep.irep, cpos]
+                  ty.place[:return_fst][ty.hometown.irep] = cpos
                 else
                   ty.place[:return] ||= {}
                   ty.place[:return][ty.hometown] = cpos
