@@ -75,10 +75,13 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
-      val = inst.outreg[0].type[tup][0].val
+      oreg = inst.outreg[0]
+      val = oreg.type[tup][0].val
 
-      if !(val.is_a?(Fixnum) or val.is_a?(Float)) then
-        ccgen.clstab[val] = [inst.para[0], "const#{ccgen.clstab.size}"]
+      if !(val.is_a?(Fixnum) or val.is_a?(Float) or ccgen.clstab[val]) then
+        cno = ccgen.clstab.size
+        ccgen.hcode << "#{get_ctype(ccgen, oreg, tup, infer)} const#{cno};\n"
+        ccgen.clstab[val] = [inst.para[0], "const#{cno}"]
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
