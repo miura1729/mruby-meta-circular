@@ -151,7 +151,7 @@ module MTypeInf
         end
       else
         types.each do |arg, types|
-#           mess << "(#{arg}) " #Raw tup for debug
+          # mess << "(#{arg}) " #Raw tup for debug
           args = @typetupletab.rev_table[arg]
           args =  args[0..-3]
           if args.size == 1 then

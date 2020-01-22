@@ -180,7 +180,7 @@ module MTypeInf
 
           else
 #            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometown.line(0)}"
-            p "LINE #{@hometown.irep.line(0)} #{@phometown.line(0)} #{e.hometown.irep.line(0)} #{e.phometown.line(0)}"
+#            p "LINE #{@hometown.irep.line(0)} #{@phometown.line(0)} #{e.hometown.irep.line(0)} #{e.phometown.line(0)}"
             true
           end
 

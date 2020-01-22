@@ -534,7 +534,7 @@ module CodeGenC
 
         inreg[0] = oreg
         #op_send_initialize(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
-         op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
+        op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
       end
       nil
     end
