@@ -5,6 +5,7 @@ module MTypeInf
       @class_object = co
       @hometown = nil
       @phometown = nil
+      @level = 0
       @place = {}
       @escape_cache = nil
       @version = 0
@@ -23,6 +24,7 @@ module MTypeInf
     attr :class_object
     attr_accessor :hometown
     attr_accessor :phometown
+    attr_accessor :level
     attr_accessor :place
     attr_accessor :version
 
@@ -162,21 +164,18 @@ module MTypeInf
           if e.is_escape?(hist) then
             true
 
-          elsif e.hometown.irep == @hometown.irep then
+          elsif @level <= e.level then
 #              val[1] == @hometown.irep or
 #              val[0] == @hometown.irep then
-            false
-
-          elsif e.phometown == @hometown.irep then
             false
 
 #          elsif e.phometown == @phometown then
 #            false
 
-          elsif e.hometown.irep == @phometown then
+#          elsif e.hometown.irep == @phometown then
 #              @phometown == val[1] or
 #              @phometown == val[0] then
-            false
+#            false
 
           else
 #            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometown.line(0)}"
@@ -295,11 +294,12 @@ module MTypeInf
   end
 
   class ContainerType<BasicType
-    def initialize(co, ht, pht, *rest)
+    def initialize(co, ht, pht, level, *rest)
       super(co, *rest)
       @element = {}
       @hometown = ht
       @phometown = pht
+      @level = level
       reg = RiteSSA::Reg.new(nil)
 #      reg.add_type PrimitiveType.new(NilClass, nil), 0
       @element[UNDEF_VALUE] = reg
@@ -463,10 +463,11 @@ module MTypeInf
   class UserDefinedType<BasicType
     @@instances = []
 
-    def initialize(co, ht, pht, *rest)
+    def initialize(co, ht, pht, level, *rest)
       super(co, *rest)
       @hometown = ht
       @phometown = pht
+      @level = level
 #      @@instances.push self
     end
 
@@ -525,7 +526,7 @@ module MTypeInf
   TypeTable = {}
   TypeSource.each do |ty, cl|
     if cl == ContainerType then
-      TypeTable[ty] = cl.new(ty, nil, nil)
+      TypeTable[ty] = cl.new(ty, nil, nil, 0)
     else
       TypeTable[ty] = cl.new(ty)
     end

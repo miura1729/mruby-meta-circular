@@ -293,6 +293,10 @@ class Irep
     op = op + 1
   end
 
+  def inspect
+    "<#{super} pos=#{filename(0)}:#{line(0)}>"
+  end
+
   def disasm
     self.iseq.each do |code|
       p Irep::disasm(code, self)

@@ -92,7 +92,9 @@ module MTypeInf
 
   class TypeInferencer
     define_inf_rule_class_method :new, HAL::CPU do |infer, inst, node, tup|
-      type = UserDefinedType.new(HAL::CPU, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = UserDefinedType.new(HAL::CPU, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -128,7 +130,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :regs, HAL::CPU do |infer, inst, node, tup|
-      type = UserDefinedType.new(HAL::Regs, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = UserDefinedType.new(HAL::Regs, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -160,7 +164,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :mem, HAL::CPU do |infer, inst, node, tup|
-      type = UserDefinedType.new(HAL::Mem, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = UserDefinedType.new(HAL::Mem, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -211,14 +217,18 @@ module MTypeInf
 
     define_inf_rule_method :static_cast, HAL::Mem do |infer, inst, node, tup|
       oty = inst.inreg[2].flush_type(tup)[tup][0]
-      type = UserDefinedStaticType.new(oty.val, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = UserDefinedStaticType.new(oty.val, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
 
     define_inf_rule_method :static_allocate, HAL::Mem do |infer, inst, node, tup|
       oty = inst.inreg[1].flush_type(tup)[tup][0]
-      type = UserDefinedStaticType.new(oty.val, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = UserDefinedStaticType.new(oty.val, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end

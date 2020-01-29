@@ -633,7 +633,7 @@ module CodeGenC
         end
       end
 
-      if reg.is_escape?(tup) then
+      if rtype.any? {|r| r.is_escape?} then
         return :mrb_value
       end
 
@@ -702,7 +702,6 @@ module CodeGenC
             ccgen.using_class[clsssa][ivtup] ||= ["cls#{clsssa.id}_#{ivtup}", ety.hometown]
           end
         end
-
         :mrb_value
       end
     end
@@ -922,8 +921,12 @@ module CodeGenC
             when "char *"
               "(mrb_str_new_cstr(mrb, #{src}))"
 
+            when String
+              "conv_to_rvalue(#{src})"
+
             else
               p node.root.irep.disasm
+              p srct
               p src
               p "Not support yet #{dstt} #{srct}"
               #raise "Not support yet #{dstt} #{srct}"

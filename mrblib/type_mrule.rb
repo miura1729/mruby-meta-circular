@@ -537,13 +537,17 @@ module MTypeInf
           cls = TypeSource[ntype]
           type = nil
           if cls == ContainerType then
-            type = cls.new(ntype, inst, infer.callstack[-2][0].irep)
+            level = infer.callstack.size
+            previrep = infer.callstack[-2][0].irep
+            type = cls.new(ntype, inst, previrep, level)
 
           elsif cls then
             type = cls.new(ntype)
 
           else
-            type = UserDefinedType.new(ntype, inst, infer.callstack[-2][0].irep)
+            level = infer.callstack.size
+            previrep = infer.callstack[-2][0].irep
+            type = UserDefinedType.new(ntype, inst, previrep, level)
 
           end
 
@@ -740,7 +744,9 @@ module MTypeInf
 
     define_inf_rule_method :keys, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      ra = ContainerType.new(Array, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      ra = ContainerType.new(Array, inst, previrep, level)
       node.root.allocate_reg[tup] ||= []
       node.root.allocate_reg[tup].push ra
       raele = ra.element
@@ -759,7 +765,9 @@ module MTypeInf
 
     define_inf_rule_method :values, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      ra = ContainerType.new(Array, inst, infer.callstack[-2][0].irep)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      ra = ContainerType.new(Array, inst, previrep, level)
       raele = ra.element
 
       hashtypes.each do |hasht|
