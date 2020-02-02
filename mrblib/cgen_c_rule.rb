@@ -253,7 +253,7 @@ module CodeGenC
           case reg0.type[tup].size
           when 1
             srcd0 = get_ctype(ccgen, reg0, tup, ti, false)
-            if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) then
+            if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
               srcs0 = srcd0
               arg0 = reg0.type[tup][0].val
               valuep |= 1
@@ -286,7 +286,7 @@ module CodeGenC
           case reg1.type[tup].size
           when 1
             srcd1 = get_ctype(ccgen, reg1, tup, ti, false)
-            if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) then
+            if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
               srcs1 = srcd1
               arg1 = reg1.type[tup][0].val
               valuep |= 2

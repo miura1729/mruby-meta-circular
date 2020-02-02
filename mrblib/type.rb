@@ -468,18 +468,7 @@ module MTypeInf
       @hometown = ht
       @phometown = pht
       @level = level
-#      @@instances.push self
     end
-
-#    def initialize_copy(obj)
-#      @@instances.push self
-#    end
-
-#    def self.reset_hometown
-#      @@instances.each do |ins|
-#        ins.hometown = nil
-#      end
-#    end
 
     def is_gcobject?
       true

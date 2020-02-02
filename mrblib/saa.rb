@@ -56,7 +56,7 @@ module RiteSSA
       rc = add_type_noplace(nty, tup)
       @type[tup].each do |ele|
         #ele.place.merge!(place)
-        #nty.place.merge!(ele.place)
+#        nty.place.merge!(ele.place)
       end
       rc
     end

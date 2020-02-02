@@ -535,8 +535,11 @@ module MTypeInf
         recvtypes.each do |rtype|
           ntype = rtype.val
           cls = TypeSource[ntype]
-          type = nil
-          if cls == ContainerType then
+          type = inst.objcache[nil]
+          if type then
+            # Do nothing
+
+          elsif cls == ContainerType then
             level = infer.callstack.size
             previrep = infer.callstack[-2][0].irep
             type = cls.new(ntype, inst, previrep, level)
@@ -550,6 +553,7 @@ module MTypeInf
             type = UserDefinedType.new(ntype, inst, previrep, level)
 
           end
+          inst.objcache[nil] = type
 
           if types and types.size != 0 then
             intype[0] = types
