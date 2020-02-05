@@ -35,9 +35,11 @@ class Vec
   end
 
   def vcross(b)
-    Vec.new(@y * b.z - @z * b.y,
+    a = Vec.new(@y * b.z - @z * b.y,
             @z * b.x - @x * b.z,
             @x * b.y - @y * b.x)
+    $foo = a
+    a
   end
 #  make_inline_method  :vcross
 
@@ -53,6 +55,17 @@ class Vec
 #  make_inline_method  :vlength
 
   def vnormalize
+    len = vlength
+    v = Vec.new(@x, @y, @z)
+    if len > 1.0e-17
+      v.x = v.x / len
+      v.y = v.y / len
+      v.z = v.z / len
+    end
+    v
+  end
+
+  def vnormalize2
     len = vlength
     v = Vec.new(@x, @y, @z)
     if len > 1.0e-17
@@ -85,9 +98,10 @@ class Sphere
       if t > 0.0 and t < isect.t
         isect.t = t
         isect.hit = true
-        isect.pl = Vec.new(ray.org.x + ray.dir.x * t,
+        a = Vec.new(ray.org.x + ray.dir.x * t,
                           ray.org.y + ray.dir.y * t,
                           ray.org.z + ray.dir.z * t)
+        isect.pl = a
         n = isect.pl.vsub(@center)
         isect.n = n.vnormalize
         nil
@@ -119,15 +133,28 @@ class Plane
       isect.hit = true
       isect.t = t
       isect.n = @n
-      isect.pl = Vec.new(ray.org.x + t * ray.dir.x,
+      a = Vec.new(ray.org.x + t * ray.dir.x,
                         ray.org.y + t * ray.dir.y,
                         ray.org.z + t * ray.dir.z)
+      isect.pl = a
       nil
     end
   end
 end
 
 class Ray
+  def initialize(org, dir)
+    @org = org
+    @dir = dir
+  end
+
+  def org; @org; end
+  def org=(v); @org = v; end
+  def dir; @dir; end
+  def dir=(v); @dir = v; end
+end
+
+class Ray2
   def initialize(org, dir)
     @org = org
     @dir = dir
@@ -183,7 +210,7 @@ def otherBasis(basis, n)
   end
 
   basis[0] = basis[1].vcross(basis[2])
-  # $foo = basis[0]
+  $baz = basis
   basis[0] = basis[0].vnormalize
 
   basis[1] = basis[2].vcross(basis[0])
@@ -203,7 +230,28 @@ class Scene
 
   def ambient_occlusion(isect)
     basis = Array.new(3)
-    otherBasis(basis, isect.n)
+#    otherBasis(basis, isect.n)
+
+  n = isect.n
+  basis[2] = Vec.new(n.x, n.y, n.z)
+  basis[1] = Vec.new(0.0, 0.0, 0.0)
+
+  if n.x < 0.6 and n.x > -0.6
+    basis[1].x = 1.0
+  elsif n.y < 0.6 and n.y > -0.6
+    basis[1].y = 1.0
+  elsif n.z < 0.6 and n.z > -0.6
+    basis[1].z = 1.0
+  else
+    basis[1].x = 1.0
+  end
+
+  basis[0] = basis[1].vcross(basis[2])
+  $baz = basis
+  basis[0] = basis[0].vnormalize
+
+  basis[1] = basis[2].vcross(basis[0])
+  basis[1] = basis[1].vnormalize
 
     ntheta    = NAO_SAMPLES
     nphi      = NAO_SAMPLES
@@ -223,7 +271,6 @@ class Scene
         y = Math.sin(phi) * Math.sqrt(1.0 - r)
         z = Math.sqrt(r)
 
-        $foo = basis[0]
         rx = x * basis[0].x + y * basis[1].x + z * basis[2].x
         ry = x * basis[0].y + y * basis[1].y + z * basis[2].y
         rz = x * basis[0].z + y * basis[1].z + z * basis[2].z
@@ -271,7 +318,7 @@ class Scene
 
             eye = Vec.new(px, py, -1.0).vnormalize
 
-            ray = Ray.new(Vec.new(0.0, 0.0, 0.0), eye)
+            ray = Ray2.new(Vec.new(0.0, 0.0, 0.0), eye)
 
             isect = Isect.new
             @spheres[0].intersect(ray, isect)
@@ -307,7 +354,6 @@ end
 def top
   a = Scene.new
   a.render(IMAGE_WIDTH, IMAGE_HEIGHT, NSUBSAMPLES)
-#  $foo = a
   nil
 end
 

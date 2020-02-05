@@ -172,10 +172,10 @@ module MTypeInf
 #          elsif e.phometown == @phometown then
 #            false
 
-#          elsif e.hometown.irep == @phometown then
+          elsif e.hometown.irep == @phometown then
 #              @phometown == val[1] or
 #              @phometown == val[0] then
-#            false
+            false
 
           else
 #            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometown.line(0)}"
@@ -329,7 +329,7 @@ module MTypeInf
       @element.each do |key0, ele|
         ele.type.each do |tup, tys|
           ele.get_type(tup).each do |ty|
-            elearr << ty.inspect_aux(hist, level)
+            elearr << "#{key0} => #{ty.inspect_aux(hist, level)}"
           end
         end
       end

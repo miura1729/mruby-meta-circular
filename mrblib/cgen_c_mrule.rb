@@ -319,7 +319,6 @@ module CodeGenC
       if recvtypes.size == 1 and inst.outreg[0].type[tup][0].immidiate_only then
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         eele = inst.outreg[0].type[tup][0].element
-        ereg = eele[uv]
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
@@ -337,10 +336,12 @@ module CodeGenC
           ccgen.callstack[-1][1] = true
         else
           etup = tup
+          ereg = eele[uv]
           if ereg.type[tup] == nil then
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
+
           if otype.place.keys.any? {|e|
               e.is_a?(MTypeInf::UserDefinedType) or
               e == :return_fst or

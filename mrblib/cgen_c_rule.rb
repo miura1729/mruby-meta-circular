@@ -720,7 +720,6 @@ module CodeGenC
       case type
       when :array
         if strobj and !reg.is_escape?(tup) then
-          uv = MTypeInf::ContainerType::UNDEF_VALUE
           tys = reg.type[tup]
           if !tys then
             tys = reg.type[reg.type.keys[0]]
@@ -728,18 +727,20 @@ module CodeGenC
               return :mrb_value
             end
           end
-          eele = tys[0].element
-          ereg = eele[uv]
+          uv = MTypeInf::ContainerType::UNDEF_VALUE
+          ereg = tys[0].element[uv]
+          rc = nil
           etup = tup
           if ereg.type[etup] == nil then
             etup = ereg.type.keys[0]
           end
+
           rc = get_ctype_aux(ccgen, ereg, etup, infer)
-          if rc == :array then
-            :mrb_value
-          else
-            "#{rc} *"
+          if rc == :array or rc == :mrb_value then
+            return :mrb_value
           end
+
+          rc
         else
           :mrb_value
         end

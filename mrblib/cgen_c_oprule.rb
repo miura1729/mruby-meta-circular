@@ -353,8 +353,8 @@ module CodeGenC
       reg = inst.outreg[0]
       aescape = reg.is_escape?(tup)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      ereg = inst.outreg[0].type[tup][0].element[uv]
-      etype = get_ctype_aux(ccgen, ereg, tup, infer)
+      eareg = inst.outreg[0].type[tup][0].element
+      etype = get_ctype_aux(ccgen, eareg[uv], tup, infer)
 
       if aescape then
         vals = inst.inreg.map {|ireg|

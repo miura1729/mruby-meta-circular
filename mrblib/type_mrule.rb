@@ -212,7 +212,7 @@ module MTypeInf
       valreg = inst.inreg[2]
 
       arrtypes.each do |arrt|
-        if arrt.class_object. == Array then
+        if arrt.class_object == Array then
           arrele = arrt.element
           idxtypes.each do |idxtype|
             if idxtype.class_object == Fixnum then
@@ -255,6 +255,7 @@ module MTypeInf
           end
         end
       end
+
       nil
     end
 
