@@ -401,9 +401,15 @@ module CodeGenC
         codeno = ptype.using_tup[utup]
         outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
         outtype = get_ctype(ccgen, nreg, tup, infer)
-        args = inst.inreg.map {|reg|
+        args = inst.inreg[0..-2].map {|reg|
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
+        reg = inst.inreg[-1]
+        tys = reg.type
+        if tys and tys.size == 1 and tys[0].class_object != NilClass then
+          args << ", "
+          args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
+        end
         args << ", gctab"
         argt = inst.inreg.map {|reg|
           gen_declare(ccgen, reg, tup, infer)

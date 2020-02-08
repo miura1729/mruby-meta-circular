@@ -153,7 +153,7 @@ module CodeGenC
           procexport = false
           i = 0
           topnode = node.root.nodes[0]
-          args = inreg.map {|reg|
+          args = inreg[0..-2].map {|reg|
             rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
             if srct.is_a?(Array) and srct[0] == :gproc then
               procexport = true
@@ -162,6 +162,19 @@ module CodeGenC
             i = i + 1
             gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
           }.join(", ")
+
+          reg = inreg[-1]
+          tys = reg.type[tup]
+          if tys and (tys.size == 1 and tys[0].class_object != NilClass) then
+            args << ", "
+            rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
+            if srct.is_a?(Array) and srct[0] == :gproc then
+              procexport = true
+            end
+            dstt = get_ctype(ccgen, reg, tup, infer)
+            args << gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
+          end
+
           args << ", gctab"
           gen_gc_table(ccgen, inst, node, infer, history, tup)
 

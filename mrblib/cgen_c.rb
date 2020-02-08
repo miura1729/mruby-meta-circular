@@ -144,7 +144,7 @@ EOS
       topobj = TOP_SELF
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
       nilty = MTypeInf::PrimitiveType.new(NilClass)
-      intype = [[ty], nil, nil]
+      intype = [[ty], [nilty], nil, nil]
       code_gen_method(block, ti, :main_Object_0, proc, 0, intype, nil, nil)
 
       fin = false
@@ -313,10 +313,17 @@ EOS
         ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
       end
       args = ""
-      intype[0...-2].each_with_index do |tys, i|
+      pos = 0
+      intype[0...-3].each_with_index do |tys, i|
         args << ", "
         ereg = topnode.enter_reg[i]
         args << CodeGen::gen_declare(self, ereg, tup, ti)
+        pos = i
+      end
+      tys = intype[-3]
+      if tys and (tys.size != 1 or tys[0].class_object != NilClass) then
+        args << ", "
+        args << CodeGen::gen_declare(self, topnode.enter_reg[pos + 1], tup, ti)
       end
 
       rettype = CodeGen::get_ctype(self, block.retreg, tup, ti)
@@ -363,9 +370,16 @@ EOS
       else
         args = ", gproc cgproc"
       end
-      intype[1...-2].each_with_index do |ty, i|
+      pos = 0
+      intype[1...-3].each_with_index do |ty, i|
         args << ", "
         args << CodeGen::gen_declare(self, topnode.enter_reg[i + 1], tup, ti)
+        pos = i + 1
+      end
+      tys = intype[-3]
+      if tys and (tys.size != 1 or tys[0].class_object != NilClass) then
+        args << ", "
+        args << CodeGen::gen_declare(self, topnode.enter_reg[pos + 1], tup, ti)
       end
       rettype = CodeGen::get_ctype(self, block.retreg, tup, ti)
       if rettype.is_a?(Array) then
