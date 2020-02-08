@@ -221,7 +221,14 @@ EOS
 
     def code_gen_method_aux(block, ti, name, proc, tup, pproc, attr)
       pproc = proc.parent
-      allocsize = block.allocate_reg.keys.size
+      aregs = block.allocate_reg[tup]
+      useheap = nil
+      if aregs then
+        useheap = aregs.any? {|reg|
+          !CodeGen::gen_typesize(self, reg, tup, ti)
+        }
+      end
+
       if block.export_regs.size > 0 or pproc
         if !@defined_env[proc] then
           @defined_env[proc] = true
@@ -246,7 +253,7 @@ EOS
         end
       }
       code_gen_node(node, ti, name, {}, tup)
-      if allocsize > 0 then
+      if useheap then
         @dcode << "int ai = mrb_gc_arena_save(mrb);\n"
       end
 
@@ -280,7 +287,7 @@ EOS
       @ccode << @dcode
       @ccode << @gccode
       @ccode << @pcode
-      if allocsize > 0 then
+      if useheap then
         @ccode << "mrb_gc_arena_restore(mrb, ai);\n"
       end
       @ccode << "}\n"
