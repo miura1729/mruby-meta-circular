@@ -486,7 +486,7 @@ module CodeGenC
         [0, :mrb_bool]
 
       when :LOADSYM
-        ["mrb_intern_lit(mrb, \"#{gins.para[0]}\")", :mrb_value]
+        ["mrb_intern_lit(mrb, \"#{gins.para[0]}\")", "mrb_sym"]
 
       when :LOADNIL
         ["mrb_nil_value()", :mrb_value]
@@ -627,7 +627,8 @@ module CodeGenC
       Range => :range,
       Proc => :gproc,
       NilClass => :mrb_value,
-      String => :string
+      String => :string,
+      Symbol => :symbol
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
@@ -765,6 +766,9 @@ module CodeGenC
           :mrb_value
         end
 
+      when :symbol
+        "mrb_sym"
+
       when :range
         ereg = reg.type[tup][0].element[0]
         rc = get_ctype_aux(ccgen, ereg, tup, infer)
@@ -808,6 +812,12 @@ module CodeGenC
 
       when :nil
         "mrb_value #{regnm}"
+
+      when :string
+        "char *#{regnm}"
+
+      when :symbol
+        "mrb_sym #{regnm}"
 
       else
         "#{type} #{regnm}"
@@ -929,6 +939,9 @@ module CodeGenC
             when :mrb_bool
               "((#{src}) ? mrb_true_value() : mrb_false_value())"
 
+            when "mrb_sym"
+              "(mrb_symbol_value(#{src}))"
+
             when :nil
               "#{src}"
 
@@ -936,6 +949,9 @@ module CodeGenC
               "(mrb_str_new_cstr(mrb, #{src}))"
 
             when String
+              p src
+              p srct
+              p caller
               "conv_to_rvalue(#{src})"
 
             else

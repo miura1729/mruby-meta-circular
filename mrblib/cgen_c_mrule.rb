@@ -264,12 +264,12 @@ module CodeGenC
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if inst.inreg[0].is_escape?(tup) then
-        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
-        ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val});\n"
+        val2 = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
+        ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val2});\n"
       else
         srct = get_ctype(ccgen, elereg, tup, infer)
-        val = gen_type_conversion(ccgen, srct, valt, val, tup, node, infer, history)
-        ccgen.pcode << "#{slf}[#{gen_array_range_check(ccgen, inst, tup, idx)}] = #{val};\n"
+        val2 = gen_type_conversion(ccgen, srct, valt, val, tup, node, infer, history)
+        ccgen.pcode << "#{slf}[#{gen_array_range_check(ccgen, inst, tup, idx)}] = #{val2};\n"
       end
 
       ccgen.pcode << "v#{nreg.id} = #{val};\n"
@@ -417,7 +417,7 @@ module CodeGenC
         argt << ", struct gctab *"
         if procty == :mrb_value then
           fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
-          fname = "((#{outtype0} (*)(mrb_state *, #{argt}))(((void **)#{fname})[#{codeno}]))"
+          fname = "((#{outtype0} (*)(mrb_tsate *, #{argt}))(((void **)#{fname})[#{codeno}]))"
         else
           #fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
           minf = ccgen.proctab[ptype][codeno]

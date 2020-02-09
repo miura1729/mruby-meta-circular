@@ -386,12 +386,18 @@ module CodeGenC
           vals = inst.inreg.map {|ireg|
             reg_real_value(ccgen, ireg, ereg, node, tup, infer, history)
           }
+          valnum = vals.size
+          asize = reg.type[tup][0].element.size
+          asize = (asize < valnum) ? valnum : asize
 
-          ccgen.pcode << "#{etype} v#{reg.id}[#{vals.size + 1}] = {\n"
+          ccgen.pcode << "#{etype} v#{reg.id}[#{asize + 1}] = {\n"
           ccgen.pcode << vals.join(', ')
           ccgen.pcode << "};\n"
           if etype == :mrb_value then
-            ccgen.pcode << "v#{reg.id}[#{vals.size}].value.ttt = MRB_TT_FREE;\n"
+            ccgen.pcode << "v#{reg.id}[#{valnum}].value.ttt = MRB_TT_FREE;\n"
+            (asize - valnum).times do |i|
+              ccgen.pcode << "v#{reg.id}[#{valnum + i + 1}].value.ttt = MRB_TT_FREE;\n"
+            end
             csize = ccgen.gccomplex_size
             ccgen.gccomplex_size += 1
             ccgen.pcode << "gctab->complex[#{csize}] = v#{reg.id};\n"
