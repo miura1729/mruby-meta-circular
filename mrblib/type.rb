@@ -32,7 +32,6 @@ module MTypeInf
       clsobj = @class_object
       primobj = MTypeInf::PrimitiveType
       selfprimp = is_a?(primobj)
-      selfcontp = is_a?(MTypeInf::ContainerType)
       if clsobj != Class then
         i = 0
         ed = arr.size
@@ -306,6 +305,14 @@ module MTypeInf
       reg = RiteSSA::Reg.new(nil)
       @key = reg
       @immidiate_only = true
+    end
+
+    def is_escape?(hist = {})
+      if !@immidiate_only then
+        true
+      else
+        super(hist)
+      end
     end
 
     def ==(other)

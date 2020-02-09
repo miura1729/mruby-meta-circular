@@ -358,9 +358,10 @@ module CodeGenC
 
     define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
       reg = inst.outreg[0]
-      aescape = reg.is_escape?(tup)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      eareg = inst.outreg[0].type[tup][0].element
+      aryt = reg.type[tup][0]
+      eareg = aryt.element
+      aescape = reg.is_escape?(tup) #or (!aryt.immidiate_only)
       etype = get_ctype_aux(ccgen, eareg[uv], tup, infer)
 
       if aescape then
@@ -387,7 +388,7 @@ module CodeGenC
             reg_real_value(ccgen, ireg, ereg, node, tup, infer, history)
           }
           valnum = vals.size
-          asize = reg.type[tup][0].element.size
+          asize = eareg.size
           asize = (asize < valnum) ? valnum : asize
 
           ccgen.pcode << "#{etype} v#{reg.id}[#{asize + 1}] = {\n"
