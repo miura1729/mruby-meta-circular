@@ -384,7 +384,10 @@ module CodeGenC
       else
         type = get_ctype_aux(ccgen, reg, tup, infer)
         if type == :array then
+          i = -1
+          ereg = eareg[uv]
           vals = inst.inreg.map {|ireg|
+            i = i + 1
             reg_real_value(ccgen, ireg, ereg, node, tup, infer, history)
           }
           valnum = vals.size

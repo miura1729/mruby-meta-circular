@@ -316,7 +316,7 @@ module CodeGenC
       otype = oreg.type[tup][0]
       initsize = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
 
-      if recvtypes.size == 1 and inst.outreg[0].type[tup][0].immidiate_only then
+      if recvtypes.size == 1 then
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         eele = inst.outreg[0].type[tup][0].element
         recvt = recvtypes[0].class_object
@@ -405,7 +405,7 @@ module CodeGenC
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
         reg = inst.inreg[-1]
-        tys = reg.type
+        tys = reg.type[tup]
         if tys and tys.size == 1 and tys[0].class_object != NilClass then
           args << ", "
           args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]

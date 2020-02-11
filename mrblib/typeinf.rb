@@ -324,7 +324,7 @@ module MTypeInf
                 if ty.hometown and saairep.irep == ty.hometown.irep then
                   ty.place[:return_fst] ||= {}
                   ty.place[:return_fst][ty.hometown.irep] = cpos
-                else
+                elsif ty.level > @callstack.size then
                   ty.place[:return] ||= {}
                   ty.place[:return][ty.hometown] = cpos
                 end

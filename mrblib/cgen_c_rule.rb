@@ -751,10 +751,10 @@ module CodeGenC
 
           rc = get_ctype_aux(ccgen, ereg, etup, infer)
           if rc == :array or rc == :mrb_value then
-            return :mrb_value
+            return "mrb_value *"
           end
 
-          rc
+          "#{rc} *"
         else
           :mrb_value
         end
