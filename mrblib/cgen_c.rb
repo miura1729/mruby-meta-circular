@@ -140,12 +140,16 @@ EOS
     def code_gen(proc, ti)
 #      p ti.typetupletab.rev_table[94]
 #      p ti.typetupletab.rev_table[94][0][0].place
+      # for mruby bug
       block = proc.irep
       topobj = TOP_SELF
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
       nilty = MTypeInf::PrimitiveType.new(NilClass)
-      intype = [[ty], [nilty], nil, nil]
-      code_gen_method(block, ti, :main_Object_0, proc, 0, intype, nil, nil)
+      intype = [[ty], [nilty]]
+      tup = ti.typetupletab.get_tupple_id(intype, nilty, 0, true)
+      intype.push nil
+      intype.push nil
+      code_gen_method(block, ti, :main_Object_0, proc, tup, intype, nil, nil)
 
       fin = false
       while !fin
@@ -316,7 +320,7 @@ EOS
       if !block.retreg.type[tup] then
         # not traverse yet. Maybe escape analysis
 
-        ti.callstack.push [pproc.irep, nil, nil, pproc, nil]
+        ti.callstack.push [proc.irep, nil, nil, pproc, nil]
         ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
       end
       args = ""

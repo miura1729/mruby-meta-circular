@@ -192,7 +192,7 @@ module CodeGenC
         oreg = inst.outreg[i]
 
         if node.root.export_regs.include?(oreg) then
-          src = reg_real_value(ccgen, oreg, oreg,
+          src = reg_real_value(ccgen, ireg, oreg,
                          node, tup, infer, history)
           ccgen.pcode << "env.v#{oreg.id} = #{src};\n"
         end
@@ -428,22 +428,24 @@ module CodeGenC
 
     define_ccgen_rule_op :STRCAT do |ccgen, inst, node, infer, history, tup|
       ireg0 = inst.inreg[0]
+      ireg0.flush_type(tup)
       ireg1 = inst.inreg[1]
+      ireg1.flush_type(tup)
       oreg = inst.outreg[0]
-      val0 = reg_real_value(ccgen, ireg0, ireg0, node, tup, infer, history)
-      val1 = reg_real_value(ccgen, ireg1, ireg1, node, tup, infer, history)
+      val0 = reg_real_value(ccgen, ireg0, oreg, node, tup, infer, history)
+      val1 = reg_real_value(ccgen, ireg1, oreg, node, tup, infer, history)
       ccgen.dcode << "mrb_value v#{oreg.id};\n"
       if ireg0.is_escape?(tup) then
         if ireg1.is_escape?(tup) then
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, \"#{val0}\", #{val1});"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
-          ccgen.pcode << "v#{oreg.id} =mrb_str_cat_cstr(mrb, \"#{val0}\", #{val1});"
+          ccgen.pcode << "v#{oreg.id} =mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       else
         if ireg1.is_escape?(tup) then
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, mrb_str_new(mrb, \"#{val0}\"), #{val1});"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, mrb_str_new(mrb, #{val0}), #{val1});\n"
         else
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, mrb_str_new(mrb, \"#{val0}\"), #{val1});"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, mrb_str_new(mrb, #{val0}), #{val1});\n"
         end
       end
     end
@@ -487,8 +489,8 @@ module CodeGenC
 #        ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"
         pproc = ccgen.callstack[-1][0]
         minf = [bfunc, proc, tp, dstt, pproc]
-        ccgen.proctab[proc] ||= []
-        ccgen.proctab[proc][i] = minf
+        ccgen.proctab[proc.irep] ||= []
+        ccgen.proctab[proc.irep][i] = minf
       end
 
       if node.root.is_export_env then
@@ -511,6 +513,10 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :TCLASS do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :RANGE do |ccgen, inst, node, infer, history, tup|
       nil
     end
   end

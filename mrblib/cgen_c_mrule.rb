@@ -97,6 +97,58 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :begin, Range do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      fsttype = inst.outreg[0].flush_type(tup)[tup][0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      if fsttype.is_a?(MTypeInf::LiteralType) then
+        ccgen.pcode << "v#{nreg.id} = #{fsttype.val};\n"
+      else
+        slf = inst.inreg[0]
+        ccgen.pcode << "v#{nreg.id} = v#{slf.id}[1];\n"
+      end
+      nil
+    end
+
+    define_ccgen_rule_method :first, Range do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      slf = inst.inreg[0]
+      fsttype = nreg.flush_type(tup)[tup][0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      if fsttype.is_a?(MTypeInf::LiteralType) then
+        ccgen.pcode << "v#{nreg.id} = #{fsttype.val};\n"
+      else
+        slf = inst.inreg[0]
+        ccgen.pcode << "v#{nreg.id} = v#{slf.id}[0];\n"
+      end
+      nil
+    end
+
+    define_ccgen_rule_method :last, Range do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      lsttype = inst.outreg[0].flush_type(tup)[tup][0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      if lsttype.is_a?(MTypeInf::LiteralType) then
+        ccgen.pcode << "v#{nreg.id} = #{lsttype.val};\n"
+      else
+        slf = inst.inreg[0]
+        ccgen.pcode << "v#{nreg.id} = v#{slf.id}[1];\n"
+      end
+      nil
+    end
+
+    define_ccgen_rule_method :exclude_end?, Range do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      eetype = inst.outreg[0].type[tup][0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{eetype.val};\n"
+      nil
+    end
+
     define_ccgen_rule_method :to_f, Fixnum do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
@@ -127,6 +179,34 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :>>, Fixnum do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :>>)
+      }
+      nil
+    end
+
+    define_ccgen_rule_method :<<, Fixnum do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :<<)
+      }
+      nil
+    end
+
+    define_ccgen_rule_method :&, Fixnum do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :&)
+      }
+      nil
+    end
+
+    define_ccgen_rule_method :|, Fixnum do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :|)
+      }
+      nil
+    end
+
     define_ccgen_rule_method :to_i, Float do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
@@ -149,10 +229,21 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_method :!=, Object do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :!=, BasicObject do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :!=)
       }
+      nil
+    end
+
+    define_ccgen_rule_method :kind_of?, Object do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      res = nreg.type[tup]
+      if res.size == 1 then
+        ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+        ccgen.dcode << ";\n"
+        ccgen.pcode "v#{nreg.id} = #{res[0].val};\n"
+      end
       nil
     end
 
@@ -418,12 +509,16 @@ module CodeGenC
         if procty == :mrb_value then
           fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
           fname = "((#{outtype0} (*)(mrb_tsate *, #{argt}))(((void **)#{fname})[#{codeno}]))"
-        else
-          #fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
-          minf = ccgen.proctab[ptype][codeno]
+          ccgen.using_block.push ccgen.proctab[ptype.irep][codeno]
+        elsif ccgen.proctab[ptype.irep] then
+          minf = ccgen.proctab[ptype.irep][codeno]
           fname = minf[0]
           ccgen.using_block.push minf
+        else
+          fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
+          raise "Unnown proc"
         end
+
         ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup, infer)
         ccgen.dcode << ";\n"
         src = "(#{fname}(mrb, #{args}))"

@@ -42,6 +42,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :<<, Fixnum do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
 
     define_inf_rule_method :&, Fixnum do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, false)
@@ -57,7 +63,7 @@ module MTypeInf
 
 
     define_inf_rule_method :chr, Fixnum do |infer, inst, node, tup|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -413,7 +419,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :inspect, Object do |infer, inst, node, tup|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -597,7 +603,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -615,7 +621,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :downcase, String do |infer, inst, node, tup|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -627,7 +633,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :[], String do |infer, inst, node, tup|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
@@ -651,7 +657,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :sprintf, Object do |infer, inst, node, tup|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -743,7 +749,9 @@ module MTypeInf
 
     define_inf_rule_method :exclude_end?, Range do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0].type[tup][0].element[2]
-      inst.outreg[0].flush_type_alltup(tup)
+      if inst.outreg[0].flush_type_alltup(tup)[tup] == nil then
+        inst.outreg[0].add_type(LiteralType.new(FalseClass, false), tup)
+      end
       nil
     end
 

@@ -30,7 +30,7 @@ module CodeGenC
       outr.refpoint.size < 3 or
         ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
         [
-          :SENDB, :SEND, :ARRAY, :MOVE, :GETIV
+          :SENDB, :SEND, :ARRAY, :MOVE, :GETIV, :STRCAT
         ].include?(outr.genpoint.op))
     end
 
@@ -119,6 +119,7 @@ module CodeGenC
         p tup
         p inreg[0].type
         p intype
+        p inst.line
       end
       rectype = intype[0][0].class_object
       mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
@@ -331,7 +332,7 @@ module CodeGenC
       end
       src = ""
 
-      if [:+, :-, :*, :/].include?(op) then
+      if [:+, :-, :*, :/, :<<, :>>, :&, :|].include?(op) then
         if (srcd0 == :mrb_int or srcd0 == :mrb_float2) and
             (srcd1 == :mrb_int or srcd1 == :mrb_float2) then
           if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
@@ -408,7 +409,8 @@ module CodeGenC
     def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history, escheck = true)
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
       dstt = get_ctype(ccgen, oreg, tup, ti, escheck)
-      gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
+      a = gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
+      a
     end
 
     def self.reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, ti, history, escheck = true)
@@ -513,7 +515,15 @@ module CodeGenC
         }
 
       when :SEND
-        ["v#{reg.id}", srct]
+        case gins.para[0]
+        when :&, :|, :<<, :>>
+          do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
+            gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], gins.para[0])
+          }
+
+        else
+          ["v#{reg.id}", srct]
+        end
 
       when :LT
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
@@ -634,11 +644,13 @@ module CodeGenC
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
       rtype = reg.type[tup]
       if !rtype then
-        p caller
-        p "#{tup} #{infer.typetupletab.rev_table[tup]}"
-        reg.type.keys.uniq.each {|tp|
-          p "  #{tp} #{infer.typetupletab.rev_table[tp]}"
-        }
+#        p caller
+#        p "#{tup} #{infer.typetupletab.rev_table[tup]}"
+#        p reg
+#        p reg.genpoint
+#        reg.type.keys.uniq.each {|tp|
+#          p "  #{tp} #{infer.typetupletab.rev_table[tp]}"
+#        }
         #raise
         # for element of array
         rtype = reg.type[reg.type.keys[0]]
@@ -752,6 +764,8 @@ module CodeGenC
           rc = get_ctype_aux(ccgen, ereg, etup, infer)
           if rc == :array or rc == :mrb_value then
             return "mrb_value *"
+          elsif rc == :string
+            rc = "char"
           end
 
           "#{rc} *"
@@ -880,9 +894,47 @@ module CodeGenC
       end
 
       if dstt.is_a?(Array) then
-        p MTypeInf::ProcType.gettab[dstt[1]]
-        p src
-        raise "Not support yet #{dstt} #{srct}"
+        case dstt[0]
+        when :gproc
+          p MTypeInf::ProcType.gettab[dstt[1]]
+          p "proc"
+          p caller
+          p srct
+          raise "Not support yet #{dstt} #{srct}"
+
+        else
+          p src
+          p dstt
+          p srct
+          raise "Not support yet #{dstt} #{srct}"
+        end
+
+      elsif dstt.is_a?(String) then
+        sdstt = dstt.split
+        if sdstt[1] == "*" then
+          case sdstt[0]
+          when "char"
+            case srct
+            when :mrb_int
+              "sprintf(alloca(13), \"%d\", #{src})"
+
+            when :mrb_value
+              "RSTR_PTR(#{src})"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
+
+          when "mrb_value"
+            case srct
+            when :mrb_value
+              "mrb_ary_new_from_values(mrb, 0, #{src})"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
+          end
+        end
       else
         case dstt
         when :mrb_value
@@ -928,6 +980,20 @@ module CodeGenC
             else
               raise "Not support yet #{dstt} #{srct}"
             end
+
+          elsif srct.is_a?(String)
+            ssrct = srct.split
+            case srct
+            when "mrb_sym"
+              "(mrb_symbol_value(#{src}))"
+
+            when "char *"
+              "(mrb_str_new_cstr(mrb, #{src}))"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
+
           else
             case srct
             when :mrb_int
@@ -939,14 +1005,8 @@ module CodeGenC
             when :mrb_bool
               "((#{src}) ? mrb_true_value() : mrb_false_value())"
 
-            when "mrb_sym"
-              "(mrb_symbol_value(#{src}))"
-
             when :nil
               "#{src}"
-
-            when "char *"
-              "(mrb_str_new_cstr(mrb, #{src}))"
 
             when String
               p src
@@ -994,7 +1054,7 @@ module CodeGenC
           "mrb_nil_value()"
 
         else
-          #raise "Not support yet #{dstt} #{srct}"
+          raise "Not support yet #{dstt} #{srct}"
         end
       end
     end

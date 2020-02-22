@@ -84,6 +84,9 @@ module MTypeInf
               when MTypeInf::UserDefinedType
                 return false
 
+              when MTypeInf::StringType
+                return false
+
               when MTypeInf::TypeVarType
                 return false
 

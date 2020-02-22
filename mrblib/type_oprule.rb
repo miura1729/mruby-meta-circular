@@ -616,7 +616,6 @@ module MTypeInf
         @@ruletab[:METHOD][:+][arg0cls].call(infer, inst, node, tup)
 
       else
-
         if arg0type then
           arg0type.each do |ty|
             if ty.is_a?(LiteralType) then
@@ -738,11 +737,15 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
-      type = PrimitiveType.new(String)
+      type = StringType.new(String)
 
-      inst.inreg[0].add_type type, tup
-      inst.inreg[1].add_type type, tup
+#      inst.inreg[0].add_type type, tup
+#      inst.inreg[1].add_type type, tup
       inst.outreg[0].add_type type, tup
+
+      inst.outreg[0].type[tup].each do |ty|
+        ty.place[true] = [:STRCAT, inst.line]
+      end
       nil
     end
 
