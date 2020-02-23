@@ -431,6 +431,14 @@ module CodeGenC
       srct
     end
 
+    def self.unescape_string(str)
+      strlit = str
+      strlit = strlit.gsub("\n", "\\n")
+      strlit = strlit.gsub("\r", "\\r")
+      strlit = strlit.gsub("\t", "\\t")
+      strlit
+    end
+
     def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
       srct = get_ctype(ccgen, reg, tup, ti)
       if reg.is_a?(RiteSSA::ParmReg) then
@@ -593,7 +601,8 @@ module CodeGenC
         if oreg.is_escape?(tup) then
           ["v#{reg.id}", :mrb_value]
         else
-          ["\"#{gins.para[0]}\"", "char *"]
+          strlit = unescape_string(gins.para[0])
+          ["\"#{strlit}\"", [:char, "*", gins.para[0]]]
         end
 
       else
@@ -755,6 +764,7 @@ module CodeGenC
           end
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = tys[0].element[uv]
+          size = tys[0].element.size
           rc = nil
           etup = tup
           if ereg.type[etup] == nil then
@@ -763,19 +773,19 @@ module CodeGenC
 
           rc = get_ctype_aux(ccgen, ereg, etup, infer)
           if rc == :array or rc == :mrb_value then
-            return "mrb_value *"
+            [:mrb_value, "*", size]
           elsif rc == :string
-            rc = "char"
+            [:char, "*", size]
+          else
+            [rc, "*", size]
           end
-
-          "#{rc} *"
         else
           :mrb_value
         end
 
       when :string
         if strobj and !reg.is_escape?(tup) then
-          "char *"
+          [:char , "*", nil]
         else
           :mrb_value
         end
@@ -902,6 +912,27 @@ module CodeGenC
           p srct
           raise "Not support yet #{dstt} #{srct}"
 
+        when :char
+          case srct
+          when :mrb_int
+            "sprintf(alloca(255), \"%d\", #{src})"
+
+          when :mrb_value
+            "RSTR_PTR(#{src})"
+
+          else
+            raise "Not support yet #{dstt} #{srct}"
+          end
+
+        when :mrb_value
+          case srct
+          when :mrb_value
+            "mrb_ary_new_from_values(mrb, #{dstt[2]}, #{src})"
+
+          else
+            raise "Not support yet #{dstt} #{srct}"
+          end
+
         else
           p src
           p dstt
@@ -909,32 +940,6 @@ module CodeGenC
           raise "Not support yet #{dstt} #{srct}"
         end
 
-      elsif dstt.is_a?(String) then
-        sdstt = dstt.split
-        if sdstt[1] == "*" then
-          case sdstt[0]
-          when "char"
-            case srct
-            when :mrb_int
-              "sprintf(alloca(13), \"%d\", #{src})"
-
-            when :mrb_value
-              "RSTR_PTR(#{src})"
-
-            else
-              raise "Not support yet #{dstt} #{srct}"
-            end
-
-          when "mrb_value"
-            case srct
-            when :mrb_value
-              "mrb_ary_new_from_values(mrb, 0, #{src})"
-
-            else
-              raise "Not support yet #{dstt} #{srct}"
-            end
-          end
-        end
       else
         case dstt
         when :mrb_value
@@ -977,18 +982,18 @@ module CodeGenC
               res <<  "})"
               ccgen.callstack[-1][1] = true
               res
+
+            when :char
+              "(mrb_str_new_cstr(mrb, #{src}))"
+
             else
               raise "Not support yet #{dstt} #{srct}"
             end
 
           elsif srct.is_a?(String)
-            ssrct = srct.split
             case srct
             when "mrb_sym"
               "(mrb_symbol_value(#{src}))"
-
-            when "char *"
-              "(mrb_str_new_cstr(mrb, #{src}))"
 
             else
               raise "Not support yet #{dstt} #{srct}"
