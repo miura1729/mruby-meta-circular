@@ -255,17 +255,6 @@ module MTypeInf
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
       ntup = 0
       recvtypes = recreg.get_type(tup)
-      # GC bug?
-      outreg2 = outreg
-      inst2 = inst
-      infer2 = infer
-      dmy1 = 0
-      dmy2 = 0
-      dmy3 = 0
-      dmy4 = 0
-      dmy5 = 0
-      dmy6 = 0
-      dmy7 = 0
 
       @@ruby_methodtab[name] ||= {}
       misirep = nil
@@ -279,10 +268,6 @@ module MTypeInf
 
         slf.ancestors.each do |slfcls|
           irep = nil
-          # GC bug?
-          $a = name
-          $b = slfcls
-          $dmy = @@ruby_methodtab[name] # for GC bug
           procssa = @@ruby_methodtab[name][slfcls]
           irepssa = nil
           if procssa.nil? then

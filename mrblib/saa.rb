@@ -222,7 +222,7 @@ module RiteSSA
   end
 
   class Inst
-    def initialize(op, irep, pc, node)
+    def initialize(op, irep, pc, node, code)
       @pc = pc
       @op = Irep::OPTABLE_SYM[op]
       @irep = irep
@@ -231,6 +231,7 @@ module RiteSSA
       @para = []
       @objcache = {}
       @node = node
+      @code = code
     end
 
     def line
@@ -252,6 +253,7 @@ module RiteSSA
     attr :op
     attr :node
     attr :irep
+    attr :code
     attr_accessor :objcache
   end
 
@@ -316,7 +318,7 @@ module RiteSSA
 
       @iseq.each do |code|
         op = get_opcode(code)
-        inst = Inst.new(op, @irep, pc, self)
+        inst = Inst.new(op, @irep, pc, self, code)
         @ext_iseq.push inst
         case Irep::OPTABLE_SYM[op]
         when :NOP
@@ -893,7 +895,7 @@ module RiteSSA
         pc = pc + 1
       end
 
-      inst = Inst.new(0, @irep, -1, self)
+      inst = Inst.new(0, @irep, -1, self, 0)
       dstreg = Reg.new(nil)
       inst.outreg.push dstreg
       regtab.each do |reg|

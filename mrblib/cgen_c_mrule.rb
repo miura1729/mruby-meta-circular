@@ -99,43 +99,52 @@ module CodeGenC
 
     define_ccgen_rule_method :begin, Range do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      fsttype = inst.outreg[0].flush_type(tup)[tup][0]
+      lsttype = inst.outreg[0].flush_type(tup)[tup][0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      if fsttype.is_a?(MTypeInf::LiteralType) then
-        ccgen.pcode << "v#{nreg.id} = #{fsttype.val};\n"
+      slf = inst.inreg[0]
+      litty = nreg.type[tup][0]
+      if litty.is_a?(MTypeInf::LiteralType) then
+        ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
+
+      elsif !slf.is_escape?(tup) then
+        fst = slf.type[tup][0].element[0]
+        src = reg_real_value(ccgen, fst, nreg, node, tup, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{src};\n"
+
       else
-        slf = inst.inreg[0]
-        ccgen.pcode << "v#{nreg.id} = v#{slf.id}[1];\n"
+        src, srct = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
+        src = "(mrb_range_ptr(mrb, #{src}))->edges->beg"
+        dstt = get_ctype(ccgen, nreg, tup, infer)
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{src};\n"
       end
       nil
     end
 
-    define_ccgen_rule_method :first, Range do |ccgen, inst, node, infer, history, tup|
-      nreg = inst.outreg[0]
-      slf = inst.inreg[0]
-      fsttype = nreg.flush_type(tup)[tup][0]
-      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
-      ccgen.dcode << ";\n"
-      if fsttype.is_a?(MTypeInf::LiteralType) then
-        ccgen.pcode << "v#{nreg.id} = #{fsttype.val};\n"
-      else
-        slf = inst.inreg[0]
-        ccgen.pcode << "v#{nreg.id} = v#{slf.id}[0];\n"
-      end
-      nil
-    end
+    alias_ccgen_rule_method :first, :begin, Range
 
     define_ccgen_rule_method :last, Range do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       lsttype = inst.outreg[0].flush_type(tup)[tup][0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      if lsttype.is_a?(MTypeInf::LiteralType) then
-        ccgen.pcode << "v#{nreg.id} = #{lsttype.val};\n"
+      slf = inst.inreg[0]
+      litty = nreg.type[tup][0]
+      if litty.is_a?(MTypeInf::LiteralType) then
+        ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
+
+      elsif !slf.is_escape?(tup) then
+        lst = slf.type[tup][0].element[1]
+        src = reg_real_value(ccgen, lst, nreg, node, tup, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{src};\n"
+
       else
-        slf = inst.inreg[0]
-        ccgen.pcode << "v#{nreg.id} = v#{slf.id}[1];\n"
+        src, srct = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
+        src = "(mrb_range_ptr(mrb, #{src}))->edges->end"
+        dstt = get_ctype(ccgen, nreg, tup, infer)
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{src};\n"
       end
       nil
     end
@@ -145,7 +154,7 @@ module CodeGenC
       eetype = inst.outreg[0].type[tup][0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = #{eetype.val};\n"
+      ccgen.pcode << "v#{nreg.id} = #{eetype.val ? 1 : 0};\n"
       nil
     end
 
@@ -242,16 +251,15 @@ module CodeGenC
       if res.size == 1 then
         ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
         ccgen.dcode << ";\n"
-        ccgen.pcode "v#{nreg.id} = #{res[0].val};\n"
+        ccgen.pcode "v#{nreg.id} = #{res[0].val}; /* kind_of? */\n"
       end
       nil
     end
 
     define_ccgen_rule_method :__printstr__, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
-      ccgen.pcode << "mrb_printstr(mrb, #{src2});\n"
+      src = reg_real_value(ccgen, inst.inreg[1], nreg, node, tup, infer, history)
+      ccgen.pcode << "mrb_printstr(mrb, #{src});\n"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"

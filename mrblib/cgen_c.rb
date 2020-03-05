@@ -39,6 +39,8 @@ module CodeGenC
 #include <mruby/array.h>
 #include <mruby/throw.h>
 #include <mruby/proc.h>
+#include <mruby/string.h>
+#include <mruby/range.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,6 +113,17 @@ EOS
     attr :tmp_attribute
     attr :method_attribute
 
+    def get_reg_pos(reg)
+      if reg.is_a?(RiteSSA::ParmReg) then
+        pos = reg.genpoint
+      elsif reg.is_a?(RiteSSA::Reg) then
+        ginst = reg.genpoint
+        pos = ((ginst.code) >> 23) & 0x1ff
+      else
+        raise
+      end
+    end
+
     def is_live_reg_aux(node, reg, pos, hash)
       if hash[node] then
         return nil
@@ -120,21 +133,88 @@ EOS
         return true
       elsif reg.refpoint.size == 0 then
         return nil
-      else
-        if reg.refpoint[0].op == :NOP then
-          rc = node.exit_link.any? {|n|
-            is_live_reg_aux(n, n.enter_reg[pos], pos, hash)
-          }
-          return rc
+      elsif reg.refpoint[0].op == :NOP then
+        rc = node.exit_link.any? {|n|
+          is_live_reg_aux(n, n.enter_reg[pos], pos, hash)
+        }
+        return rc
 
-        else
-          return true
-        end
+      else
+        return true
       end
     end
 
-    def is_live_reg?(node, reg, pos)
+    def is_live_reg?(node, reg, pos = nil)
+      # get pos
+      if pos == nil then
+        pos = get_reg_pos(reg)
+      end
       is_live_reg_aux(node, reg, pos, {})
+    end
+
+    def is_live_reg_local_aux(node, reg, pos, hash)
+      if hash[node] then
+        return nil
+      end
+      hash[node] = true
+      if reg.refpoint then
+        refpoint = reg.refpoint.select {|e| e.op != :GETUPVAR }
+      else
+        refpoint = nil
+      end
+      if refpoint.size > 1 then
+        return true
+      elsif refpoint.size == 0 then
+        return nil
+      elsif refpoint[0].op == :NOP then
+        rc = node.exit_link.any? {|n|
+          is_live_reg_local_aux(n, n.enter_reg[pos], pos, hash)
+        }
+        return rc
+
+      else
+        return true
+      end
+    end
+
+    def is_live_reg_local?(node, reg, pos = nil)
+      # get pos
+      if pos == nil then
+        pos = get_reg_pos(reg)
+      end
+      is_live_reg_local_aux(node, reg, pos, {})
+    end
+
+    def is_virgin_reg_aux(node, reg, argtype, pos, hash)
+      if hash[node] then
+        return true
+      end
+      hash[node] = true
+      if node.exit_link.size == 0 then
+        if pos < argtype.size - 2 then
+          return false
+        else
+          return true
+        end
+
+      elsif reg.refpoint[0].op == :NOP then
+        rc = node.enter_link.all? {|n|
+          is_virgin_reg_aux(n, n.exit_reg[pos], argtype, pos, hash)
+        }
+        return rc
+
+      else
+
+        return false
+      end
+    end
+
+    def is_virgin_reg?(node, reg, argtype, pos = nil)
+      # get pos
+      if pos == nil then
+        pos = get_reg_pos(reg)
+      end
+      is_virgin_reg_aux(node, reg, argtype, pos, {})
     end
 
     def code_gen(proc, ti)
@@ -449,12 +529,15 @@ EOS
             if is_live_reg?(nd, nreg, i) and
                 !(nreg.is_a?(RiteSSA::ParmReg) and nreg.genpoint == 0) then
               sreg = node.exit_reg[i]
-              src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
               if declf then
                 @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
                 @dcode << ";\n"
               end
-              @pcode << "v#{nreg.id} = #{src};\n"
+              argt = ti.typetupletab.rev_table[tup]
+              if !is_virgin_reg?(node, sreg, argt) then
+                src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
+                @pcode << "v#{nreg.id} = #{src};\n"
+              end
               if node.root.export_regs.include?(nreg) then
                 @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"
               end

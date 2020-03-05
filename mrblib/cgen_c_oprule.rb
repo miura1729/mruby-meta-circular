@@ -180,7 +180,6 @@ module CodeGenC
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
         ccgen.pcode << "#{dst} = #{val};\n"
       else
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, ptup, infer)};\n"
         val = reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, infer, history)
         ccgen.pcode << "proc->env#{"->prev" * up}->v#{oreg.id} = #{val};\n"
       end
@@ -188,13 +187,38 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ENTER do |ccgen, inst, node, infer, history, tup|
+      ax = inst.para[0]
+      m1 = (ax >> 18) & 0x1f
+      o = (ax >> 13) & 0x1f
+      r = (ax >> 12) & 0x1
+      m2 = (ax >> 7) & 0x1f
+      argc = infer.typetupletab.rev_table[tup].size - 4
+
+      if r == 1 then
+        if argc - m1 == 1 then
+          # argument num is 1
+          ccgen.pcode << "v#{inst.inreg[m1].id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
+        else
+          # TODO multiple variale argument
+        end
+      end
+
       inst.inreg.each_with_index {|ireg, i|
         oreg = inst.outreg[i]
 
         if node.root.export_regs.include?(oreg) then
+          if !oreg.is_a?(RiteSSA::ParmReg) and oreg.refpoint.size == 0 then
+            ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+          end
+
+          if ireg.refpoint.size == 0 and
+              (!ireg.is_a?(RiteSSA::ParmReg) or ireg.genpoint > argc) then
+            ccgen.dcode << "#{gen_declare(ccgen, ireg, tup, infer)};\n"
+          end
+
           src = reg_real_value(ccgen, ireg, oreg,
                          node, tup, infer, history)
-          ccgen.pcode << "env.v#{oreg.id} = #{src};\n"
+          ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
         end
       }
       nil
@@ -433,20 +457,24 @@ module CodeGenC
       ireg1 = inst.inreg[1]
       ireg1.flush_type(tup)
       oreg = inst.outreg[0]
-      val0 = reg_real_value(ccgen, ireg0, oreg, node, tup, infer, history)
-      val1 = reg_real_value(ccgen, ireg1, oreg, node, tup, infer, history)
       ccgen.dcode << "mrb_value v#{oreg.id};\n"
+      val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
+      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
       if ireg0.is_escape?(tup) then
         if ireg1.is_escape?(tup) then
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
-          ccgen.pcode << "v#{oreg.id} =mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
+          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history)
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       else
+        val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history)
         if ireg1.is_escape?(tup) then
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, mrb_str_new(mrb, #{val0}), #{val1});\n"
+          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, mrb_str_new(mrb, #{val0}), #{val1});\n"
+          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history)
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       end
     end
@@ -518,6 +546,17 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :RANGE do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      bval = reg_real_value(ccgen, inst.inreg[0], oreg, node, tup, infer, history)
+      eval = reg_real_value(ccgen, inst.inreg[1], oreg, node, tup, infer, history)
+      et = oreg.type[tup][0]
+      etype = get_ctype(ccgen, et.element[0], tup, infer)
+      if oreg.is_escape?(tup) then
+        # TODO BOXING Range
+        ccgen.dcode << "mrb_value v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
+      else
+        ccgen.dcode << "#{etype} v#{oreg.id}[2] = {#{bval}, v#{eval}};"
+      end
       nil
     end
   end

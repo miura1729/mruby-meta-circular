@@ -671,6 +671,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :__printstr__, Kernel do |infer, inst, node, tup|
+      inst.inreg[0].type[tup][0].place[true] = [:__printstr__, inst.line]
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
       nil
@@ -912,7 +913,7 @@ module MTypeInf
 
         intype[0] = [type]
         intype = [proc] + intype
-        ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node) #33 is :send maybe
+        ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node, 33) #33 is :send maybe
         ninst.para.push :call
         ninst.para.push argc + 1
         intype.each {|tys|

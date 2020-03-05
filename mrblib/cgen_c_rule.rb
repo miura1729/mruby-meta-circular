@@ -81,7 +81,7 @@ module CodeGenC
         elsif !(r.type[tup] and r.type[tup].any? {|ty| ty.is_gcobject?} and
             r.is_escape?(tup)) or
             (r.genpoint.is_a?(Fixnum) and
-            !ccgen.is_live_reg?(node, r, r.genpoint) and
+            !ccgen.is_live_reg?(node, r) and
             i != 0) then
 
           # Do nothing
@@ -190,7 +190,9 @@ module CodeGenC
 
           if procexport then
             node.root.import_regs.each do |reg|
-              ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
+              if ccgen.is_live_reg_local?(node, reg) then
+                ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
+              end
             end
           end
           pproc = ccgen.callstack[-1][0]
@@ -247,7 +249,9 @@ module CodeGenC
           ccgen.code_gen_node(node, infer, :initialize, {}, utup)
           if procexport then
             node.root.import_regs.each do |reg|
-              ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
+              if ccgen.is_live_reg?(node, reg) then
+                ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
+              end
             end
           end
 
@@ -389,7 +393,7 @@ module CodeGenC
           src = "v#{gins.outreg[0].id}"
         end
 
-      elsif op == :== then
+      elsif op == :== or op == :!= then
         dsts = :mrb_bool
         if valuep == 3 then
           src = eval("(#{arg0} #{op} #{arg1})")
@@ -524,7 +528,7 @@ module CodeGenC
 
       when :SEND
         case gins.para[0]
-        when :&, :|, :<<, :>>
+        when :&, :|, :<<, :>>, :!=
           do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
             gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], gins.para[0])
           }
@@ -899,6 +903,11 @@ module CodeGenC
         return src
       end
 
+      if dstt.is_a?(Array) and srct.is_a?(Array) and
+          dstt[0] == srct[0] and dstt[0] == :char then
+        return src
+      end
+
       if !srct then
         return src
       end
@@ -915,10 +924,10 @@ module CodeGenC
         when :char
           case srct
           when :mrb_int
-            "sprintf(alloca(255), \"%d\", #{src})"
+            "({char *_buf = alloca(255);sprintf(_buf, \"%d\", #{src});_buf;})"
 
           when :mrb_value
-            "RSTR_PTR(#{src})"
+            "RSTRING_PTR(#{src})"
 
           else
             raise "Not support yet #{dstt} #{srct}"
@@ -927,7 +936,7 @@ module CodeGenC
         when :mrb_value
           case srct
           when :mrb_value
-            "mrb_ary_new_from_values(mrb, #{dstt[2]}, #{src})"
+            "RARRAY_PTR(#{src})"
 
           else
             raise "Not support yet #{dstt} #{srct}"
