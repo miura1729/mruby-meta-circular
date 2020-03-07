@@ -118,7 +118,11 @@ EOS
         pos = reg.genpoint
       elsif reg.is_a?(RiteSSA::Reg) then
         ginst = reg.genpoint
-        pos = ((ginst.code) >> 23) & 0x1ff
+        if ginst.op == :ENTER
+          pos = ginst.outreg.index(reg) + 1
+        else
+          pos = ((ginst.code) >> 23) & 0x1ff
+        end
       else
         raise
       end
@@ -190,22 +194,28 @@ EOS
         return true
       end
       hash[node] = true
-      if node.exit_link.size == 0 then
+      if !reg.is_a?(RiteSSA::ParmReg)
+        if reg.genpoint.op != :ENTER then
+          return false
+        end
         if pos < argtype.size - 2 then
           return false
         else
           return true
         end
 
-      elsif reg.refpoint[0].op == :NOP then
+      elsif node.enter_link.size == 0 then
+        if pos < argtype.size - 2 then
+          return false
+        else
+          return true
+        end
+
+      else
         rc = node.enter_link.all? {|n|
           is_virgin_reg_aux(n, n.exit_reg[pos], argtype, pos, hash)
         }
         return rc
-
-      else
-
-        return false
       end
     end
 

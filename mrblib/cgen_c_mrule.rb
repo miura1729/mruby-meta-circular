@@ -555,8 +555,12 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      if inst.inreg[0].is_a?(MTypeInf::StringType) then
-        src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx)}]"
+      if inst.inreg[0].type[tup][0].is_a?(MTypeInf::StringType) then
+        if idx < 0 then
+          src = "#{src}[strlen(#{src}) - #{idx}]"
+        else
+          src = "#{src}[#{idx}]"
+        end
         src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
       else
         src = "mrb_str_aref(mrb, #{src}, #{idx})"
