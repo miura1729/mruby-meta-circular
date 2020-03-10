@@ -3,7 +3,7 @@ module CodeGenC
     def self.set_closure_env(ccgen, inst, node, infer, history, tup)
       clsreg = inst.outreg[0]
       proc = ccgen.callstack[-1][0]
-      if clsreg.setpoint.size and inst.op != :LAMBDA then
+      if clsreg.setpoint.size != 0 and inst.op != :LAMBDA then
         src, inty = reg_real_value_noconv(ccgen, clsreg, node, tup, infer, history, true)
         ccgen.dcode << "#{gen_declare(ccgen, clsreg, tup, infer)}; /* fst */\n"
         ccgen.pcode << "v#{clsreg.id} = #{src};\n"
@@ -33,7 +33,7 @@ module CodeGenC
     end
 
     def self.is_not_assign_emit(outr)
-      outr.setpoint.size == 0 or outr.refpoint.size < 3 or
+      outr.setpoint.size != 0 or outr.refpoint.size < 3 or
         ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
         [
           :SENDB, :SEND, :ARRAY, :MOVE, :GETIV, :STRCAT

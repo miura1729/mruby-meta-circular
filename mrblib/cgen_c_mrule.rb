@@ -259,8 +259,7 @@ module CodeGenC
     define_ccgen_rule_method :__printstr__, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src = reg_real_value(ccgen, inst.inreg[1], nreg, node, tup, infer, history)
-      ccgen.pcode << "mrb->c->ci->argc = 1;\n"
-      ccgen.pcode << "mrb_printstr(mrb, #{src});\n"
+      ccgen.pcode << "printf(RSTRING_PTR(#{src}));\n"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -557,18 +556,24 @@ module CodeGenC
       ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if inst.inreg[0].type[tup][0].is_a?(MTypeInf::StringType) then
+        ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
         if idx < 0 then
           src = "#{src}[strlen(#{src}) + #{idx}]"
         else
           src = "#{src}[#{idx}]"
         end
-        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        ccgen.pcode << "tmpstr[0] = #{src};\n"
+        ccgen.pcode << "tmpstr[1] = '\\0';\n"
+
+        src = gen_type_conversion(ccgen, dstt, srct, "tmpstr", tup, node, infer, history)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
+        ccgen.pcode << "};\n"
       else
         src = "mrb_str_aref(mrb, #{src}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
       end
 
-      ccgen.pcode << "v#{oreg.id} = #{src};\n"
       nil
     end
 
