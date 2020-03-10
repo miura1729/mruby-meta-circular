@@ -6,7 +6,7 @@ module MTypeInf
       @@ruby_methodtab
     end
 
-    def self.rule_literal_commin(infer, inst, node, tup)
+    def self.rule_literal_common(infer, inst, node, tup)
       val = inst.para[0]
       type = LiteralType.new(val.class, val)
       inst.outreg[0].add_type(type, tup)
@@ -362,6 +362,13 @@ module MTypeInf
       end
 
       outreg.flush_type(tup, ntup)
+      node.root.import_regs.each do |reg|
+        types = reg.type[-1]
+        if types then
+          reg.type[tup] = types.dup
+        end
+      end
+
       if infer.exception.size > 0 then
         # exception happen
         handle_exception(infer, inst, node, tup, outreg, argc, history)

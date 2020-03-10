@@ -259,6 +259,7 @@ module CodeGenC
     define_ccgen_rule_method :__printstr__, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src = reg_real_value(ccgen, inst.inreg[1], nreg, node, tup, infer, history)
+      ccgen.pcode << "mrb->c->ci->argc = 1;\n"
       ccgen.pcode << "mrb_printstr(mrb, #{src});\n"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
@@ -557,7 +558,7 @@ module CodeGenC
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if inst.inreg[0].type[tup][0].is_a?(MTypeInf::StringType) then
         if idx < 0 then
-          src = "#{src}[strlen(#{src}) - #{idx}]"
+          src = "#{src}[strlen(#{src}) + #{idx}]"
         else
           src = "#{src}[#{idx}]"
         end

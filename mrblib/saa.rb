@@ -9,6 +9,7 @@ module RiteSSA
       @genpoint = ins
       @type = {}
       @refpoint = []
+      @setpoint = []
       @same = []
       @same_parm = {}
       @positive_list = []
@@ -193,6 +194,7 @@ module RiteSSA
     attr_accessor :negative_list
     attr :genpoint
     attr :refpoint
+    attr :setpoint
     attr :type
     attr :same
     attr :id
@@ -524,6 +526,7 @@ module RiteSSA
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
           dstreg = curframe.regtab[pos]
+          dstreg.setpoint.push inst
           inst.outreg.push dstreg
 
         when :JMP

@@ -233,7 +233,7 @@ module MTypeInf
 
     def inference_block(saairep, intype, tup, argc, proc)
       if !saairep.nodes[0] then
-        return
+        return false
       end
       fixp = true
       intype.each_with_index do |tys, i|
@@ -262,7 +262,7 @@ module MTypeInf
           reg.add_same exexp
         end
 
-        return
+        return true
       end
 
       # clear all regs
@@ -333,6 +333,8 @@ module MTypeInf
           end
         end
       end
+
+      nil
     end
 
     def inference_node(node, tup, in_reg, history)

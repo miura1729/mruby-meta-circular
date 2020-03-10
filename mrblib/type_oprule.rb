@@ -32,11 +32,11 @@ module MTypeInf
     end
 
     define_inf_rule_op :LOADL do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      rule_literal_common(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADI do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      rule_literal_common(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADSYM do |infer, inst, node, tup, history|
@@ -47,7 +47,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :LOADNIL do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      rule_literal_common(infer, inst, node, tup)
       nil
     end
 
@@ -58,11 +58,11 @@ module MTypeInf
     end
 
     define_inf_rule_op :LOADT do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      rule_literal_common(infer, inst, node, tup)
     end
 
     define_inf_rule_op :LOADF do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      rule_literal_common(infer, inst, node, tup)
     end
 
     define_inf_rule_op :GETGLOBAL do |infer, inst, node, tup, history|
@@ -267,6 +267,7 @@ module MTypeInf
       otup = proc.tups[stpos][1]
       inst.outreg[0].add_same(inst.inreg[0])
       types = inst.outreg[0].flush_type(otup, tup)[otup]
+      inst.outreg[0].type[-1] = types.dup
       # update place infomation
       if types then
         types.each do |ty|
@@ -733,7 +734,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRING do |infer, inst, node, tup, history|
-      rule_literal_commin(infer, inst, node, tup)
+      rule_literal_common(infer, inst, node, tup)
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|

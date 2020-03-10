@@ -3,6 +3,12 @@ module CodeGenC
     def self.set_closure_env(ccgen, inst, node, infer, history, tup)
       clsreg = inst.outreg[0]
       proc = ccgen.callstack[-1][0]
+      if clsreg.setpoint.size and inst.op != :LAMBDA then
+        src, inty = reg_real_value_noconv(ccgen, clsreg, node, tup, infer, history, true)
+        ccgen.dcode << "#{gen_declare(ccgen, clsreg, tup, infer)}; /* fst */\n"
+        ccgen.pcode << "v#{clsreg.id} = #{src};\n"
+      end
+
       while clsreg.is_a?(RiteSSA::Reg) do
         if node.root.export_regs.include?(clsreg) then
           src, inty = reg_real_value_noconv(ccgen, inst.outreg[0], node, tup, infer, history)
@@ -14,7 +20,7 @@ module CodeGenC
             ccgen.pcode << "venv->stack[#{pos}] = #{src2};\n"
           else
             src2 = gen_type_conversion(ccgen, outty, inty, src, tup, node, infer, history)
-            ccgen.pcode << "env.v#{clsreg.id} = #{src2};\n"
+            ccgen.pcode << "env.v#{clsreg.id} = #{src2};/*foo*/\n"
           end
         end
         ins = clsreg.genpoint
@@ -27,7 +33,7 @@ module CodeGenC
     end
 
     def self.is_not_assign_emit(outr)
-      outr.refpoint.size < 3 or
+      outr.setpoint.size == 0 or outr.refpoint.size < 3 or
         ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
         [
           :SENDB, :SEND, :ARRAY, :MOVE, :GETIV, :STRCAT
@@ -40,7 +46,7 @@ module CodeGenC
         val, srct = yield
         dstt = get_ctype(ccgen, outr, tup, infer)
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history)
-        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};/*snd*/\n"
         ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
@@ -208,6 +214,7 @@ module CodeGenC
         p inst.filename
         p inst.line
         p name
+        p intype[0][0]
         ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
       end
       nil
@@ -443,8 +450,12 @@ module CodeGenC
       strlit
     end
 
-    def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history)
+    def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history, fstp = false)
       srct = get_ctype(ccgen, reg, tup, ti)
+      if reg.setpoint.size != 0 and !fstp then
+        return ["v#{reg.id}", srct]
+      end
+
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
@@ -486,7 +497,7 @@ module CodeGenC
         }
 
       when :LOADL, :LOADI
-        if node.root.export_regs.include?(reg) then
+        if node.root.export_regs.include?(reg) and false then
           ["v#{reg.id}", srct]
         else
           src = gins.para[0]

@@ -20,7 +20,7 @@ module CodeGenC
 
     define_ccgen_rule_op :LOADI do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      if node.root.export_regs.include?(oreg) then
+      if node.root.export_regs.include?(oreg) and false then
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         src = inst.para[0]
         srct = get_ctype_from_robj(src)
@@ -34,7 +34,6 @@ module CodeGenC
 
     define_ccgen_rule_op :LOADL do |ccgen, inst, node, infer, history, tup|
       @@ruletab[:CCGEN][:LOADI].call(ccgen, inst, node, infer, history, tup)
-      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -506,7 +505,7 @@ module CodeGenC
       end
 
       regno = inst.outreg[0].id
-      ccgen.pcode << "struct proc#{proc.id} v#{regno};\n"
+      ccgen.dcode << "struct proc#{proc.id} v#{regno};\n"
       ccgen.pcode << "v#{regno}.id = #{proc.id};\n"
       ccgen.pcode << "v#{regno}.self = self;\n"
       if envreg.size > 0 or pproc then
@@ -553,9 +552,12 @@ module CodeGenC
       etype = get_ctype(ccgen, et.element[0], tup, infer)
       if oreg.is_escape?(tup) then
         # TODO BOXING Range
-        ccgen.dcode << "mrb_value v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
+        ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        ccgen.pcode << "v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
       else
-        ccgen.dcode << "#{etype} v#{oreg.id}[2] = {#{bval}, v#{eval}};"
+        ccgen.dcode << "v#{etype} v#{oreg.id}[2]; = {#{bval}, v#{eval}};\n"
+        ccgen.pcode << "v#{oreg.id}[0] = #{bval};\n"
+        ccgen.pcode << "v#{oreg.id}[1] = #{eval};\n"
       end
       nil
     end
