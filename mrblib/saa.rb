@@ -697,8 +697,14 @@ module RiteSSA
             while rnode.parent and !rnode.strict
               rnode = rnode.parent
             end
+            @root.have_return = true
             inst.para.push rnode
           end
+
+          if rkind == 1 then # OP_R_BREAK
+            @root.have_break = true
+          end
+
           dstreg = rnode.retreg
           dstreg.refpoint.push inst
 #          regtab[getarg_a(code)] = dstreg
@@ -963,6 +969,8 @@ module RiteSSA
       @export_regs = []
       @import_regs = []
       @allocate_reg = {}
+      @have_break = false
+      @have_return = false
 
       @regtab = nil
 
@@ -1027,6 +1035,9 @@ module RiteSSA
     attr_accessor :export_regs
     attr_accessor :import_regs
     attr_accessor :allocate_reg
+
+    attr_accessor :have_break
+    attr_accessor :have_return
 
     def collect_block_head(iseq)
       res = [0]

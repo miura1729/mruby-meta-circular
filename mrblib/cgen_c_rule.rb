@@ -849,6 +849,15 @@ module CodeGenC
         etype = get_ctype_aux(ccgen, ereg, etup, infer)
         "#{etype} *#{regnm}"
 
+      when :range
+        ereg = reg.type[tup][0].element[0]
+        etup = tup
+        if ereg.type[tup] == nil then
+          etup = ereg.type.keys[0]
+        end
+        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        "#{etype} *#{regnm}"
+
       when :nil
         "mrb_value #{regnm}"
 

@@ -108,9 +108,8 @@ module CodeGenC
         ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
 
       elsif !slf.is_escape?(tup) then
-        fst = slf.type[tup][0].element[0]
-        src = reg_real_value(ccgen, fst, nreg, node, tup, infer, history)
-        ccgen.pcode << "v#{nreg.id} = #{src};\n"
+        slfcd, ty = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{slfcd}[0];\n"
 
       else
         src, srct = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
@@ -135,9 +134,8 @@ module CodeGenC
         ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
 
       elsif !slf.is_escape?(tup) then
-        lst = slf.type[tup][0].element[1]
-        src = reg_real_value(ccgen, lst, nreg, node, tup, infer, history)
-        ccgen.pcode << "v#{nreg.id} = #{src};\n"
+        slfcd, ty = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
+        ccgen.pcode << "v#{nreg.id} = #{slfcd}[1];\n"
 
       else
         src, srct = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
@@ -475,6 +473,7 @@ module CodeGenC
       proc = inst.inreg[0]
       intype[0] = [ptype.slf]
       nreg = inst.outreg[0]
+      ret_chk = 3
       if intype[0].size == 1 then
         # store proc object only 1 kind.
         utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
@@ -521,6 +520,9 @@ module CodeGenC
         elsif ccgen.proctab[ptype.irep] then
           minf = ccgen.proctab[ptype.irep][codeno]
           fname = minf[0]
+          ret_chk = 0
+          ret_chk |= minf[1].irep.have_break ? 1 : 0
+          ret_chk |= minf[1].irep.have_return ? 2 : 0
           ccgen.using_block.push minf
         else
           fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
@@ -532,6 +534,10 @@ module CodeGenC
         src = "(#{fname}(mrb, #{args}))"
         src = gen_type_conversion(ccgen, outtype, outtype0, src, tup, node, infer, history)
         ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      end
+      if ret_chk & 1 != 0 then
+        ccgen.have_ret_handler = true
+        ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
       end
       nil
     end

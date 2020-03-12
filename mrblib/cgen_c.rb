@@ -24,6 +24,8 @@ module CodeGenC
       @gcobject_size = 0
       @caller_alloc_size = 0
 
+      @have_ret_handler = false
+
       @clstab = {}
       @proctab = {}
 
@@ -62,6 +64,7 @@ struct gctab {
   mrb_value **complex;
   mrb_value **object;
   void *caller_alloc;
+  int ret_status;
   mrb_value *single[0];
 };
 
@@ -110,6 +113,9 @@ EOS
     attr_accessor :gccomplex_size
     attr_accessor :gcobject_size
     attr_accessor :caller_alloc_size
+
+    attr_accessor :have_ret_handler
+
     attr :tmp_attribute
     attr :method_attribute
 
@@ -351,6 +357,7 @@ EOS
         @dcode << "int ai = mrb_gc_arena_save(mrb);\n"
       end
 
+
       # create of gctable
       gcsiz = @gcsingle_size + @gccomplex_size + @gcobject_size + @caller_alloc_size
       if gcsiz > 0 then
@@ -373,9 +380,14 @@ EOS
         @dcode << "gctab->csize = 0;\n"
         @dcode << "gctab->osize = 0;\n"
         @gcsingle_psize = 0
+        @dcode << "gctab->ret_status = 0;\n"
+      elsif @have_ret_handler then
+        @dcode << "struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab));\n"
+        @dcode << "gctab->ret_status = 0;\n"
       else
         @dcode << "struct gctab *gctab = prevgctab;\n"
       end
+
 
       # Construct code
       @ccode << @dcode

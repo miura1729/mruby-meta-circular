@@ -294,6 +294,15 @@ module CodeGenC
       if useheap then
         ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
       end
+      if inst.para[0] == 1 then
+        ccgen.have_ret_handler = true
+        ccgen.pcode << "prevgctab->ret_status = 1;\n"
+      end
+      if inst.para[0] == 2 then
+        ccgen.have_ret_handler = true
+        ccgen.pcode << "prevgctab->ret_status = 2;\n"
+      end
+
       if retval then
         ccgen.pcode << "return #{retval};\n"
       else
@@ -555,7 +564,7 @@ module CodeGenC
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
         ccgen.pcode << "v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
       else
-        ccgen.dcode << "v#{etype} v#{oreg.id}[2]; = {#{bval}, v#{eval}};\n"
+        ccgen.dcode << "#{etype} v#{oreg.id}[2];\n"
         ccgen.pcode << "v#{oreg.id}[0] = #{bval};\n"
         ccgen.pcode << "v#{oreg.id}[1] = #{eval};\n"
       end
