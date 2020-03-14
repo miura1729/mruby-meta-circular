@@ -555,10 +555,11 @@ module CodeGenC
 
     define_ccgen_rule_op :RANGE do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      bval = reg_real_value(ccgen, inst.inreg[0], oreg, node, tup, infer, history)
-      eval = reg_real_value(ccgen, inst.inreg[1], oreg, node, tup, infer, history)
       et = oreg.type[tup][0]
-      etype = get_ctype(ccgen, et.element[0], tup, infer)
+      ereg = et.element[0]
+      bval = reg_real_value(ccgen, inst.inreg[0], ereg, node, tup, infer, history)
+      eval = reg_real_value(ccgen, inst.inreg[1], ereg, node, tup, infer, history)
+      etype = get_ctype(ccgen, ereg, tup, infer)
       if oreg.is_escape?(tup) then
         # TODO BOXING Range
         ccgen.dcode << "mrb_value v#{oreg.id};\n"

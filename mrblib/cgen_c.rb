@@ -444,6 +444,9 @@ EOS
         case rettype[0]
         when :gproc
           rettype = :gproc
+
+        else
+          rettype = rettype[0..1].join(' ')
         end
       end
 

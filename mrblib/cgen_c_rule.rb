@@ -814,7 +814,8 @@ module CodeGenC
         if rc == :array then
           :mrb_value
         else
-          rc
+          [rc , "*"]
+          #rc
         end
 
       when :gproc
