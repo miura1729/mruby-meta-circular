@@ -31,6 +31,8 @@ module CodeGenC
 
       @tmp_attribute = {}
       @method_attribute = {}
+
+      @range_types = []
       init_code
     end
 
@@ -118,6 +120,8 @@ EOS
 
     attr :tmp_attribute
     attr :method_attribute
+
+    attr :range_types
 
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then

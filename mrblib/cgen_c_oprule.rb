@@ -565,9 +565,11 @@ module CodeGenC
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
         ccgen.pcode << "v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
       else
-        ccgen.dcode << "#{etype} v#{oreg.id}[2];\n"
-        ccgen.pcode << "v#{oreg.id}[0] = #{bval};\n"
-        ccgen.pcode << "v#{oreg.id}[1] = #{eval};\n"
+        ccgen.dcode << "struct range_#{etype} *v#{oreg.id};\n"
+        ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct range_#{etype}));\n"
+        ccgen.pcode << "v#{oreg.id}->first = #{bval};\n"
+        ccgen.pcode << "v#{oreg.id}->last = #{eval};\n"
+        ccgen.pcode << "v#{oreg.id}->exclude_end = #{inst.para[0]};\n"
       end
       nil
     end

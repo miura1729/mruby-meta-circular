@@ -109,7 +109,7 @@ module CodeGenC
 
       elsif !slf.is_escape?(tup) then
         slfcd, ty = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
-        ccgen.pcode << "v#{nreg.id} = #{slfcd}[0];\n"
+        ccgen.pcode << "v#{nreg.id} = #{slfcd}->first;\n"
 
       else
         src, srct = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
@@ -135,7 +135,7 @@ module CodeGenC
 
       elsif !slf.is_escape?(tup) then
         slfcd, ty = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)
-        ccgen.pcode << "v#{nreg.id} = #{slfcd}[1];\n"
+        ccgen.pcode << "v#{nreg.id} = #{slfcd}->last;\n"
 
       else
         src, srct = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)

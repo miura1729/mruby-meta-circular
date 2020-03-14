@@ -598,6 +598,9 @@ module MTypeInf
         infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg
         inst.outreg[0].flush_type(tup, ntup)
+        if irepssa.have_return or irepssa.have_break then
+          node.root.retreg.add_same inst.outreg[0]
+        end
       end
       nil
     end

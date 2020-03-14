@@ -811,10 +811,11 @@ module CodeGenC
       when :range
         ereg = reg.type[tup][0].element[0]
         rc = get_ctype_aux(ccgen, ereg, tup, infer)
+        tname = "struct range_#{rc}"
         if rc == :array then
           :mrb_value
         else
-          [rc , "*"]
+          [tname , "*"]
           #rc
         end
 
@@ -857,7 +858,19 @@ module CodeGenC
           etup = ereg.type.keys[0]
         end
         etype = get_ctype_aux(ccgen, ereg, etup, infer)
-        "#{etype} *#{regnm}"
+        typestr = "struct range_#{etype}"
+        if !ccgen.range_types.include?(etype) then
+          ccgen.range_types.push etype
+          ccgen.scode << <<"EOS"
+#{typestr} {
+  #{etype} first;
+  #{etype} last;
+  mrb_bool exclude_end;
+};
+EOS
+        end
+
+        "#{typestr} *#{regnm}"
 
       when :nil
         "mrb_value #{regnm}"
@@ -1015,6 +1028,9 @@ module CodeGenC
 
             when :char
               "(mrb_str_new_cstr(mrb, #{src}))"
+
+            when "struct range_mrb_int"
+              "(mrb_range_new(mrb, mrb_fixnum_value(#{src}->first), mrb_fixnum_value(#{src}->last), #{src}->exclude_end))"
 
             else
               raise "Not support yet #{dstt} #{srct}"
