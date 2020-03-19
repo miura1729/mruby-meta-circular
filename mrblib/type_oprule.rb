@@ -121,7 +121,7 @@ module MTypeInf
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
       valreg = inst.inreg[0]
-#      valtype = valreg.flush_type(tup)[tup]
+      valtype = valreg.flush_type(tup)[tup]
       name = inst.para[0]
 
       slf = inst.inreg[1]
@@ -135,13 +135,13 @@ module MTypeInf
         oty = slfiv.type[tup]
         slfiv.add_same(valreg)
         cty = slfiv.flush_type(tup)[tup]
+        if cty.size == 0 then
+          cty = slfiv.flush_type_alltup(tup)[tup]
+        end
         if oty != cty then
           slftype.version += 1
         end
-        valtype = slfiv.flush_type(tup)[tup]
-        slfiv.type.keys.each do |ct|
-          slfiv.type[ct] = cty.dup
-        end
+        slfiv.flush_type(tup)[tup]
 
         if valtype then
           valtype.each do |ty|
