@@ -394,7 +394,10 @@ module CodeGenC
       aryt = reg.type[tup][0]
       eareg = aryt.element
       aescape = reg.is_escape?(tup) #or (!aryt.immidiate_only)
-      etype = get_ctype_aux(ccgen, eareg[uv], tup, infer)
+      etype = get_ctype(ccgen, eareg[uv], tup, infer)
+      if etype.is_a?(Array) then
+        etype = etype[0..1].join(' ')
+      end
 
       if aescape then
         vals = inst.inreg.map {|ireg|
@@ -453,9 +456,9 @@ module CodeGenC
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
-        ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, \"#{strlit}\", #{inst.para[0].size});"
+        ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});"
       else
-        ccgen.dcode << "char *v#{oreg.id} = \"#{strlit}\";\n"
+        ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
       end
     end
 
@@ -478,7 +481,7 @@ module CodeGenC
       else
         val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history)
         if ireg1.is_escape?(tup) then
-          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+#          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history)
@@ -536,6 +539,21 @@ module CodeGenC
         ccgen.pcode << "vv#{regno} = #{val};\n"
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
+      nil
+    end
+
+    define_ccgen_rule_op :HASH do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      if oreg.is_escape?(tup) then
+        ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        ccgen.pcode << "v#{oreg.id} = mrb_hash_new(mrb);\n"
+      else
+        ccgen.dcode << "struct hash_#{etype} *v#{oreg.id};\n"
+        ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct hash_#{etype}));\n"
+        ccgen.pcode << "v#{oreg.id}->first = #{bval};\n"
+        ccgen.pcode << "v#{oreg.id}->last = #{eval};\n"
+        ccgen.pcode << "v#{oreg.id}->exclude_end = #{inst.para[0]};\n"
+      end
       nil
     end
 

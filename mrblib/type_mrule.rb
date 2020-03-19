@@ -424,7 +424,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :===, Object do |infer, inst, node, tup|
+    define_inf_rule_method :===, Kernel do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]
       other = inst.inreg[1].flush_type(tup)[tup]
 
@@ -602,6 +602,12 @@ module MTypeInf
           node.root.retreg.add_same inst.outreg[0]
         end
       end
+      nil
+    end
+
+    define_inf_rule_method :+, String do |infer, inst, node, tup|
+      type = StringType.new(String)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
@@ -873,6 +879,7 @@ module MTypeInf
               inst.outreg[0].add_same valreg
 
             when MTypeInf::PrimitiveType,
+                 MTypeInf::StringType,
                  MTypeInf::ContainerType,
                  MTypeInf::ProcType
               hashele.each do |idx, reg|
@@ -882,7 +889,7 @@ module MTypeInf
               inst.outreg[0].add_same valreg
 
             else
-              raise "Not supported in Hash::[]="
+              raise "Not supported #{idxtype.class} in Hash::[]="
             end
           end
         end

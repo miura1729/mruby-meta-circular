@@ -66,6 +66,10 @@ module MTypeInf
                     if @val.is_a?(Numeric) then
                       positive = ele.val >= 0 && @val >= 0
                       arr[i] = NumericType.new(ele.class_object, positive)
+
+                    elsif @val.is_a?(String) then
+                      arr[i] = StringType.new(ele.class_object)
+
                     else
                       arr[i] = primobj.new(ele.class_object)
                     end
@@ -224,7 +228,7 @@ module MTypeInf
     end
   end
 
-  class StringType<BasicType
+  class StringType<PrimitiveType
     def is_gcobject?
       true
     end

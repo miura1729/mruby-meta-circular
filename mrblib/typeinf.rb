@@ -315,18 +315,20 @@ module MTypeInf
 
         if !noesc then
           types = saairep.retreg.type[tup]
-          types.each do |ty|
-            if ivvar then
-              ty.place[:returniv] = [intype[0][0],
-                saairep.nodes[0].ext_iseq[0].line]
-            else
-              cpos = saairep.nodes[0].ext_iseq[0].line
-              if ty.hometown and saairep.irep == ty.hometown.irep then
-                ty.place[:return_fst] ||= {}
-                ty.place[:return_fst][ty.hometown.irep] = cpos
-              elsif ty.level > @callstack.size then
-                ty.place[:return] ||= {}
-                ty.place[:return][ty.hometown] = cpos
+          if types then
+            types.each do |ty|
+              if ivvar then
+                ty.place[:returniv] = [intype[0][0],
+                  saairep.nodes[0].ext_iseq[0].line]
+              else
+                cpos = saairep.nodes[0].ext_iseq[0].line
+                if ty.hometown and saairep.irep == ty.hometown.irep then
+                  ty.place[:return_fst] ||= {}
+                  ty.place[:return_fst][ty.hometown.irep] = cpos
+                elsif ty.level > @callstack.size then
+                  ty.place[:return] ||= {}
+                  ty.place[:return][ty.hometown] = cpos
+                end
               end
             end
           end

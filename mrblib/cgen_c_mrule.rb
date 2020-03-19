@@ -254,6 +254,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :===, Kernel do |ccgen, inst, node, infer, history, tup|
+      @@ruletab[:CCGEN][:EQ].call(ccgen, inst, node, infer, history, tup)
+    end
+
     define_ccgen_rule_method :__printstr__, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src = reg_real_value(ccgen, inst.inreg[1], nreg, node, tup, infer, history)
@@ -550,6 +554,30 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :size, String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      sreg = inst.inreg[0]
+      strsrc = reg_real_value_noconv(ccgen, sreg,  node, tup, infer, history)
+      stype = sreg.type[tup][0]
+      sizesrc = nil
+      if sreg.type[tup].size == 1 and stype.is_a?(MTypeInf::LiteralType) then
+        sizesrc = stype.val.size.to_s
+
+      elsif stype.is_escape? then
+        sizesrc = "RSTRING_LEN(#{strsrc})"
+
+      else
+        sizesrc = "strlen(#{strsrc})"
+      end
+      otype = get_ctype(ccgen, oreg, tup, infer)
+      val = gen_type_conversion(ccgen, otype, :mrb_int, sizesrc, tup, node, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{val};\n"
       nil
     end
 

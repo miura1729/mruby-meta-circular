@@ -436,18 +436,17 @@ module CodeGenC
         srct = :mrb_int
       elsif src.is_a?(Float) then
         srct = :mrb_float2
+      elsif src.is_a?(String) then
+        srct = [:char , "*", nil]
+        src = unescape_string(src)
       else
       end
 
-      srct
+      [src, srct]
     end
 
     def self.unescape_string(str)
-      strlit = str
-      strlit = strlit.gsub("\n", "\\n")
-      strlit = strlit.gsub("\r", "\\r")
-      strlit = strlit.gsub("\t", "\\t")
-      strlit
+      str.dump
     end
 
     def self.reg_real_value_noconv(ccgen, reg, node, tup, ti, history, fstp = false)
@@ -466,6 +465,7 @@ module CodeGenC
         if node.enter_link.size == 0 then # TOP of block
           ptype = ti.typetupletab.rev_table[tup][reg.genpoint]
           if ptype.is_a?(Array) and ptype.size == 1 and
+              !ptype[0].is_escape? and
               ptype[0].class == MTypeInf::LiteralType then
             src = ptype[0].val
             if src == true then
@@ -473,7 +473,7 @@ module CodeGenC
             elsif src == false then
               return [0, :mrb_bool]
             else
-              return [src, get_ctype_from_robj(src)]
+              return get_ctype_from_robj(src)
             end
           end
         end
@@ -501,7 +501,7 @@ module CodeGenC
           ["v#{reg.id}", srct]
         else
           src = gins.para[0]
-          [src, get_ctype_from_robj(src)]
+          get_ctype_from_robj(src)
         end
 
       when :LOADT
@@ -613,11 +613,11 @@ module CodeGenC
 
       when :STRING
         oreg = gins.outreg[0]
-        if oreg.is_escape?(tup) then
+        if oreg.is_escape?(tup) or true then
           ["v#{reg.id}", :mrb_value]
         else
           strlit = unescape_string(gins.para[0])
-          ["\"#{strlit}\"", [:char, "*", gins.para[0]]]
+          [strlit, [:char, "*", gins.para[0]]]
         end
 
       else
@@ -640,6 +640,7 @@ module CodeGenC
       name.gsub!("+", "_P")
       name.gsub!("-", "_m")
       name.gsub!("*", "_A")
+      name.gsub!("?", "_q")
       name
     end
 
@@ -848,7 +849,10 @@ module CodeGenC
         if ereg.type[tup] == nil then
           etup = ereg.type.keys[0]
         end
-        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        etype = get_ctype(ccgen, ereg, etup, infer)
+        if etype.is_a?(Array) then
+          etype = etype[0..1].join(' ')
+        end
         "#{etype} *#{regnm}"
 
       when :range
