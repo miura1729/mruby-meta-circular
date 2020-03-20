@@ -104,7 +104,7 @@ module CodeGenC
       ccgen.dcode << ";\n"
       slf = inst.inreg[0]
       litty = nreg.type[tup][0]
-      if litty.is_a?(MTypeInf::LiteralType) then
+      if nreg.type[tup].size == 1 and litty.is_a?(MTypeInf::LiteralType) then
         ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
 
       elsif !slf.is_escape?(tup) then
@@ -130,7 +130,7 @@ module CodeGenC
       ccgen.dcode << ";\n"
       slf = inst.inreg[0]
       litty = nreg.type[tup][0]
-      if litty.is_a?(MTypeInf::LiteralType) then
+      if nreg.type[tup].size == 1 and litty.is_a?(MTypeInf::LiteralType) then
         ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
 
       elsif !slf.is_escape?(tup) then
@@ -588,14 +588,45 @@ module CodeGenC
       src, srct = reg_real_value_noconv(ccgen, strreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
+      idxtype = inst.inreg[1].type[tup][0]
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      if inst.inreg[0].type[tup][0].is_a?(MTypeInf::StringType) then
+      strtype = inst.inreg[0].type[tup][0]
+      if strreg.type[tup].size == 1 and strtype.is_a?(MTypeInf::LiteralType) then
+        strval = strtype.val
+        #strval = src
         ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
-        if idx < 0 then
-          src = "#{src}[strlen(#{src}) + #{idx}]"
+        if inst.inreg[1].type[tup].size == 1 and idxtype.is_a?(MTypeInf::LiteralType) then
+          src = unescape_string(strval[idxtype.val])
         else
-          src = "#{src}[#{idx}]"
+          src = "#{unescape_string(strval)}[#{idx}]"
         end
+
+      elsif !strtype.is_escape? then
+        if idxtype.is_a?(MTypeInf::LiteralType) then
+          ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+          if idx < 0 then
+            src = "#{src}[strlen(#{src}) + #{idx}]"
+          else
+            src = "#{src}[#{idx}]"
+          end
+
+        elsif idxtype.is_a?(MTypeInf::NumericType) then
+          ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+          if idxtype.positive then
+            src = "#{src}[#{idx}]"
+          else
+            src1 = "#{src}[#{idx}]"
+            src2 = "#{src}[strlen(#{src}) + #{idx}]"
+            src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+          end
+
+        elsif idxtype.class_object == Range then
+          ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+
+        else
+          raise "Not Support index #{idxtype}"
+        end
+
         ccgen.pcode << "tmpstr[0] = #{src};\n"
         ccgen.pcode << "tmpstr[1] = '\\0';\n"
 

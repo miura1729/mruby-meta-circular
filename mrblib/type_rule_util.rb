@@ -289,14 +289,14 @@ module MTypeInf
                   ivreg = clsobj.get_iv(name2ins)
                   ivreg.flush_type_alltup(tup)
                   inst.outreg[0].add_same(ivreg)
-                  inst.outreg[0].flush_type_alltup(tup)
+                  inst.outreg[0].flush_type_alltup(tup, -1)
 
                 elsif cont == :writer then
                   clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
                   name2ins = "@#{name2.to_s.chop}".to_sym
                   ivreg = clsobj.get_iv(name2ins)
                   ivreg.add_same(inst.inreg[1])
-                  ivreg.flush_type_alltup(tup)
+                  ivreg.flush_type_alltup(-1, tup)
 
                 else
                   cont.call(infer, inst, node, tup, intype)

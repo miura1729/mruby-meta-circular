@@ -613,7 +613,7 @@ module CodeGenC
 
       when :STRING
         oreg = gins.outreg[0]
-        if oreg.is_escape?(tup) or true then
+        if oreg.is_escape?(tup) then
           ["v#{reg.id}", :mrb_value]
         else
           strlit = unescape_string(gins.para[0])

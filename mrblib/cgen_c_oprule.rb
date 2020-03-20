@@ -580,10 +580,10 @@ module CodeGenC
       etype = get_ctype(ccgen, ereg, tup, infer)
       if oreg.is_escape?(tup) then
         # TODO BOXING Range
-        ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         ccgen.pcode << "v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
       else
-        ccgen.dcode << "struct range_#{etype} *v#{oreg.id};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct range_#{etype}));\n"
         ccgen.pcode << "v#{oreg.id}->first = #{bval};\n"
         ccgen.pcode << "v#{oreg.id}->last = #{eval};\n"

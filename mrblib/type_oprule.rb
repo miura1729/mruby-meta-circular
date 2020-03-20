@@ -114,7 +114,7 @@ module MTypeInf
 
 #      inreg.flush_type_alltup(tup)
       inst.outreg[0].add_same(inreg)
-      inst.outreg[0].flush_type_alltup(tup)
+      inst.outreg[0].flush_type(tup, -1)
       #p inst.para[0]
       nil
     end
@@ -132,16 +132,15 @@ module MTypeInf
       slf.flush_type(tup)[tup].each do |slftype|
         slfcls = slftype.class_object
         slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
-        oty = slfiv.type[tup]
-        slfiv.add_same(valreg)
-        cty = slfiv.flush_type(tup)[tup]
-        if cty.size == 0 then
-          cty = slfiv.flush_type_alltup(tup)[tup]
+        oty = slfiv.type[-1]
+        if oty then
+          oty = oty.dup
         end
+        slfiv.add_same(valreg)
+        cty = slfiv.flush_type(-1, tup)[-1]
         if oty != cty then
           slftype.version += 1
         end
-        slfiv.flush_type(tup)[tup]
 
         if valtype then
           valtype.each do |ty|
