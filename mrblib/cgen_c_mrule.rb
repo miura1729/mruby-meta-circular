@@ -620,6 +620,11 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :+, String do |ccgen, inst, node, infer, history, tup|
+      @@ruletab[:CCGEN][:STRCAT].call(ccgen, inst, node, infer, history, tup)
+      nil
+    end
+
     define_ccgen_rule_method :[], String do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       strreg = inst.inreg[0]
