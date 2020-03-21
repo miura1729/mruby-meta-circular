@@ -41,6 +41,7 @@ module CodeGenC
 #include <mruby.h>
 #include <mruby/value.h>
 #include <mruby/array.h>
+#include <mruby/hash.h>
 #include <mruby/throw.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>

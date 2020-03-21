@@ -156,6 +156,22 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :[]=, Hash do |ccgen, inst, node, infer, history, tup|
+      hreg = inst.inreg[0]
+      kreg = inst.inreg[1]
+      vreg = inst.inreg[2]
+      oreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, oreg, tup, infer)
+      hashsrc = reg_real_value(ccgen, hreg, oreg, node, tup, infer, history)
+      keysrc = reg_real_value(ccgen, kreg, oreg, node, tup, infer, history)
+      valsrc = reg_real_value(ccgen, vreg, oreg, node, tup, infer, history)
+      src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
+      src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
+      ccgen.dcode << "mrb_value v#{oreg.id};\n"
+      ccgen.pcode << "v#{oreg.id} = #{src}\n;"
+      nil
+    end
+
     define_ccgen_rule_method :to_f, Fixnum do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
