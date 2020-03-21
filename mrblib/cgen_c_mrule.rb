@@ -230,6 +230,21 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :chr, Fixnum do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src, srct = reg_real_value_noconv(ccgen, ireg,  node, tup, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+      ccgen.pcode << "tmpstr[0] = #{src};\n"
+      ccgen.pcode << "tmpstr[1] = '\\0';\n"
+      ccgen.pcode << "v#{oreg.id} = tmpstr;\n"
+      ccgen.pcode << "}\n"
+      nil
+    end
+
     define_ccgen_rule_method :to_i, Float do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
