@@ -283,7 +283,6 @@ module CodeGenC
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
       retval = reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
-      rettys = inst.outreg[0].type[tup]
       aregs = node.root.allocate_reg[tup]
       useheap = nil
       if aregs then

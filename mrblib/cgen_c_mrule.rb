@@ -574,6 +574,14 @@ module CodeGenC
         ccgen.have_ret_handler = true
         ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
       end
+
+      if ret_chk & 2 != 0 then
+        ccgen.have_ret_handler = true
+        ccgen.pcode << "if (gctab->ret_status) {\n"
+        ccgen.pcode << "prevgctab->ret_status = 2;\n"
+        ccgen.pcode << "return v#{nreg.id};\n"
+        ccgen.pcode << "}\n"
+      end
       nil
     end
 

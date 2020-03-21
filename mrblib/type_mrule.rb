@@ -594,7 +594,12 @@ module MTypeInf
           curpos = ptype.using_tup.size
           ptype.using_tup[ntup] = curpos
         end
+
         irepssa = ptype.irep
+        if irepssa.have_return then
+          infer.callstack[-1][0].have_return = true
+        end
+
         infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg
         inst.outreg[0].flush_type(tup, ntup)

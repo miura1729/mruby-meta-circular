@@ -194,6 +194,12 @@ module CodeGenC
             ccgen.pcode << "#{fname}(mrb, #{args});\n"
           end
 
+          if proc.irep.have_return then
+            ccgen.have_ret_handler = true
+            ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
+          end
+
+
           if procexport then
             node.root.import_regs.each do |reg|
               if ccgen.is_live_reg_local?(node, reg) then
@@ -201,6 +207,7 @@ module CodeGenC
               end
             end
           end
+
           pproc = ccgen.callstack[-1][0]
           minf = [fname, proc, utup, pproc, name]
           if ccgen.using_method.index(minf) == nil then
