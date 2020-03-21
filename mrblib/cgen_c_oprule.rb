@@ -282,7 +282,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
-      retval = reg_real_value(ccgen, inst.inreg[0], inst.outreg[0], node, tup, infer, history)
+      retval = reg_real_value(ccgen, inst.inreg[0], node.root.retreg, node, tup, infer, history)
       aregs = node.root.allocate_reg[tup]
       useheap = nil
       if aregs then
@@ -293,13 +293,15 @@ module CodeGenC
       if useheap then
         ccgen.pcode << "mrb_gc_arena_restore(mrb, ai);\n"
       end
-      if inst.para[0] == 1 then
-        ccgen.have_ret_handler = true
-        ccgen.pcode << "prevgctab->ret_status = 1;\n"
-      end
-      if inst.para[0] == 2 then
-        ccgen.have_ret_handler = true
-        ccgen.pcode << "prevgctab->ret_status = 2;\n"
+      if inst.para[1] != node.root then  # This is not method
+        if inst.para[0] == 1 then
+          ccgen.have_ret_handler = true
+          ccgen.pcode << "prevgctab->ret_status = 1;\n"
+        end
+        if inst.para[0] == 2 then
+          ccgen.have_ret_handler = true
+          ccgen.pcode << "prevgctab->ret_status = 2;\n"
+        end
       end
 
       if retval then

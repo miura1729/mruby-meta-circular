@@ -570,17 +570,21 @@ module CodeGenC
         src = gen_type_conversion(ccgen, outtype, outtype0, src, tup, node, infer, history)
         ccgen.pcode << "v#{nreg.id} = #{src};\n"
       end
-      if ret_chk & 1 != 0 then
-        ccgen.have_ret_handler = true
-        ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
-      end
 
-      if ret_chk & 2 != 0 then
-        ccgen.have_ret_handler = true
-        ccgen.pcode << "if (gctab->ret_status) {\n"
-        ccgen.pcode << "prevgctab->ret_status = 2;\n"
-        ccgen.pcode << "return v#{nreg.id};\n"
-        ccgen.pcode << "}\n"
+      if ret_chk then
+        retsrc = reg_real_value(ccgen, nreg, node.root.retreg, node, tup, infer, history)
+        if ret_chk & 1 != 0 then
+          ccgen.have_ret_handler = true
+          ccgen.pcode << "if (gctab->ret_status) return #{retsrc};\n"
+        end
+
+        if ret_chk & 2 != 0 then
+          ccgen.have_ret_handler = true
+          ccgen.pcode << "if (gctab->ret_status) {\n"
+          ccgen.pcode << "prevgctab->ret_status = 2;\n"
+          ccgen.pcode << "return #{retsrc};\n"
+          ccgen.pcode << "}\n"
+        end
       end
       nil
     end

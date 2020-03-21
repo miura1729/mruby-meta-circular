@@ -697,8 +697,10 @@ module RiteSSA
             while rnode.parent and !rnode.strict
               rnode = rnode.parent
             end
-            @root.have_return = true
             inst.para.push rnode
+            if rnode != @root then
+              @root.have_return = true
+            end
           end
 
           if rkind == 1 then # OP_R_BREAK
