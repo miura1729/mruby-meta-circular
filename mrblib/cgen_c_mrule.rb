@@ -644,6 +644,12 @@ module CodeGenC
         else
           src = "#{unescape_string(strval)}[#{idx}]"
         end
+        ccgen.pcode << "tmpstr[0] = #{src};\n"
+        ccgen.pcode << "tmpstr[1] = '\\0';\n"
+
+        src = gen_type_conversion(ccgen, dstt, srct, "tmpstr", tup, node, infer, history)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
+        ccgen.pcode << "};\n"
 
       elsif !strtype.is_escape? then
         if idxtype.is_a?(MTypeInf::LiteralType) then
