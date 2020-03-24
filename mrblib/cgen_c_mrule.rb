@@ -167,8 +167,7 @@ module CodeGenC
       valsrc = reg_real_value(ccgen, vreg, oreg, node, tup, infer, history)
       src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
-      ccgen.dcode << "mrb_value v#{oreg.id};\n"
-      ccgen.pcode << "v#{oreg.id} = #{src}\n;"
+      ccgen.pcode << "#{src}\n;"
       nil
     end
 
