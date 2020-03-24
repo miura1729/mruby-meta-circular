@@ -407,6 +407,36 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :__svalue, Array do |ccgen, inst, node, infer, history, tup|
+      aryreg = inst.inreg[0]
+      eele = aryreg.type[tup][0].element
+      elereg = eele[0]
+      nreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      if inst.inreg[0].is_escape?(tup) then
+        src = "(ARY_PTR(mrb_ary_ptr(src))[0])"
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
+      else
+        etup = tup
+        if elereg.type[etup] == nil then
+          etup = elereg.type.keys[0]
+        end
+        srct = get_ctype(ccgen, elereg, etup, infer)
+        if srct == :nil then
+          src = "mrb_nil_value()"
+        else
+          src = "#{src}[0]"
+          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        end
+      end
+
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :push, Array do |ccgen, inst, node, infer, history, tup|
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
