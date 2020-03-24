@@ -424,7 +424,7 @@ module MTypeInf
 
         if o != 0 and argc > m1 + m2 then
           pos = argc - m1 - m2
-          nnode = inst.para[2][pos]
+          nnode = inst.para[3][pos]
           ereg = [node.enter_reg[0]] + inst.outreg
           infer.inference_node(nnode, tup, ereg, history)
 

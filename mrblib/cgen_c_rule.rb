@@ -46,7 +46,6 @@ module CodeGenC
         val, srct = yield
         dstt = get_ctype(ccgen, outr, tup, infer)
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history)
-        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};/*snd*/\n"
         ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
@@ -275,8 +274,18 @@ module CodeGenC
       nil
     end
 
+    def self.gen_term_top(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
+      src, srct, needdecl = gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
+      if needdecl then
+        outr = gins.outreg[0]
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, ti)};/*snd*/\n"
+      end
+      [src, srct]
+    end
+
     def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
       valuep = 0
+      needdecl = true
       if reg0.is_a?(RiteSSA::Reg) then
         reg0.flush_type(tup)
         reg0.rearrange_type(tup)
@@ -377,6 +386,7 @@ module CodeGenC
         else
           #p reg0.type[tup]
           op_send(ccgen, gins, node, ti, history, tup)
+          needdecl = false
           src = "v#{gins.outreg[0].id}"
         end
       elsif [:>, :>=, :<, :<=].include?(op) then
@@ -421,7 +431,7 @@ module CodeGenC
       end
 
       src = gen_type_conversion(ccgen, dstd, dsts, src, tup, node, ti, history)
-      [src, dstd]
+      [src, dstd, needdecl]
     end
 
     def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history, escheck = true)
@@ -537,7 +547,12 @@ module CodeGenC
 
       when :ENTER
         i = gins.outreg.index(reg)
-        [reg_real_value(ccgen, gins.inreg[i], gins.outreg[i], node, tup, ti, history), srct]
+        src = gins.para[2][i]
+        if src then
+          [src, srct]
+        else
+          [reg_real_value(ccgen, gins.inreg[i], gins.outreg[i], node, tup, ti, history), srct]
+        end
 
       when :EQ
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {

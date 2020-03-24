@@ -12,6 +12,8 @@ module CodeGenC
 
     define_ccgen_rule_op :MOVE do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        outr = inst.outreg[0]
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};/*snd*/\n"
         reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       }
       set_closure_env(ccgen, inst, node, infer, history, tup)
@@ -195,8 +197,15 @@ module CodeGenC
 
       if r == 1 then
         if argc - m1 == 1 then
+          oreg = inst.outreg[m1]
           # argument num is 1
-          ccgen.pcode << "v#{inst.inreg[m1].id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
+          ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+          if oreg.is_escape?(tup) then
+            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
+          else
+            ccgen.pcode << "v#{oreg.id} = &v#{inst.inreg[m1].id};\n"
+          end
+          inst.para[2][m1] = "v#{oreg.id}"
         else
           # TODO multiple variale argument
         end
@@ -314,77 +323,77 @@ module CodeGenC
 
     define_ccgen_rule_op :EQ do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
       }
       nil
     end
 
     define_ccgen_rule_op :LT do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :<)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :<)
       }
       nil
     end
 
     define_ccgen_rule_op :LE do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :<=)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :<=)
       }
       nil
     end
 
     define_ccgen_rule_op :GT do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :>)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :>)
       }
       nil
     end
 
     define_ccgen_rule_op :GE do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :>=)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :>=)
       }
       nil
     end
 
     define_ccgen_rule_op :ADD do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :+)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :+)
       }
       nil
     end
 
     define_ccgen_rule_op :SUB do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :-)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :-)
       }
       nil
     end
 
     define_ccgen_rule_op :MUL do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :*)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :*)
       }
       nil
     end
 
     define_ccgen_rule_op :DIV do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup)  {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :/)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :/)
       }
       nil
     end
 
     define_ccgen_rule_op :ADDI do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :+)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :+)
       }
       nil
     end
 
     define_ccgen_rule_op :SUBI do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :-)
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :-)
       }
       nil
     end

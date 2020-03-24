@@ -671,6 +671,7 @@ module RiteSSA
           o = (arg >> 13) & 0x1f
           inst.para.push arg
           inst.para.push @enter_reg
+          inst.para.push []
           if o > 0 then
             jmps = []
             (o + 1).times do |i|
