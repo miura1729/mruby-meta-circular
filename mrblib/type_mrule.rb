@@ -612,8 +612,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :+, String do |infer, inst, node, tup|
-      type = StringType.new(String)
-      inst.outreg[0].add_type(type, tup)
+      @@ruletab[:OP][:STRCAT].call(infer, inst, node, tup, nil)
       nil
     end
 
