@@ -450,6 +450,8 @@ module CodeGenC
       nil
     end
 
+    alias_ccgen_rule_method :<<, :push, Array
+
     define_ccgen_rule_method :length, Array do |ccgen, inst, node, infer, history, tup|
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
