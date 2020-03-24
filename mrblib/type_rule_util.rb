@@ -258,6 +258,7 @@ module MTypeInf
 
       @@ruby_methodtab[name] ||= {}
       misirep = nil
+      irepssa = nil
       recvtypes.each do |ty|
         existf = false
         slf = ty.class_object
@@ -269,7 +270,6 @@ module MTypeInf
         slf.ancestors.each do |slfcls|
           irep = nil
           procssa = @@ruby_methodtab[name][slfcls]
-          irepssa = nil
           if procssa.nil? then
             irep = Irep::get_irep_instance(slf, name)
             name2 = name
@@ -362,6 +362,11 @@ module MTypeInf
       end
 
       outreg.flush_type(tup, ntup)
+      if irepssa and irepssa.have_return then
+        retreg = node.root.retreg
+        retreg.add_same outreg
+        retreg.flush_type(tup)
+      end
       node.root.import_regs.each do |reg|
         types = reg.type[-1]
         if types then
