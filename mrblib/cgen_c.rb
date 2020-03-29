@@ -58,6 +58,15 @@ typedef mrb_float mrb_float2;
   rc;                         \
 })
 
+#define mmc_boxing_array(src, size, boxing_func)  ({      \
+  mrb_value ary;                                          \
+  ary = mrb_ary_new_capa(mrb, (size));                    \
+  for (int i = 0; i < (size); i++) {                      \
+    mrb_ary_push(mrb, ary, (boxing_func)(mrb, (src)[i])); \
+  }                                                       \
+  ary;                                                    \
+}) 
+
 typedef void *gproc;
 struct gctab {
   int size;

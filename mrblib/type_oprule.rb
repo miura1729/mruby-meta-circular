@@ -109,13 +109,16 @@ module MTypeInf
     define_inf_rule_op :GETIV do |infer, inst, node, tup, history|
       name = inst.para[0]
       slf = inst.inreg[1]
-      slfcls = slf.flush_type(tup)[tup][0].class_object
-      inreg = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
+      slf.flush_type(tup)[tup].each do |slftype|
+        slfcls = slftype.class_object
+        inreg = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
+        hometown = slftype.hometown
 
-#      inreg.flush_type_alltup(tup)
-      inst.outreg[0].add_same(inreg)
-      inst.outreg[0].flush_type(tup, -1)
-      #p inst.para[0]
+        #      inreg.flush_type_alltup(tup)
+        inst.outreg[0].add_same(inreg)
+        inst.outreg[0].flush_type(tup, -1)
+        #p inst.para[0]
+      end
       nil
     end
 
@@ -132,6 +135,7 @@ module MTypeInf
       slf.flush_type(tup)[tup].each do |slftype|
         slfcls = slftype.class_object
         slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
+        hometown = slftype.hometown
         oty = slfiv.type[-1]
         if oty then
           oty = oty.dup

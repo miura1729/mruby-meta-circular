@@ -267,9 +267,10 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :!=, BasicObject do |ccgen, inst, node, infer, history, tup|
-      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :!=)
-      }
+
+      nreg = inst.outreg[0]
+      src, srct = gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
+      ccgen.pcode << "v#{nreg.id} = (!(#{src}));\n"
       nil
     end
 
@@ -325,6 +326,17 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :raise, Kernel do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      arg, argt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+      arg = gen_type_conversion(ccgen, :mrb_value, argt, arg, tup, node, infer, history)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "mrb_exc_raise(mrb, #{arg});\n"
+
+      nil
+    end
+
     define_ccgen_rule_method :!, TrueClass do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
@@ -335,6 +347,15 @@ module CodeGenC
       src = "(!mrb_test(#{src}))"
       src = gen_type_conversion(ccgen, dstt, :mrb_bool, src, tup, node, infer, history)
 
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :==, NilClass do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
+      src = "mrb_nil_p(#{src})"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
@@ -655,6 +676,31 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :==, String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      sreg0 = inst.inreg[0]
+      strsrc0, srct0 = reg_real_value_noconv(ccgen, sreg0,  node, tup, infer, history)
+      stype0 = sreg0.type[tup][0]
+      sreg1 = inst.inreg[1]
+      strsrc1, srct1 = reg_real_value_noconv(ccgen, sreg1,  node, tup, infer, history)
+      stype1 = sreg1.type[tup][0]
+      if sreg0.type[tup].size != 1 or stype0.is_escape? then
+        strsrc0 = "RSTRING_PTR(#{strsrc0})"
+      end
+      if sreg0.type[tup].size != 1 or stype1.is_escape? then
+        strsrc1 = "RSTRING_PTR(#{strsrc1})"
+      end
+
+      src = "(!strcmp(#{strsrc0}, #{strsrc1}))"
+      otype = get_ctype(ccgen, oreg, tup, infer)
+      val = gen_type_conversion(ccgen, otype, :mrb_bool, src, tup, node, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{val};\n"
+      nil
+    end
+
     define_ccgen_rule_method :+, String do |ccgen, inst, node, infer, history, tup|
       @@ruletab[:CCGEN][:STRCAT].call(ccgen, inst, node, infer, history, tup)
       nil
@@ -687,33 +733,43 @@ module CodeGenC
         ccgen.pcode << "};\n"
 
       elsif !strtype.is_escape? then
-        if idxtype.is_a?(MTypeInf::LiteralType) then
-          ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
-          if idx < 0 then
-            src = "#{src}[strlen(#{src}) + #{idx}]"
+        if  idxtype.class_object == Fixnum then
+          if idxtype.is_a?(MTypeInf::LiteralType) then
+            ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+            if idx < 0 then
+              src = "#{src}[strlen(#{src}) + #{idx}]"
+            else
+              src = "#{src}[#{idx}]"
+            end
           else
-            src = "#{src}[#{idx}]"
+            ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+            if idxtype.positive then
+              src = "#{src}[#{idx}]"
+            else
+              src1 = "#{src}[#{idx}]"
+              src2 = "#{src}[strlen(#{src}) + #{idx}]"
+              src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+            end
           end
 
-        elsif idxtype.is_a?(MTypeInf::NumericType) then
-          ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
-          if idxtype.positive then
-            src = "#{src}[#{idx}]"
-          else
-            src1 = "#{src}[#{idx}]"
-            src2 = "#{src}[strlen(#{src}) + #{idx}]"
-            src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
-          end
+          ccgen.pcode << "tmpstr[0] = #{src};\n"
+          ccgen.pcode << "tmpstr[1] = '\\0';\n"
 
         elsif idxtype.class_object == Range then
-          ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+          if idxtype.is_escape? then
+            # TODO boxed Ramge support
+
+          else
+            ccgen.pcode << "{ \n"
+            ccgen.pcode << "int last = ((#{idx}->last < 0) ? strlen(#{src}) + #{idx}->last : #{idx}->last);\n"
+            ccgen.pcode << "char *tmpstr = alloca(last - #{idx}->first + 1);\n" 
+            ccgen.pcode << "memcpy(tmpstr, #{src} + #{idx}->first, last - #{idx}->first);\n"
+            ccgen.pcode << "tmpstr[last] = \'\\0\';\n"
+          end
 
         else
           raise "Not Support index #{idxtype}"
         end
-
-        ccgen.pcode << "tmpstr[0] = #{src};\n"
-        ccgen.pcode << "tmpstr[1] = '\\0';\n"
 
         src = gen_type_conversion(ccgen, dstt, srct, "tmpstr", tup, node, infer, history)
         ccgen.pcode << "v#{oreg.id} = #{src};\n"
