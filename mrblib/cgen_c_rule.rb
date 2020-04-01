@@ -1088,6 +1088,9 @@ EOS
           when :mrb_int
             "({char *_buf = alloca(255);sprintf(_buf, \"%d\", #{src});_buf;})"
 
+          when :mrb_float2
+            "({char *_buf = alloca(255);sprintf(_buf, \"%f\", #{src});_buf;})"
+
           when :mrb_value
             "RSTRING_PTR(#{src})"
 
@@ -1211,27 +1214,59 @@ EOS
           end
 
         when :mrb_int
-          case srct
-          when :mrb_value
-            "(mrb_fixnum(#{src}))"
+          if srct.is_a?(Array) then
+            case srct[0]
+            when :char
+              if srct[1] == "*" then
+                "({mrb_int res; sscanf(#{src}, \"%d\", &res); res})"
 
-          when :mrb_float2
-            "((mrb_int)#{src})"
+              else
+                raise "Unkown type #{srct}"
+              end
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
 
           else
-            raise "Not support yet #{dstt} #{srct}"
+            case srct
+            when :mrb_value
+              "(mrb_fixnum(#{src}))"
+
+            when :mrb_float2
+              "((mrb_int)#{src})"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
           end
 
         when :mrb_float2
-          case srct
-          when :mrb_value
-            "(mrb_float(#{src}))"
+          if srct.is_a?(Array) then
+            case srct[0]
+            when :char
+              if srct[1] == "*" then
+                "({mrb_float2 res; sscanf(#{src}, \"%g\", &res); res})"
 
-          when :mrb_int
-            "((mrb_float)#{src})"
+              else
+                raise "Unkown type #{srct}"
+              end
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
 
           else
-            raise "Not support yet #{dstt} #{srct}"
+            case srct
+            when :mrb_value
+              "(mrb_float(#{src}))"
+
+            when :mrb_int
+              "((mrb_float)#{src})"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
           end
 
         when :mrb_bool

@@ -201,6 +201,13 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :==, Fixnum do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :==)
+      }
+      nil
+    end
+
     define_ccgen_rule_method :>>, Fixnum do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :>>)
@@ -353,10 +360,15 @@ module CodeGenC
 
     define_ccgen_rule_method :==, NilClass do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
-      src = "mrb_nil_p(#{src})"
-      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      argcls = inst.inreg[1].type[tup][0].class_object
+      if argcls == NilClass then
+        src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+        src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
+        src = "mrb_nil_p(#{src})"
+        ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      else
+        ccgen.pcode << "v#{nreg.id} = 0;\n"
+      end
       nil
     end
 
@@ -642,6 +654,28 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :to_s, String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :to_i, String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :to_f, String do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src = reg_real_value(ccgen, ireg, oreg,  node, tup, infer, history)

@@ -12,6 +12,15 @@ module MTypeInf
       @@ruletab[:METHOD][name][rec] = block
     end
 
+    def self.alias_inf_rule_method(nname, oname, rec)
+      @@ruletab[:METHOD] ||= {}
+      @@ruletab[:METHOD][nname] ||= {}
+      if @@ruletab[:METHOD][nname][rec] then
+        raise "Already defined #{name}"
+      end
+      @@ruletab[:METHOD][nname][rec] = @@ruletab[:METHOD][oname][rec]
+    end
+
     def self.define_inf_rule_class_method(name, rec, &block)
       rec = class << rec
               self
@@ -321,11 +330,7 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :size, Array do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, true)
-      inst.outreg[0].add_type(type, tup)
-      nil
-    end
+    alias_inf_rule_method :size, :length, Array
 
     define_inf_rule_method :__ary_index, Array do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, true)
@@ -649,8 +654,8 @@ module MTypeInf
     define_inf_rule_method :[], String do |infer, inst, node, tup|
       type = StringType.new(String)
       inst.outreg[0].add_type(type, tup)
-      type = PrimitiveType.new(NilClass)
-      inst.outreg[0].add_type(type, tup)
+#      type = PrimitiveType.new(NilClass)
+#     inst.outreg[0].add_type(type, tup)
       nil
     end
 
