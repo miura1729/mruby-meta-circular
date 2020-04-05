@@ -246,7 +246,7 @@ module CodeGenC
       ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
       ccgen.pcode << "tmpstr[0] = #{src};\n"
       ccgen.pcode << "tmpstr[1] = '\\0';\n"
-      ccgen.pcode << "v#{oreg.id} = tmpstr;\n"
+      ccgen.pcode << "v#{oreg.id} = mrb_str_new_cstr(mrb, tmpstr);\n"
       ccgen.pcode << "}\n"
       nil
     end
@@ -541,15 +541,7 @@ module CodeGenC
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
 
-          if otype.place.keys.any? {|e|
-              e.is_a?(MTypeInf::UserDefinedType) or
-              e == :return_fst or
-              (e.is_a?(MTypeInf::ContainerType) and
-                e.place.keys.any? {|e1|
-                  e1.is_a?(MTypeInf::UserDefinedType) or
-                  e1 == :return_fst
-                })
-            } then
+          if can_use_caller_area(otype) then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * #{initsize + 1};\n"
           else
@@ -654,6 +646,16 @@ module CodeGenC
         end
       end
       nil
+    end
+
+    def self.gen_get_strbuf(oreg, osize, tup)
+      otype = oreg.type[tup][0]
+      size = otype.size
+      if can_use_caller_area(otype) and size then
+        "char *tmpstr = prevgctab->caller_alloc; prevgctab->caller_alloc += ((#{(size / 4).to_i} + 1) * 4);"
+      else
+        "char *tmpstr = alloca(#{osize});"
+      end
     end
 
     define_ccgen_rule_method :to_s, String do |ccgen, inst, node, infer, history, tup|
@@ -767,7 +769,7 @@ module CodeGenC
       if strreg.type[tup].size == 1 and strtype.is_a?(MTypeInf::LiteralType) then
         strval = strtype.val
         #strval = src
-        ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+        ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
         if inst.inreg[1].type[tup].size == 1 and idxtype.is_a?(MTypeInf::LiteralType) then
           src = unescape_string(strval[idxtype.val])
         else
@@ -783,14 +785,14 @@ module CodeGenC
       elsif !strtype.is_escape? then
         if  idxtype.class_object == Fixnum then
           if idxtype.is_a?(MTypeInf::LiteralType) then
-            ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+            ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
             if idx < 0 then
               src = "#{src}[strlen(#{src}) + #{idx}]"
             else
               src = "#{src}[#{idx}]"
             end
           else
-            ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
+            ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
             if idxtype.positive then
               src = "#{src}[#{idx}]"
             else
@@ -843,7 +845,7 @@ module CodeGenC
 
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{oreg.id} = (mrb_str_index(mrb, #{str}, #{para}, strlen(#{para}), 0) < 0);\n"
+      ccgen.pcode << "v#{oreg.id} = (mrb_str_index(mrb, #{str}, #{para}, strlen(#{para}), 0) >= 0);\n"
     end
 
     define_ccgen_rule_method :index, String do |ccgen, inst, node, infer, history, tup|
@@ -900,15 +902,7 @@ module CodeGenC
           end
           clsid = ["cls#{clsssa.id}_#{ivtup}", otype.hometown]
           ccgen.using_class[clsssa][ivtup] ||= clsid
-          if otype.place.keys.any? {|e|
-              e.is_a?(MTypeInf::UserDefinedType) or
-              e == :return_fst or
-              (e.is_a?(MTypeInf::ContainerType) and
-                e.place.keys.any? {|e1|
-                  e1.is_a?(MTypeInf::UserDefinedType) or
-                  e1 == :return_fst
-                })
-            } then
+          if can_use_caller_area(otype) then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->caller_alloc += sizeof(struct #{clsid[0]});\n"
           else

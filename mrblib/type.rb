@@ -68,7 +68,7 @@ module MTypeInf
                       arr[i] = NumericType.new(ele.class_object, positive)
 
                     elsif @val.is_a?(String) then
-                      arr[i] = StringType.new(ele.class_object)
+                      arr[i] = StringType.new(ele.class_object, nil, nil, 0)
 
                     else
                       arr[i] = primobj.new(ele.class_object)
@@ -229,6 +229,14 @@ module MTypeInf
   end
 
   class StringType<PrimitiveType
+    def initialize(co, ht, pht, level, size = nil, *rest)
+      super(co, *rest)
+      @size = size
+      @hometown = ht
+      @phometown = pht
+      @level = level
+    end
+
     def is_gcobject?
       true
     end
@@ -238,6 +246,8 @@ module MTypeInf
         @class_object == other.class_object &&
         is_escape? == other.is_escape?
     end
+
+    attr :size
   end
 
   class LiteralType<BasicType
@@ -528,7 +538,7 @@ module MTypeInf
   }
   TypeTable = {}
   TypeSource.each do |ty, cl|
-    if cl == ContainerType then
+    if cl == ContainerType or cl == StringType then
       TypeTable[ty] = cl.new(ty, nil, nil, 0)
     else
       TypeTable[ty] = cl.new(ty)

@@ -72,7 +72,9 @@ module MTypeInf
 
 
     define_inf_rule_method :chr, Fixnum do |infer, inst, node, tup|
-      type = StringType.new(String)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level)
       type.place[true] = true
       inst.outreg[0].add_type(type, tup)
       nil
@@ -425,7 +427,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :inspect, Object do |infer, inst, node, tup|
-      type = StringType.new(String)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -623,7 +627,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
-      type = StringType.new(String)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -641,7 +647,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :downcase, String do |infer, inst, node, tup|
-      type = StringType.new(String)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level)
       type.place[true] = true
       inst.outreg[0].add_type(type, tup)
       nil
@@ -654,8 +662,13 @@ module MTypeInf
     end
 
     define_inf_rule_method :[], String do |infer, inst, node, tup|
-      type = StringType.new(String)
-      inst.outreg[0].add_type(type, tup)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level, 2)
+      oreg = inst.outreg[0]
+      oreg.add_type(type, tup)
+      node.root.allocate_reg[tup] ||= []
+      node.root.allocate_reg[tup].push oreg
 #      type = PrimitiveType.new(NilClass)
 #     inst.outreg[0].add_type(type, tup)
       nil
@@ -678,7 +691,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :sprintf, Object do |infer, inst, node, tup|
-      type = StringType.new(String)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end

@@ -66,7 +66,7 @@ typedef mrb_float mrb_float2;
     mrb_ary_push(mrb, ary, (boxing_func)(mrb, (src)[i])); \
   }                                                       \
   ary;                                                    \
-}) 
+})
 
 typedef void *gproc;
 struct gctab {

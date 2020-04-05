@@ -1018,17 +1018,21 @@ EOS
       end
     end
 
+    def self.can_use_caller_area(otype)
+      otype.place.keys.any? {|e|
+        e.is_a?(MTypeInf::UserDefinedType) or
+        e == :return_fst or
+        (e.is_a?(MTypeInf::ContainerType) and
+          e.place.keys.any? {|e1|
+            e1.is_a?(MTypeInf::UserDefinedType) or
+            e1 == :return_fst
+          })
+      }
+    end
+
     def self.gen_typesize(ccgen, reg, tup, infer)
       otype = reg.type[tup][0]
-      if otype.place.keys.any? {|e|
-          e.is_a?(MTypeInf::UserDefinedType) or
-          e == :return_fst or
-          (e.is_a?(MTypeInf::ContainerType) and
-            e.place.keys.any? {|e1|
-              e1.is_a?(MTypeInf::UserDefinedType) or
-              e1 == :return_fst
-            })
-        } then
+      if can_use_caller_area(otype) then
 
         type = get_ctype_aux_aux(ccgen, reg, tup, infer)
 
@@ -1053,6 +1057,11 @@ EOS
 
         when :mrb_value
           return nil
+
+        when :string
+          if otype.size then
+            return "sizeof(char) * #{((otype.size / 4).to_i + 1) * 4}"
+          end
 
         else
           if type.is_a?(Array) then

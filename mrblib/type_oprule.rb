@@ -741,7 +741,9 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
-      type = StringType.new(String)
+      level = infer.callstack.size
+      previrep = infer.callstack[-2][0].irep
+      type = StringType.new(String, inst, previrep, level)
 
 #      inst.inreg[0].add_type type, tup
 #      inst.inreg[1].add_type type, tup
