@@ -558,7 +558,11 @@ module CodeGenC
       elsif src.is_a?(String) then
         srct = [:char , "*", nil]
         src = unescape_string(src)
+      elsif src.is_a?(NilClass) then
+        srct = :mrb_value
+        src = "mrb_nil_value()"
       else
+        raise "Not support #{src.inspect}"
       end
 
       [src, srct]
@@ -1218,7 +1222,7 @@ EOS
             case srct[0]
             when :char
               if srct[1] == "*" then
-                "({mrb_int res; sscanf(#{src}, \"%d\", &res); res})"
+                "({mrb_int res; sscanf(#{src}, \"%d\", &res); res;})"
 
               else
                 raise "Unkown type #{srct}"
@@ -1246,7 +1250,7 @@ EOS
             case srct[0]
             when :char
               if srct[1] == "*" then
-                "({mrb_float2 res; sscanf(#{src}, \"%g\", &res); res})"
+                "({mrb_float2 res; sscanf(#{src}, \"%g\", &res); res;})"
 
               else
                 raise "Unkown type #{srct}"

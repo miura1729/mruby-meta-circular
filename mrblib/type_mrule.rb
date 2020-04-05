@@ -73,6 +73,7 @@ module MTypeInf
 
     define_inf_rule_method :chr, Fixnum do |infer, inst, node, tup|
       type = StringType.new(String)
+      type.place[true] = true
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -641,6 +642,7 @@ module MTypeInf
 
     define_inf_rule_method :downcase, String do |infer, inst, node, tup|
       type = StringType.new(String)
+      type.place[true] = true
       inst.outreg[0].add_type(type, tup)
       nil
     end

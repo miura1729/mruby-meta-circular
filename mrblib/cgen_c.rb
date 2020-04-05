@@ -46,6 +46,7 @@ module CodeGenC
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/range.h>
+#include <mruby/error.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

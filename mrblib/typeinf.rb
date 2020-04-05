@@ -341,7 +341,7 @@ module MTypeInf
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
         if i > node.irep.nlocals then
-          break
+#          break
         end
         if ireg then
           if !node.enter_reg[i] then
