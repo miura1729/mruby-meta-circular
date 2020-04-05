@@ -71,17 +71,6 @@ module CodeGenC
         if r == nil or
             (r.type[tup] and r.type[tup][0].is_gcobject? and
             !r.is_escape?(tup)) then
-#          cls0 = r.type[tup][0].class_object
-#          clsssa =  RiteSSA::ClassSSA.get_instance(cls0)
-#          name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
-#          clsssa.iv.each do |nm, reg|
-#            ename = "#{name}->v#{reg.id}"
-#            if ccgen.prev_gcsingle[tabpos] != ename then
-#              ccgen.pcode << "gctab->single[#{tabpos}] = &#{ename};\n"
-#              ccgen.prev_gcsingle[tabpos] = ename
-#            end
-#            tabpos += 1
-#          end
 
         elsif !(r.type[tup] and r.type[tup].any? {|ty| ty.is_gcobject?} and
             r.is_escape?(tup)) or
