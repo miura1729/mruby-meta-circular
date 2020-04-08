@@ -226,11 +226,7 @@ EOS
         end
 
       elsif node.enter_link.size == 0 then
-        if pos < argtype.size - 2 then
-          return false
-        else
-          return true
-        end
+        return !(pos < argtype.size - 2)
 
       else
         rc = node.enter_link.all? {|n|
@@ -492,7 +488,7 @@ EOS
       @callstack.push [proc, nil, procty] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
-      if !recvr.type[tup] then
+      if !recvr.get_type(tup) then
         # not traverse yet. Maybe escape analysis
         ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
       end

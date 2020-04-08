@@ -64,15 +64,19 @@ module CodeGenC
       regs = inst.para[2]
       pos = inst.para[4]
       num = inst.para[1]
+      gen_gc_table_core(ccgen, inst, node, infer, history, tup, regs, pos, num)
+    end
+
+    def self.gen_gc_table_core(ccgen, inst, node, infer, history, tup, regs, pos, num)
       tabpos = 0
       prevsize = ccgen.prev_gcsingle.size
       (pos + num).times do |i|
         r = regs[i]
         if r == nil or
-            (r.type[tup] and r.type[tup][0].is_gcobject? and
+            (r.get_type(tup) and r.get_type(tup)[0].is_gcobject? and
             !r.is_escape?(tup)) then
 
-        elsif !(r.type[tup] and r.type[tup].any? {|ty| ty.is_gcobject?} and
+        elsif !(r.get_type(tup) and r.get_type(tup).any? {|ty| ty.is_gcobject?} and
             r.is_escape?(tup)) or
             (r.genpoint.is_a?(Fixnum) and
             !ccgen.is_live_reg?(node, r) and
@@ -112,7 +116,7 @@ module CodeGenC
       proc = nil
       rectype.class_object.ancestors.each do |rt|
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
-          orgrec = inst.inreg[0].type[tup]
+          orgrec = inst.inreg[0].get_type(tup)
           if orgrec.size > 1 then
             rectype2 = rectype.dup
             rectype2.place = {true => true}
@@ -167,7 +171,7 @@ module CodeGenC
       }.join(", ")
 
       reg = inreg[-1]
-      tys = reg.type[tup]
+      tys = reg.get_type(tup)
       if tys and (tys.size == 1 and tys[0].class_object != NilClass) then
         args << ", "
         rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
@@ -183,7 +187,7 @@ module CodeGenC
     end
 
     def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
-      intype = inreg.map {|reg| reg.type[tup] || []}
+      intype = inreg.map {|reg| reg.get_type(tup) || []}
 #      intype[0] = [intype[0][0]]
       if !intype[0][0]
         p name
@@ -375,13 +379,13 @@ module CodeGenC
         reg0.flush_type(tup)
         reg0.rearrange_type(tup)
         arg0, srcs0 = reg_real_value_noconv(ccgen, reg0, node, tup, ti, history)
-        if reg0.type[tup] then
-          case reg0.type[tup].size
+        if reg0.get_type(tup) then
+          case reg0.get_type(tup).size
           when 1
             srcd0 = get_ctype(ccgen, reg0, tup, ti, false)
-            if reg0.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
+            if reg0.get_type(tup)[0].is_a?(MTypeInf::LiteralType) and false then
               srcs0 = srcd0
-              arg0 = reg0.type[tup][0].val
+              arg0 = reg0.get_type(tup)[0].val
               valuep |= 1
             end
           else
@@ -408,13 +412,13 @@ module CodeGenC
         reg1.flush_type(tup)
         reg1.rearrange_type(tup)
         arg1, srcs1 = reg_real_value_noconv(ccgen, reg1, node, tup, ti, history)
-        if reg1.type[tup] then
-          case reg1.type[tup].size
+        if reg1.get_type(tup) then
+          case reg1.get_type(tup).size
           when 1
             srcd1 = get_ctype(ccgen, reg1, tup, ti, false)
-            if reg1.type[tup][0].is_a?(MTypeInf::LiteralType) and false then
+            if reg1.get_type(tup)[0].is_a?(MTypeInf::LiteralType) and false then
               srcs1 = srcd1
-              arg1 = reg1.type[tup][0].val
+              arg1 = reg1.get_type(tup)[0].val
               valuep |= 2
             end
           else
@@ -469,7 +473,7 @@ module CodeGenC
             end
           end
         else
-          #p reg0.type[tup]
+          #p reg0.get_type(tup)
           op_send(ccgen, gins, node, ti, history, tup)
           needdecl = false
           src = "v#{gins.outreg[0].id}"
@@ -497,7 +501,7 @@ module CodeGenC
             end
           end
         else
-          #p reg0.type[tup]
+          #p reg0.get_type(tup)
           op_send(ccgen, gins, node, ti, history, tup)
           needdecl = false
           src = "v#{gins.outreg[0].id}"
@@ -632,7 +636,7 @@ module CodeGenC
         ["self", srct]
 
       when :GETCONST
-        val = gins.outreg[0].type[tup][0].val
+        val = gins.outreg[0].get_type(tup)[0].val
         vid =  ccgen.clstab[val]
         if vid then
           [vid[1], srct]
@@ -725,7 +729,7 @@ module CodeGenC
           ["vv#{reg.id}", :mrb_value]
         else
           res = "((gproc)&v#{reg.id})"
-          [res, [:gproc, reg.type[tup][0].id]]
+          [res, [:gproc, reg.get_type(tup)[0].id]]
         end
 
       when :STRING
@@ -784,7 +788,7 @@ module CodeGenC
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
-      rtype = reg.type[tup]
+      rtype = reg.get_type(tup)
       if !rtype then
 #        p caller
 #        p "#{tup} #{infer.typetupletab.rev_table[tup]}"
@@ -793,7 +797,6 @@ module CodeGenC
 #        reg.type.keys.uniq.each {|tp|
 #          p "  #{tp} #{infer.typetupletab.rev_table[tp]}"
 #        }
-        #raise
         # for element of array
         rtype = reg.type[reg.type.keys[0]]
         if rtype.nil? then
@@ -809,9 +812,15 @@ module CodeGenC
       cls0 = rtype[0].class_object
 
       # not escape and pointer type is nullable.
-      if cls0 == NilClass and rtype.size == 2 then
-        cls0 = rtype[1].class_object
+      if rtypesize == 2 then
+        if cls0 == NilClass then
+          cls0 = rtype[1].class_object
+        end
         rtypesize = 1
+        res = TTABLE[cls0]
+        if res then
+          return :mrb_value
+        end
       end
 
       if rtype.all? {|e| e.class_object == cls0} then
@@ -844,8 +853,8 @@ module CodeGenC
         ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
         if !ccgen.using_class[clsssa][ivtup] then
           clsssa.iv.each do |nm, reg|
-            if reg.type[tup] then
-              reg.type[ivtup] = reg.type[tup].dup
+            if reg.get_type(tup) then
+              reg.type[ivtup] = reg.get_type(tup).dup
             end
           end
           ccgen.using_class[clsssa][ivtup] = ["cls#{clsssa.id}_#{ivtup}", rtype[0].hometown]
@@ -888,7 +897,7 @@ module CodeGenC
       case type
       when :array
         if strobj and !reg.is_escape?(tup) then
-          tys = reg.type[tup]
+          tys = reg.get_type(tup)
           if !tys then
             tys = reg.type[reg.type.keys[0]]
             if !tys then
@@ -927,7 +936,7 @@ module CodeGenC
         "mrb_sym"
 
       when :range
-        ereg = reg.type[tup][0].element[0]
+        ereg = reg.get_type(tup)[0].element[0]
         rc = get_ctype_aux(ccgen, ereg, tup, infer)
         tname = "struct range_#{rc}"
         if rc == :array then
@@ -938,11 +947,11 @@ module CodeGenC
         end
 
       when :gproc
-        [:gproc, reg.type[tup][0].id]
+        [:gproc, reg.get_type(tup)[0].id]
 
       else
-#        if reg.type[tup]
-#          p reg.type[tup][0].class_object
+#        if reg.get_type(tup)
+#          p reg.get_type(tup)[0].class_object
 #        else
 #          p "Unnown #{type}"
 #        end
@@ -961,9 +970,9 @@ module CodeGenC
       case type
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
-        ereg = reg.type[tup][0].element[uv]
+        ereg = reg.get_type(tup)[0].element[uv]
         etup = tup
-        if ereg.type[tup] == nil then
+        if ereg.get_type(tup) == nil then
           etup = ereg.type.keys[0]
         end
         etype = get_ctype(ccgen, ereg, etup, infer)
@@ -973,9 +982,9 @@ module CodeGenC
         "#{etype} *#{regnm}"
 
       when :range
-        ereg = reg.type[tup][0].element[0]
+        ereg = reg.get_type(tup)[0].element[0]
         etup = tup
-        if ereg.type[tup] == nil then
+        if ereg.get_type(tup) == nil then
           etup = ereg.type.keys[0]
         end
         etype = get_ctype_aux(ccgen, ereg, etup, infer)
@@ -1020,7 +1029,7 @@ EOS
     end
 
     def self.gen_typesize(ccgen, reg, tup, infer)
-      otype = reg.type[tup][0]
+      otype = reg.get_type(tup)[0]
       if can_use_caller_area(otype) then
 
         type = get_ctype_aux_aux(ccgen, reg, tup, infer)
@@ -1028,10 +1037,10 @@ EOS
         case type
         when :array
           uv = MTypeInf::ContainerType::UNDEF_VALUE
-          eele = reg.type[tup][0].element
+          eele = reg.get_type(tup)[0].element
           ereg = eele[uv]
           etup = tup
-          if ereg.type[tup] == nil then
+          if ereg.get_type(tup) == nil then
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
@@ -1278,14 +1287,15 @@ EOS
           "mrb_nil_value()"
 
         else
+          p src
           raise "Not support yet #{dstt} #{srct}"
         end
       end
     end
 
     def self.gen_array_range_check(ccgen, inst, tup, idx)
-      idxty = inst.inreg[1].type[tup][0]
-      aryty = inst.inreg[0].type[tup][0]
+      idxty = inst.inreg[1].get_type(tup)[0]
+      aryty = inst.inreg[0].get_type(tup)[0]
       rc = idx
       case idxty
       when  MTypeInf::LiteralType

@@ -150,7 +150,7 @@ module RiteSSA
 
         types
       else
-        []
+        nil
       end
     end
 
@@ -787,21 +787,27 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :STRING
+          a = getarg_a(code)
           inst.para.push @irep.pool[getarg_bx(code)]
+          inst.para.push regtab.dup
+          inst.para.push a
           dstreg = Reg.new(inst)
-          regtab[getarg_a(code)] = dstreg
+          regtab[a] = dstreg
           inst.outreg.push dstreg
 
         when :STRCAT
-          inreg = regtab[getarg_a(code)]
+          a = getarg_a(code)
+          inreg = regtab[a]
           inreg.refpoint.push inst
           inst.inreg.push inreg
           inreg = regtab[getarg_b(code)]
           inreg.refpoint.push inst
           inst.inreg.push inreg
+          inst.para.push regtab.dup
+          inst.para.push a
 
           dstreg = Reg.new(inst)
-          regtab[getarg_a(code)] = dstreg
+          regtab[a] = dstreg
           inst.outreg.push dstreg
 
         when :HASH

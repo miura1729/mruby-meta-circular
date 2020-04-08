@@ -68,7 +68,7 @@ module CodeGenC
       p "FOO"
       p tup
       p infer.typetupletab.rev_table[tup]
-      p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
+      p inst.inreg[0].get_type(tup).map {|ty| ty} if inst.inreg[0].type[tup]
       inst.inreg[0].type.each do |tp, tys|
         p "#{tp} #{tys.map {|ty| ty.place}}"
       end
@@ -240,7 +240,7 @@ module CodeGenC
       cond, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history)
       r = 0
-      inst.inreg[0].type[tup].each do |ty|
+      inst.inreg[0].get_type(tup).each do |ty|
         if ty.class_object == NilClass or
             ty.class_object == FalseClass then
           r |= 1
@@ -262,7 +262,7 @@ module CodeGenC
       cond, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history)
       r = 0
-      inst.inreg[0].type[tup].each do |ty|
+      inst.inreg[0].get_type(tup).each do |ty|
         if ty.class_object == NilClass or
             ty.class_object == FalseClass then
           r |= 1
@@ -401,7 +401,7 @@ module CodeGenC
     define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
       reg = inst.outreg[0]
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      aryt = reg.type[tup][0]
+      aryt = reg.get_type(tup)[0]
       eareg = aryt.element
       aescape = reg.is_escape?(tup) #or (!aryt.immidiate_only)
       etype = get_ctype(ccgen, eareg[uv], tup, infer)
@@ -466,6 +466,8 @@ module CodeGenC
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        gen_gc_table_core(ccgen, inst, node, infer, history, tup, inst.para[1], inst.para[2], 0)
+        ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
@@ -483,6 +485,7 @@ module CodeGenC
       val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
       if ireg0.is_escape?(tup) then
         if ireg1.is_escape?(tup) then
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history)
@@ -503,7 +506,7 @@ module CodeGenC
     define_ccgen_rule_op :LAMBDA do |ccgen, inst, node, infer, history, tup|
       # make env struct
       envreg = inst.para[1]
-      proc = inst.outreg[0].type[tup][0]
+      proc = inst.outreg[0].get_type(tup)[0]
       cproc = ccgen.callstack[-1][0]
       pproc = cproc.parent
       if !ccgen.using_proc.include?(proc) then
@@ -583,7 +586,7 @@ module CodeGenC
 
     define_ccgen_rule_op :RANGE do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      et = oreg.type[tup][0]
+      et = oreg.get_type(tup)[0]
       ereg = et.element[0]
       bval = reg_real_value(ccgen, inst.inreg[0], ereg, node, tup, infer, history)
       eval = reg_real_value(ccgen, inst.inreg[1], ereg, node, tup, infer, history)

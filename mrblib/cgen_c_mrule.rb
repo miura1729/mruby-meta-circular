@@ -103,8 +103,8 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       slf = inst.inreg[0]
-      litty = nreg.type[tup][0]
-      if nreg.type[tup].size == 1 and litty.is_a?(MTypeInf::LiteralType) then
+      litty = nreg.get_type(tup)[0]
+      if nreg.get_type(tup).size == 1 and litty.is_a?(MTypeInf::LiteralType) then
         ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
 
       elsif !slf.is_escape?(tup) then
@@ -129,8 +129,8 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       slf = inst.inreg[0]
-      litty = nreg.type[tup][0]
-      if nreg.type[tup].size == 1 and litty.is_a?(MTypeInf::LiteralType) then
+      litty = nreg.get_type(tup)[0]
+      if nreg.get_type(tup).size == 1 and litty.is_a?(MTypeInf::LiteralType) then
         ccgen.pcode << "v#{nreg.id} = #{litty.val};\n"
 
       elsif !slf.is_escape?(tup) then
@@ -149,7 +149,7 @@ module CodeGenC
 
     define_ccgen_rule_method :exclude_end?, Range do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      eetype = inst.outreg[0].type[tup][0]
+      eetype = inst.outreg[0].get_type(tup)[0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{eetype.val ? 1 : 0};\n"
@@ -246,6 +246,8 @@ module CodeGenC
       ccgen.pcode << "{ char *tmpstr = alloca(2);\n"
       ccgen.pcode << "tmpstr[0] = #{src};\n"
       ccgen.pcode << "tmpstr[1] = '\\0';\n"
+      gen_gc_table(ccgen, inst, node, infer, history, tup)
+      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       ccgen.pcode << "v#{oreg.id} = mrb_str_new_cstr(mrb, tmpstr);\n"
       ccgen.pcode << "}\n"
       nil
@@ -265,6 +267,9 @@ module CodeGenC
       nreg = inst.outreg[0]
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history)
+
+      gen_gc_table(ccgen, inst, node, infer, history, tup)
+      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       ccgen.pcode << "mrb_p(mrb, #{src2});\n"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
@@ -283,7 +288,7 @@ module CodeGenC
 
     define_ccgen_rule_method :kind_of?, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      res = nreg.type[tup]
+      res = nreg.get_type(tup)
       if res.size == 1 then
         ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
         ccgen.dcode << ";\n"
@@ -361,7 +366,7 @@ module CodeGenC
 
     define_ccgen_rule_method :==, NilClass do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
-      argcls = inst.inreg[1].type[tup][0].class_object
+      argcls = inst.inreg[1].get_type(tup)[0].class_object
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if argcls == NilClass then
@@ -391,7 +396,7 @@ module CodeGenC
 
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      eele = inst.inreg[0].type[tup][0].element
+      eele = inst.inreg[0].get_type(tup)[0].element
       elereg = eele[uv]
       nreg = inst.outreg[0]
       aryreg = inst.inreg[0]
@@ -423,7 +428,7 @@ module CodeGenC
 
     define_ccgen_rule_method :[]=, Array do |ccgen, inst, node, infer, history, tup|
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      elereg = inst.inreg[0].type[tup][0].element[uv]
+      elereg = inst.inreg[0].get_type(tup)[0].element[uv]
       slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[2], node, tup, infer, history)
       nreg = inst.outreg[0]
@@ -445,7 +450,7 @@ module CodeGenC
 
     define_ccgen_rule_method :__svalue, Array do |ccgen, inst, node, infer, history, tup|
       aryreg = inst.inreg[0]
-      eele = aryreg.type[tup][0].element
+      eele = aryreg.get_type(tup)[0].element
       elereg = eele[0]
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
@@ -498,7 +503,7 @@ module CodeGenC
         src = "ARY_LEN(mrb_ary_ptr(#{src}))"
         src = gen_type_conversion(ccgen, dstt, :mrb_int, src, tup, node, infer, history)
       else
-        src = gen_type_conversion(ccgen, dstt, :mrb_int, inst.inreg[0].type[tup][0].element.keys.size - 1, tup, node, infer, history)
+        src = gen_type_conversion(ccgen, dstt, :mrb_int, inst.inreg[0].get_type(tup)[0].element.keys.size - 1, tup, node, infer, history)
       end
 
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -512,18 +517,18 @@ module CodeGenC
       recvtypes = inst.inreg[0].flush_type(tup)[tup]
       argc = inst.para[1]
       oreg = inst.outreg[0]
-      otype = oreg.type[tup][0]
+      otype = oreg.get_type(tup)[0]
       initsize = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
 
       if recvtypes.size == 1 then
         uv = MTypeInf::ContainerType::UNDEF_VALUE
-        eele = inst.outreg[0].type[tup][0].element
+        eele = inst.outreg[0].get_type(tup)[0].element
         recvt = recvtypes[0].class_object
 
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
 
         if initsize == "mrb_nil_value()" then
-          initsize = inst.outreg[0].type[tup][0].element.size
+          initsize = inst.outreg[0].get_type(tup)[0].element.size
         end
 
         if oreg.is_escape?(tup) then
@@ -536,7 +541,7 @@ module CodeGenC
         else
           etup = tup
           ereg = eele[uv]
-          if ereg.type[tup] == nil then
+          if ereg.get_type(tup) == nil then
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
@@ -562,7 +567,7 @@ module CodeGenC
 
     define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
       procty = get_ctype(ccgen, inst.inreg[0], tup, infer)
-      intype = inst.inreg.map {|reg| reg.type[tup] || []}
+      intype = inst.inreg.map {|reg| reg.get_type(tup) || []}
       ptype = intype[0][0]
       proc = inst.inreg[0]
       intype[0] = [ptype.slf]
@@ -597,7 +602,7 @@ module CodeGenC
           (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
         }.join(", ")
         reg = inst.inreg[-1]
-        tys = reg.type[tup]
+        tys = reg.get_type(tup)
         if tys and tys.size == 1 and tys[0].class_object != NilClass then
           args << ", "
           args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
@@ -649,7 +654,7 @@ module CodeGenC
     end
 
     def self.gen_get_strbuf(oreg, osize, tup)
-      otype = oreg.type[tup][0]
+      otype = oreg.get_type(tup)[0]
       size = otype.size
       if can_use_caller_area(otype) and size then
         "char *tmpstr = prevgctab->caller_alloc; prevgctab->caller_alloc += ((#{(size / 4).to_i} + 1) * 4);"
@@ -706,9 +711,9 @@ module CodeGenC
       oreg = inst.outreg[0]
       sreg = inst.inreg[0]
       strsrc = reg_real_value_noconv(ccgen, sreg,  node, tup, infer, history)
-      stype = sreg.type[tup][0]
+      stype = sreg.get_type(tup)[0]
       sizesrc = nil
-      if sreg.type[tup].size == 1 and stype.is_a?(MTypeInf::LiteralType) then
+      if sreg.get_type(tup).size == 1 and stype.is_a?(MTypeInf::LiteralType) then
         sizesrc = stype.val.size.to_s
 
       elsif stype.is_escape? then
@@ -730,14 +735,14 @@ module CodeGenC
       oreg = inst.outreg[0]
       sreg0 = inst.inreg[0]
       strsrc0, srct0 = reg_real_value_noconv(ccgen, sreg0,  node, tup, infer, history)
-      stype0 = sreg0.type[tup][0]
+      stype0 = sreg0.get_type(tup)[0]
       sreg1 = inst.inreg[1]
       strsrc1, srct1 = reg_real_value_noconv(ccgen, sreg1,  node, tup, infer, history)
-      stype1 = sreg1.type[tup][0]
-      if sreg0.type[tup].size != 1 or stype0.is_escape? then
+      stype1 = sreg1.get_type(tup)[0]
+      if sreg0.get_type(tup).size != 1 or stype0.is_escape? then
         strsrc0 = "RSTRING_PTR(#{strsrc0})"
       end
-      if sreg0.type[tup].size != 1 or stype1.is_escape? then
+      if sreg0.get_type(tup).size != 1 or stype1.is_escape? then
         strsrc1 = "RSTRING_PTR(#{strsrc1})"
       end
 
@@ -763,14 +768,14 @@ module CodeGenC
       src, srct = reg_real_value_noconv(ccgen, strreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
-      idxtype = inst.inreg[1].type[tup][0]
+      idxtype = inst.inreg[1].get_type(tup)[0]
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      strtype = inst.inreg[0].type[tup][0]
-      if strreg.type[tup].size == 1 and strtype.is_a?(MTypeInf::LiteralType) then
+      strtype = inst.inreg[0].get_type(tup)[0]
+      if strreg.get_type(tup).size == 1 and strtype.is_a?(MTypeInf::LiteralType) then
         strval = strtype.val
         #strval = src
         ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
-        if inst.inreg[1].type[tup].size == 1 and idxtype.is_a?(MTypeInf::LiteralType) then
+        if inst.inreg[1].get_type(tup).size == 1 and idxtype.is_a?(MTypeInf::LiteralType) then
           src = unescape_string(strval[idxtype.val])
         else
           src = "#{unescape_string(strval)}[#{idx}]"
@@ -869,7 +874,7 @@ module CodeGenC
       argc = inst.para[1]
       inreg = inst.inreg.clone
       oreg = inst.outreg[0]
-      otype = oreg.type[tup][0]
+      otype = oreg.get_type(tup)[0]
       clsssa = RiteSSA::ClassSSA.get_instance(otype.class_object)
 
       if recvtypes.size == 1 then
@@ -896,8 +901,8 @@ module CodeGenC
           end
           ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup)
           clsssa.iv.each do |nm, reg|
-            if reg.type[tup] then
-              reg.type[ivtup] = reg.type[tup].map {|e| e}
+            if reg.get_type(tup) then
+              reg.type[ivtup] = reg.get_type(tup).map {|e| e}
             end
           end
           clsid = ["cls#{clsssa.id}_#{ivtup}", otype.hometown]

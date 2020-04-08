@@ -38,6 +38,15 @@ module MTypeInf
           end
           return nil
 
+        when :index
+          rectype = inst.inreg[0].get_type(tup)
+          if rectype.size == 1 then
+            return inst.outreg[0]
+
+          else
+            return nil
+          end
+
         else
           return nil
         end
@@ -82,6 +91,32 @@ module MTypeInf
 
             addtional_type_spec = [type]
             genp = genp.inreg[0].genpoint
+          end
+
+        elsif genp.op == :EQ then
+
+          type = genp.inreg[0].get_type(tup)[0]
+          if type.is_a?(MTypeInf::LiteralType) then
+            tcl = type.class_object
+            if tcl != String then
+              typemethodp = true
+              type = PrimitiveType.new(tcl)
+              addtional_type_spec = [type]
+              genp = genp.inreg[1].genpoint
+            end
+          end
+
+          if genp.inreg[1] then
+            type = genp.inreg[1].get_type(tup)[0]
+            if type.is_a?(MTypeInf::LiteralType) then
+              tcl = type.class_object
+              if tcl != String then
+                typemethodp = true
+                type = PrimitiveType.new(tcl)
+                addtional_type_spec = [type]
+                genp = genp.inreg[0].genpoint
+              end
+            end
           end
 
         elsif genp.op == :MOVE or
@@ -139,6 +174,7 @@ module MTypeInf
         idx = notp ? bidx : 1 - bidx
         nd = node.exit_link[idx]
         if greg = get_original_reg(infer, genp, tup) then
+
           greg.positive_list.push addtional_type_spec
           greg.refpoint.each do |reg|
             reg.outreg[0].positive_list.push  addtional_type_spec
