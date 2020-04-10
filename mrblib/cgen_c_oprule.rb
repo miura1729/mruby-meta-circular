@@ -468,7 +468,7 @@ module CodeGenC
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
         gen_gc_table_core(ccgen, inst, node, infer, history, tup, inst.para[1], inst.para[2], 0)
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-        ccgen.pcode << "v#{reg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});"
+        ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
       end

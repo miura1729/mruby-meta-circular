@@ -72,6 +72,8 @@ module MTypeInf
 
         if genp.op == :SEND then
           addtional_type_spec = nil
+          atype_spec_pos = nil
+          atype_spec_neg = nil
           case genp.para[0]
           when :kind_of?, :is_a?
             typemethodp = true
@@ -83,6 +85,8 @@ module MTypeInf
             type = PrimitiveType.new(cls)
 
             addtional_type_spec = [type]
+            atype_spec_pos = addtional_type_spec
+            atype_spec_neg = addtional_type_spec
             genp = genp.inreg[0].genpoint
 
           when :nil?
@@ -90,6 +94,8 @@ module MTypeInf
             type = PrimitiveType.new(NilClass)
 
             addtional_type_spec = [type]
+            atype_spec_pos = addtional_type_spec
+            atype_spec_neg = addtional_type_spec
             genp = genp.inreg[0].genpoint
           end
 
@@ -97,24 +103,32 @@ module MTypeInf
 
           type = genp.inreg[0].get_type(tup)[0]
           if type.is_a?(MTypeInf::LiteralType) then
-            tcl = type.class_object
-            if tcl != String then
-              typemethodp = true
-              type = PrimitiveType.new(tcl)
+            if type.class_object == NilClass and false then
+              type = PrimitiveType.new(type.class_object)
               addtional_type_spec = [type]
               genp = genp.inreg[1].genpoint
+              typemethodp = true
+              atype_spec_neg = addtional_type_spec
+              atype_spec_pos = addtional_type_spec
+            else
+              atype_spec_pos = []
+              atype_spec_neg = []
             end
           end
 
           if genp.inreg[1] then
             type = genp.inreg[1].get_type(tup)[0]
             if type.is_a?(MTypeInf::LiteralType) then
-              tcl = type.class_object
-              if tcl != String then
-                typemethodp = true
-                type = PrimitiveType.new(tcl)
+              if type.class_object == NilClass then
+                type = PrimitiveType.new(type.class_object)
                 addtional_type_spec = [type]
                 genp = genp.inreg[0].genpoint
+                typemethodp = true
+                atype_spec_pos = addtional_type_spec
+                atype_spec_neg = addtional_type_spec
+              else
+                atype_spec_pos = []
+                atype_spec_neg = []
               end
             end
           end
@@ -128,6 +142,8 @@ module MTypeInf
           type1 = LiteralType.new(false.class, false)
 
           addtional_type_spec = [type0, type1]
+          atype_spec_pos = addtional_type_spec
+          atype_spec_neg = addtional_type_spec
         #  genp = genp.inreg[0].genpoint
         end
       end
@@ -175,13 +191,13 @@ module MTypeInf
         nd = node.exit_link[idx]
         if greg = get_original_reg(infer, genp, tup) then
 
-          greg.positive_list.push addtional_type_spec
+          greg.positive_list.push atype_spec_pos
           greg.refpoint.each do |reg|
-            reg.outreg[0].positive_list.push  addtional_type_spec
+            reg.outreg[0].positive_list.push  atype_spec_pos
           end
           history[nil] ||= []
           history[nil].push node
-          infer.inference_node(nd, tup, node.exit_reg, history)
+          rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
           history[nil].pop
           greg.positive_list.pop
           greg.refpoint.each do |reg|
@@ -190,19 +206,35 @@ module MTypeInf
 
           idx = 1 - idx
           nd = node.exit_link[idx]
-          greg.negative_list.push addtional_type_spec
+          greg.negative_list.push atype_spec_neg
           greg.refpoint.each do |reg|
-            reg.outreg[0].negative_list.push addtional_type_spec
+            reg.outreg[0].negative_list.push atype_spec_neg
           end
           history[nil] ||= []
           history[nil].push node
-          infer.inference_node(nd, tup, node.exit_reg, history)
+          rcelse = infer.inference_node(nd, tup, node.exit_reg, history)
           history[nil].pop
           greg.negative_list.pop
           greg.refpoint.each do |reg|
             reg.outreg[0].negative_list.pop
           end
-        else
+
+          if rcthen and false
+            # then part is break/return
+            greg.negative_list[-1].merge! addtional_type_spec
+            greg.refpoint.each do |reg|
+              reg.outreg[0].negative_list[-1].nerge! addtional_type_spec
+            end
+          end
+
+          if rcelse and false
+            # else part is break/return
+            greg.positive_list[-1].merge! addtional_type_spec
+            greg.refpoint.each do |reg|
+              reg.outreg[0].positive_list[-1].nerge! addtional_type_spec
+            end
+          end
+       else
           history[nil] ||= []
           history[nil].push node
           infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)

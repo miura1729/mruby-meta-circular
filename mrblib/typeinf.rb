@@ -366,12 +366,12 @@ module MTypeInf
           raise e
         end
         if rc then
-          break
+          return rc
         end
       end
 
       if rc then
-        return
+        return rc
       end
 
       history[node] ||= []
@@ -384,6 +384,7 @@ module MTypeInf
         end
       end
       history[nil].pop
+      nil
     end
   end
 end

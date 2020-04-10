@@ -496,7 +496,7 @@ module MTypeInf
       else
         inst.outreg[0].flush_type(tup)
       end
-      nil
+      :return
     end
 
     define_inf_rule_op :EQ do |infer, inst, node, tup, history|
