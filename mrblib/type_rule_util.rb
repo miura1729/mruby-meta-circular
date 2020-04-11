@@ -100,18 +100,16 @@ module MTypeInf
           end
 
         elsif genp.op == :EQ then
-
           type = genp.inreg[0].get_type(tup)[0]
           if type.is_a?(MTypeInf::LiteralType) then
-            if type.class_object == NilClass and false then
-              type = PrimitiveType.new(type.class_object)
+            genp = genp.inreg[1].genpoint
+            typemethodp = true
+            if type.class_object == NilClass then
               addtional_type_spec = [type]
-              genp = genp.inreg[1].genpoint
-              typemethodp = true
               atype_spec_neg = addtional_type_spec
               atype_spec_pos = addtional_type_spec
             else
-              atype_spec_pos = []
+              atype_spec_pos = [type]
               atype_spec_neg = []
             end
           end
@@ -119,15 +117,14 @@ module MTypeInf
           if genp.inreg[1] then
             type = genp.inreg[1].get_type(tup)[0]
             if type.is_a?(MTypeInf::LiteralType) then
+              genp = genp.inreg[0].genpoint
+              typemethodp = true
               if type.class_object == NilClass then
-                type = PrimitiveType.new(type.class_object)
                 addtional_type_spec = [type]
-                genp = genp.inreg[0].genpoint
-                typemethodp = true
                 atype_spec_pos = addtional_type_spec
                 atype_spec_neg = addtional_type_spec
               else
-                atype_spec_pos = []
+                atype_spec_pos = [type]
                 atype_spec_neg = []
               end
             end
@@ -291,23 +288,18 @@ module MTypeInf
       argc = inst.para[1] if argc == nil
       if argc == 127 then
         argary = inst.inreg[1].flush_type(tup)[tup][0]
-        argeles = argary.element[0].flush_type_alltup(tup)[tup]
+        argeles = argary.element
         if argeles then
-          argeles.each do |arr|
-            intype = [inst.inreg[0].flush_type(tup)[tup]]
-            if arr.class_object == Array then
-              aele = arr.element
-            else
-              aele = argary.element
-            end
-            largc = aele.size - 1
-            largc.times do |i|
-              intype[i + 1] = aele[i].flush_type_alltup(tup)[tup]
-            end
+          intype = [inst.inreg[0].flush_type(tup)[tup]]
 
-            intype.push inst.inreg[2].flush_type(tup)[tup]
-            yield intype, intype.size - 2
+          largc = argeles.size - 1
+          largc.times do |i|
+            intype[i + 1] = argeles[i].flush_type_alltup(tup)[tup]
           end
+
+          intype.push inst.inreg[2].flush_type(tup)[tup]
+          yield intype, intype.size - 2
+
         else
           arg0 = inst.inreg[0].flush_type(tup)[tup]
           arg2 = inst.inreg[2].flush_type(tup)[tup]
