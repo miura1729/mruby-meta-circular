@@ -75,7 +75,7 @@ module MTypeInf
       level = infer.callstack.size
       previrep = infer.callstack[-2][0].irep
       type = StringType.new(String, inst, previrep, level)
-      type.place[true] = true
+#      type.place[true] = true
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -690,10 +690,11 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :sprintf, Object do |infer, inst, node, tup|
+    define_inf_rule_method :sprintf, Kernel do |infer, inst, node, tup|
       level = infer.callstack.size
       previrep = infer.callstack[-2][0].irep
       type = StringType.new(String, inst, previrep, level)
+      type.place[true] = [:sprintf, inst.line]
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -707,8 +708,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :__printstr__, Kernel do |infer, inst, node, tup|
-      inst.inreg[0].type[tup][0].place[true] = [:__printstr__, inst.line]
-      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].add_same inst.inreg[1]
       inst.outreg[0].flush_type(tup)
       nil
     end

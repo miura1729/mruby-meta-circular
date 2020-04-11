@@ -248,7 +248,11 @@ module CodeGenC
       ccgen.pcode << "tmpstr[1] = '\\0';\n"
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-      ccgen.pcode << "v#{oreg.id} = mrb_str_new_cstr(mrb, tmpstr);\n"
+      if oreg.is_escape?(tup) then
+        ccgen.pcode << "v#{oreg.id} = mrb_str_new_cstr(mrb, tmpstr);\n"
+      else
+        ccgen.pcode << "v#{oreg.id} = tmpstr;\n"
+      end
       ccgen.pcode << "}\n"
       nil
     end
@@ -305,7 +309,7 @@ module CodeGenC
     define_ccgen_rule_method :__printstr__, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src = reg_real_value(ccgen, inst.inreg[1], nreg, node, tup, infer, history)
-      ccgen.pcode << "printf(RSTRING_PTR(#{src}));\n"
+      ccgen.pcode << "printf(\"%s\", #{src});\n"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -325,13 +329,13 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_method :printf, Kernel do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :sprintf, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
       args = inst.inreg.map {|reg|
         (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
       }.join(", ")
-      src = "printf(#{args})"
+      src = "sprintf(#{args})"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"

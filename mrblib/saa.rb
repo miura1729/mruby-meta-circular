@@ -139,9 +139,6 @@ module RiteSSA
         if posl.size > 0 then
           types = types.find_all {|ele| posl.find {|e| e.class_object == ele.class_object}}
         end
-        if types.nil? then
-          types = []
-        end
 
         negl = @negative_list.flatten(1)
         if negl.size > 0 then
