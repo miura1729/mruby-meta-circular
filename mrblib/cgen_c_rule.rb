@@ -187,38 +187,95 @@ module CodeGenC
     end
 
     def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
-      intype = inreg.map {|reg| reg.get_type(tup) || []}
-#      intype[0] = [intype[0][0]]
-      if !intype[0][0]
-        p name
-        p tup
-        p inreg[0].type
-        p intype
-        p inst.line
-      end
-      rectypes = intype[0]
-      if rectypes.size == 1 then
-        # Not polymorphism
-        rectype = rectypes[0]
-        fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
+      MTypeInf::TypeInferencer::make_intype(infer, inreg, node, tup, inst.para[1]) do |intype, argc|
+        #      intype[0] = [intype[0][0]]
+        if !intype[0][0]
+          p name
+          p tup
+          p inreg[0].type
+          p intype
+          p inst.line
+        end
+        rectypes = intype[0]
+        if rectypes.size == 1 then
+          # Not polymorphism
+          rectype = rectypes[0]
+          fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
 
-      elsif rectypes.size == 2 and
-          (rectypes[0].class_object == NilClass or rectypes[1].class_object == NilClass) then
-        # nilable
-        gen_gc_table(ccgen, inst, node, infer, history, tup)
-        if rectypes[0].class_object == NilClass then
-          ccgen.pcode << "if (mrb_nil_p(v#{inreg[0].id})) {\n"
+        elsif rectypes.size == 2 and
+            (rectypes[0].class_object == NilClass or rectypes[1].class_object == NilClass) then
+          # nilable
+          gen_gc_table(ccgen, inst, node, infer, history, tup)
+          if rectypes[0].class_object == NilClass then
+            ccgen.pcode << "if (mrb_nil_p(v#{inreg[0].id})) {\n"
+          else
+            ccgen.pcode << "if (!mrb_nil_p(v#{inreg[0].id})) {\n"
+          end
+
+          rectype = rectypes[0]
+          fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
+
+          if fname == :ccall and proc.nil? then
+
+          elsif fname then
+            args, procexport = op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
+
+            if outreg then
+              nreg = outreg[0]
+              ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+              ccgen.dcode << ";\n"
+              ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+            else
+              ccgen.pcode << "#{fname}(mrb, #{args});\n"
+            end
+
+          elsif name != :initialize
+            p inst.filename
+            p inst.line
+            p name
+            p intype[0][0]
+            ccgen.pcode << "mrb_no_method_error1(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+          end
+
+          ccgen.pcode << "}\n"
+          ccgen.pcode << "else {\n"
+
+          rectype = rectypes[1]
+          fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
+
+          if fname == :ccall and proc.nil? then
+
+          elsif fname then
+            args, procexport = op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
+
+            if outreg then
+              nreg = outreg[0]
+              ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+            else
+              ccgen.pcode << "#{fname}(mrb, #{args});\n"
+            end
+
+          elsif name != :initialize
+            p inst.filename
+            p inst.line
+            p name
+            p intype[0][1]
+            ccgen.pcode << "mrb_no_method_error2(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+          end
+          ccgen.pcode << "}\n"
+          return
+
         else
-          ccgen.pcode << "if (!mrb_nil_p(v#{inreg[0].id})) {\n"
+          # polymorphism
         end
 
-        rectype = rectypes[0]
-        fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
-
         if fname == :ccall and proc.nil? then
+          return
 
         elsif fname then
           args, procexport = op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
+
+          gen_gc_table(ccgen, inst, node, infer, history, tup)
 
           if outreg then
             nreg = outreg[0]
@@ -229,88 +286,32 @@ module CodeGenC
             ccgen.pcode << "#{fname}(mrb, #{args});\n"
           end
 
-        elsif name != :initialize
+          if proc.irep.have_return then
+            ccgen.have_ret_handler = true
+            ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
+          end
+
+          if procexport then
+            node.root.import_regs.each do |reg|
+              if ccgen.is_live_reg_local?(node, reg) then
+                ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
+              end
+            end
+          end
+
+          pproc = ccgen.callstack[-1][0]
+          minf = [fname, proc, utup, pproc, name]
+          if ccgen.using_method.index(minf) == nil then
+            ccgen.using_method.push minf
+          end
+
+        elsif name != :initialize then
           p inst.filename
           p inst.line
           p name
           p intype[0][0]
-          ccgen.pcode << "mrb_no_method_error1(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+          ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end
-
-        ccgen.pcode << "}\n"
-        ccgen.pcode << "else {\n"
-
-        rectype = rectypes[1]
-        fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
-
-        if fname == :ccall and proc.nil? then
-
-        elsif fname then
-          args, procexport = op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
-
-          if outreg then
-            nreg = outreg[0]
-            ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
-          else
-            ccgen.pcode << "#{fname}(mrb, #{args});\n"
-          end
-
-        elsif name != :initialize
-          p inst.filename
-          p inst.line
-          p name
-          p intype[0][1]
-          ccgen.pcode << "mrb_no_method_error2(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
-        end
-        ccgen.pcode << "}\n"
-        return
-
-      else
-        # polymorphism
-      end
-
-      if fname == :ccall and proc.nil? then
-        return
-
-      elsif fname then
-        args, procexport = op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
-
-        gen_gc_table(ccgen, inst, node, infer, history, tup)
-
-        if outreg then
-          nreg = outreg[0]
-          ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
-          ccgen.dcode << ";\n"
-          ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
-        else
-          ccgen.pcode << "#{fname}(mrb, #{args});\n"
-        end
-
-        if proc.irep.have_return then
-          ccgen.have_ret_handler = true
-          ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
-        end
-
-        if procexport then
-          node.root.import_regs.each do |reg|
-            if ccgen.is_live_reg_local?(node, reg) then
-              ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
-            end
-          end
-        end
-
-        pproc = ccgen.callstack[-1][0]
-        minf = [fname, proc, utup, pproc, name]
-        if ccgen.using_method.index(minf) == nil then
-          ccgen.using_method.push minf
-        end
-
-      elsif name != :initialize then
-        p inst.filename
-        p inst.line
-        p name
-        p intype[0][0]
-        ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
       end
       nil
     end

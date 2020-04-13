@@ -284,29 +284,28 @@ module MTypeInf
       end
     end
 
-    def self.make_intype(infer, inst, node, tup, argc = nil)
-      argc = inst.para[1] if argc == nil
+    def self.make_intype(infer, inreg, node, tup, argc = nil)
       if argc == 127 then
-        argary = inst.inreg[1].flush_type(tup)[tup][0]
+        argary = inreg[1].get_type(tup)[0]
         argeles = argary.element
         if argeles then
-          intype = [inst.inreg[0].flush_type(tup)[tup]]
+          intype = [inreg[0].get_type(tup)]
 
           largc = argeles.size - 1
           largc.times do |i|
             intype[i + 1] = argeles[i].flush_type_alltup(tup)[tup]
           end
 
-          intype.push inst.inreg[2].flush_type(tup)[tup]
+          intype.push inreg[2].get_type(tup)
           yield intype, intype.size - 2
 
         else
-          arg0 = inst.inreg[0].flush_type(tup)[tup]
-          arg2 = inst.inreg[2].flush_type(tup)[tup]
+          arg0 = inreg[0].flush_type(tup)[tup]
+          arg2 = inreg[2].flush_type(tup)[tup]
           yield [arg0, arg2], 0
         end
       else
-        yield inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}, argc
+        yield inreg.map {|reg| reg.flush_type(tup)[tup] || []}, argc
       end
 
       nil
@@ -444,7 +443,7 @@ module MTypeInf
     def self.rule_send_common(infer, inst, node, tup, history)
       name = inst.para[0]
       argc = inst.para[1]
-      make_intype(infer, inst, node, tup, argc) do |intype, argc2|
+      make_intype(infer, inst.inreg, node, tup, argc) do |intype, argc2|
         recreg = inst.inreg[0]
 
         rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc2, history)

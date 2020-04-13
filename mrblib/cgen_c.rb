@@ -50,6 +50,7 @@ module CodeGenC
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #undef mrb_int
 typedef mrb_float mrb_float2;
 

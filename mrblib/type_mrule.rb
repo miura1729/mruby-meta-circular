@@ -499,7 +499,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :append_features, Module do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup, inst.para[1]) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         slf = intype[1][0].val
         mod = intype[0][0].val
         slf.include mod
@@ -508,7 +508,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :attr_reader, Module do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup, inst.para[1]) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         intype[1..-2].each do |symty|
           if symty then
             symcls = symty[0]
@@ -525,7 +525,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :attr_writer, Module do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup, inst.para[1]) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         intype[1..-2].each do |symty|
           if symty then
             symcls = symty[0]
@@ -547,7 +547,7 @@ module MTypeInf
       intype = nil
       oargc = infer.callstack[-1][2]
       types = inst.outreg[0].type[tup]
-      make_intype(infer, inst, node, tup) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
 
         recvtypes.each do |rtype|
           ntype = rtype.val
@@ -595,7 +595,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :call, Proc do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         ptype = intype[0][0]
         intype[0] = [ptype.slf]
@@ -694,7 +694,6 @@ module MTypeInf
       level = infer.callstack.size
       previrep = infer.callstack[-2][0].irep
       type = StringType.new(String, inst, previrep, level)
-      type.place[true] = [:sprintf, inst.line]
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -944,7 +943,7 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :new, Fiber do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         proc = intype[-1]
         type = FiberType.new(Fiber, proc[0])
 
@@ -984,7 +983,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :resume, Fiber do |infer, inst, node, tup|
-      make_intype(infer, inst, node, tup) do |intype, argc|
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         intype[0].each do  |fibslf|
           if fibslf.class_object == Fiber then
             inst.outreg[0].add_same fibslf.ret

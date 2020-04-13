@@ -694,7 +694,7 @@ module MTypeInf
         type.element[key].flush_type(tup)
       end
 
-      bpos = type.element.keys.size - 1
+      bpos = arrtype.element.keys.size - 1
       if !eletype.is_a?(ContainerType) then
         reg = RiteSSA::Reg.new(nil)
         reg.type[tup] = [eletype]

@@ -332,13 +332,33 @@ module CodeGenC
     define_ccgen_rule_method :sprintf, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
-      args = inst.inreg.map {|reg|
-        (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
-      }.join(", ")
-      src = "sprintf(#{args})"
+      argc = inst.para[1]
+      args = nil
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "char *buf = alloca(256);\n"
+      if argc == 127 then
+        argv = inst.inreg[1].type[tup][0].element
+        argc = argv.size + 1
+        if argv[MTypeInf::ContainerType::UNDEF_VALUE] then
+          argc = argc - 1
+        end
+
+        argregs = node.root.nodes[0].enter_reg
+      else
+        argregs = inst.inreg
+      end
+      argsv = []
+      (argc - 1).times do |i|
+        val = (reg_real_value_noconv(ccgen, argregs[i + 1], node, tup, infer, history))[0]
+        argsv.push val
+      end
+      args = argsv.join(', ')
+      src = "sprintf(buf, #{args})"
+      ccgen.pcode << "#{src};v#{nreg.id} = buf;\n"
+      ccgen.pcode << "}\n"
 
       nil
     end
@@ -571,72 +591,73 @@ module CodeGenC
 
     define_ccgen_rule_method :call, Proc do |ccgen, inst, node, infer, history, tup|
       procty = get_ctype(ccgen, inst.inreg[0], tup, infer)
-      intype = inst.inreg.map {|reg| reg.get_type(tup) || []}
-      ptype = intype[0][0]
-      proc = inst.inreg[0]
-      intype[0] = [ptype.slf]
-      nreg = inst.outreg[0]
       ret_chk = 3
-      if intype[0].size == 1 then
-        # store proc object only 1 kind.
-        utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
-        procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
+      nreg = inst.outreg[0]
+      MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
+        ptype = intype[0][0]
+        proc = inst.inreg[0]
+        intype[0] = [ptype.slf]
+        if intype[0].size == 1 then
+          # store proc object only 1 kind.
+          utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
+          procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
 
-        regs =  ptype.irep.allocate_reg[utup]
-        if regs
-          regs = regs.uniq
-          regstr = ""
-          rets = regs.inject([]) {|res, reg|
-            rsize = gen_typesize(ccgen, reg, utup, infer)
-            if rsize then
-              res << rsize
+          regs =  ptype.irep.allocate_reg[utup]
+          if regs
+            regs = regs.uniq
+            regstr = ""
+            rets = regs.inject([]) {|res, reg|
+              rsize = gen_typesize(ccgen, reg, utup, infer)
+              if rsize then
+                res << rsize
+              end
+              res
+            }
+            if rets.size > 0 then
+              ccgen.caller_alloc_size += 1
+              ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
             end
-            res
-          }
-          if rets.size > 0 then
-            ccgen.caller_alloc_size += 1
-            ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
           end
-        end
 
-        codeno = ptype.using_tup[utup]
-        outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
-        outtype = get_ctype(ccgen, nreg, tup, infer)
-        args = inst.inreg[0..-2].map {|reg|
-          (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
-        }.join(", ")
-        reg = inst.inreg[-1]
-        tys = reg.get_type(tup)
-        if tys and tys.size == 1 and tys[0].class_object != NilClass then
-          args << ", "
-          args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
-        end
-        args << ", gctab"
-        argt = inst.inreg.map {|reg|
-          gen_declare(ccgen, reg, tup, infer)
-        }.join(", ")
-        argt << ", struct gctab *"
-        if procty == :mrb_value then
-          fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
-          fname = "((#{outtype0} (*)(mrb_tsate *, #{argt}))(((void **)#{fname})[#{codeno}]))"
-          ccgen.using_block.push ccgen.proctab[ptype.irep][codeno]
-        elsif ccgen.proctab[ptype.irep] then
-          minf = ccgen.proctab[ptype.irep][codeno]
-          fname = minf[0]
-          ret_chk = 0
-          ret_chk |= minf[1].irep.have_break ? 1 : 0
-          ret_chk |= minf[1].irep.have_return ? 2 : 0
-          ccgen.using_block.push minf
-        else
-          fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
-          raise "Unnown proc"
-        end
+          codeno = ptype.using_tup[utup]
+          outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
+          outtype = get_ctype(ccgen, nreg, tup, infer)
+          args = inst.inreg[0..-2].map {|reg|
+            (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
+          }.join(", ")
+          reg = inst.inreg[-1]
+          tys = reg.get_type(tup)
+          if tys and tys.size == 1 and tys[0].class_object != NilClass then
+            args << ", "
+            args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
+          end
+          args << ", gctab"
+          argt = inst.inreg.map {|reg|
+            gen_declare(ccgen, reg, tup, infer)
+          }.join(", ")
+          argt << ", struct gctab *"
+          if procty == :mrb_value then
+            fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
+            fname = "((#{outtype0} (*)(mrb_tsate *, #{argt}))(((void **)#{fname})[#{codeno}]))"
+            ccgen.using_block.push ccgen.proctab[ptype.irep][codeno]
+          elsif ccgen.proctab[ptype.irep] then
+            minf = ccgen.proctab[ptype.irep][codeno]
+            fname = minf[0]
+            ret_chk = 0
+            ret_chk |= minf[1].irep.have_break ? 1 : 0
+            ret_chk |= minf[1].irep.have_return ? 2 : 0
+            ccgen.using_block.push minf
+          else
+            fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
+            raise "Unnown proc"
+          end
 
-        ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup, infer)
-        ccgen.dcode << ";\n"
-        src = "(#{fname}(mrb, #{args}))"
-        src = gen_type_conversion(ccgen, outtype, outtype0, src, tup, node, infer, history)
-        ccgen.pcode << "v#{nreg.id} = #{src};\n"
+          ccgen.dcode << CodeGen::gen_declare(ccgen, nreg, tup, infer)
+          ccgen.dcode << ";\n"
+          src = "(#{fname}(mrb, #{args}))"
+          src = gen_type_conversion(ccgen, outtype, outtype0, src, tup, node, infer, history)
+          ccgen.pcode << "v#{nreg.id} = #{src};\n"
+        end
       end
 
       if ret_chk then
