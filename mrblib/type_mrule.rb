@@ -360,14 +360,23 @@ module MTypeInf
 
 
     define_inf_rule_method :__ary_cmp, Array do |infer, inst, node, tup|
-      inst.outreg[0].add_same inst.inreg[1]
-      inst.outreg[0].flush_type(tup)
+      type1 = inst.inreg[1].get_type(tup)
+      allf = false
+      if type1.size > 1 then
+        allf = type1.all? {|e| e.class_object == type1[0].class_object}
+      end
 
-      type = PrimitiveType.new(NilClass)
-      inst.outreg[0].add_type(type, tup)
+      if type1[0].class_object == Array or !allf then
+        inst.outreg[0].add_same inst.inreg[1]
+        inst.outreg[0].flush_type(tup)
+        type = LiteralType.new(Fixnum, 0)
+        inst.outreg[0].add_type(type, tup)
+      end
 
-      type = LiteralType.new(Fixnum, 0)
-      inst.outreg[0].add_type(type, tup)
+      if type1[0].class_object != Array or !allf then
+        type = PrimitiveType.new(NilClass)
+        inst.outreg[0].add_type(type, tup)
+      end
 
       nil
     end

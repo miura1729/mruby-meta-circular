@@ -488,13 +488,24 @@ module MTypeInf
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
+      otup = nil
       if inst.para[0] == 2 then
         frame = inst.para[1]
         stpos = infer.callstack.index {|item| item[0] == frame}
         otup = infer.callstack[stpos][1]
         inst.outreg[0].flush_type(otup, tup)
       else
-        inst.outreg[0].flush_type(tup)
+        otup = infer.callstack[-1][1]
+        inst.outreg[0].flush_type(otup, tup)
+      end
+
+      if false and !inst.outreg[0].type[otup] then
+        p inst.outreg[0].type
+        p inst.inreg[0].type
+        p inst.inreg[0].genpoint.op if inst.inreg[0].genpoint.is_a?(RiteSSA::Inst)
+        p inst.line
+        p inst.filename
+        p "FOOO"
       end
       :return
     end

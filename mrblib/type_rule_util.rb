@@ -211,25 +211,20 @@ module MTypeInf
           history[nil].push node
           rcelse = infer.inference_node(nd, tup, node.exit_reg, history)
           history[nil].pop
+
+          if rcthen == :return then
+            # then part is return from current method, so outer block of if is
+            # type limitation of else part.
+            nd.exit_link.each do |nd2|
+              history[nil].push nd2
+              rcelse = infer.inference_node(nd2, tup, node.exit_reg, history)
+              history[nil].pop
+            end
+          end
+
           greg.negative_list.pop
           greg.refpoint.each do |reg|
             reg.outreg[0].negative_list.pop
-          end
-
-          if rcthen and false
-            # then part is break/return
-            greg.negative_list[-1].merge! addtional_type_spec
-            greg.refpoint.each do |reg|
-              reg.outreg[0].negative_list[-1].nerge! addtional_type_spec
-            end
-          end
-
-          if rcelse and false
-            # else part is break/return
-            greg.positive_list[-1].merge! addtional_type_spec
-            greg.refpoint.each do |reg|
-              reg.outreg[0].positive_list[-1].nerge! addtional_type_spec
-            end
           end
        else
           history[nil] ||= []
