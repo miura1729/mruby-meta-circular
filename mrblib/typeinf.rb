@@ -358,7 +358,7 @@ module MTypeInf
       node.ext_iseq.each do |ins|
         #p ins.line
         #p ins.filename
-        #p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
+#        p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
         begin
           rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         rescue Object => e

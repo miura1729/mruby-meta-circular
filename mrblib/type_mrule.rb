@@ -561,7 +561,7 @@ module MTypeInf
         recvtypes.each do |rtype|
           ntype = rtype.val
           cls = TypeSource[ntype]
-          type = inst.objcache[nil]
+          type = inst.objcache[tup]
           if type then
             # Do nothing
 
@@ -579,7 +579,7 @@ module MTypeInf
             type = UserDefinedType.new(ntype, inst, previrep, level)
 
           end
-          inst.objcache[nil] = type
+          inst.objcache[tup] = type
 
           if types and types.size != 0 then
             intype[0] = types

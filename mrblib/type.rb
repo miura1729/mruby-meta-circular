@@ -128,7 +128,7 @@ module MTypeInf
 
     def inspect_aux(hist, level)
 #      "#{@class_object.inspect}"
-      "#{@class_object.inspect} e=#{is_escape?}"
+      "#{@class_object.inspect} e=#{is_escape?} l=#{@level}"
     end
 
     def inspect(level = 0)
@@ -171,20 +171,18 @@ module MTypeInf
             true
 
           elsif @level <= e.level then
-#              val[1] == @hometown.irep or
-#              val[0] == @hometown.irep then
             false
 
-#          elsif e.phometown == @phometown then
-#            false
-
           elsif e.hometown.irep == @phometown then
-#              @phometown == val[1] or
-#              @phometown == val[0] then
             false
 
           else
 #            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometown.line(0)}"
+            p "LINE #{@level} #{e.level}"
+            p e.hometown.irep
+            p @phometown
+            p @hometown.irep
+
 #            p "LINE #{@hometown.irep.line(0)} #{@phometown.line(0)} #{e.hometown.irep.line(0)} #{e.phometown.line(0)}"
             true
           end
@@ -337,7 +335,6 @@ module MTypeInf
         @class_object == other.class_object &&
         @element.size == other.element.size &&
         @hometown == other.hometown &&
-#        @phometown == other.phometown &&
         @element == other.element &&
         is_escape? == other.is_escape?
 #      equal?(other)# && is_escape? == other.is_escape?
@@ -345,7 +342,7 @@ module MTypeInf
 
     def inspect_aux(hist, level)
       if hist[self] then
-        return "<#{@class_object} ...> e=#{is_escape?}"
+        return "<#{@class_object} ...> e=#{is_escape?} l=#{@level}"
       end
       hist[self] = true
 
@@ -502,7 +499,6 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
-#        @phometown == other.phometown &&
         @version == other.version &&
         is_escape? == other.is_escape?
     end
@@ -511,7 +507,6 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
-#        @phometown == other.phometown &&
         @version == other.version &&
         is_escape? == other.is_escape?
     end
