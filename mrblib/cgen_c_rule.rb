@@ -1018,15 +1018,48 @@ EOS
     end
 
     def self.can_use_caller_area(otype)
-      otype.place.keys.any? {|e|
+      rc = otype.place.keys.any? {|e|
         e.is_a?(MTypeInf::UserDefinedType) or
-        e == :return_fst or
-        (e.is_a?(MTypeInf::ContainerType) and
-          e.place.keys.any? {|e1|
-            e1.is_a?(MTypeInf::UserDefinedType) or
-            e1 == :return_fst
-          })
+        e.is_a?(MTypeInf::ContainerType) or
+        e == :return_fst
       }
+      if rc then
+        rc2 = nil
+        if otype.place.keys.all? {|e1|
+            if (e1.is_a?(MTypeInf::UserDefinedType) or
+                e1.is_a?(MTypeInf::ContainerType)) and
+                otype.level == e1.level and rc2 == nil then
+              rc2 = can_use_caller_area(e1)
+            end
+            e1 != :return_fst and
+            (!(e1.is_a?(MTypeInf::UserDefinedType) or
+              e1.is_a?(MTypeInf::ContainerType)) or
+            otype.level <= e1.level)
+          } then
+
+          # same level store object and store object is caller alloc
+          return rc2
+        end
+
+        if otype.place.keys.all? {|e1|
+            !(e1.is_a?(MTypeInf::UserDefinedType) or
+            e1.is_a?(MTypeInf::ContainerType)) or
+            otype.level <= e1.level + 1
+          } then
+          # 1 level caller alloc
+          return 2
+        end
+
+        if otype.place.keys.all? {|e1|
+            !(e1.is_a?(MTypeInf::UserDefinedType) or
+            e1.is_a?(MTypeInf::ContainerType)) or
+            otype.level <= e1.level + 2
+          } then
+          # 2 level caller alloc
+          return 3
+        end
+      end
+      return nil
     end
 
     def self.gen_typesize(ccgen, reg, tup, infer)

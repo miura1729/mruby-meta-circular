@@ -4,7 +4,7 @@ module MTypeInf
     def initialize(co, *rest)
       @class_object = co
       @hometown = nil
-      @phometown = nil
+      @phometowns = nil
       @level = 0
       @place = {}
       @escape_cache = nil
@@ -23,7 +23,7 @@ module MTypeInf
 
     attr :class_object
     attr_accessor :hometown
-    attr_accessor :phometown
+    attr_accessor :phometowns
     attr_accessor :level
     attr_accessor :place
     attr_accessor :version
@@ -173,17 +173,33 @@ module MTypeInf
           elsif @level <= e.level then
             false
 
-          elsif e.hometown.irep == @phometown then
+          elsif e.hometown.irep == @phometowns[-2].irep then
+            false
+
+          elsif e.hometown.irep == @phometowns[-3].irep then
+            if @phometowns[-2].is_a?(RiteSSA::Block)
+              base = @phometowns[-2].allocate_reg
+            else
+              base = @phometowns[-2].node.root.allocate_reg
+            end
+            reg = @hometown.outreg[0]
+            stup = reg.type.keys[0]
+            base.each do |ptup, regs|
+              reg.type[ptup] ||= reg.type[stup]
+              if !regs.include?(reg) then
+                regs.push reg
+              end
+            end
             false
 
           else
-#            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometown.line(0)}"
+#            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometowns.line(0)}"
             p "LINE #{@level} #{e.level}"
             p e.hometown.irep
-            p @phometown
+            p @phometowns
             p @hometown.irep
 
-#            p "LINE #{@hometown.irep.line(0)} #{@phometown.line(0)} #{e.hometown.irep.line(0)} #{e.phometown.line(0)}"
+#            p "LINE #{@hometown.irep.line(0)} #{@phometowns.line(0)} #{e.hometown.irep.line(0)} #{e.phometowns.line(0)}"
             true
           end
 
@@ -231,7 +247,7 @@ module MTypeInf
       super(co, *rest)
       @size = size
       @hometown = ht
-      @phometown = pht
+      @phometowns = pht
       @level = level
     end
 
@@ -312,7 +328,7 @@ module MTypeInf
       super(co, *rest)
       @element = {}
       @hometown = ht
-      @phometown = pht
+      @phometowns = pht
       @level = level
       reg = RiteSSA::Reg.new(nil)
 #      reg.add_type PrimitiveType.new(NilClass, nil), 0
@@ -356,10 +372,10 @@ module MTypeInf
       end
       hist.delete(self)
       if level < 3 then
-        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?}"
+        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?} l=#{@level}"
 #        "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
       else
-        "#{@class_object.inspect}<> e=#{is_escape?}"
+        "#{@class_object.inspect}<> e=#{is_escape?} l=#{@level}"
 #        "#{@class_object.inspect}<>"
       end
     end
@@ -487,7 +503,7 @@ module MTypeInf
     def initialize(co, ht, pht, level, *rest)
       super(co, *rest)
       @hometown = ht
-      @phometown = pht
+      @phometowns = pht
       @level = level
     end
 

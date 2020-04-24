@@ -932,9 +932,14 @@ module CodeGenC
           end
           clsid = ["cls#{clsssa.id}_#{ivtup}", otype.hometown]
           ccgen.using_class[clsssa][ivtup] ||= clsid
-          if can_use_caller_area(otype) then
+          rc = can_use_caller_area(otype)
+          if rc == 2 then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->caller_alloc += sizeof(struct #{clsid[0]});\n"
+
+          elsif rc == 3 then
+            ccgen.pcode << "v#{oreg.id} = prevgctab->prev->caller_alloc;\n"
+            ccgen.pcode << "prevgctab->prev->caller_alloc += sizeof(struct #{clsid[0]});\n"
           else
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct #{clsid[0]}));\n"
           end
