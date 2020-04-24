@@ -129,7 +129,7 @@ module MTypeInf
 
       slf = inst.inreg[1]
       # update place infomation
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e| [e[0], e[4]]}
       curirep = infer.callstack[-1][0].irep
 
       slf.flush_type(tup)[tup].each do |slftype|
@@ -352,7 +352,7 @@ module MTypeInf
             type = inst.objcache[tup]
             if !type then
               level = infer.callstack.size
-              previrep =  infer.callstack.map {|e| e[0]}
+              previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
               inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
               type.element[uv] = RiteSSA::Reg.new(nil)
             end
@@ -404,7 +404,7 @@ module MTypeInf
           type = inst.objcache[tup]
           if !type then
             level = infer.callstack.size
-            previrep = infer.callstack.map {|e| e[0]}
+            previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
             type.element[uv] = RiteSSA::Reg.new(nil)
           end
@@ -476,7 +476,7 @@ module MTypeInf
       reccls = intype[0][0].class_object
       supcls = reccls.superclass
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       rect = UserDefinedType.new(supcls, inst, previrep, level)
       recreg = RiteSSA::Reg.new(nil)
       recreg.add_type rect, tup
@@ -665,7 +665,7 @@ module MTypeInf
       type = inst.objcache[nil]
       if !type then
         level = infer.callstack.size
-        previrep = infer.callstack.map {|e| e[0]}
+        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
         inst.objcache[nil] = type = ContainerType.new(Array, inst, previrep, level)
       end
       nilreg = type.element[ContainerType::UNDEF_VALUE]
@@ -696,7 +696,7 @@ module MTypeInf
       type = inst.objcache[tup]
       if !type then
         level = infer.callstack.size
-        previrep = infer.callstack.map {|e| e[0]}
+        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
         inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
       end
       arrtype.element.each do |key, reg|
@@ -753,7 +753,7 @@ module MTypeInf
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)
 
 #      inst.inreg[0].add_type type, tup
@@ -793,7 +793,7 @@ module MTypeInf
       type = inst.objcache[nil]
       if !type then
         level = infer.callstack.size
-        previrep = infer.callstack.map {|e| e[0]}
+        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
         inst.objcache[nil] = type = ContainerType.new(Hash, inst, previrep, level)
       end
       type.element[ContainerType::UNDEF_VALUE] ||= RiteSSA::Reg.new(nil)
@@ -926,7 +926,7 @@ module MTypeInf
       type = inst.objcache[nil]
       if !type then
         level = infer.callstack.size
-        previrep = infer.callstack.map {|e| e[0]}
+        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
         inst.objcache[nil] = type = ContainerType.new(Range, inst, previrep, level)
       end
       nreg = type.element[0] || RiteSSA::Reg.new(nil)

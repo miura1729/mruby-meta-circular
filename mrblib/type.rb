@@ -173,19 +173,18 @@ module MTypeInf
           elsif @level <= e.level then
             false
 
-          elsif e.hometown.irep == @phometowns[-2].irep then
+          elsif e.hometown.irep == @phometowns[-2][0].irep then
             false
 
-          elsif e.hometown.irep == @phometowns[-3].irep then
-            if @phometowns[-2].is_a?(RiteSSA::Block)
-              base = @phometowns[-2].allocate_reg
-            else
-              base = @phometowns[-2].node.root.allocate_reg
-            end
-            reg = @hometown.outreg[0]
-            stup = reg.type.keys[0]
+          elsif e.hometown.irep == @phometowns[-3][0].irep then
+            base = @phometowns[-2][0].allocate_reg
+            reg = @phometowns[-2][1][1].outreg[0]
+#            reg = @hometown.outreg[0]
+            ctup = reg.type.keys[0]
             base.each do |ptup, regs|
-              reg.type[ptup] ||= reg.type[stup]
+              objty = reg.type[ctup][0]
+              clsobj = objty.class_object
+              reg.type[ptup] ||= [UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[1, -1])]
               if !regs.include?(reg) then
                 regs.push reg
               end

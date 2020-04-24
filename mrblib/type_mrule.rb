@@ -73,7 +73,7 @@ module MTypeInf
 
     define_inf_rule_method :chr, Fixnum do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)
 #      type.place[true] = true
       inst.outreg[0].add_type(type, tup)
@@ -264,7 +264,7 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type(tup)
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       curirep = infer.callstack[-1][0].irep
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
@@ -437,7 +437,7 @@ module MTypeInf
 
     define_inf_rule_method :inspect, Object do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -562,20 +562,26 @@ module MTypeInf
           ntype = rtype.val
           cls = TypeSource[ntype]
           level = infer.callstack.size
-          key = [infer.callstack[-2][0].irep, level]
+          pins = infer.callstack[-2][4]
+          if pins and false then
+            pins = pins[1]
+          else
+            pins = infer.callstack[-2][0].irep
+          end
+          key = [pins, level]
           type = inst.objcache[key]
           if type then
             # Do nothing
 
           elsif cls == ContainerType then
-            previrep = infer.callstack.map {|e| e[0]}
+            previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             type = cls.new(ntype, inst, previrep, level)
 
           elsif cls then
             type = cls.new(ntype)
 
           else
-            previrep = infer.callstack.map {|e| e[0]}
+            previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             type = UserDefinedType.new(ntype, inst, previrep, level)
 
           end
@@ -637,7 +643,7 @@ module MTypeInf
 
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -657,7 +663,7 @@ module MTypeInf
 
     define_inf_rule_method :downcase, String do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)
       type.place[true] = true
       inst.outreg[0].add_type(type, tup)
@@ -672,7 +678,7 @@ module MTypeInf
 
     define_inf_rule_method :[], String do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level, 2)
       oreg = inst.outreg[0]
       oreg.add_type(type, tup)
@@ -701,7 +707,7 @@ module MTypeInf
 
     define_inf_rule_method :sprintf, Kernel do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -803,7 +809,7 @@ module MTypeInf
     define_inf_rule_method :keys, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       ra = ContainerType.new(Array, inst, previrep, level)
       node.root.allocate_reg[tup] ||= []
       node.root.allocate_reg[tup].push ra
@@ -824,7 +830,7 @@ module MTypeInf
     define_inf_rule_method :values, Hash do |infer, inst, node, tup|
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       ra = ContainerType.new(Array, inst, previrep, level)
       raele = ra.element
 

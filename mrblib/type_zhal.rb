@@ -93,7 +93,7 @@ module MTypeInf
   class TypeInferencer
     define_inf_rule_class_method :new, HAL::CPU do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = UserDefinedType.new(HAL::CPU, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -131,7 +131,7 @@ module MTypeInf
 
     define_inf_rule_method :regs, HAL::CPU do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = UserDefinedType.new(HAL::Regs, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -165,7 +165,7 @@ module MTypeInf
 
     define_inf_rule_method :mem, HAL::CPU do |infer, inst, node, tup|
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = UserDefinedType.new(HAL::Mem, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -218,7 +218,7 @@ module MTypeInf
     define_inf_rule_method :static_cast, HAL::Mem do |infer, inst, node, tup|
       oty = inst.inreg[2].flush_type(tup)[tup][0]
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = UserDefinedStaticType.new(oty.val, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -227,7 +227,7 @@ module MTypeInf
     define_inf_rule_method :static_allocate, HAL::Mem do |infer, inst, node, tup|
       oty = inst.inreg[1].flush_type(tup)[tup][0]
       level = infer.callstack.size
-      previrep = infer.callstack.map {|e| e[0]}
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = UserDefinedStaticType.new(oty.val, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil

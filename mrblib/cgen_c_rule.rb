@@ -144,7 +144,7 @@ module CodeGenC
     def self.op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
       regs =  proc.irep.allocate_reg[utup]
       if regs
-        regs = regs.uniq
+#        regs = regs.uniq
         rets = regs.inject([]) {|res, reg|
           rsize = gen_typesize(ccgen, reg, utup, infer)
           if rsize then
