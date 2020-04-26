@@ -340,9 +340,6 @@ module MTypeInf
 
     def inference_node(node, tup, in_reg, history)
       in_reg.each_with_index do |ireg, i|
-        if i > node.irep.nlocals then
-#          break
-        end
         if ireg then
           if !node.enter_reg[i] then
             node.enter_reg[i] = RiteSSA::ParmReg.new(i)
@@ -358,7 +355,7 @@ module MTypeInf
       node.ext_iseq.each do |ins|
         #p ins.line
         #p ins.filename
-#        p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
+        #        p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
         begin
           rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         rescue Object => e

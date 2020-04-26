@@ -81,14 +81,19 @@ module MTypeInf
                 end
 
               when MTypeInf::ContainerType
+                if @level == ele.level then
+                  @place.merge! ele.place
+                  ele.place = @place
+                end
                 if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
                   return false
                 end
 
-              when MTypeInf::UserDefinedType
-                return false
-
-              when MTypeInf::StringType
+              when MTypeInf::UserDefinedType, MTypeInf::StringType
+                if @level == ele.level then
+                  @place.merge! ele.place
+                  ele.place = @place
+                end
                 return false
 
               when MTypeInf::TypeVarType
@@ -179,12 +184,12 @@ module MTypeInf
           elsif e.hometown.irep == @phometowns[-3][0].irep then
             base = @phometowns[-2][0].allocate_reg
             reg = @phometowns[-2][1][1].outreg[0]
-#            reg = @hometown.outreg[0]
-            ctup = reg.type.keys[0]
+            reg2 = @hometown.outreg[0]
+            ctup = reg2.type.keys[0]
             base.each do |ptup, regs|
-              objty = reg.type[ctup][0]
+              objty = reg2.type[ctup][0]
               clsobj = objty.class_object
-              reg.type[ptup] ||= [UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[1, -1])]
+              reg.type[ptup] ||= [UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0, -2], @phometowns.size - 1)]
               if !regs.include?(reg) then
                 regs.push reg
               end
@@ -194,9 +199,9 @@ module MTypeInf
           else
 #            p "LINE #{val[0].line(0)} #{val[1].line(0)} #{@hometown.irep.line(0)} #{@phometowns.line(0)}"
             p "LINE #{@level} #{e.level}"
-            p e.hometown.irep
-            p @phometowns
-            p @hometown.irep
+            p e.hometown.line
+#            p @phometowns
+            p @hometown.line
 
 #            p "LINE #{@hometown.irep.line(0)} #{@phometowns.line(0)} #{e.hometown.irep.line(0)} #{e.phometowns.line(0)}"
             true
