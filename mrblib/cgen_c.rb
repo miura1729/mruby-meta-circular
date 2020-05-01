@@ -33,6 +33,8 @@ module CodeGenC
       @method_attribute = {}
 
       @range_types = []
+
+      @compiled_method = {}
       init_code
     end
 
@@ -134,6 +136,8 @@ EOS
     attr :method_attribute
 
     attr :range_types
+
+    attr :compiled_method
 
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then
@@ -401,15 +405,19 @@ EOS
       end
 
 
-      # Construct code
-      @ccode << @dcode
-      @ccode << @gccode
-      @ccode << @pcode
-      if useheap then
-        @ccode << "mrb_gc_arena_restore(mrb, ai);\n"
-      end
-      @ccode << "}\n"
       @callstack.pop
+      if useheap then
+        @pcode << "mrb_gc_arena_restore(mrb, ai);\n"
+      end
+
+      # Construct code
+      res = ""
+      res << @dcode
+      res << @gccode
+      res << @pcode
+      res << "}\n"
+
+      res
     end
 
     def code_gen_method(block, ti, name, proc, tup, intype, pproc, attr)
@@ -467,14 +475,36 @@ EOS
         sect = attr[:section]
       end
 
-      if sect then
-        @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-        @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *) __attribute__ ((section(\"#{sect}\"), noinline));\n"
-      else
-        @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
-        @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+      res = code_gen_method_aux(block, ti, name, proc, tup, pproc, attr)
+
+      isuniq = true
+      @compiled_method[proc.irep] ||= {}
+      ccm = @compiled_method[proc.irep]
+      ccodes = [rettype, args, @gccode, @dcode, @pcode]
+      if ccm.size > 0 then
+        ccm.each do |ptup, codes|
+          if codes.is_a?(Array) and codes == ccodes then
+            ccodes = ptup
+            isuniq = false
+            break
+          end
+        end
       end
-      code_gen_method_aux(block, ti, name, proc, tup, pproc, attr)
+      ccm[tup] = ccodes
+
+      if isuniq then
+        if sect then
+          @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+          @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *) __attribute__ ((section(\"#{sect}\"), noinline));\n"
+        else
+          @ccode << "static #{rettype} #{name}(mrb_state *mrb#{args}, struct gctab *prevgctab) {\n"
+          @hcode << "static #{rettype} #{name}(mrb_state *#{args},struct gctab *);\n"
+        end
+        @ccode << res
+      else
+        name2 = name.gsub(tup.to_s, ccm[tup].to_s)
+        ccode.gsub!(name, name2)
+      end
     end
 
     def code_gen_block(block, ti, name, proc, tup, intype, procty, pproc)
@@ -535,7 +565,7 @@ EOS
         @ccode << "#{slfdecl} = proc->self;\n"
         @pcode << "env.prev = proc->env;\n"
       end
-      code_gen_method_aux(block, ti, name, proc, tup, pproc, nil)
+      @ccode << code_gen_method_aux(block, ti, name, proc, tup, pproc, nil)
     end
 
     def code_gen_node(node, ti, name, history, tup)

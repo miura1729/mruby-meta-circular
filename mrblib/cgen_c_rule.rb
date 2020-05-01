@@ -133,6 +133,14 @@ module CodeGenC
           end
 
           utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
+
+          pptup = nil
+          if ccgen.compiled_method[proc.irep]
+            pptup = ccgen.compiled_method[proc.irep][utup]
+          end
+          if pptup.is_a?(Fixnum) then
+            utup = pptup
+          end
           fname = gen_method_func(name, rt, utup)
           break
         end

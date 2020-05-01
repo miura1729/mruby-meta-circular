@@ -686,7 +686,9 @@ module MTypeInf
 
       nilreg.flush_type(tup)
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push inst.outreg[0]
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg #if !regs.include?(reg)
       inst.outreg[0].add_type type, tup
     end
 
@@ -722,7 +724,9 @@ module MTypeInf
 
       inst.outreg[0].add_type type, tup
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push inst.outreg[0]
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg #if !regs.include?(reg)
       nil
     end
 
@@ -815,7 +819,9 @@ module MTypeInf
       udefreg.flush_type(tup)
 
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push inst.outreg[0]
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg #if !regs.include?(reg)
       inst.outreg[0].add_type type, tup
     end
 
@@ -945,7 +951,9 @@ module MTypeInf
       type.element[2].flush_type(tup)
 
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push inst.outreg[0]
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg #if !regs.include?(reg)
       inst.outreg[0].add_type type, tup
     end
   end

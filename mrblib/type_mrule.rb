@@ -605,7 +605,9 @@ module MTypeInf
         end
       end
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push inst.outreg[0]
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg #if !regs.include?(reg)
       nil
     end
 
@@ -683,7 +685,9 @@ module MTypeInf
       oreg = inst.outreg[0]
       oreg.add_type(type, tup)
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push oreg
+      regs = node.root.allocate_reg[tup]
+      regs.push oreg #if !regs.include?(oreg)
+
 #      type = PrimitiveType.new(NilClass)
 #     inst.outreg[0].add_type(type, tup)
       nil
@@ -812,7 +816,8 @@ module MTypeInf
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       ra = ContainerType.new(Array, inst, previrep, level)
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push ra
+      regs = node.root.allocate_reg[tup]
+      regs.push ra  #if !regs.include?(ra)
       raele = ra.element
       raele[0] ||= RiteSSA::Reg.new(nil)
 
@@ -847,7 +852,9 @@ module MTypeInf
       end
       inst.outreg[0].add_type ra, tup
       node.root.allocate_reg[tup] ||= []
-      node.root.allocate_reg[tup].push inst.outreg[0]
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg  #if !regs.include?(reg)
 
       nil
     end
