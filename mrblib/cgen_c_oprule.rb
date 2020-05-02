@@ -494,14 +494,19 @@ module CodeGenC
         end
       else
         val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history, oreg)
+        p0var = "v#{oreg.id}"
+        ccgen.pcode << "#{p0var} = #{val0};\n"
         if val1t == :mrb_value then
 #          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+          p1var = "v#{ireg1.id}"
+          ccgen.dcode << "mrb_value #{p1var};\n"
+          ccgen.pcode << "#{p1var} = #{val1};\n"
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{p0var}, #{p1var});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
       end
     end
