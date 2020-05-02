@@ -141,13 +141,17 @@ EOS
 
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then
-        pos = reg.genpoint
+        reg.genpoint
       elsif reg.is_a?(RiteSSA::Reg) then
         ginst = reg.genpoint
-        if ginst.op == :ENTER
-          pos = ginst.outreg.index(reg) + 1
+        if ginst.is_a?(RiteSSA::Inst) then
+          if ginst.op == :ENTER then
+            ginst.outreg.index(reg) + 1
+          else
+            ((ginst.code) >> 23) & 0x1ff
+          end
         else
-          pos = ((ginst.code) >> 23) & 0x1ff
+          nil
         end
       else
         raise
@@ -178,6 +182,9 @@ EOS
       # get pos
       if pos == nil then
         pos = get_reg_pos(reg)
+        if pos == nil then
+          return nil
+        end
       end
       is_live_reg_aux(node, reg, pos, {})
     end
@@ -399,6 +406,10 @@ EOS
         @dcode << "gctab->ret_status = 0;\n"
       elsif @have_ret_handler then
         @dcode << "struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab));\n"
+        @dcode << "gctab->prev = prevgctab;\n"
+        @dcode << "gctab->size = 0;\n"
+        @dcode << "gctab->csize = 0;\n"
+        @dcode << "gctab->osize = 0;\n"
         @dcode << "gctab->ret_status = 0;\n"
       else
         @dcode << "struct gctab *gctab = prevgctab;\n"

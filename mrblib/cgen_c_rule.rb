@@ -15,11 +15,11 @@ module CodeGenC
           outty = get_ctype(ccgen, clsreg, tup, infer)
           if node.root.is_export_env then
             ccgen.pcode << "if (venv)\n"
-            src2 = gen_type_conversion(ccgen, :mrb_value, inty, src, tup, node, infer, history)
+            src2 = gen_type_conversion(ccgen, :mrb_value, inty, src, tup, node, infer, history, clsreg)
             pos = proc.irep.export_regs.index(clsreg) + 1
             ccgen.pcode << "venv->stack[#{pos}] = #{src2};\n"
           else
-            src2 = gen_type_conversion(ccgen, outty, inty, src, tup, node, infer, history)
+            src2 = gen_type_conversion(ccgen, outty, inty, src, tup, node, infer, history, clsreg)
             ccgen.pcode << "env.v#{clsreg.id} = #{src2};/*foo*/\n"
           end
         end
@@ -45,7 +45,7 @@ module CodeGenC
       if !is_not_assign_emit(outr) then
         val, srct = yield
         dstt = get_ctype(ccgen, outr, tup, infer)
-        val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history)
+        val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, outr)
         ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
@@ -64,10 +64,10 @@ module CodeGenC
       regs = inst.para[2]
       pos = inst.para[4]
       num = inst.para[1]
-      gen_gc_table_core(ccgen, inst, node, infer, history, tup, regs, pos, num)
+      gen_gc_table_core(ccgen, node, infer, history, tup, regs, pos, num)
     end
 
-    def self.gen_gc_table_core(ccgen, inst, node, infer, history, tup, regs, pos, num)
+    def self.gen_gc_table_core(ccgen, node, infer, history, tup, regs, pos, num)
       tabpos = 0
       prevsize = ccgen.prev_gcsingle.size
       (pos + num).times do |i|
@@ -175,7 +175,7 @@ module CodeGenC
         end
         dstt = get_ctype(ccgen, reg, tup, infer)
         i = i + 1
-        gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
+        gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history, nil)
       }.join(", ")
 
       reg = inreg[-1]
@@ -187,7 +187,7 @@ module CodeGenC
           procexport = true
         end
         dstt = get_ctype(ccgen, reg, tup, infer)
-        args << gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
+        args << gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history, nil)
       end
 
       args << ", gctab"
@@ -351,7 +351,7 @@ module CodeGenC
               procexport = true
             end
             dstt = get_ctype(ccgen, reg, tup, infer)
-            src = gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history)
+            src = gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history, dreg)
             dreg = node.enter_reg[i]
             ccgen.dcode << gen_declare(ccgen, dreg, utup, infer)
             ccgen.dcode << ";\n"
@@ -360,7 +360,7 @@ module CodeGenC
           ccgen.code_gen_node(node, infer, :initialize, {}, utup)
           if procexport then
             node.root.import_regs.each do |reg|
-              if ccgen.is_live_reg?(node, reg) then
+              if ccgen.is_live_reg_local?(node, reg) then
                 ccgen.pcode << "v#{reg.id} = env.v#{reg.id};\n"
               end
             end
@@ -466,8 +466,8 @@ module CodeGenC
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
               src = "(#{arg0} #{op} #{arg1})"
             else
-              term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history)
-              term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history)
+              term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history, nil)
+              term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history, nil)
               src = "(#{term0} #{op} #{term1})"
             end
           else
@@ -476,8 +476,8 @@ module CodeGenC
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
               src = "(#{arg0} #{op} #{arg1})"
             else
-              term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history)
-              term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history)
+              term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history, nil)
+              term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history, nil)
               src = "(#{term0} #{op} #{term1})"
             end
           end
@@ -496,16 +496,16 @@ module CodeGenC
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
               src = "(#{arg0} #{op} #{arg1})"
             else
-              term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history)
-              term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history)
+              term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history, nil)
+              term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history, nil)
               src = "(#{term0} #{op} #{term1})"
             end
           else
             if valuep == 3 then
               src = eval("(#{arg0} #{op} #{arg1})")
             else
-              term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history)
-              term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history)
+              term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history, nil)
+              term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history, nil)
               src = "(#{term0} #{op} #{term1})"
             end
           end
@@ -522,7 +522,7 @@ module CodeGenC
           if valuep == 3 then
             src = eval("(#{arg0} #{op} #{arg1})")
           else
-            arg0 = gen_type_conversion(ccgen, srcs1, srcs0, arg0, tup, node, ti, history)
+            arg0 = gen_type_conversion(ccgen, srcs1, srcs0, arg0, tup, node, ti, history, nil)
             src = "(#{arg0} #{op} #{arg1})"
           end
         else
@@ -534,21 +534,21 @@ module CodeGenC
         raise "No suche opcode #{op}"
       end
 
-      src = gen_type_conversion(ccgen, dstd, dsts, src, tup, node, ti, history)
+      src = gen_type_conversion(ccgen, dstd, dsts, src, tup, node, ti, history, gins.outreg[0])
       [src, dstd, needdecl]
     end
 
     def self.reg_real_value(ccgen, ireg, oreg, node, tup, ti, history, escheck = true)
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
       dstt = get_ctype(ccgen, oreg, tup, ti, escheck)
-      a = gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history)
+      a = gen_type_conversion(ccgen, dstt, srct, val, tup, node, ti, history, oreg)
       a
     end
 
     def self.reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, ti, history, escheck = true)
       val, srct = reg_real_value_noconv(ccgen, ireg, node, tup, ti, history)
       dstt = get_ctype(ccgen, oreg, ptup, ti, escheck)
-      gen_type_conversion(ccgen, dstt, srct, val, ptup, node, ti, history)
+      gen_type_conversion(ccgen, dstt, srct, val, ptup, node, ti, history, oreg)
     end
 
     def self.get_ctype_from_robj(src)
@@ -617,8 +617,7 @@ module CodeGenC
       case gins.op
       when :MOVE
         do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
-          otype = get_ctype(ccgen, gins.outreg[0], tup, ti)
-          [reg_real_value(ccgen, gins.inreg[0], gins.outreg[0], node, tup, ti, history), otype]
+          reg_real_value_noconv(ccgen, gins.inreg[0], node, tup, ti, history)
         }
 
       when :LOADL, :LOADI
@@ -1113,7 +1112,7 @@ EOS
       nil
     end
 
-    def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history)
+    def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history, oreg)
       if dstt == srct then
         return src
       end
@@ -1192,12 +1191,12 @@ EOS
               res << "{\n"
               val = "((struct proc#{proc.id} *)(#{src}))->self"
               slfty = get_ctype(ccgen, proc.slfreg, tup, ti)
-              val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history)
+              val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history, )
               res << "tmpval[0] = #{val};\n"
               proc.env.each_with_index do |srcreg, i|
                 val = reg_real_value_noconv(ccgen, srcreg, node, tup, ti, history)[0]
                 stype = get_ctype(ccgen, srcreg, tup, ti)
-                val = gen_type_conversion(ccgen, :mrb_value, stype, val, tup, node, ti, history)
+                val = gen_type_conversion(ccgen, :mrb_value, stype, val, tup, node, ti, history, nil)
                 res << "tmpval[#{i + 1}] = #{val};\n"
               end
               res << "tproc = mrb_proc_new_cfunc_with_env(mrb, ((struct proc#{proc.id} *)#{src})->code, #{nval}, tmpval);\n"
@@ -1212,9 +1211,46 @@ EOS
 
             when :char
               if srct[1] == "*" then
-                "(mrb_str_new_cstr(mrb, #{src}))"
+                cpsize = ccgen.gcsingle_psize
+                if cpsize == 0 then
+                  ccgen.pcode << "gctab->size = 0;\n"
+                  ccgen.gcsingle_size = 1 # for making gctab
+                end
+                ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+                if oreg and
+                    ccgen.is_live_reg?(node, oreg) then
+                  name = "v#{oreg.id}"
+                  ccgen.pcode << "#{name} = mrb_nil_value();\n"
+                  ccgen.pcode << "gctab->single[#{cpsize}] = &#{name};\n"
+                  ccgen.pcode << "gctab->size++;\n"
+                  ccgen.prev_gcsingle[cpsize] = name
+                  ccgen.gcsingle_psize += 1
+                  if ccgen.gcsingle_psize > ccgen.gcsingle_size then
+                    ccgen.gcsingle_size = ccgen.gcsingle_psize
+                  end
+                end
+               "(mrb_str_new_cstr(mrb, #{src}))"
 
               elsif srct[1] == "**" then
+                #gen_gc_table_core(ccgen, node, ti, history, tup, [], 0, 0)
+                cpsize = ccgen.gcsingle_psize
+                if cpsize == 0 then
+                  ccgen.pcode << "gctab->size = 0;\n"
+                  ccgen.gcsingle_size = 1 # for making gctab
+                end
+                ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+                if oreg and
+                    ccgen.is_live_reg?(node, oreg) then
+                  name = "v#{oreg.id}"
+                  ccgen.pcode << "#{name} = mrb_nil_value();\n"
+                  ccgen.pcode << "gctab->single[#{cpsize}] = &#{name};\n"
+                  ccgen.pcode << "gctab->size++;\n"
+                  ccgen.prev_gcsingle[cpsize] = name
+                  ccgen.gcsingle_psize += 1
+                  if ccgen.gcsingle_psize > ccgen.gcsingle_size then
+                    ccgen.gcsingle_size = ccgen.gcsingle_psize
+                  end
+                end
                 "mmc_boxing_array(#{src}, #{srct[2]}, mrb_str_new_cstr)"
 
               else

@@ -27,7 +27,7 @@ module CodeGenC
         src = inst.para[0]
         srct = get_ctype_from_robj(src)
         dstt = get_ctype(ccgen, oreg, tup, infer)
-        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{src};\n"
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
@@ -103,11 +103,11 @@ module CodeGenC
       if slf.is_escape?(tup) then
         idx = src.genpoint
         src = "ARY_PTR(mrb_ary_ptr(self))[#{idx}]"
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history)
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
         ccgen.pcode << "v#{dst.id} = #{src};\n"
       else
         src = "self->v#{src.id}"
-        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history)
+        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, dst)
         ccgen.pcode << " v#{dst.id} = #{src};\n"
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
@@ -122,12 +122,12 @@ module CodeGenC
       valt = get_ctype(ccgen, valr, tup, infer)
       val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
       if slf.is_escape?(tup) then
-        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history)
+        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
 #        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{dst.genpoint}] = #{val};\n"
         ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(self), #{val});\n"
       else
-        val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history)
+        val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "self->v#{dst.id} = #{val}; /* #{valt} -> #{dstt} */\n"
       end
       nil
@@ -148,11 +148,11 @@ module CodeGenC
       if pty == :mrb_value then
         pos = proc.env.index(ireg)
         val = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
-        val = gen_type_conversion(ccgen, dstt, :mrb_value, val, tup, node, infer, history)
+        val = gen_type_conversion(ccgen, dstt, :mrb_value, val, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{val};\n"
       else
         val = "proc->env#{"->prev" * up}->v#{ireg.id}"
-        #val = gen_type_conversion(ccgen, pty, dstt, val, tup, node, infer, history)
+        #val = gen_type_conversion(ccgen, pty, dstt, val, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{val};\n"
       end
       nil
@@ -178,7 +178,7 @@ module CodeGenC
         pos = proc.env.index(oreg)
         dst = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
         val = reg_real_value2(ccgen, ireg, oreg, node, tup, pttup, infer, history)
-        val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history)
+        val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history, oreg)
         ccgen.pcode << "#{dst} = #{val};\n"
       else
         val = reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, infer, history)
@@ -238,7 +238,7 @@ module CodeGenC
 
     define_ccgen_rule_op :JMPIF do |ccgen, inst, node, infer, history, tup|
       cond, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history)
+      cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history, nil)
       r = 0
       inst.inreg[0].get_type(tup).each do |ty|
         if ty.class_object == NilClass or
@@ -260,7 +260,7 @@ module CodeGenC
 
     define_ccgen_rule_op :JMPNOT do |ccgen, inst, node, infer, history, tup|
       cond, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history)
+      cond = gen_type_conversion(ccgen, :mrb_bool, srct, cond, node, tup, infer, history, nil)
       r = 0
       inst.inreg[0].get_type(tup).each do |ty|
         if ty.class_object == NilClass or
@@ -413,7 +413,7 @@ module CodeGenC
         vals = inst.inreg.map {|ireg|
           val, convp = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
           srct = get_ctype(ccgen, ireg, tup, infer)
-          gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history)
+          gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history, reg)
         }
 
         ccgen.dcode << "mrb_value v#{reg.id};\n"
@@ -483,21 +483,24 @@ module CodeGenC
       ccgen.dcode << "mrb_value v#{oreg.id};\n"
       val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
       val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
-      if ireg0.is_escape?(tup) then
-        if ireg1.is_escape?(tup) then
+      if val0t == :mrb_value then
+        if val1t == :mrb_value then
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
-          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history)
+          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       else
-        val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history)
-        if ireg1.is_escape?(tup) then
+        val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history, oreg)
+        if val1t == :mrb_value then
 #          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
-          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history)
+          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       end
@@ -547,7 +550,7 @@ module CodeGenC
       end
 
       if node.root.is_export_env then
-        val = gen_type_conversion(ccgen, dstt, [:gproc, proc.id], "(gproc)&v#{regno}", tup, node, infer, history)
+        val = gen_type_conversion(ccgen, dstt, [:gproc, proc.id], "(gproc)&v#{regno}", tup, node, infer, history, inst.outreg[0])
         ccgen.dcode << "mrb_value vv#{regno};\n"
         ccgen.pcode << "vv#{regno} = #{val};\n"
       end
