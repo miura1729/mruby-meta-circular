@@ -60,6 +60,27 @@ module CodeGenC
       end
     end
 
+    def self.gen_gc_table2(ccgen, node, oreg)
+      cpsize = ccgen.gcsingle_psize
+      if cpsize == 0 then
+        ccgen.pcode << "gctab->size = 0;\n"
+        ccgen.gcsingle_size = 1 # for making gctab
+      end
+      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      if oreg and
+          ccgen.is_live_reg?(node, oreg) then
+        name = "v#{oreg.id}"
+        ccgen.pcode << "#{name} = mrb_nil_value();\n"
+        ccgen.pcode << "gctab->single[#{cpsize}] = &#{name};\n"
+        ccgen.pcode << "gctab->size++;\n"
+        ccgen.prev_gcsingle[cpsize] = name
+        ccgen.gcsingle_psize += 1
+        if ccgen.gcsingle_psize > ccgen.gcsingle_size then
+          ccgen.gcsingle_size = ccgen.gcsingle_psize
+        end
+      end
+    end
+
     def self.gen_gc_table(ccgen, inst, node, infer, history, tup)
       regs = inst.para[2]
       pos = inst.para[4]
@@ -1210,47 +1231,13 @@ EOS
               res
 
             when :char
+              gen_gc_table2(ccgen, node, oreg)
               if srct[1] == "*" then
-                cpsize = ccgen.gcsingle_psize
-                if cpsize == 0 then
-                  ccgen.pcode << "gctab->size = 0;\n"
-                  ccgen.gcsingle_size = 1 # for making gctab
-                end
-                ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-                if oreg and
-                    ccgen.is_live_reg?(node, oreg) then
-                  name = "v#{oreg.id}"
-                  ccgen.pcode << "#{name} = mrb_nil_value();\n"
-                  ccgen.pcode << "gctab->single[#{cpsize}] = &#{name};\n"
-                  ccgen.pcode << "gctab->size++;\n"
-                  ccgen.prev_gcsingle[cpsize] = name
-                  ccgen.gcsingle_psize += 1
-                  if ccgen.gcsingle_psize > ccgen.gcsingle_size then
-                    ccgen.gcsingle_size = ccgen.gcsingle_psize
-                  end
-                end
                "(mrb_str_new_cstr(mrb, #{src}))"
 
               elsif srct[1] == "**" then
                 #gen_gc_table_core(ccgen, node, ti, history, tup, [], 0, 0)
-                cpsize = ccgen.gcsingle_psize
-                if cpsize == 0 then
-                  ccgen.pcode << "gctab->size = 0;\n"
-                  ccgen.gcsingle_size = 1 # for making gctab
-                end
-                ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-                if oreg and
-                    ccgen.is_live_reg?(node, oreg) then
-                  name = "v#{oreg.id}"
-                  ccgen.pcode << "#{name} = mrb_nil_value();\n"
-                  ccgen.pcode << "gctab->single[#{cpsize}] = &#{name};\n"
-                  ccgen.pcode << "gctab->size++;\n"
-                  ccgen.prev_gcsingle[cpsize] = name
-                  ccgen.gcsingle_psize += 1
-                  if ccgen.gcsingle_psize > ccgen.gcsingle_size then
-                    ccgen.gcsingle_size = ccgen.gcsingle_psize
-                  end
-                end
+                gen_gc_table2(ccgen, node, oreg)
                 "mmc_boxing_array(#{src}, #{srct[2]}, mrb_str_new_cstr)"
 
               else

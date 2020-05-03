@@ -421,7 +421,7 @@ module CodeGenC
         ccgen.pcode << "mrb_value tmpele[] = {\n"
         ccgen.pcode << vals.join(', ')
         ccgen.pcode << "\n};\n"
-        ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+        gen_gc_table2(ccgen, node, reg)
         ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
         ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{reg.id}), #{vals.size});\n"
         ccgen.callstack[-1][1] = true
@@ -567,6 +567,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        gen_gc_table2(ccgen, node, oreg)
         ccgen.pcode << "v#{oreg.id} = mrb_hash_new(mrb);\n"
       else
         ccgen.dcode << "struct hash_#{etype} *v#{oreg.id};\n"

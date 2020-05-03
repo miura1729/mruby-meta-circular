@@ -89,17 +89,23 @@ void mrb_mark_local(mrb_state *mrb)
   struct gctab *curtab = (struct gctab *)mrb->ud;
   while (curtab) {
     for (int i = curtab->size; i--;) {
-      mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->single[i]));
+      if (!mrb_immediate_p(*curtab->single[i])) {
+        mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->single[i]));
+      }
     }
 
     for (int i = curtab->osize; i--;) {
-      mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->object[i]));
+      if (!mrb_immediate_p(*curtab->object[i])) {
+        mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->object[i]));
+      }
     }
 
     for (int i = curtab->csize; i--;) {
       mrb_value *cptr = curtab->complex[i];
       for (int j = 0; cptr[j].value.ttt != MRB_TT_FREE; j++) {
-        mrb_gc_mark(mrb, mrb_basic_ptr(cptr[j]));
+        if (!mrb_immediate_p(cptr[i])) {
+          mrb_gc_mark(mrb, mrb_basic_ptr(cptr[j]));
+        }
       }
     }
     curtab = curtab->prev;

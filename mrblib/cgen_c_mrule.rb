@@ -165,6 +165,8 @@ module CodeGenC
       hashsrc = reg_real_value(ccgen, hreg, oreg, node, tup, infer, history)
       keysrc = reg_real_value(ccgen, kreg, oreg, node, tup, infer, history)
       valsrc = reg_real_value(ccgen, vreg, oreg, node, tup, infer, history)
+      gen_gc_table(ccgen, inst, node, infer, history, tup)
+      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
       ccgen.pcode << "#{src}\n;"
@@ -461,6 +463,8 @@ module CodeGenC
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       if inst.inreg[0].is_escape?(tup) then
         val2 = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, nreg)
+        gen_gc_table(ccgen, inst, node, infer, history, tup)
+        ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val2});\n"
       else
         srct = get_ctype(ccgen, elereg, tup, infer)
