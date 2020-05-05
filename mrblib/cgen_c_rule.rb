@@ -330,7 +330,18 @@ module CodeGenC
           end
 
           pproc = ccgen.callstack[-1][0]
-          minf = [fname, proc, utup, pproc, name]
+
+          usereturn = true
+          if outreg then
+            if inst.op == :SENDB
+              usereturn = (outreg[0].refpoint.size != 0)
+            end
+          else
+            # initialize method
+            usereturn = false
+          end
+
+          minf = [fname, proc, utup, pproc, name, usereturn]
           if ccgen.using_method.index(minf) == nil then
             ccgen.using_method.push minf
           end

@@ -291,7 +291,18 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :RETURN do |ccgen, inst, node, infer, history, tup|
-      retval = reg_real_value(ccgen, inst.inreg[0], node.root.retreg, node, tup, infer, history)
+
+      # Skip unnessery boxing
+      otype = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      itype = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      if ccgen.callstack[-1][3] or
+          otype != :mrb_value or
+          itype == :mrb_value then
+        retval = reg_real_value(ccgen, inst.inreg[0], node.root.retreg, node, tup, infer, history)
+      else
+        retval = nil
+      end
+
       aregs = node.root.allocate_reg[tup]
       useheap = nil
       if aregs then

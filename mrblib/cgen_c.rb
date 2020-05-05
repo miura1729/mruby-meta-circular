@@ -274,12 +274,12 @@ EOS
       tup = ti.typetupletab.get_tupple_id(intype, nilty, 0, true)
       intype.push nil
       intype.push nil
-      code_gen_method(block, ti, :main_Object_0, proc, tup, intype, nil, nil)
+      code_gen_method(block, ti, :main_Object_0, proc, tup, intype, nil, nil, true)
 
       fin = false
       while !fin
         fin = true
-        @using_method.each do |name, proc, utup, pproc, namesym|
+        @using_method.each do |name, proc, utup, pproc, namesym, usereturn|
           if !@defined_method[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
@@ -287,7 +287,7 @@ EOS
             }
             intype = ti.typetupletab.rev_table[utup]
             attr = @method_attribute[[namesym, intype[0][0].class_object]]
-            code_gen_method(block, ti, name, proc, utup, intype, pproc, attr)
+            code_gen_method(block, ti, name, proc, utup, intype, pproc, attr, usereturn)
             @defined_method[name] = true
             fin = false
           end
@@ -437,7 +437,7 @@ EOS
       res
     end
 
-    def code_gen_method(block, ti, name, proc, tup, intype, pproc, attr)
+    def code_gen_method(block, ti, name, proc, tup, intype, pproc, attr, usereturn)
       if !block.nodes[0] then
         return
       end
@@ -449,7 +449,7 @@ EOS
       @gccomplex_size = 0
       @gcobject_size = 0
       @caller_alloc_size = 0
-      @callstack.push [proc, nil, nil] # 2nd need mrb_gc_arena_restore generate
+      @callstack.push [proc, nil, nil, usereturn] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       intype[0...-2].each_with_index do |tys, i|
         ereg = topnode.enter_reg[i]
@@ -533,7 +533,7 @@ EOS
       @gccomplex_size = 0
       @gcobject_size = 0
       @caller_alloc_size = 0
-      @callstack.push [proc, nil, procty] # 2nd need mrb_gc_arena_restore generate
+      @callstack.push [proc, nil, procty, true] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
       if !recvr.get_type(tup) then
