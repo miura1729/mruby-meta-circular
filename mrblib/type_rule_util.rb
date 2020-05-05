@@ -417,8 +417,9 @@ module MTypeInf
 
       outreg.flush_type(tup, ntup)
       if irepssa and irepssa.have_return then
-        retreg = node.root.retreg
-        retreg.add_same outreg
+        retreg = node.root.retreg2
+        outreg2 = irepssa.retreg2
+        retreg.add_same outreg2
         retreg.flush_type(tup)
       end
       node.root.import_regs.each do |reg|

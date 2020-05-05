@@ -317,7 +317,8 @@ module CodeGenC
 
           if proc.irep.have_return then
             ccgen.have_ret_handler = true
-            ccgen.pcode << "if (gctab->ret_status) return v#{nreg.id};\n"
+            val = reg_real_value(ccgen, nreg, node.root.retreg2, node, tup, infer, history)
+            ccgen.pcode << "if (gctab->ret_status) return #{val};\n"
           end
 
           if procexport then
@@ -847,7 +848,7 @@ module CodeGenC
         end
         rtypesize = 1
         res = TTABLE[cls0]
-        if res then
+        if res and cls0 != Array and cls0 != String then
           return :mrb_value
         end
       end

@@ -710,6 +710,10 @@ module RiteSSA
 #          regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
 
+          dstreg = rnode.retreg2
+          dstreg.refpoint.push inst
+          inst.outreg.push dstreg
+
         when :BLKPUSH
           bx = getarg_bx(code)
           m1 = (bx >> 10) & 0x3f
@@ -967,6 +971,7 @@ module RiteSSA
       @parent = parent
       @nodes = {}
       @retreg = Reg.new(self)
+      @retreg2 = Reg.new(self)
       @argtab = {}
       @allreg = []
       @export_exception = Reg.new(self)
@@ -1031,6 +1036,7 @@ module RiteSSA
     attr :repsreg
     attr_accessor :is_export_env
     attr :retreg
+    attr :retreg2
     attr :argtab
     attr :allreg
     attr :irep
