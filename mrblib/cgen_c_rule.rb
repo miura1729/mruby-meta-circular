@@ -143,7 +143,15 @@ module CodeGenC
             rectype2.place = {true => true}
             inst.inreg[0].type[tup] = [rectype2]
           end
-          mproc.call(ccgen, inst, node, infer, history, tup)
+          if mproc == :writer then
+            p "write #{name}"
+            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
+            p clsobj.get_iv(name).id
+          elsif mproc == :reader then
+            p "read #{name}"
+          else
+            mproc.call(ccgen, inst, node, infer, history, tup)
+          end
           inst.inreg[0].type[tup] = orgrec
           return [:ccall, 0, nil]
         else
@@ -597,7 +605,9 @@ module CodeGenC
         srct = :mrb_value
         src = "mrb_nil_value()"
       else
-        raise "Not support #{src.inspect}"
+        srct = :mrb_value
+        src = "mrb_nil_value()"
+#        raise "Not support #{src.inspect}"
       end
 
       [src, srct]
@@ -1365,7 +1375,7 @@ EOS
 
         else
           p src
-          raise "Not support yet #{dstt} #{srct}"
+#          raise "Not support yet #{dstt} #{srct}"
         end
       end
     end

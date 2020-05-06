@@ -105,7 +105,7 @@ module MTypeInf
     def initialize(option)
       @option = option
       @typetupletab = TypeTupleTab.new
-      @callstack = []
+      @callstack = [[nil, nil, nil, nil, nil]]
       @messages = {}
       @step = 1
       @exception = []

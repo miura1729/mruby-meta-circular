@@ -376,9 +376,8 @@ EOS
       node = block.nodes[0]
       node.enter_reg.each_with_index {|ireg, i|
         if node.root.export_regs.include?(ireg) then
-          src = reg_real_value(ccgen, ireg, ureg,
-                         node, tup, ti, history)
-          ccgen.pcode << "env.v#{reg.id} = #{src};\n"
+          src = CodeGen::reg_real_value(self, ireg, ireg, node, tup, ti, {})
+          self.pcode << "env.v#{ireg.id} = #{src};\n"
         end
       }
       code_gen_node(node, ti, name, {}, tup)
@@ -561,6 +560,9 @@ EOS
         case rettype[0]
         when :gproc
           rettype = :gproc
+
+        else
+          rettype = rettype[0..1].join(' ')
         end
       end
 

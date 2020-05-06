@@ -303,6 +303,8 @@ module CodeGenC
       nil
     end
 
+    alias_ccgen_rule_method :is_a?, :kind_of?, Object
+
     define_ccgen_rule_method :===, Kernel do |ccgen, inst, node, infer, history, tup|
       gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
       nil
@@ -664,7 +666,7 @@ module CodeGenC
         end
       end
 
-      if ret_chk then
+      if ret_chk != 0 then
         retsrc = reg_real_value(ccgen, nreg, node.root.retreg, node, tup, infer, history)
         if ret_chk & 1 != 0 then
           ccgen.have_ret_handler = true
@@ -897,6 +899,42 @@ module CodeGenC
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       ccgen.pcode << "v#{oreg.id} = mrb_fixnum_value(mrb_str_index(mrb, #{str}, #{para},strlen(#{para}), 0));\n"
+    end
+
+    define_ccgen_rule_method :attr_reader, Module do |ccgen, inst, node, infer, history, tup|
+      MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
+        intype[1..-2].each do |symty|
+          if symty then
+            symcls = symty[0]
+            name = symcls.val
+            intype[0].each do |rtype|
+              rcls = rtype.val
+              @@ruletab[:CCGEN_METHOD][name] ||= {}
+              @@ruletab[:CCGEN_METHOD][name][rcls] = :reader
+            end
+          end
+        end
+      end
+      nil
+    end
+
+
+    define_ccgen_rule_method :attr_writer, Module do |ccgen, inst, node, infer, history, tup|
+      MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
+        intype[1..-2].each do |symty|
+          if symty then
+            symcls = symty[0]
+            name = symcls.val
+            intype[0].each do |rtype|
+              rcls = rtype.val
+              name2 = "#{name.to_s}=".to_sym
+              @@ruletab[:CCGEN_METHOD][name2] ||= {}
+              @@ruletab[:CCGEN_METHOD][name2][rcls] = :writer
+            end
+          end
+        end
+      end
+      nil
     end
 
     define_ccgen_rule_method :new, Class do |ccgen, inst, node, infer, history, tup|

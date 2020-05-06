@@ -436,7 +436,7 @@ module RiteSSA
 
         when :GETCV
           name = @irep.syms[getarg_b(code)]
-          srcreg = @root.target_class.get_iv(name)
+          srcreg = @root.target_class.get_cv(name)
           srcreg.refpoint.push inst
           inst.inreg.push srcreg
           dstreg = Reg.new(inst)

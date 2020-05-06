@@ -590,6 +590,21 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :CLASS do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :EXEC do |ccgen, inst, node, infer, history, tup|
+      tclass = inst.inreg[0].flush_type(tup)[tup]
+      root = node.root
+      co = tclass[0].val
+      irepssa = inst.objcache[co]
+      intype = [tclass]
+      ntup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
+      ccgen.code_gen_node(irepssa.nodes[0], infer, nil, history, ntup)
+      nil
+    end
+
     define_ccgen_rule_op :METHOD do |ccgen, inst, node, infer, history, tup|
       if ccgen.tmp_attribute.size != 0 then
         rt = inst.inreg[0].type(tup)[0][0].val

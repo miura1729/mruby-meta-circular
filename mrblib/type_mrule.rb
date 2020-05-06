@@ -499,6 +499,8 @@ module MTypeInf
       nil
     end
 
+    alias_inf_rule_method :is_a?, :kind_of?, Object
+
     define_inf_rule_method :class, Object do |infer, inst, node, tup|
       type = inst.inreg[0].flush_type(tup)[tup][0].class_object
 
@@ -524,8 +526,8 @@ module MTypeInf
             name = symcls.val
             intype[0].each do |rtype|
               rcls = rtype.val
-              @@ruletab[:METHOD][name] = {}
-            @@ruletab[:METHOD][name][rcls] = :reader
+              @@ruletab[:METHOD][name] ||= {}
+              @@ruletab[:METHOD][name][rcls] = :reader
             end
           end
         end
@@ -542,7 +544,7 @@ module MTypeInf
             intype[0].each do |rtype|
               rcls = rtype.val
               name2 = "#{name.to_s}=".to_sym
-              @@ruletab[:METHOD][name2] = {}
+              @@ruletab[:METHOD][name2] ||= {}
               @@ruletab[:METHOD][name2][rcls] = :writer
             end
           end
@@ -566,7 +568,11 @@ module MTypeInf
           if pins and false then
             pins = pins[1]
           else
-            pins = infer.callstack[-2][0].irep
+            if infer.callstack[-2][0] then
+              pins = infer.callstack[-2][0].irep
+            else
+              pins = nil
+            end
           end
           key = [pins, level]
           type = inst.objcache[key]
