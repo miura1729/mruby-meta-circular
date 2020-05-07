@@ -144,11 +144,15 @@ module CodeGenC
             inst.inreg[0].type[tup] = [rectype2]
           end
           if mproc == :writer then
-            p "write #{name}"
             clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
-            p clsobj.get_iv(name).id
+            ivreg = clsobj.get_iv(name)
+            gen_set_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.inreg[1], inst.outreg[0])
+
           elsif mproc == :reader then
-            p "read #{name}"
+            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
+            ivreg = clsobj.get_iv(name)
+            gen_get_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.outreg[0])
+
           else
             mproc.call(ccgen, inst, node, infer, history, tup)
           end
@@ -1377,6 +1381,40 @@ EOS
           p src
 #          raise "Not support yet #{dstt} #{srct}"
         end
+      end
+    end
+
+    def self.gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
+      ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
+      ivt = get_ctype(ccgen, ivreg, tup, infer)
+      slft = get_ctype(ccgen, slf, tup, infer)
+      dstt = get_ctype(ccgen, dst, tup, infer)
+
+      if slf.is_escape?(tup) then
+        idx = ivreg.genpoint
+        src = "ARY_PTR(mrb_ary_ptr(self))[#{idx}]"
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
+        ccgen.pcode << "v#{dst.id} = #{src};\n"
+      else
+        src = "self->v#{ivreg.id}"
+        src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
+        ccgen.pcode << " v#{dst.id} = #{src};\n"
+      end
+      set_closure_env(ccgen, inst, node, infer, history, tup)
+    end
+
+    def self.gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
+      ivt = get_ctype(ccgen, ivreg, tup, infer)
+      valt = get_ctype(ccgen, valr, tup, infer)
+      val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
+      if slf.is_escape?(tup) then
+        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
+#        ccgen.pcode << "mrb_ary_set(mrb, self, #{ivreg.genpoint}, #{val});\n"
+        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{ivreg.genpoint}] = #{val};\n"
+        ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(self), #{val});\n"
+      else
+        val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
+        ccgen.pcode << "self->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
       end
     end
 

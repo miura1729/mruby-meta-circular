@@ -94,42 +94,18 @@ module CodeGenC
 
     define_ccgen_rule_op :GETIV do |ccgen, inst, node, infer, history, tup|
       dst = inst.outreg[0]
-      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
-      src = inst.inreg[0]
-      srct = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      ivreg = inst.inreg[0]
       slf = inst.inreg[1]
-      ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
-
-      if slf.is_escape?(tup) then
-        idx = src.genpoint
-        src = "ARY_PTR(mrb_ary_ptr(self))[#{idx}]"
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
-        ccgen.pcode << "v#{dst.id} = #{src};\n"
-      else
-        src = "self->v#{src.id}"
-        src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, dst)
-        ccgen.pcode << " v#{dst.id} = #{src};\n"
-      end
-      set_closure_env(ccgen, inst, node, infer, history, tup)
+      gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
       nil
     end
 
     define_ccgen_rule_op :SETIV do |ccgen, inst, node, infer, history, tup|
       dst = inst.outreg[0]
-      dstt = get_ctype(ccgen, dst, tup, infer)
-      slf = inst.inreg[1]
       valr = inst.inreg[0]
-      valt = get_ctype(ccgen, valr, tup, infer)
-      val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
-      if slf.is_escape?(tup) then
-        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
-#        ccgen.pcode << "mrb_ary_set(mrb, self, #{dst.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{dst.genpoint}] = #{val};\n"
-        ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(self), #{val});\n"
-      else
-        val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history, dst)
-        ccgen.pcode << "self->v#{dst.id} = #{val}; /* #{valt} -> #{dstt} */\n"
-      end
+      slf = inst.inreg[1]
+      ivreg = inst.outreg[0]
+      gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
       nil
     end
 
