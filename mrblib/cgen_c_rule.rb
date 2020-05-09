@@ -1014,14 +1014,9 @@ module CodeGenC
       end
     end
 
-    def self.gen_declare(ccgen, reg, tup, infer, initp = false)
-      type = get_ctype_aux(ccgen, reg, tup, infer)
-      if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
-        regnm = "self"
-      else
-        regnm = "v#{reg.id}"
-      end
 
+    def self.gen_declare_core(ccgen, reg, tup, infer, initp, regnm)
+      type = get_ctype_aux(ccgen, reg, tup, infer)
       case type
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
@@ -1073,6 +1068,15 @@ EOS
             "#{type} #{regnm}"
         end
       end
+    end
+
+    def self.gen_declare(ccgen, reg, tup, infer, initp = false)
+      if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
+        regnm = "self"
+      else
+        regnm = "v#{reg.id}"
+      end
+      gen_declare_core(ccgen, reg, tup, infer, initp, regnm)
     end
 
     def self.can_use_caller_area(otype)

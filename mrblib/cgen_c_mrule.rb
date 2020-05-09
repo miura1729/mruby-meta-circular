@@ -915,6 +915,9 @@ module CodeGenC
           end
         end
       end
+      oreg = inst.outreg[0]
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+      ccgen.pcode << "v#{oreg.id} = mrb_nil_value();\n"
       nil
     end
 
@@ -934,6 +937,9 @@ module CodeGenC
           end
         end
       end
+      oreg = inst.outreg[0]
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+      ccgen.pcode << "v#{oreg.id} = mrb_nil_value();\n"
       nil
     end
 
