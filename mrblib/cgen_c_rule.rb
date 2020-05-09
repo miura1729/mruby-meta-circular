@@ -71,7 +71,7 @@ module CodeGenC
           ccgen.is_live_reg?(node, oreg) then
         name = "v#{oreg.id}"
         ccgen.pcode << "#{name} = mrb_nil_value();\n"
-        ccgen.pcode << "gctab->single[#{cpsize}] = &#{name};\n"
+        ccgen.pcode << "gctab->single[#{cpsize}] = &#{name}; /* conversion */\n"
         ccgen.pcode << "gctab->size++;\n"
         ccgen.prev_gcsingle[cpsize] = name
         ccgen.gcsingle_psize += 1
@@ -108,7 +108,7 @@ module CodeGenC
         else
           name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
           if ccgen.prev_gcsingle[tabpos] != name then
-            ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};\n"
+            ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};/* normal */\n"
             ccgen.prev_gcsingle[tabpos] = name
           end
           tabpos += 1
@@ -145,12 +145,12 @@ module CodeGenC
           end
           if mproc == :writer then
             clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
-            ivreg = clsobj.get_iv(name)
+            ivreg = clsobj.get_iv("@#{name.to_s.chop}".to_sym)
             gen_set_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.inreg[1], inst.outreg[0])
 
           elsif mproc == :reader then
             clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
-            ivreg = clsobj.get_iv(name)
+            ivreg = clsobj.get_iv("@#{name.to_s}".to_sym)
             gen_get_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.outreg[0])
 
           else
@@ -1014,7 +1014,7 @@ module CodeGenC
       end
     end
 
-    def self.gen_declare(ccgen, reg, tup, infer)
+    def self.gen_declare(ccgen, reg, tup, infer, initp = false)
       type = get_ctype_aux(ccgen, reg, tup, infer)
       if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
@@ -1058,7 +1058,7 @@ EOS
         "#{typestr} *#{regnm}"
 
       when :nil
-        "mrb_value #{regnm}"
+        "mrb_value #{regnm} = mrb_nil_value()"
 
       when :string
         "char *#{regnm}"
@@ -1067,7 +1067,11 @@ EOS
         "mrb_sym #{regnm}"
 
       else
-        "#{type} #{regnm}"
+        if type == :mrb_value and initp then
+            "mrb_value #{regnm} = mrb_nil_value()"
+        else
+            "#{type} #{regnm}"
+        end
       end
     end
 
@@ -1148,6 +1152,15 @@ EOS
           if otype.size then
             return "sizeof(char) * #{((otype.size / 4).to_i + 1) * 4}"
           end
+
+        when :range
+          ereg = otype.element[0]
+          etup = tup
+          if ereg.get_type(tup) == nil then
+            etup = ereg.type.keys[0]
+          end
+          etype = get_ctype_aux(ccgen, ereg, etup, infer)
+          return "sizeof(struct range_#{etype})"
 
         else
           if type.is_a?(Array) then
@@ -1378,7 +1391,7 @@ EOS
           "mrb_nil_value()"
 
         else
-          p src
+#          p src
 #          raise "Not support yet #{dstt} #{srct}"
         end
       end
@@ -1389,14 +1402,15 @@ EOS
       ivt = get_ctype(ccgen, ivreg, tup, infer)
       slft = get_ctype(ccgen, slf, tup, infer)
       dstt = get_ctype(ccgen, dst, tup, infer)
+      slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
 
       if slf.is_escape?(tup) then
         idx = ivreg.genpoint
-        src = "ARY_PTR(mrb_ary_ptr(self))[#{idx}]"
+        src = "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
         ccgen.pcode << "v#{dst.id} = #{src};\n"
       else
-        src = "self->v#{ivreg.id}"
+        src = "#{slfsrc}->v#{ivreg.id}"
         src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
         ccgen.pcode << " v#{dst.id} = #{src};\n"
       end
@@ -1407,14 +1421,15 @@ EOS
       ivt = get_ctype(ccgen, ivreg, tup, infer)
       valt = get_ctype(ccgen, valr, tup, infer)
       val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
+      slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       if slf.is_escape?(tup) then
         val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
-#        ccgen.pcode << "mrb_ary_set(mrb, self, #{ivreg.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(self))[#{ivreg.genpoint}] = #{val};\n"
-        ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(self), #{val});\n"
+    # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
+        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
+        ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), #{val});\n"
       else
         val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
-        ccgen.pcode << "self->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
+        ccgen.pcode << "#{slfsrc}->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
       end
     end
 

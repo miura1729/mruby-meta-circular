@@ -191,13 +191,19 @@ module CodeGenC
         oreg = inst.outreg[i]
 
         if node.root.export_regs.include?(oreg) then
-          if !oreg.is_a?(RiteSSA::ParmReg) and oreg.refpoint.size == 0 then
-            ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+          cirep = node.root.irep
+          reggen =  oreg.genpoint
+          if (!oreg.is_a?(RiteSSA::ParmReg) or oreg.gen_declare > argc) and
+              (!oreg.is_a?(RiteSSA::ParmReg) and
+              (oreg.refpoint.any? {|ins| ins.node.root.irep == cirep} or
+                (reggen.op == :ENTER and
+                  reggen.outreg.index(oreg) > argc))) then
+            ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
           end
 
           if ireg.refpoint.size == 0 and
               (!ireg.is_a?(RiteSSA::ParmReg) or ireg.genpoint > argc) then
-            ccgen.dcode << "#{gen_declare(ccgen, ireg, tup, infer)};\n"
+            ccgen.dcode << "#{gen_declare(ccgen, ireg, tup, infer, true)};\n"
           end
 
           src = reg_real_value(ccgen, ireg, oreg,

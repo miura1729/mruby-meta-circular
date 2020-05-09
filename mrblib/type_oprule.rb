@@ -948,7 +948,11 @@ module MTypeInf
       type.element[1].flush_type(tup)
 
       nreg = type.element[2] || RiteSSA::Reg.new(nil)
-      nreg.add_same inst.inreg[2]
+      if inst.para[0] == 1 then
+        nreg.add_type LiteralType.new(TrueClass, true), tup
+      else
+        nreg.add_type LiteralType.new(FalseClass, false), tup
+      end
       type.element[2] = nreg
       type.element[2].flush_type(tup)
 
