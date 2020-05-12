@@ -432,9 +432,27 @@ module CodeGenC
           asize = eareg.size
           asize = (asize < valnum) ? valnum : asize
 
-          ccgen.pcode << "#{etype} v#{reg.id}[#{asize + 1}] = {\n"
-          ccgen.pcode << vals.join(', ')
-          ccgen.pcode << "};\n"
+          rc = can_use_caller_area(reg.get_type(tup)[0])
+          if rc == 2 or rc == 3 then
+            ccgen.dcode << "#{etype} *v#{reg.id};\n"
+
+            if rc == 2 then
+              ccgen.pcode << "v#{reg.id} = prevgctab->caller_alloc;\n"
+              ccgen.pcode << "prevgctab->caller_alloc += (sizeof(#{etype}) * #{asize + 1});\n"
+
+            elsif rc == 3 then
+              ccgen.pcode << "v#{reg.id} = prevgctab->prev->caller_alloc;\n"
+              ccgen.pcode << "prevgctab->prev->caller_alloc += (sizeof(#{etype}) * #{asize + 1});\n"
+            end
+
+            vals.each_with_index do |src, i|
+              ccgen.pcode << "v#{reg.id}[#{i}] = #{src};\n"
+            end
+          else
+            ccgen.pcode << "#{etype} v#{reg.id}[#{asize + 1}] = {\n"
+            ccgen.pcode << vals.join(', ')
+            ccgen.pcode << "};\n"
+          end
           if etype == :mrb_value then
             ccgen.pcode << "v#{reg.id}[#{valnum}].value.ttt = MRB_TT_FREE;\n"
             (asize - valnum).times do |i|

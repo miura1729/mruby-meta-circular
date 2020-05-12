@@ -94,6 +94,7 @@ module MTypeInf
 #        p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
         inst.inreg[0].type.each do |tp, tys|
           p "#{tp} #{tys.map {|ty| ty.place.keys}}"
+#          p "#{tp} #{tys.map {|ty| ty.place.values}}"
 #          p "#{tp} #{tys.map {|ty| ty.place}}"
         end
       end
@@ -679,7 +680,7 @@ module MTypeInf
         stype.keys.each do |ttup|
           types = stype[ttup]
           types.each do |ty|
-            ty.place[nreg] = :ARRAY
+            ty.place[type] = :ARRAY
           end
         end
         type.element[i] = nreg

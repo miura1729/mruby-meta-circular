@@ -1430,7 +1430,9 @@ EOS
         val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
     # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
-        ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), #{val});\n"
+        if valr.type[tup].any? {|t| t.is_gcobject?} then
+          ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), #{val});\n"
+        end
       else
         val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "#{slfsrc}->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
