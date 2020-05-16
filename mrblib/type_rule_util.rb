@@ -55,6 +55,20 @@ module MTypeInf
       end
     end
 
+    def self.get_jmp_target(node, bidx, inst)
+      curop = inst.op
+      enode = node.exit_link[bidx]
+      while enode.ext_iseq.size == 1 and
+          (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
+        if enode.ext_iseq[0].op == curop then
+          enode = enode.exit_link[bidx]
+        else
+          enode = enode.exit_link[1 - bidx]
+        end
+      end
+      enode
+    end
+
     def self.rule_jmpif_common(infer, inst, node, tup, history, bidx)
       notp = false
       typemethodp = false
@@ -150,21 +164,21 @@ module MTypeInf
       if genp.is_a?(RiteSSA::Inst) then
         atype = genp.outreg[0].flush_type(tup)[tup]
       end
+
       if type && type.size == 1 then
         condtype = type[0].class_object
-      elsif atype and addtional_type_spec and atscl = addtional_type_spec.map {|e| e.class_object} and
+
+      elsif atype and addtional_type_spec and
+          atscl = addtional_type_spec.map {|e| e.class_object} and
           (atype.all? {|e| atscl.include?(e.class_object)} or
           atype.all? {|e| !atscl.include?(e.class_object)}) then
         condtype = (notp ^ addtional_type_spec.include?(atype[0].class_object)).class
       else
         condtype = nil
       end
+
       if condtype == NilClass or condtype == FalseClass then
-        enode = node.exit_link[bidx]
-        while enode.ext_iseq.size == 1 and
-            (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
-          enode = enode.exit_link[bidx]
-        end
+        enode = get_jmp_target(node, bidx, inst)
         history[nil] ||= []
         history[nil].push node
         infer.inference_node(enode, tup, node.exit_reg, history)
@@ -172,11 +186,7 @@ module MTypeInf
         true
 
       elsif type and type.size == 1 then
-        enode = node.exit_link[1 - bidx]
-        while enode.ext_iseq.size == 1 and
-            (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
-          enode = enode.exit_link[1 - bidx]
-        end
+        enode = get_jmp_target(node, 1- bidx, inst)
         history[nil] ||= []
         history[nil].push node
         infer.inference_node(enode, tup, node.exit_reg, history)
@@ -185,7 +195,7 @@ module MTypeInf
 
       elsif typemethodp then
         idx = notp ? bidx : 1 - bidx
-        nd = node.exit_link[idx]
+        nd = get_jmp_target(node, idx, inst)
         if greg = get_original_reg(infer, genp, tup) then
 
           greg.positive_list.push atype_spec_pos
@@ -202,7 +212,7 @@ module MTypeInf
           end
 
           idx = 1 - idx
-          nd = node.exit_link[idx]
+          nd = get_jmp_target(node, idx, inst)
           greg.negative_list.push atype_spec_neg
           greg.refpoint.each do |reg|
             reg.outreg[0].negative_list.push atype_spec_neg
@@ -229,9 +239,11 @@ module MTypeInf
        else
           history[nil] ||= []
           history[nil].push node
-          infer.inference_node(node.exit_link[0], tup, node.exit_reg, history)
+          nd = get_jmp_target(node, 0, inst)
+          infer.inference_node(nd, tup, node.exit_reg, history)
           history[nil][-1] = node
-          infer.inference_node(node.exit_link[1], tup, node.exit_reg, history)
+          nd = get_jmp_target(node, 1, inst)
+          infer.inference_node(nd, tup, node.exit_reg, history)
           history[nil].pop
         end
 
