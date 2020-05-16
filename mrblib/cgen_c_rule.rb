@@ -721,7 +721,7 @@ module CodeGenC
           }
 
         else
-          ["v#{reg.id}", srct]
+          ["v#{gins.outreg[0].id}", srct]
         end
 
       when :LT

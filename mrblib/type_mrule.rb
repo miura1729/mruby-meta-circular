@@ -649,6 +649,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :%, String do |infer, inst, node, tup|
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      type = StringType.new(String, inst, previrep, level)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :to_s, String do |infer, inst, node, tup|
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}

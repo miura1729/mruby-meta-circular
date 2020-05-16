@@ -208,7 +208,9 @@ module CodeGenC
 
           src = reg_real_value(ccgen, ireg, oreg,
                          node, tup, infer, history)
-          ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
+          if src then
+            ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
+          end
         end
       }
       nil

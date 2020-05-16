@@ -792,6 +792,45 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :%, String do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      args = nil
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "char *buf = alloca(256);\n"
+
+      argc = inst.para[1]
+      arg1type = inst.inreg[1].get_type(tup)[0]
+      if arg1type.class_object == Array then
+        argv = arg1type.element
+        argc = argv.size
+        if argv[MTypeInf::ContainerType::UNDEF_VALUE] then
+          argc = argc - 1
+        end
+
+        argregs = [inst.inreg[0]]
+        argc.times do |i|
+          argregs.push argv[i]
+        end
+      else
+        argregs = inst.inreg
+      end
+      argsv = []
+      (argc + 1).times do |i|
+        val = (reg_real_value_noconv(ccgen, argregs[i], node, tup, infer, history))[0]
+        argsv.push val
+      end
+      args = argsv.join(', ')
+      src = "sprintf(buf, #{args})"
+      ccgen.pcode << "#{src};v#{nreg.id} = buf;\n"
+      ccgen.pcode << "}\n"
+
+      nil
+    end
+
     define_ccgen_rule_method :[], String do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       strreg = inst.inreg[0]

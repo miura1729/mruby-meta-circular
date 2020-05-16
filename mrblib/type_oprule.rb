@@ -355,11 +355,11 @@ module MTypeInf
               level = infer.callstack.size
               previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
               inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
-              type.element[uv] = RiteSSA::Reg.new(nil)
+              type.element[uv] = RiteSSA::Reg.new(inst)
             end
 
             (anum - m1 - o).times do |i|
-              nreg = type.element[i] || RiteSSA::Reg.new(nil)
+              nreg = type.element[i] || RiteSSA::Reg.new(inst)
               if ele[m1 + o +  i] then
                 nreg.add_same ele[m1 + o +  i]
                 type.element[uv].add_same  ele[m1 + o +  i]
@@ -407,11 +407,11 @@ module MTypeInf
             level = infer.callstack.size
             previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
-            type.element[uv] = RiteSSA::Reg.new(nil)
+            type.element[uv] = RiteSSA::Reg.new(inst)
           end
 
           (argc - m1 - o).times do |i|
-            nreg = type.element[i] || RiteSSA::Reg.new(nil)
+            nreg = type.element[i] || RiteSSA::Reg.new(inst)
             nreg.add_same argv[m1 + o +  i]
             type.element[uv].add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
@@ -673,7 +673,7 @@ module MTypeInf
       end
       nilreg = type.element[ContainerType::UNDEF_VALUE]
       inst.para[0].times do |i|
-        nreg = type.element[i] || RiteSSA::Reg.new(nil)
+        nreg = type.element[i] || RiteSSA::Reg.new(inst.inreg[i].genpoint)
         nreg.add_same inst.inreg[i]
         nreg.flush_type(tup)
         stype = inst.inreg[i].type
@@ -705,14 +705,14 @@ module MTypeInf
         inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
       end
       arrtype.element.each do |key, reg|
-        type.element[key] ||= RiteSSA::Reg.new(nil)
+        type.element[key] ||= RiteSSA::Reg.new(inst)
         type.element[key].add_same reg
         type.element[key].flush_type(tup)
       end
 
       bpos = arrtype.element.keys.size - 1
       if !eletype.is_a?(ContainerType) then
-        reg = RiteSSA::Reg.new(nil)
+        reg = RiteSSA::Reg.new(inst)
         reg.type[tup] = [eletype]
         type.element[bpos] = reg
       else
