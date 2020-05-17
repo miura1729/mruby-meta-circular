@@ -137,12 +137,26 @@ module RiteSSA
       if types then
         posl = @positive_list.flatten(1)
         if posl.size > 0 then
-          types = types.find_all {|ele| posl.find {|e| e.class_object == ele.class_object}}
+          types = types.find_all {|ele| posl.find {|e|
+              if e.is_a?(MTypeInf::LiteralType) then
+                e == ele
+              else
+                e.class_object == ele.class_object
+              end
+            }
+          }
         end
 
         negl = @negative_list.flatten(1)
         if negl.size > 0 then
-          types = types.find_all {|ele| negl.find {|e| e.class_object != ele.class_object}}
+          types = types.find_all {|ele| negl.find {|e|
+              if e.is_a?(MTypeInf::LiteralType) then
+                e != ele
+              else
+                e.class_object != ele.class_object
+              end
+            }
+          }
         end
 
         types

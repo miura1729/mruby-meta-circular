@@ -118,13 +118,14 @@ module MTypeInf
           if type.is_a?(MTypeInf::LiteralType) then
             genp = genp.inreg[1].genpoint
             typemethodp = true
+            pt = PrimitiveType.new(type.class_object)
             if type.class_object == NilClass then
-              addtional_type_spec = [type]
+              addtional_type_spec = [pt]
               atype_spec_neg = addtional_type_spec
               atype_spec_pos = addtional_type_spec
             else
-              atype_spec_pos = [type]
-              atype_spec_neg = []
+              atype_spec_pos = [pt]
+              atype_spec_neg = [type]
             end
           end
 
@@ -133,13 +134,14 @@ module MTypeInf
             if type.is_a?(MTypeInf::LiteralType) then
               genp = genp.inreg[0].genpoint
               typemethodp = true
+              pt = PrimitiveType.new(type.class_object)
               if type.class_object == NilClass then
-                addtional_type_spec = [type]
+                addtional_type_spec = [pt]
                 atype_spec_pos = addtional_type_spec
                 atype_spec_neg = addtional_type_spec
               else
-                atype_spec_pos = [type]
-                atype_spec_neg = []
+                atype_spec_pos = [pt]
+                atype_spec_neg = [type]
               end
             end
           end
