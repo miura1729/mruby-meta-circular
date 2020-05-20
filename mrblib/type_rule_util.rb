@@ -27,9 +27,11 @@ module MTypeInf
             if rectype[0].class_object == Array then
               if idxtype.size == 1 and
                   idxtype[0].is_a?(MTypeInf::LiteralType) then
-                return rectype[0].element[idxtype[0].val]
+#                return rectype[0].element[idxtype[0].val]
+                return inst.outreg[0]
               else
-                return rectype[0].element[ContainerType::UNDEF_VALUE]
+#                return rectype[0].element[ContainerType::UNDEF_VALUE]
+                return inst.outreg[0]
               end
 
             else
@@ -37,15 +39,6 @@ module MTypeInf
             end
           end
           return nil
-
-        when :index
-          rectype = inst.inreg[0].get_type(tup)
-          if rectype.size == 1 then
-            return inst.outreg[0]
-
-          else
-            return nil
-          end
 
         else
           return nil
@@ -88,9 +81,9 @@ module MTypeInf
           addtional_type_spec = nil
           atype_spec_pos = nil
           atype_spec_neg = nil
+          typemethodp = true
           case genp.para[0]
           when :kind_of?, :is_a?
-            typemethodp = true
             tcls = genp.inreg[1].flush_type(tup)[tup]
             cls = nil
             if tcls.size == 1 and tcls[0].val.class == Class then
@@ -104,13 +97,21 @@ module MTypeInf
             genp = genp.inreg[0].genpoint
 
           when :nil?
-            typemethodp = true
             type = PrimitiveType.new(NilClass)
 
             addtional_type_spec = [type]
             atype_spec_pos = addtional_type_spec
             atype_spec_neg = addtional_type_spec
             genp = genp.inreg[0].genpoint
+
+          else
+            notp = !notp
+            type0 = PrimitiveType.new(NilClass)
+            type1 = PrimitiveType.new(false.class)
+
+            addtional_type_spec = [type0, type1]
+            atype_spec_pos = addtional_type_spec
+            atype_spec_neg = addtional_type_spec
           end
 
         elsif genp.op == :EQ then
@@ -146,13 +147,11 @@ module MTypeInf
             end
           end
 
-        elsif genp.op == :MOVE or
-            genp.op == :GETIV or
-            genp.op == :GETGLOBAL then
+        else
           notp = !notp
           typemethodp = true
           type0 = PrimitiveType.new(NilClass)
-          type1 = LiteralType.new(false.class, false)
+          type1 = PrimitiveType.new(false.class)
 
           addtional_type_spec = [type0, type1]
           atype_spec_pos = addtional_type_spec
@@ -201,23 +200,29 @@ module MTypeInf
         if greg = get_original_reg(infer, genp, tup) then
 
           greg.positive_list.push atype_spec_pos
-          greg.refpoint.each do |reg|
-            reg.outreg[0].positive_list.push  atype_spec_pos
+          greg.refpoint.each do |ginst|
+            if ginst.outreg[0] then
+              ginst.outreg[0].positive_list.push  atype_spec_pos
+            end
           end
           history[nil] ||= []
           history[nil].push node
           rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
           history[nil].pop
           greg.positive_list.pop
-          greg.refpoint.each do |reg|
-            reg.outreg[0].positive_list.pop
+          greg.refpoint.each do |ginst|
+            if ginst.outreg[0] then
+              ginst.outreg[0].positive_list.pop
+            end
           end
 
           idx = 1 - idx
           nd = get_jmp_target(node, idx, inst)
           greg.negative_list.push atype_spec_neg
-          greg.refpoint.each do |reg|
-            reg.outreg[0].negative_list.push atype_spec_neg
+          greg.refpoint.each do |ginst|
+            if ginst.outreg[0] then
+              ginst.outreg[0].negative_list.push  atype_spec_neg
+            end
           end
           history[nil] ||= []
           history[nil].push node
@@ -235,17 +240,26 @@ module MTypeInf
           end
 
           greg.negative_list.pop
-          greg.refpoint.each do |reg|
-            reg.outreg[0].negative_list.pop
+          greg.refpoint.each do |ginst|
+            if ginst.outreg[0] then
+              ginst.outreg[0].positive_list.pop
+            end
           end
        else
           history[nil] ||= []
-          history[nil].push node
+          history[node] ||= []
           nd = get_jmp_target(node, 0, inst)
-          infer.inference_node(nd, tup, node.exit_reg, history)
-          history[nil][-1] = node
+          history[nil].push nd
+          if history[node].index(nd) == nil then
+            history[node].push nd
+            infer.inference_node(nd, tup, node.exit_reg, history)
+          end
           nd = get_jmp_target(node, 1, inst)
-          infer.inference_node(nd, tup, node.exit_reg, history)
+          history[nil][-1] = nd
+          if history[node].index(nd) == nil then
+            history[node].push nd
+            infer.inference_node(nd, tup, node.exit_reg, history)
+          end
           history[nil].pop
         end
 
