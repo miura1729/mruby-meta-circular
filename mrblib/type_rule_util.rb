@@ -27,10 +27,8 @@ module MTypeInf
             if rectype[0].class_object == Array then
               if idxtype.size == 1 and
                   idxtype[0].is_a?(MTypeInf::LiteralType) then
-#                return rectype[0].element[idxtype[0].val]
                 return inst.outreg[0]
               else
-#                return rectype[0].element[ContainerType::UNDEF_VALUE]
                 return inst.outreg[0]
               end
 
@@ -41,7 +39,7 @@ module MTypeInf
           return nil
 
         else
-          return nil
+          return inst.outreg[0]
         end
       else
         return nil
@@ -205,9 +203,14 @@ module MTypeInf
               ginst.outreg[0].positive_list.push  atype_spec_pos
             end
           end
+          history[node] ||= []
           history[nil] ||= []
           history[nil].push node
-          rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
+          rcthen = nil
+          if history[node].index(nd) == nil then
+            history[node].push nd
+            rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
+          end
           history[nil].pop
           greg.positive_list.pop
           greg.refpoint.each do |ginst|
@@ -224,9 +227,13 @@ module MTypeInf
               ginst.outreg[0].negative_list.push  atype_spec_neg
             end
           end
-          history[nil] ||= []
+
           history[nil].push node
-          rcelse = infer.inference_node(nd, tup, node.exit_reg, history)
+          rcelse = nil
+          if history[node].index(nd) == nil then
+            history[node].push nd
+            rcelse = infer.inference_node(nd, tup, node.exit_reg, history)
+          end
           history[nil].pop
 
           if rcthen == :return then
@@ -234,7 +241,10 @@ module MTypeInf
             # type limitation of else part.
             nd.exit_link.each do |nd2|
               history[nil].push nd2
-              rcelse = infer.inference_node(nd2, tup, node.exit_reg, history)
+              if history[node].index(nd2) == nil then
+                history[node].push nd2
+                infer.inference_node(nd2, tup, node.exit_reg, history)
+              end
               history[nil].pop
             end
           end
