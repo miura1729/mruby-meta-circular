@@ -246,13 +246,11 @@ module CodeGenC
         elsif rectypes.size == 2 then
           # nilable or 2level polymorphism
           gen_gc_table(ccgen, inst, node, infer, history, tup)
-          if rectypes[0].class_object == NilClass then
-            ccgen.pcode << "if (mrb_nil_p(v#{inreg[0].id})) {\n"
-          else
-            ccgen.pcode << "if (!mrb_nil_p(v#{inreg[0].id})) {\n"
-          end
 
           rectype = rectypes[0]
+          condsrc = gen_type_checker(ccgen, inst.inreg[0], rectype)
+          ccgen.pcode << "if (#{condsrc}) {\n"
+
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
 
           # 'and' means for method whose name is ccall
@@ -1181,6 +1179,36 @@ EOS
         end
       end
       nil
+    end
+
+    def self.gen_type_checker(ccgen, srcreg, tgtype)
+      tgcls = tgtype.class_object
+
+      case tgcls.to_s.to_sym
+      when :NilClass
+        "mrb_nil_p(v#{srcreg.id})"
+
+      when :Fixnum
+        "mrb_fixnum_p(v#{srcreg.id})"
+
+      when :Float
+        "mrb_float_p(v#{srcreg.id})"
+
+      when :String
+        "mrb_string_p(v#{srcreg.id})"
+
+      when :Symbol
+        "mrb_symbol_p(v#{srcreg.id})"
+
+      when :Array
+        "mrb_array_p(v#{srcreg.id})"
+
+      when :Hash
+        "mrb_hash_p(v#{srcreg.id})"
+
+      else
+        "mrb_obj_is_kind_of(mrb, v#{srcreg.id}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))"
+      end
     end
 
     def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history, oreg)
