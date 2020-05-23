@@ -138,7 +138,7 @@ module CodeGenC
       rectype.class_object.ancestors.each do |rt|
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
           orgrec = inst.inreg[0].get_type(tup)
-          if orgrec.size > 1 then
+          if orgrec.size > 1 and false then
             rectype2 = rectype.dup
             rectype2.place = {true => true}
             inst.inreg[0].type[tup] = [rectype2]
@@ -243,9 +243,8 @@ module CodeGenC
           rectype = rectypes[0]
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
 
-        elsif rectypes.size == 2 and
-            (rectypes[0].class_object == NilClass or rectypes[1].class_object == NilClass) then
-          # nilable
+        elsif rectypes.size == 2 then
+          # nilable or 2level polymorphism
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           if rectypes[0].class_object == NilClass then
             ccgen.pcode << "if (mrb_nil_p(v#{inreg[0].id})) {\n"

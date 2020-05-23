@@ -310,11 +310,12 @@ module CodeGenC
       src0, srct0 = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       src1, srct1 = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
      if srct0 != srct1 then
+       ccgen.pcode << "v#{nreg.id} = ((#{src0}) == (#{src1}));\n"
+     else
        src0 = gen_type_conversion(ccgen, :mrb_value, srct0, src0, tup, node, infer, history, nreg)
        src1 = gen_type_conversion(ccgen, :mrb_value, srct1, src1, tup, node, infer, history, nreg)
+       ccgen.pcode << "v#{nreg.id} = mrb_obj_eq(mrb, (#{src0}), (#{src1}));\n"
      end
-
-      ccgen.pcode << "v#{nreg.id} = ((#{src0}) == (#{src1}));\n"
       nil
     end
 
