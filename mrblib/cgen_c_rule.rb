@@ -256,6 +256,7 @@ module CodeGenC
           rectype = rectypes[0]
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
 
+          # 'and' means for method whose name is ccall
           if fname == :ccall and proc.nil? then
 
           elsif fname then
@@ -1070,7 +1071,14 @@ EOS
       end
     end
 
-    def self.gen_declare(ccgen, reg, tup, infer, initp = false)
+    def self.gen_declare(ccgen, reg, tup, infer, initp = false, candup = false)
+      if !candup then
+        ccgen.decl_tab[reg] ||= {}
+        if ccgen.decl_tab[reg][tup] then
+          return ""
+        end
+        ccgen.decl_tab[reg][tup] = true
+      end
       if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
         regnm = "self"
       else

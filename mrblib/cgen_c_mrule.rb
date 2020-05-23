@@ -203,13 +203,6 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_method :==, Fixnum do |ccgen, inst, node, infer, history, tup|
-      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
-        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :==)
-      }
-      nil
-    end
-
     define_ccgen_rule_method :>>, Fixnum do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :>>)
@@ -307,6 +300,21 @@ module CodeGenC
 
     define_ccgen_rule_method :===, Kernel do |ccgen, inst, node, infer, history, tup|
       gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
+      nil
+    end
+
+    define_ccgen_rule_method :==, Kernel do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      src0, srct0 = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      src1, srct1 = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+     if srct0 != srct1 then
+       src0 = gen_type_conversion(ccgen, :mrb_value, srct0, src0, tup, node, infer, history, nreg)
+       src1 = gen_type_conversion(ccgen, :mrb_value, srct1, src1, tup, node, infer, history, nreg)
+     end
+
+      ccgen.pcode << "v#{nreg.id} = ((#{src0}) == (#{src1}));\n"
       nil
     end
 
@@ -408,15 +416,17 @@ module CodeGenC
       nil
     end
 
-    define_ccgen_rule_method :nil?, Array do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :nil?, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg)
-      src = "mrb_nil_p(#{src})"
-      src = gen_type_conversion(ccgen, dstt, :mrb_bool, src, tup, node, infer, history, nreg)
+      if srct == :mrb_value then
+        src = "mrb_nil_p(#{src})"
+      else
+        src = "0"
+      end
 
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil

@@ -10,6 +10,7 @@ module CodeGenC
       @defined_class = {}
       @defined_env = {}
       @callstack = []
+      @decl_tab = {}
       @gccode = ""              # GC function definition
       @scode = ""               # structure definition
       @hcode = ""               # prototype, variable
@@ -121,6 +122,7 @@ EOS
     attr :dcode
     attr :pcode
     attr :callstack
+    attr :decl_tab
     attr :using_method
     attr :using_block
     attr :using_class
@@ -363,7 +365,7 @@ EOS
           @defined_env[proc] = true
           @scode << "struct env#{proc.id} {\n"
           block.export_regs.each do |reg|
-            @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)};\n"
+            @scode << "#{CodeGen::gen_declare(self, reg, tup, ti, false, true)};\n"
           end
           if pproc then
             @scode << "struct env#{pproc.id} *prev;\n"
@@ -443,6 +445,7 @@ EOS
       @dcode = ""
       @gccode = ""
       @pcode = ""
+      @decl_tab.clear
       @gcsingle_size = 0
       @prev_gcsingle = []
       @gccomplex_size = 0
@@ -527,6 +530,7 @@ EOS
       @dcode = ""
       @gccode = ""
       @pcode = ""
+      @decl_tab.clear
       @gcsingle_size = 0
       @prev_gcsingle = []
       @gccomplex_size = 0

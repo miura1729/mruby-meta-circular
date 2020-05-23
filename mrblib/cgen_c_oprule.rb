@@ -543,7 +543,7 @@ module CodeGenC
           ccgen.hcode << "void *code[#{tupnum}];\n"
         end
 
-        slfdecl = gen_declare(ccgen, proc.slfreg, tup, infer)
+        slfdecl = gen_declare(ccgen, proc.slfreg, tup, infer, false, true)
         ccgen.hcode << "#{slfdecl};\n"
         ccgen.hcode << "};\n"
 
