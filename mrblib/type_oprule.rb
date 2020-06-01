@@ -84,6 +84,7 @@ module MTypeInf
       end
       if true then
         p inst.para[0]
+        p infer.typetupletab.rev_table[tup]
         p inst.line
         p inst.outreg[0].type
         p inst.outreg[0].get_type(tup)
@@ -108,49 +109,40 @@ module MTypeInf
     #  end
 
     define_inf_rule_op :GETIV do |infer, inst, node, tup, history|
-      name = inst.para[0]
-      slf = inst.inreg[1]
-      slf.flush_type(tup)[tup].each do |slftype|
-        slfcls = slftype.class_object
-        inreg = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
-        hometown = slftype.hometown
+      inreg = inst.inreg[0]
 
-        #      inreg.flush_type_alltup(tup)
-        inst.outreg[0].add_same(inreg)
-        inst.outreg[0].flush_type(tup, -1)
-        #p inst.para[0]
-      end
+      #      inreg.flush_type_alltup(tup)
+      inst.outreg[0].add_same(inreg)
+      inst.outreg[0].flush_type(tup, -1)
+      #p inst.para[0]
       nil
     end
 
     define_inf_rule_op :SETIV do |infer, inst, node, tup, history|
       valreg = inst.inreg[0]
       valtype = valreg.flush_type(tup)[tup]
-      name = inst.para[0]
 
       slf = inst.inreg[1]
       # update place infomation
       previrep = infer.callstack.map {|e| [e[0], e[4]]}
       curirep = infer.callstack[-1][0].irep
 
-      slf.flush_type(tup)[tup].each do |slftype|
-        slfcls = slftype.class_object
-        slfiv = RiteSSA::ClassSSA.get_instance(slfcls).get_iv(name)
-        hometown = slftype.hometown
-        oty = slfiv.type[-1]
-        if oty then
-          oty = oty.dup
-        end
-        slfiv.add_same(valreg)
-        cty = slfiv.flush_type(-1, tup)[-1]
-        if oty != cty then
-          slftype.version += 1
-        end
+      # self is immutable so type is defined statically
+      slftype = slf.flush_type(tup)[tup][0]
+      slfiv = inst.outreg[0]
+      oty = slfiv.type[-1]
+      if oty then
+        oty = oty.dup
+      end
+      slfiv.add_same(valreg)
+      cty = slfiv.flush_type(-1, tup)[-1]
+      if oty != cty then
+        slftype.version += 1
+      end
 
-        if valtype then
-          valtype.each do |ty|
-            ty.place[slftype] = [curirep, previrep, :SETIV, inst.line]
-          end
+      if valtype then
+        valtype.each do |ty|
+          ty.place[slftype] = [curirep, previrep, :SETIV, inst.line]
         end
       end
 

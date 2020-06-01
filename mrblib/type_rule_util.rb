@@ -15,7 +15,7 @@ module MTypeInf
 
     def self.get_original_reg(infer, inst, tup)
       case inst.op
-      when :MOVE, :GETUPVAR #, :GETIV
+      when :MOVE, :GETUPVAR, :GETIV
         return inst.inreg[0]
 
       when :SEND
@@ -178,17 +178,25 @@ module MTypeInf
 
       if condtype == NilClass or condtype == FalseClass then
         enode = get_jmp_target(node, bidx, inst)
+        history[node] ||= []
         history[nil] ||= []
         history[nil].push node
-        infer.inference_node(enode, tup, node.exit_reg, history)
+        if history[node].index(enode) == nil then
+          history[node].push enode
+          infer.inference_node(enode, tup, node.exit_reg, history)
+        end
         history[nil].pop
         true
 
       elsif type and type.size == 1 then
-        enode = get_jmp_target(node, 1- bidx, inst)
+        enode = get_jmp_target(node, 1 - bidx, inst)
+        history[node] ||= []
         history[nil] ||= []
         history[nil].push node
-        infer.inference_node(enode, tup, node.exit_reg, history)
+        if history[node].index(enode) == nil then
+          history[node].push enode
+          infer.inference_node(enode, tup, node.exit_reg, history)
+        end
         history[nil].pop
         true
 
@@ -252,7 +260,7 @@ module MTypeInf
           greg.negative_list.pop
           greg.refpoint.each do |ginst|
             if ginst.outreg[0] then
-              ginst.outreg[0].positive_list.pop
+              ginst.outreg[0].negative_list.pop
             end
           end
        else
@@ -379,16 +387,16 @@ module MTypeInf
                   clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
                   name2ins = "@#{name2.to_s}".to_sym
                   ivreg = clsobj.get_iv(name2ins)
-                  ivreg.flush_type_alltup(tup)
+#                  ivreg.flush_type(tup, -1)
                   inst.outreg[0].add_same(ivreg)
-                  inst.outreg[0].flush_type_alltup(tup, -1)
+                  inst.outreg[0].flush_type(tup, -1)
 
                 elsif cont == :writer then
                   clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
                   name2ins = "@#{name2.to_s.chop}".to_sym
                   ivreg = clsobj.get_iv(name2ins)
                   ivreg.add_same(inst.inreg[1])
-                  ivreg.flush_type_alltup(-1, tup)
+                  ivreg.flush_type(-1, tup)
 
                 else
                   cont.call(infer, inst, node, tup, intype)
@@ -410,7 +418,7 @@ module MTypeInf
           end
 
           if irepssa then
-            #intype[0] = [ty]
+            # intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
             infer.inference_block(irepssa, intype, ntup, argc, procssa)

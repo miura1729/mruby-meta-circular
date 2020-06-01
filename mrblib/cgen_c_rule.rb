@@ -247,8 +247,14 @@ module CodeGenC
           # nilable or 2level polymorphism
           gen_gc_table(ccgen, inst, node, infer, history, tup)
 
+          base = 0
           rectype = rectypes[0]
-          condsrc = gen_type_checker(ccgen, inst.inreg[0], rectype)
+          condsrc, nice = gen_type_checker(ccgen, inst.inreg[0], rectype)
+          if !nice then
+            base = 1
+            rectype = rectypes[1]
+            condsrc, nice = gen_type_checker(ccgen, inst.inreg[0], rectype)
+          end
           ccgen.pcode << "if (#{condsrc}) {\n"
 
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
@@ -279,7 +285,7 @@ module CodeGenC
           ccgen.pcode << "}\n"
           ccgen.pcode << "else {\n"
 
-          rectype = rectypes[1]
+          rectype = rectypes[1 - base]
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
 
           if fname == :ccall and proc.nil? then
@@ -1186,28 +1192,28 @@ EOS
 
       case tgcls.to_s.to_sym
       when :NilClass
-        "mrb_nil_p(v#{srcreg.id})"
+        ["mrb_nil_p(v#{srcreg.id})", true]
 
       when :Fixnum
-        "mrb_fixnum_p(v#{srcreg.id})"
+        ["mrb_fixnum_p(v#{srcreg.id})", true]
 
       when :Float
-        "mrb_float_p(v#{srcreg.id})"
+        ["mrb_float_p(v#{srcreg.id})", true]
 
       when :String
-        "mrb_string_p(v#{srcreg.id})"
+        ["mrb_string_p(v#{srcreg.id})", true]
 
       when :Symbol
-        "mrb_symbol_p(v#{srcreg.id})"
+        ["mrb_symbol_p(v#{srcreg.id})", true]
 
       when :Array
-        "mrb_array_p(v#{srcreg.id})"
+        ["mrb_array_p(v#{srcreg.id})", true]
 
       when :Hash
-        "mrb_hash_p(v#{srcreg.id})"
+        ["mrb_hash_p(v#{srcreg.id})", true]
 
       else
-        "mrb_obj_is_kind_of(mrb, v#{srcreg.id}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))"
+        ["mrb_obj_is_kind_of(mrb, v#{srcreg.id}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))". false]
       end
     end
 
@@ -1290,7 +1296,7 @@ EOS
               res << "{\n"
               val = "((struct proc#{proc.id} *)(#{src}))->self"
               slfty = get_ctype(ccgen, proc.slfreg, tup, ti)
-              val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history, )
+              val = gen_type_conversion(ccgen, :mrb_value, slfty, val, tup, node, ti, history, nil)
               res << "tmpval[0] = #{val};\n"
               proc.env.each_with_index do |srcreg, i|
                 val = reg_real_value_noconv(ccgen, srcreg, node, tup, ti, history)[0]

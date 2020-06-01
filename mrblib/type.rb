@@ -133,7 +133,8 @@ module MTypeInf
 
     def inspect_aux(hist, level)
 #      "#{@class_object.inspect}"
-      "#{@class_object.inspect} e=#{is_escape?} l=#{@level}"
+#      "#{@class_object.inspect} e=#{is_escape?} l=#{@level}"
+      "#{@class_object.inspect} e=#{is_escape?} l=#{@level} var=#{@version}"
     end
 
     def inspect(level = 0)
@@ -189,7 +190,7 @@ module MTypeInf
             ctup = reg2.type.keys[0]
             objty = reg2.type[ctup][0]
             clsobj = objty.class_object
-            nty = UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0, -2], @phometowns.size - 1)
+            nty = UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
             base.each do |ptup, regs|
               reg.add_type nty, ptup
               if !regs.include?(reg) then

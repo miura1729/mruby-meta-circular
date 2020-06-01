@@ -111,6 +111,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :dup, Object do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :[], Array do |infer, inst, node, tup|
       if inst.inreg.size != 3 then
         raise "multiple argument not support yet in Array::[]"
@@ -277,12 +283,6 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :dup, Array do |infer, inst, node, tup|
-      inst.outreg[0].add_same inst.inreg[0]
-      inst.outreg[0].flush_type(tup)
-      nil
-    end
-
     define_inf_rule_method :reverse, Array do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
@@ -414,7 +414,9 @@ module MTypeInf
     define_inf_rule_method :__svalue, Array do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup]
       arrtypes.each do |arrt|
-        inst.outreg[0].add_same arrt.element[0]
+        if arrt.class_object == Array then
+          inst.outreg[0].add_same arrt.element[0]
+        end
       end
       inst.outreg[0].flush_type(tup)
       nil
@@ -974,7 +976,7 @@ module MTypeInf
     define_inf_rule_class_method :yield, Fiber do |infer, inst, node, tup|
       fibt = infer.fiber
       fibt.ret.add_same inst.inreg[1]
-      fibt.ret.flush_type_alltup(tup)
+      fibt.ret.flush_type_alltup(-1, tup)
       nil
     end
 
@@ -1023,7 +1025,7 @@ module MTypeInf
         intype[0].each do  |fibslf|
           if fibslf.class_object == Fiber then
             inst.outreg[0].add_same fibslf.ret
-            inst.outreg[0].flush_type(tup)
+            inst.outreg[0].flush_type(tup, -1)
           end
         end
       end
