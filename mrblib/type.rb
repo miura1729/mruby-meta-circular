@@ -54,10 +54,9 @@ module MTypeInf
                 return false
 
               when primobj,
-                MTypeInf::ProcType,
                 MTypeInf::ExceptionType,
-                MTypeInf::FiberType
-
+                MTypeInf::FiberType,
+                MTypeInf::ProcType
                 return false
 
               when MTypeInf::LiteralType
@@ -426,6 +425,7 @@ module MTypeInf
         @class_object == other.class_object &&
         @irep == other.irep &&
         @env == other.env &&
+        @tups[0][1] == other.tups[0][1] &&
         is_escape? == other.is_escape?
     end
 
@@ -447,7 +447,8 @@ module MTypeInf
           end
         }.join(', ')
         if level < 1 then
-          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
+          #          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
+          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} #{@irep.irep.inspect}>"
         else
           rc = "#{@class_object.inspect}<>"
         end

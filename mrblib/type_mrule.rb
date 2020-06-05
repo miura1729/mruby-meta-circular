@@ -411,6 +411,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_a, Array do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
+    alias_inf_rule_method :to_ary, :to_a, Array
+
     define_inf_rule_method :__svalue, Array do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup]
       arrtypes.each do |arrt|

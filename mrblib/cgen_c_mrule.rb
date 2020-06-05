@@ -665,6 +665,10 @@ module CodeGenC
             ret_chk |= minf[1].irep.have_return ? 2 : 0
             ccgen.using_block.push minf
           else
+            p ptype.irep.class
+            p ptype.irep.irep
+            p ccgen.proctab.keys
+            p inst.line
             fname = "((#{outtype0} (*)(mrb_state *, #{argt}))((struct proc#{ptype.id} *)(#{procvar}))->code[#{codeno}])"
             raise "Unnown proc"
           end

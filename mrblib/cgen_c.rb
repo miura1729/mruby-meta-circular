@@ -351,7 +351,6 @@ EOS
     end
 
     def code_gen_method_aux(block, ti, name, proc, tup, pproc, attr)
-      pproc = proc.parent
       aregs = block.allocate_reg[tup]
       useheap = nil
       if aregs then
