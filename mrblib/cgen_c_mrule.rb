@@ -637,6 +637,19 @@ module CodeGenC
           end
 
           codeno = ptype.using_tup[utup]
+          if codeno == nil then
+            codeno = ptype.using_tup.size
+            ptype.using_tup[utup] = codeno
+            mtab = ccgen.proctab[ptype.irep]
+            nminf = mtab[0].dup
+            bfunc = gen_block_func("p#{ptype.id}", ptype.slf.class_object, 0, utup)
+            dstt = get_ctype(ccgen, inst.inreg[1], tup, infer)
+            nminf[0] = bfunc
+            nminf[1] = ptype
+            nminf[2] = utup
+            nminf[3] = dstt
+            mtab[codeno] = nminf
+          end
           outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
           outtype = get_ctype(ccgen, nreg, tup, infer)
           args = inst.inreg[0..-2].map {|reg|

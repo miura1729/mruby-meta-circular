@@ -15,8 +15,11 @@ module MTypeInf
 
     def self.get_original_reg(infer, inst, tup)
       case inst.op
-      when :MOVE, :GETUPVAR, :GETIV
+      when :MOVE, :GETUPVAR
         return inst.inreg[0]
+
+      when :GETIV
+        return inst.outreg[0]
 
       when :SEND
         case inst.para[0]
@@ -103,13 +106,13 @@ module MTypeInf
             genp = genp.inreg[0].genpoint
 
           else
-            notp = !notp
-            type0 = PrimitiveType.new(NilClass)
-            type1 = PrimitiveType.new(false.class)
+#            notp = !notp
+#            type0 = PrimitiveType.new(NilClass)
+#            type1 = PrimitiveType.new(false.class)
 
-            addtional_type_spec = [type0, type1]
-            atype_spec_pos = addtional_type_spec
-            atype_spec_neg = addtional_type_spec
+#            addtional_type_spec = [type0, type1]
+#            atype_spec_pos = addtional_type_spec
+#            atype_spec_neg = addtional_type_spec
           end
 
         elsif genp.op == :EQ then
@@ -208,7 +211,7 @@ module MTypeInf
           greg.positive_list.push atype_spec_pos
           greg.refpoint.each do |ginst|
             if ginst.outreg[0] then
-              ginst.outreg[0].positive_list.push  atype_spec_pos
+              ginst.outreg[0].positive_list.push atype_spec_pos
             end
           end
           history[node] ||= []
@@ -390,6 +393,10 @@ module MTypeInf
 #                  ivreg.flush_type(tup, -1)
                   inst.outreg[0].add_same(ivreg)
                   inst.outreg[0].flush_type(tup, -1)
+#                  p inst.outreg[0].type
+#                  p tup
+                  inst.line # for bug (reason is unkown)
+#                  p name2
 
                 elsif cont == :writer then
                   clsobj = RiteSSA::ClassSSA.get_instance(slfcls)

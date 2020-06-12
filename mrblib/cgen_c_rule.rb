@@ -630,7 +630,6 @@ module CodeGenC
       if reg.setpoint.size != 0 and !fstp then
         return ["v#{reg.id}", srct]
       end
-
       if reg.is_a?(RiteSSA::ParmReg) then
         if node.enter_link.size == 1 then
           pnode = node.enter_link[0]
@@ -863,7 +862,7 @@ module CodeGenC
         end
       end
 
-      if rtype.any? {|r| r.is_escape?} then
+      if rtype.any? {|ty| ty.is_escape?} then
         return :mrb_value
       end
 
@@ -1330,6 +1329,10 @@ EOS
 
             when "struct range_mrb_int"
               "(mrb_range_new(mrb, mrb_fixnum_value(#{src}->first), mrb_fixnum_value(#{src}->last), #{src}->exclude_end))"
+
+            when :mrb_value
+              gen_gc_table2(ccgen, node, oreg)
+              "(mrb_ary_new_value_from_values(mrb, #{srct[2]}, #{src}))"
 
             else
               raise "Not support yet #{dstt} #{srct}"

@@ -657,11 +657,17 @@ module MTypeInf
     end
 
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|
-      type = inst.objcache[nil]
+      pirep = infer.callstack[-2][0]
+      if pirep and !pirep.strict then
+        pirep = pirep.irep
+      else
+        pirep = nil
+      end
+      type = inst.objcache[pirep]
       if !type then
         level = infer.callstack.size
         previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-        inst.objcache[nil] = type = ContainerType.new(Array, inst, previrep, level)
+        inst.objcache[pirep] = type = ContainerType.new(Array, inst, previrep, level)
       end
       nilreg = type.element[ContainerType::UNDEF_VALUE]
       inst.para[0].times do |i|

@@ -1,4 +1,8 @@
   class Context
+
+    WHITE_SPACES = [" ", "\t", "\r", "\n"]
+    NUMBER_LETTERS = '0123456789+-.eE'
+    HEX_LETTERS = '0123456789abcdef'
     def initialize(s)
       @buf = s
       @index = 0
@@ -7,7 +11,7 @@
     def skip_white
       while [" ", "\t", "\r", "\n"].include? @buf[@index] do
         @index += 1
-      end 
+      end
     end
     def has_next?
       @index < @length
@@ -83,11 +87,14 @@
             u = 0
             while self.has_next?
               c = self.next
-              i = '0123456789abcdef'.index(c.downcase)
+              c0 = c.downcase
+              i = '0123456789abcdef'.index(c0)
               if i == nil
+#              if i.nil?
                 self.back
                 break
               end
+
               u = u * 16 | i
             end
             if u < 0x80
@@ -135,7 +142,7 @@
       while self.has_next?
         self.skip_white
         c = self.next
-        if c == '}'
+       if c == '}'
           self.next
           break
         end
@@ -214,11 +221,13 @@
   end
 
 def top
-  parse('{"foo": "bar"}')
-  parse('{"foo": null}')
-  parse('[true, "foo"]')
-  parse('{"label":[true, "foo"]}')
-  parse('[true, {"foo" : "bar"}]')
+  10000.times do
+    p parse('{"foo": "bar"}')
+    p parse('{"foo": "baz", "abc": "abaz"}')
+     p parse('[true, "foo"]')
+    p parse('{"label":[true, "foo"]}')
+    p parse('[true, {"foo" : "bar"}]')
+  end
 end
 
 

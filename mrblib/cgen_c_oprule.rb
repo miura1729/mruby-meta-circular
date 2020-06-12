@@ -88,6 +88,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :SETCONST do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :GETMCNST do |ccgen, inst, node, infer, history, tup|
       nil
     end
