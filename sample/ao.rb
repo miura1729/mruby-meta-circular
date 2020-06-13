@@ -38,7 +38,6 @@ class Vec
     a = Vec.new(@y * b.z - @z * b.y,
             @z * b.x - @x * b.z,
             @x * b.y - @y * b.x)
-    $foo = a
     a
   end
 #  make_inline_method  :vcross
@@ -210,7 +209,6 @@ def otherBasis(basis, n)
   end
 
   basis[0] = basis[1].vcross(basis[2])
-  $baz = basis
   basis[0] = basis[0].vnormalize
 
   basis[1] = basis[2].vcross(basis[0])
@@ -247,7 +245,6 @@ class Scene
   end
 
   basis[0] = basis[1].vcross(basis[2])
-  $baz = basis
   basis[0] = basis[0].vnormalize
 
   basis[1] = basis[2].vcross(basis[0])

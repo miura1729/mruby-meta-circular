@@ -129,7 +129,7 @@ bodies = [
     5.15138902046611451e-05)
 ]
 
-init = 200_000 # ARGV[0]
+init = 50_000_000 # ARGV[0]
 #n = Integer(init)
 n = init
 

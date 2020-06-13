@@ -136,6 +136,9 @@ module MTypeInf
       end
       slfiv.add_same(valreg)
       cty = slfiv.flush_type(-1, tup)[-1]
+      #p inst.para[0]
+      #p slfiv.id
+
       if oty != cty then
         slftype.version += 1
       end

@@ -82,9 +82,9 @@ module MTypeInf
           addtional_type_spec = nil
           atype_spec_pos = nil
           atype_spec_neg = nil
-          typemethodp = true
           case genp.para[0]
           when :kind_of?, :is_a?
+            typemethodp = true
             tcls = genp.inreg[1].flush_type(tup)[tup]
             cls = nil
             if tcls.size == 1 and tcls[0].val.class == Class then
@@ -98,6 +98,7 @@ module MTypeInf
             genp = genp.inreg[0].genpoint
 
           when :nil?
+            typemethodp = true
             type = PrimitiveType.new(NilClass)
 
             addtional_type_spec = [type]
@@ -110,7 +111,7 @@ module MTypeInf
 #            type0 = PrimitiveType.new(NilClass)
 #            type1 = PrimitiveType.new(false.class)
 
-#            addtional_type_spec = [type0, type1]
+#            addtional_type_spec = []
 #            atype_spec_pos = addtional_type_spec
 #            atype_spec_neg = addtional_type_spec
           end
@@ -235,7 +236,7 @@ module MTypeInf
           greg.negative_list.push atype_spec_neg
           greg.refpoint.each do |ginst|
             if ginst.outreg[0] then
-              ginst.outreg[0].negative_list.push  atype_spec_neg
+              ginst.outreg[0].negative_list.push atype_spec_neg
             end
           end
 
@@ -390,13 +391,11 @@ module MTypeInf
                   clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
                   name2ins = "@#{name2.to_s}".to_sym
                   ivreg = clsobj.get_iv(name2ins)
-#                  ivreg.flush_type(tup, -1)
                   inst.outreg[0].add_same(ivreg)
                   inst.outreg[0].flush_type(tup, -1)
-#                  p inst.outreg[0].type
-#                  p tup
                   inst.line # for bug (reason is unkown)
-#                  p name2
+                  #p name2ins
+                  #p ivreg.id
 
                 elsif cont == :writer then
                   clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
