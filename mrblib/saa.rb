@@ -961,7 +961,7 @@ module RiteSSA
         res << "#{ele.pos}, "
       end
       res << "\n"
-      p @ext_iseq
+      #p @ext_iseq
       @ext_iseq.each_with_index do |ele, i|
 #        res << "#{Irep::disasm(ele, @irep)}\n"
         res << ele.inspect + "\n"

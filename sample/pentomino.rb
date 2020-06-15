@@ -138,6 +138,7 @@ MTypeInf::inference_main {
 $p = []
 $b = []
 $no = 0
+$c = 0
 
   top
 }

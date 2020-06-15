@@ -311,6 +311,15 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :RAISE do |infer, inst, node, tup, history|
+      reg = RiteSSA::Reg.new(nil)
+      infer.exception.push reg
+      reg.add_same inst.inreg[0]
+      reg.flush_type(tup)
+
+      nil
+    end
+
     define_inf_rule_op :ENTER do |infer, inst, node, tup, history|
       rc = nil
       ax = inst.para[0]

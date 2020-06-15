@@ -14,6 +14,8 @@ module MTypeInf
     ti.messages.each do |message, cnt|
       print message
     end
+    #typemess = ti.dump_type
+    #print typemess
 
     cgen = CodeGenC::CodeGen.new
     cgen.code_gen(bproc, ti)
@@ -355,7 +357,7 @@ module MTypeInf
       node.ext_iseq.each do |ins|
         #p ins.line
         #p ins.filename
-        #        p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
+        #p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
         begin
           rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         rescue Object => e

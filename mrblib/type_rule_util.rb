@@ -51,6 +51,9 @@ module MTypeInf
 
     def self.get_jmp_target(node, bidx, inst)
       curop = inst.op
+      if curop == :JMPIF then
+        bidx = 1 - bidx
+      end
       enode = node.exit_link[bidx]
       while enode.ext_iseq.size == 1 and
           (enode.ext_iseq[0].op == :JMPIF or enode.ext_iseq[0].op == :JMPNOT)
@@ -180,6 +183,13 @@ module MTypeInf
         condtype = nil
       end
 
+      #p "#{inst.filename}:#{inst.line}"
+      #p type.map {|e| e.class_object} if type
+      #p atype.map {|e| e.class_object} if atype
+      #p condtype
+      #p typemethodp
+      #p notp
+
       if condtype == NilClass or condtype == FalseClass then
         enode = get_jmp_target(node, bidx, inst)
         history[node] ||= []
@@ -264,10 +274,11 @@ module MTypeInf
           greg.negative_list.pop
           greg.refpoint.each do |ginst|
             if ginst.outreg[0] then
+
               ginst.outreg[0].negative_list.pop
             end
           end
-       else
+        else
           history[nil] ||= []
           history[node] ||= []
           nd = get_jmp_target(node, 0, inst)

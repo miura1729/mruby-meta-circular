@@ -67,7 +67,6 @@ end
 
 module Enumerator
   attr_accessor :obj, :meth, :args, :fib
-  private :obj, :meth, :args, :fib
 end
 
 class DeterministicRandom

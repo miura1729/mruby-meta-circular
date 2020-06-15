@@ -600,6 +600,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :MODULE do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :EXEC do |ccgen, inst, node, infer, history, tup|
       tclass = inst.inreg[0].flush_type(tup)[tup]
       root = node.root
