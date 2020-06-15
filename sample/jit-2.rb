@@ -130,7 +130,7 @@ class FibVM
           @sp = @callinfo[@cp]
         end
       else
-        printf("Unkown code %s \n", OPTABLE_SYM[get_opcode(cop)])
+        printf("Unknown code %s \n", OPTABLE_SYM[get_opcode(cop)])
       end
 
       @pc = @pc + 1

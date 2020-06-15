@@ -1324,7 +1324,7 @@ EOS
                 "mmc_boxing_array(#{src}, #{srct[2]}, mrb_str_new_cstr)"
 
               else
-                raise "Unkown type #{srct}"
+                raise "Unknown type #{srct}"
               end
 
             when "struct range_mrb_int"
@@ -1384,7 +1384,7 @@ EOS
                 "({mrb_int res; sscanf(#{src}, \"%d\", &res); res;})"
 
               else
-                raise "Unkown type #{srct}"
+                raise "Unknown type #{srct}"
               end
 
             else
@@ -1412,7 +1412,7 @@ EOS
                 "({mrb_float2 res; sscanf(#{src}, \"%g\", &res); res;})"
 
               else
-                raise "Unkown type #{srct}"
+                raise "Unknown type #{srct}"
               end
 
             else
