@@ -199,7 +199,7 @@ class RiteVM
           @sp = @callinfo[@cp]
         end
       else
-        printf("Unkown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
+        printf("Unknown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
       end
 
       @pc = @pc + 1
@@ -267,7 +267,7 @@ class RiteVM
         res.push [code, getarg_a(cop), syms[getarg_b(cop)], getarg_c(cop)]
 
       else
-        printf("Unkown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
+        printf("Unknown code %s \n", Irep::OPTABLE_SYM[get_opcode(cop)])
       end
     end
 
