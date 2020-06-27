@@ -66,9 +66,18 @@ module MTypeInf
     end
 
     define_inf_rule_op :GETGLOBAL do |infer, inst, node, tup, history|
-      inst.inreg[0].flush_type_alltup(tup)
-      inst.outreg[0].add_same(inst.inreg[0])
-      inst.outreg[0].flush_type(tup)
+      case inst.para[0]
+      when :$/
+        level = infer.callstack.size
+        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+        type = StringType.new(String, inst, previrep, level)
+        inst.outreg[0].add_type type, tup
+
+      else
+        inst.inreg[0].flush_type_alltup(tup)
+        inst.outreg[0].add_same(inst.inreg[0])
+        inst.outreg[0].flush_type(tup)
+      end
       nil
     end
 
