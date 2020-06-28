@@ -190,8 +190,9 @@ module MTypeInf
       #p typemethodp
       #p notp
 
+      idx = inst.op == :JMPIF ? 1 - bidx : bidx
       if condtype == NilClass or condtype == FalseClass then
-        enode = get_jmp_target(node, bidx, inst)
+        enode = get_jmp_target(node, idx, inst)
         history[node] ||= []
         history[nil] ||= []
         history[nil].push node
@@ -203,7 +204,10 @@ module MTypeInf
         true
 
       elsif type and type.size == 1 then
-        enode = get_jmp_target(node, 1 - bidx, inst)
+        enode = get_jmp_target(node, 1 - idx, inst)
+        p "#{inst.filename}:#{inst.line}"
+        ninst= enode.ext_iseq[0]
+        p "#{ninst.filename}:#{ninst.line} #{ninst.op}"
         history[node] ||= []
         history[nil] ||= []
         history[nil].push node
@@ -215,7 +219,7 @@ module MTypeInf
         true
 
       elsif typemethodp then
-        idx = notp ? bidx : 1 - bidx
+        idx = notp ? idx : 1 - idx
         nd = get_jmp_target(node, idx, inst)
         if greg = get_original_reg(infer, genp, tup) then
 

@@ -123,6 +123,9 @@ module MTypeInf
       #      inreg.flush_type_alltup(tup)
       inst.outreg[0].add_same(inreg)
       inst.outreg[0].flush_type(tup, -1)
+      if inst.outreg[0].type[tup] == nil then
+        inst.outreg[0].add_type PrimitiveType.new(NilClass), tup
+      end
       #p inst.para[0]
       nil
     end

@@ -1095,9 +1095,9 @@ module RiteSSA
 
     def inspect
       res = ""
-      @nodes.each do |pos, dag|
-        res << dag.inspect
-      end
+      #@nodes.each do |pos, dag|
+      #  res << dag.inspect
+      #end
 
       res
     end
