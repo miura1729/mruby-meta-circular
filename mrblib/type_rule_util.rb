@@ -27,7 +27,7 @@ module MTypeInf
           rectype = inst.inreg[0].get_type(tup)
           idxtype = inst.inreg[1].get_type(tup)
           if rectype.size == 1 then
-            if rectype[0].class_object == Array then
+            if rectype[0].class_object == Array or rectype[0].class_object == Hash then
               if idxtype.size == 1 and
                   idxtype[0].is_a?(MTypeInf::LiteralType) then
                 return inst.outreg[0]
@@ -142,6 +142,7 @@ module MTypeInf
               typemethodp = true
               pt = PrimitiveType.new(type.class_object)
               if type.class_object == NilClass then
+                notp = !notp
                 addtional_type_spec = [pt]
                 atype_spec_pos = addtional_type_spec
                 atype_spec_neg = addtional_type_spec
@@ -205,9 +206,7 @@ module MTypeInf
 
       elsif type and type.size == 1 then
         enode = get_jmp_target(node, 1 - idx, inst)
-        p "#{inst.filename}:#{inst.line}"
         ninst= enode.ext_iseq[0]
-        p "#{ninst.filename}:#{ninst.line} #{ninst.op}"
         history[node] ||= []
         history[nil] ||= []
         history[nil].push node
@@ -222,7 +221,6 @@ module MTypeInf
         idx = notp ? idx : 1 - idx
         nd = get_jmp_target(node, idx, inst)
         if greg = get_original_reg(infer, genp, tup) then
-
           greg.positive_list.push atype_spec_pos
           greg.refpoint.each do |ginst|
             if ginst.outreg[0] then

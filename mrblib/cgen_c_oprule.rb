@@ -582,7 +582,11 @@ module CodeGenC
 
     define_ccgen_rule_op :HASH do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      if oreg.is_escape?(tup) then
+      uv = MTypeInf::ContainerType::UNDEF_VALUE
+      hasht = oreg.get_type(tup)[0]
+      eareg = hasht.element
+      etype = get_ctype(ccgen, eareg[uv], tup, infer)
+      if oreg.is_escape?(tup) or true then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
         gen_gc_table2(ccgen, node, oreg)
         ccgen.pcode << "v#{oreg.id} = mrb_hash_new(mrb);\n"

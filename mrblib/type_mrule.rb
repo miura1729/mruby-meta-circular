@@ -45,6 +45,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_s, Fixnum do |infer, inst, node, tup|
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      type = StringType.new(String, inst, previrep, level)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :>>, Fixnum do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
@@ -297,6 +305,10 @@ module MTypeInf
       rule_ary_push_common(infer, inst, node, tup)
     end
 
+    define_inf_rule_method :append, Array do |infer, inst, node, tup|
+      rule_ary_push_common(infer, inst, node, tup)
+    end
+
     define_inf_rule_method :pop, Array do |infer, inst, node, tup|
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
@@ -533,6 +545,14 @@ module MTypeInf
       type = inst.inreg[0].flush_type(tup)[tup][0].class_object
 
       type = LiteralType.new(type.class, type)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :to_s, Object do |infer, inst, node, tup|
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      type = StringType.new(String, inst, previrep, level)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -959,6 +979,10 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type(tup)
+      if inst.outreg[0].type[tup] == nil then
+        type = PrimitiveType.new(NilClass)
+        inst.outreg[0].add_type type, tup
+      end
       nil
     end
 

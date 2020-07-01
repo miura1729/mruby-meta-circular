@@ -1,4 +1,83 @@
 MTypeInf::inference_main {
+class Array
+  def each2(&block)
+    idx = 0
+    while idx < length
+      $aaa = self
+      block.call(self[idx])
+      idx += 1
+    end
+    self
+  end
+end
+
+class PQueue
+  def initialize
+    @array = []
+  end
+
+  def len
+    @array.size
+  end
+
+  def heappush(val)
+    @array.push val
+    i = @array.size
+    while i >= 2
+      i2 = i / 2
+      if @array[i2 - 1][0] > @array[i - 1][0] then
+        tmp = @array[i2 - 1]
+        @array[i2 - 1] = @array[i - 1]
+        @array[i - 1] = tmp
+      end
+      i = i2
+    end
+  end
+
+  def heappop
+    if @array.size < 2 then
+      return @array.pop
+    end
+
+    res = @array[0]
+    @array[0] = @array.pop
+    i = 1
+    max = @array.size / 2
+    while i <= max
+      i2 = i * 2
+      if @array[i2] and @array[i2 - 1][0] > @array[i2][0] then
+        i2 = i2 + 1
+      end
+      if @array[i - 1][0]  > @array[i2 - 1][0] then
+        tmp = @array[i2 - 1]
+        @array[i2 - 1] = @array[i - 1]
+        @array[i - 1] = tmp
+      end
+      i = i2
+    end
+
+    res
+  end
+end
+
+if nil
+q = PQueue.new
+q.heappush([2, 1])
+q.heappush([4, 1])
+q.heappush([3, 1])
+p q.heappop
+q.heappush([6, 1])
+p q.heappop
+q.heappush([4, 1])
+q.heappush([1, 1])
+p q.heappop
+p q.heappop
+q.heappush([1, 1])
+p q.heappop
+p q.heappop
+exit
+end
+
 class G
   def initialize
     @id2idx = {}
@@ -17,14 +96,16 @@ DISTANCE_MULTIPLE = 100
 
 def get_idx(id, g)
   i = g.id2idx[id]
-  if i == nil then
-    i = g.idx
-    g.id2idx[id] = i
+  if i.nil? then
+    j = g.idx
+    g.id2idx[id] = j
     g.idx2id.append(id)
     g.edge.append([])
     g.idx = g.idx + 1
+    j
+  else
+    i
   end
-  i
 end
 
 def add_edge(start, ed, distance, g)
@@ -66,7 +147,6 @@ end
 def load(g)
   STDIN.readline
   STDIN.readlines.each do |line|
-    $foo = line
     line = line.strip()
     data = line.split(",")
     # println(data)
@@ -74,9 +154,9 @@ def load(g)
     e = data[3].to_i
     d = stof100(data[5])
     if true then
-      print("line: #{line} s: #{s} e: {e} D: #{d}")
-      add_edge(s, e, d, g)
+      print("line: #{line} s: #{s} e: #{e} D: #{d} \n")
     end
+    add_edge(s, e, d, g)
   end
 end
 
@@ -85,44 +165,54 @@ def dijkstra(start, ed, g)
   e = get_idx(ed, g)
 
   size = g.idx
-  d = [0] * size
-  prev = [0] * size
+  d = []
+  prev = []
+  size.times do |i|
+    d[i] = 0x7fffffff
+    prev[i] = 0
+  end
 
-  queue = []
-  heappush(queue, [0, s])
+  queue = PQueue.new
+  queue.heappush([0, s])
 
   visited = 0
-  while len(queue) > 0
-    distance, here = heappop(queue)
+  while queue.len > 0
+    distance, here = queue.heappop
+    if distance > d[here] then
+      next
+    end
     visited = visited + 1
-    if false then #debug
-      print(f"visiting: {here} distance: {distance}")
-      g.edge[here].each do |to, weight|
-        w = distance + weight
-        if d[to] == 0 or w < d[to] then
-          prev[to] = here
-          d[to] = w
-          heappush(queue, [w, to])
-        end
-	print("visited:", visited)
+    if true then #debug
+      print("visiting: #{here} distance: #{distance} #{queue.len}\n")
+    end
 
-	n = e
-	result = [g.idx2id[n]]
-
-	while d[n] != 0 and n != s and n != 0
-          n = prev[n]
-          result.append(g.idx2id[n])
-        end
-
-	return int(d[e] / DISTANCE_MULTIPLE), result
+    g.edge[here].each do |arr|
+      to = arr[0]
+      weight = arr[1]
+      w = distance + weight
+      if w < d[to] then
+        prev[to] = here
+        d[to] = w
+        queue.heappush([w, to])
       end
     end
   end
+  print("visited:", visited)
+
+  n = e
+  result = [g.idx2id[n]]
+
+  while d[n] != 0x7fffffff and n != s and n
+    n = prev[n]
+    result.append(g.idx2id[n])
+  end
+
+  return (d[e] / DISTANCE_MULTIPLE).to_i, result
 end
 
 def main()
   g = G.new
-  count = 20
+  count = 2
 
   load(g)
   print("loaded nodes:", g.idx)
@@ -130,12 +220,20 @@ def main()
   route = []
   (1..count+1).each do |i|
     s = g.idx2id[i*1000]
-    distance, route = dijkstra(s, g.idx2id[1], g)
+    res = dijkstra(s, g.idx2id[1], g)
+    distance = res[0]
+    route = res[1]
     print("distance:", distance)
 
     result = "route: "
-    route.each do |id|
-      result = result + str(id) + " "
+#    route.each2 do |id|
+#      result = result + id.to_s + " "
+#      print(result)
+#    end
+    max = route.size
+    i = 0
+    while i < max
+      result = result + route[i].to_s + " "
       print(result)
     end
   end
