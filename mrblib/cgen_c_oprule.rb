@@ -64,6 +64,12 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :GETGLOBAL do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      set_closure_env(ccgen, inst, node, infer, history, tup)
+      nil
+    end
+
     define_ccgen_rule_op :SETGLOBAL do |ccgen, inst, node, infer, history, tup|
       p "FOO"
       p tup

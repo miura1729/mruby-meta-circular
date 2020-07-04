@@ -812,7 +812,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :raise, Kernel do |infer, inst, node, tup|
-      argc = infer.callstack[-1][2]
+      argc = inst.para[1]
       reg = RiteSSA::Reg.new(nil)
       infer.exception.push reg
 

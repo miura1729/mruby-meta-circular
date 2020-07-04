@@ -308,14 +308,38 @@ module MTypeInf
     define_inf_rule_op :ONERR do |infer, inst, node, tup, history|
       node.root.rescuetab.push inst.para[0]
 
-      nil
+      history[nil] ||= []
+      history[nil].push node
+      history[node] ||= []
+
+      enode = node.exit_link[0]
+      history[node].push enode
+      infer.inference_node(enode, tup, node.exit_reg, history)
+
+      enode = node.exit_link[1]
+      history[node].push enode
+      infer.inference_node(enode, tup, node.exit_reg, history)
+
+      history[nil].pop
+
+      true
     end
 
     define_inf_rule_op :RESCUE do |infer, inst, node, tup, history|
+      if inst.para[0] == 0 then
+        infer.exception.each do |ereg|
+          inst.outreg[1].add_same ereg
+        end
+        inst.outreg[1].flush_type(tup)
+      else
+        type = PrimitiveType.new(TrueClass)
+        inst.outreg[0].add_type type, tup
+#        type = PrimitiveType.new(FalseClass)
+#        inst.outreg[0].add_type type, tup
+      end
 
       nil
     end
-
 
     define_inf_rule_op :POPERR do |infer, inst, node, tup, history|
       node.root.rescuetab.pop

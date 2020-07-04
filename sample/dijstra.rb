@@ -1,16 +1,4 @@
 MTypeInf::inference_main {
-class Array
-  def each2(&block)
-    idx = 0
-    while idx < length
-      $aaa = self
-      block.call(self[idx])
-      idx += 1
-    end
-    self
-  end
-end
-
 class PQueue
   def initialize
     @array = []
@@ -207,7 +195,8 @@ def dijkstra(start, ed, g)
     result.append(g.idx2id[n])
   end
 
-  return (d[e] / DISTANCE_MULTIPLE).to_i, result
+  a = [(d[e] / DISTANCE_MULTIPLE).to_i, result]
+  return a
 end
 
 def main()
@@ -215,27 +204,27 @@ def main()
   count = 2
 
   load(g)
-  print("loaded nodes:", g.idx)
+  printf("loaded nodes: %d", g.idx)
 
-  route = []
+#  route = []
   (1..count+1).each do |i|
     s = g.idx2id[i*1000]
     res = dijkstra(s, g.idx2id[1], g)
     distance = res[0]
     route = res[1]
-    print("distance:", distance)
+    printf("distance: %d", distance)
 
     result = "route: "
-#    route.each2 do |id|
-#      result = result + id.to_s + " "
-#      print(result)
-#    end
-    max = route.size
-    i = 0
-    while i < max
-      result = result + route[i].to_s + " "
+    route.each do |id|
+      result = result + id.to_s + " "
       print(result)
     end
+#    max = route.size
+#    i = 0
+#    while i < max
+#      result = result + route[i].to_s + " "
+#      print(result)
+#    end
   end
 end
 

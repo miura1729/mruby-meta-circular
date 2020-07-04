@@ -561,13 +561,23 @@ module RiteSSA
           inst.para.push off
 
         when :RESCUE
-          a = getarg_a(code)
+          b = getarg_b(code)
+          dstreg = Reg.new(inst)
+          regtab[b] = dstreg
+          inst.outreg.push dstreg
+
           cont = getarg_c(code)
+          inst.para.push cont
           if cont == 0 then
             # No cont
+            a = getarg_b(code)
+            dstreg = Reg.new(inst)
+            regtab[a] = dstreg
+            inst.outreg.push dstreg
 
           else
             # cont
+            a = getarg_a(code)
             inreg = regtab[a]
             inreg.refpoint.push inst
             inst.inreg.push inreg
@@ -1027,8 +1037,11 @@ module RiteSSA
           dag.exit_link << @nodes[lastpos + getarg_sbx(lastins)]
 
         when :ONERR
+          off = getarg_sbx(lastins)
           @nodes[lastpos + 1].enter_link << dag
+          @nodes[lastpos + off].enter_link << dag
           dag.exit_link << @nodes[lastpos + 1]
+          dag.exit_link << @nodes[lastpos + off]
 
         when :JMPIF, :JMPNOT
           @nodes[lastpos + 1].enter_link << dag
