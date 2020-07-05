@@ -274,6 +274,14 @@ module CodeGenC
       end
     end
 
+    define_ccgen_rule_op :ONERR do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :POPERR do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :SEND do |ccgen, inst, node, infer, history, tup|
       op_send(ccgen, inst, node, infer, history, tup)
       nil
