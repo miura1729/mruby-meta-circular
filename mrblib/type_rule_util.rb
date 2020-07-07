@@ -142,7 +142,6 @@ module MTypeInf
               typemethodp = true
               pt = PrimitiveType.new(type.class_object)
               if type.class_object == NilClass then
-                notp = !notp
                 addtional_type_spec = [pt]
                 atype_spec_pos = addtional_type_spec
                 atype_spec_neg = addtional_type_spec
@@ -154,7 +153,6 @@ module MTypeInf
           end
 
         else
-          notp = !notp
           typemethodp = true
           type0 = PrimitiveType.new(NilClass)
           type1 = PrimitiveType.new(false.class)

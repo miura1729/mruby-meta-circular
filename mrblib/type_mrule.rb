@@ -826,6 +826,10 @@ module MTypeInf
         reg.flush_type(tup)
       end
 
+      reg.type[tup].each do |ty|
+        ty.place[true] = [:raise]
+      end
+
 #      p inst.line
 #      p inst.filename
 

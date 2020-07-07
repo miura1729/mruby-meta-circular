@@ -265,16 +265,24 @@ module CodeGenC
         end
       end
       if cond == true or r == 2 then
-        ["", [node.exit_link[0]]]
+        nd = MTypeInf::TypeInferencer.get_jmp_target(node, 0, inst)
+        ["", [nd]]
       elsif cond == false or r == 1 then
-        ["", [node.exit_link[1]]]
+        nd = MTypeInf::TypeInferencer.get_jmp_target(node, 1, inst)
+        ["", [nd]]
       else
         src = "if (#{cond}) goto L#{node.exit_link[0].id}; else goto L#{node.exit_link[1].id};\n"
-        [src, [node.exit_link[0], node.exit_link[1]]]
+        nd0 = MTypeInf::TypeInferencer.get_jmp_target(node, 0, inst)
+        nd1 = MTypeInf::TypeInferencer.get_jmp_target(node, 1, inst)
+        [src, [nd0, nd1]]
       end
     end
 
     define_ccgen_rule_op :ONERR do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :RESCUE do |ccgen, inst, node, infer, history, tup|
       nil
     end
 

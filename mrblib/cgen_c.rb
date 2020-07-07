@@ -150,6 +150,10 @@ EOS
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then
         reg.genpoint
+
+      elsif reg.is_a?(RiteSSA::InstanceVariable) then
+        nil
+
       elsif reg.is_a?(RiteSSA::Reg) then
         ginst = reg.genpoint
         if ginst.is_a?(RiteSSA::Inst) then
