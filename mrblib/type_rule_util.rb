@@ -110,13 +110,14 @@ module MTypeInf
             genp = genp.inreg[0].genpoint
 
           else
-#            notp = !notp
-#            type0 = PrimitiveType.new(NilClass)
-#            type1 = PrimitiveType.new(false.class)
+            typemethodp = true
+            notp = !notp
+            type0 = PrimitiveType.new(NilClass)
+            type1 = PrimitiveType.new(FalseClass)
 
-#            addtional_type_spec = []
-#            atype_spec_pos = addtional_type_spec
-#            atype_spec_neg = addtional_type_spec
+            addtional_type_spec = [type0, type1]
+            atype_spec_pos = addtional_type_spec
+            atype_spec_neg = addtional_type_spec
           end
 
         elsif genp.op == :EQ then
@@ -160,7 +161,9 @@ module MTypeInf
           addtional_type_spec = [type0, type1]
           atype_spec_pos = addtional_type_spec
           atype_spec_neg = addtional_type_spec
-        #  genp = genp.inreg[0].genpoint
+#          if genp.op == :MOVE then
+#            genp = genp.inreg[0].genpoint
+#          end
         end
       end
 
@@ -520,6 +523,11 @@ module MTypeInf
       arrtypes = inst.inreg[0].type[tup]
       valreg = inst.inreg[1]
       valreg.flush_type(tup)
+      if valreg.type[tup] then
+        valreg.type[tup].each do |ty|
+          ty.place[true] = true
+        end
+      end
 
       arrtypes.each do |arrt|
         arrt.place[true] = true

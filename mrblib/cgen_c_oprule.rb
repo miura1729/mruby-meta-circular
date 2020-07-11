@@ -498,6 +498,13 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ARYCAT do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_op :AREF do |ccgen, inst, node, infer, history, tup|
+      idx = inst.para[0]
+      gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
+      nil
     end
 
     define_ccgen_rule_op :STRING do |ccgen, inst, node, infer, history, tup|
@@ -505,12 +512,14 @@ module CodeGenC
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
-        gen_gc_table_core(ccgen, inst, node, infer, history, tup, inst.para[1], inst.para[2], 0)
+        gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0)
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
       end
+
+      nil
     end
 
     define_ccgen_rule_op :STRCAT do |ccgen, inst, node, infer, history, tup|
@@ -548,6 +557,8 @@ module CodeGenC
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
       end
+
+      nil
     end
 
     define_ccgen_rule_op :LAMBDA do |ccgen, inst, node, infer, history, tup|

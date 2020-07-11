@@ -137,12 +137,8 @@ module CodeGenC
       proc = nil
       rectype.class_object.ancestors.each do |rt|
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
-          orgrec = inst.inreg[0].get_type(tup)
-          if orgrec.size > 1 and false then
-            rectype2 = rectype.dup
-            rectype2.place = {true => true}
-            inst.inreg[0].type[tup] = [rectype2]
-          end
+#          orgrec = inst.inreg[0].get_type(tup)
+          inst.inreg[0].positive_list.push [rectype]
           if mproc == :writer then
             clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
             ivreg = clsobj.get_iv("@#{name.to_s.chop}".to_sym)
@@ -156,7 +152,8 @@ module CodeGenC
           else
             mproc.call(ccgen, inst, node, infer, history, tup)
           end
-          inst.inreg[0].type[tup] = orgrec
+          inst.inreg[0].positive_list.pop
+
           return [:ccall, 0, nil]
         else
           if mtab[name] and mtab[name][rt] then
@@ -1191,7 +1188,7 @@ EOS
 
       case tgcls.to_s.to_sym
       when :NilClass
-        ["mrb_nil_p(v#{srcreg.id})", true]
+        ["mrb_nil_p(v#{srcreg.id})", false]
 
       when :Fixnum
         ["mrb_fixnum_p(v#{srcreg.id})", true]
@@ -1212,7 +1209,7 @@ EOS
         ["mrb_hash_p(v#{srcreg.id})", true]
 
       else
-        ["mrb_obj_is_kind_of(mrb, v#{srcreg.id}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))". false]
+        ["mrb_obj_is_kind_of(mrb, v#{srcreg.id}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))". true]
       end
     end
 
@@ -1483,8 +1480,43 @@ EOS
       end
     end
 
+    def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
+      uv = MTypeInf::ContainerType::UNDEF_VALUE
+      eele = inst.inreg[0].get_type(tup)[0].element
+      elereg = eele[uv]
+      nreg = inst.outreg[0]
+      aryreg = inst.inreg[0]
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      if inst.inreg[0].is_escape?(tup) then
+        src = "mrb_ary_ref(mrb, #{src}, #{idx})"
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
+      else
+        etup = tup
+        if elereg.type[etup] == nil then
+          etup = elereg.type.keys[0]
+        end
+        srct = get_ctype(ccgen, elereg, etup, infer)
+        if srct == :nil then
+          src = "mrb_nil_value()"
+        else
+          src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx)}]"
+          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
+        end
+      end
+
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     def self.gen_array_range_check(ccgen, inst, tup, idx)
-      idxty = inst.inreg[1].get_type(tup)[0]
+      if inst.inreg[1] then
+        idxty = inst.inreg[1].get_type(tup)[0]
+      else
+        idxty = NumericType.new(Fixnum, idx >= 0)
+      end
       aryty = inst.inreg[0].get_type(tup)[0]
       rc = idx
       case idxty

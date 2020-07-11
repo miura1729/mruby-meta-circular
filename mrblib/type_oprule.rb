@@ -877,6 +877,7 @@ module MTypeInf
       regs = node.root.allocate_reg[tup]
       reg = inst.outreg[0]
       regs.push reg #if !regs.include?(reg)
+      type.place[true] = true
       inst.outreg[0].add_type type, tup
     end
 

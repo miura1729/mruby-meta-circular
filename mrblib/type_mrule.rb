@@ -725,6 +725,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :ord, String do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, true)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :downcase, String do |infer, inst, node, tup|
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
@@ -737,6 +743,17 @@ module MTypeInf
     define_inf_rule_method :size, String do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :bytes, String do |infer, inst, node, tup|
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      ud = ContainerType::UNDEF_VALUE
+      type = ContainerType.new(Array, inst, previrep, level)
+      fixt = NumericType.new(Fixnum, true)
+      type.element[ud].add_type fixt, tup
+      inst.outreg[0].add_type type, tup
       nil
     end
 
@@ -782,7 +799,10 @@ module MTypeInf
     define_inf_rule_method :split, String do |infer, inst, node, tup|
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      ud = ContainerType::UNDEF_VALUE
       type = ContainerType.new(Array, inst, previrep, level)
+      strt = StringType.new(String, inst, previrep, level)
+      type.element[ud].add_type strt, tup
       inst.outreg[0].add_type type, tup
 #      type = PrimitiveType.new(NilClass)
 #      inst.outreg[0].add_type type, tup

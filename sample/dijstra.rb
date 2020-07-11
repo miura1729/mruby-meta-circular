@@ -140,7 +140,12 @@ def load(g)
     # println(data)
     s = data[2].to_i
     e = data[3].to_i
-    d = stof100(data[5])
+    a = data[5]
+    if a.nil? then
+      d = 0
+    else
+      d = stof100(a)
+    end
     if true then
       print("line: #{line} s: #{s} e: #{e} D: #{d} \n")
     end

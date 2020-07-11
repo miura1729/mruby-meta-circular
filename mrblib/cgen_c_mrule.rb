@@ -162,9 +162,15 @@ module CodeGenC
       vreg = inst.inreg[2]
       oreg = inst.outreg[0]
       dstt = get_ctype(ccgen, oreg, tup, infer)
-      hashsrc = reg_real_value(ccgen, hreg, oreg, node, tup, infer, history)
-      keysrc = reg_real_value(ccgen, kreg, oreg, node, tup, infer, history)
-      valsrc = reg_real_value(ccgen, vreg, oreg, node, tup, infer, history)
+      hashsrc, srct = reg_real_value_noconv(ccgen, hreg, node, tup, infer, history)
+      hashsrc = gen_type_conversion(ccgen, :mrb_value, srct, hashsrc, tup, node, infer, history, nil)
+
+      keysrc, srct = reg_real_value_noconv(ccgen, kreg, node, tup, infer, history)
+      keysrc = gen_type_conversion(ccgen, :mrb_value, srct, keysrc, tup, node, infer, history, nil)
+
+      valsrc, srct = reg_real_value_noconv(ccgen, vreg, node, tup, infer, history)
+      valsrc = gen_type_conversion(ccgen, :mrb_value, srct, valsrc, tup, node, infer, history, nil)
+
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
@@ -433,35 +439,8 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
-      uv = MTypeInf::ContainerType::UNDEF_VALUE
-      eele = inst.inreg[0].get_type(tup)[0].element
-      elereg = eele[uv]
-      nreg = inst.outreg[0]
-      aryreg = inst.inreg[0]
-      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
-      src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
-      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
-      ccgen.dcode << ";\n"
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      if inst.inreg[0].is_escape?(tup) then
-        src = "mrb_ary_ref(mrb, #{src}, #{idx})"
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
-      else
-        etup = tup
-        if elereg.type[etup] == nil then
-          etup = elereg.type.keys[0]
-        end
-        srct = get_ctype(ccgen, elereg, etup, infer)
-        if srct == :nil then
-          src = "mrb_nil_value()"
-        else
-          src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx)}]"
-          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
-        end
-      end
-
-      ccgen.pcode << "v#{nreg.id} = #{src};\n"
-      nil
+      gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
     end
 
     define_ccgen_rule_method :[]=, Array do |ccgen, inst, node, infer, history, tup|
@@ -532,6 +511,16 @@ module CodeGenC
     end
 
     alias_ccgen_rule_method :<<, :push, Array
+
+    define_ccgen_rule_method :pop, Array do |ccgen, inst, node, infer, history, tup|
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode <<  "v#{nreg.id} = mrb_ary_pop(mrb, #{src});\n"
+      nil
+    end
 
     define_ccgen_rule_method :length, Array do |ccgen, inst, node, infer, history, tup|
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
@@ -750,7 +739,7 @@ module CodeGenC
 
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      ccgen.pcode << "sscanf(#{src}, \"%d\", &v#{oreg.id});\n"
       nil
     end
 
