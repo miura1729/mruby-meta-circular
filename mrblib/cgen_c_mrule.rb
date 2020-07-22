@@ -385,9 +385,9 @@ module CodeGenC
     define_ccgen_rule_method :raise, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       arg, argt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      arg = gen_type_conversion(ccgen, :mrb_value, argt, arg, tup, node, infer, history, nreg)
+      arg = gen_type_conversion(ccgen, :mrb_value, argt, arg, tup, node, infer, history, nil)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
-      ccgen.dcode << ";\n"
+      ccgen.dcode << "= mrb_nil_value();\n"
       ccgen.pcode << "mrb_exc_raise(mrb, mrb_make_exception(mrb, 1, &#{arg}));\n"
       nil
     end

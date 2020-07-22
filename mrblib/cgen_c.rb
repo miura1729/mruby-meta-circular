@@ -50,6 +50,8 @@ module CodeGenC
 #include <mruby/string.h>
 #include <mruby/range.h>
 #include <mruby/error.h>
+#include <mruby/variable.h>
+#include <mruby/throw.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,6 +168,7 @@ EOS
           nil
         end
       else
+        p reg.class
         raise
       end
     end

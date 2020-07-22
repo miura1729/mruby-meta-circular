@@ -279,14 +279,44 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ONERR do |ccgen, inst, node, infer, history, tup|
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "struct mrb_jmpbuf *oldjmp = mrb->jmp;\n"
+      ccgen.pcode << "struct mrb_jmpbuf newjmp;\n"
+      ccgen.pcode << "mrb->jmp = &newjmp;\n"
+      ccgen.pcode << "if (MRB_SETJMP(mrb->jmp->impl)) {\n"
+      ccgen.pcode << "mrb->jmp = oldjmp;\n"
+      ccgen.code_gen_node(node.exit_link[1], infer, :onerr, history, tup)
+      ccgen.pcode << "}\n"
       nil
     end
 
     define_ccgen_rule_op :RESCUE do |ccgen, inst, node, infer, history, tup|
+      if inst.para[0] == 0 then
+        oreg = inst.outreg[1]
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
+
+        ccgen.pcode << "v#{oreg.id} = mrb_obj_value(mrb->exc);\n"
+        ccgen.pcode << "mrb->exc = 0;\n"
+      else
+        oreg = inst.outreg[0]
+        ireg0 = inst.inreg[0]
+        ireg1 = inst.inreg[1]
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
+        ccgen.pcode << "v#{oreg.id} = mrb_bool_value(mrb_obj_is_kind_of(mrb, v#{ireg0.id}, mrb_class_ptr(v#{ireg1.id})));\n"
+      end
       nil
     end
 
     define_ccgen_rule_op :POPERR do |ccgen, inst, node, infer, history, tup|
+      ccgen.pcode << "mrb->jmp = oldjmp;\n"
+      ccgen.pcode << "}\n"
+      nil
+    end
+
+    define_ccgen_rule_op :RAISE do |ccgen, inst, node, infer, history, tup|
+      arg, argt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      arg = gen_type_conversion(ccgen, :mrb_value, argt, arg, tup, node, infer, history, nil)
+      ccgen.pcode << "mrb_exc_raise(mrb, mrb_make_exception(mrb, 1, &#{arg}));\n"
       nil
     end
 

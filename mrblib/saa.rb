@@ -439,6 +439,7 @@ module RiteSSA
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
           slfreg = regtab[0]
+          slfreg.refpoint.push inst
           inst.inreg.push slfreg
 
         when :SETIV
@@ -561,27 +562,35 @@ module RiteSSA
           inst.para.push off
 
         when :RESCUE
+          a = getarg_a(code)
           b = getarg_b(code)
-          dstreg = Reg.new(inst)
-          regtab[b] = dstreg
-          inst.outreg.push dstreg
-
           cont = getarg_c(code)
           inst.para.push cont
           if cont == 0 then
             # No cont
-            a = getarg_b(code)
+            dstreg = Reg.new(inst)
+            regtab[b] = dstreg
+            inst.outreg.push dstreg
             dstreg = Reg.new(inst)
             regtab[a] = dstreg
             inst.outreg.push dstreg
 
+
           else
             # cont
-            a = getarg_a(code)
             inreg = regtab[a]
             inreg.refpoint.push inst
             inst.inreg.push inreg
+
+            inreg = regtab[b]
+            inreg.refpoint.push inst
+            inst.inreg.push inreg
+
+            dstreg = Reg.new(inst)
+            regtab[b] = dstreg
+            inst.outreg.push dstreg
           end
+
 
         when :POPERR
           inreg = regtab[getarg_a(code)]
