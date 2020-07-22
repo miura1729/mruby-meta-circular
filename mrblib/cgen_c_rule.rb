@@ -390,7 +390,6 @@ module CodeGenC
           utup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
 
           procexport = false
-          topnode = node.root.nodes[0]
           inreg.each_with_index do |reg, i|
             rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
             if srct.is_a?(Array) and srct[0] == :gproc then
@@ -610,9 +609,7 @@ module CodeGenC
         srct = :mrb_value
         src = "mrb_nil_value()"
       else
-        srct = :mrb_value
-        src = "mrb_nil_value()"
-#        raise "Not support #{src.inspect}"
+        return nil
       end
 
       [src, srct]
@@ -645,7 +642,10 @@ module CodeGenC
             elsif src == false then
               return [0, :mrb_bool]
             else
-              return get_ctype_from_robj(src)
+              res = get_ctype_from_robj(src)
+              if res then
+                return res
+              end
             end
           end
         end
@@ -1445,7 +1445,6 @@ EOS
     def self.gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
       ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
       ivt = get_ctype(ccgen, ivreg, tup, infer)
-      slft = get_ctype(ccgen, slf, tup, infer)
       dstt = get_ctype(ccgen, dst, tup, infer)
       slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
 

@@ -679,7 +679,9 @@ module CodeGenC
       intype = [tclass]
       ntup = infer.typetupletab.get_tupple_id(intype, MTypeInf::PrimitiveType.new(NilClass), tup)
       fname = "f#{inst.inreg[0].id}"
-      ccgen.pcode << "mrb_value #{fname}(){\n"
+      otype = get_ctype(ccgen, inst.outreg[0], tup, infer)
+
+      ccgen.pcode << "#{otype} #{fname}(){\n"
       ccgen.pcode << gen_declare_core(ccgen, inst.inreg[0], tup, infer, false, "self")
       ccgen.pcode << ";\n"
 

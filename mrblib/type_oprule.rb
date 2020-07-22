@@ -71,6 +71,7 @@ module MTypeInf
         level = infer.callstack.size
         previrep = infer.callstack.map {|e|  [e[0], e[4]]}
         type = StringType.new(String, inst, previrep, level)
+        type.place[true] = true
         inst.outreg[0].add_type type, tup
 
       else
@@ -208,6 +209,7 @@ module MTypeInf
             type = LiteralType.new(const.singleton_class, const)
           else
             type = LiteralType.new(const.class, const)
+            type.place[true] = true
           end
         end
         inst.outreg[0].add_type(type, tup)
@@ -334,8 +336,8 @@ module MTypeInf
       else
         type = PrimitiveType.new(TrueClass)
         inst.outreg[0].add_type type, tup
-#        type = PrimitiveType.new(FalseClass)
-#        inst.outreg[0].add_type type, tup
+        type = PrimitiveType.new(FalseClass)
+        inst.outreg[0].add_type type, tup
       end
 
       nil
@@ -402,10 +404,10 @@ module MTypeInf
               nreg = type.element[i] || RiteSSA::Reg.new(inst)
               if ele[m1 + o +  i] then
                 nreg.add_same ele[m1 + o +  i]
-                type.element[uv].add_same  ele[m1 + o +  i]
+                type.element[uv].add_same ele[m1 + o +  i]
               else
                 nreg.add_same ele[uv]
-                type.element[uv].add_same  ele[uv]
+                type.element[uv].add_same ele[uv]
               end
               nreg.flush_type_alltup(tup)
               type.element[i] = nreg
@@ -962,6 +964,8 @@ module MTypeInf
       intype = [tclass]
       ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
       infer.inference_block(irepssa, intype, ntup, 0, nil)
+      inst.outreg[0].add_same irepssa.retreg
+      inst.outreg[0].flush_type_alltup(tup)
       nil
     end
 

@@ -221,7 +221,8 @@ module MTypeInf
     end
 
     def is_gcobject?
-      false
+      a = TypeSource[@class_object]
+      !(a and a != ContainerType and a != StringType)
     end
   end
 

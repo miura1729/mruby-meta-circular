@@ -312,7 +312,20 @@ module CodeGenC
     alias_ccgen_rule_method :is_a?, :kind_of?, Object
 
     define_ccgen_rule_method :===, Kernel do |ccgen, inst, node, infer, history, tup|
-      gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
+      type0 = inst.inreg[0].type[tup][0]
+      type1 = inst.inreg[1].type[tup][0]
+      oreg = inst.outreg[0]
+      if type0.is_a?(MTypeInf::LiteralType) and type0.class_object.singleton_class? then
+        ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+        ccgen.dcode << ";\n"
+        if type0.val == type1.class_object then
+          ccgen.pcode << "v#{oreg.id} = 1;\n"
+        else
+          ccgen.pcode << "v#{oreg.id} = 0;\n"
+        end
+      else
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
+      end
       nil
     end
 
@@ -484,7 +497,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) then
-        src = "(ARY_PTR(mrb_ary_ptr(src))[0])"
+        src = "(ARY_PTR(mrb_ary_ptr(#{src}))[0])"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
       else
         etup = tup
@@ -518,6 +531,7 @@ module CodeGenC
     end
 
     alias_ccgen_rule_method :<<, :push, Array
+    alias_ccgen_rule_method :append, :push, Array
 
     define_ccgen_rule_method :pop, Array do |ccgen, inst, node, infer, history, tup|
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
@@ -547,6 +561,23 @@ module CodeGenC
     end
 
     alias_ccgen_rule_method :size, :length, Array
+
+    define_ccgen_rule_method :empty?, Array do |ccgen, inst, node, infer, history, tup|
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      src = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      if inst.inreg[0].is_escape?(tup) then
+        src = "(ARY_LEN(mrb_ary_ptr(#{src})) == 0)"
+        src = gen_type_conversion(ccgen, dstt, :mrb_bool, src, tup, node, infer, history, nreg)
+      else
+        src = gen_type_conversion(ccgen, dstt, :mrb_bool, (inst.inreg[0].get_type(tup)[0].element.keys.size - 1 == 0) ? 1 : 0, tup, node, infer, history, nreg)
+      end
+
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
 
     define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
       #recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
