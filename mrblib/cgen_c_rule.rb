@@ -197,16 +197,27 @@ module CodeGenC
       end
       procexport = false
       i = 0
-      topnode = node.root.nodes[0]
-      args = inreg[0..-2].map {|reg|
-        rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
-        if srct.is_a?(Array) and srct[0] == :gproc then
-          procexport = true
+
+      if inst.para[1] == 127 then
+        i = 0
+        base, baset = reg_real_value_noconv(ccgen, inreg[1], node, tup, infer, history)
+        argsv = []
+        while argr = inreg[1].type[tup][0].element[i]
+          argsv.push "#{base}[#{i}]"
+          i = i + 1
         end
-        dstt = get_ctype(ccgen, reg, tup, infer)
-        i = i + 1
-        gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history, nil)
-      }.join(", ")
+        args = argsv.join(', ')
+      else
+        args = inreg[0..-2].map {|reg|
+          rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
+          if srct.is_a?(Array) and srct[0] == :gproc then
+            procexport = true
+          end
+          dstt = get_ctype(ccgen, reg, tup, infer)
+          i = i + 1
+          gen_type_conversion(ccgen, dstt, srct, rs, tup, node, infer, history, nil)
+        }.join(', ')
+      end
 
       reg = inreg[-1]
       tys = reg.get_type(tup)
@@ -701,11 +712,16 @@ module CodeGenC
 
       when :ENTER
         i = gins.outreg.index(reg)
-        src = gins.para[2][i]
-        if src then
-          [src, srct]
+        if i then
+          src = gins.para[2][i]
+          if src then
+            [src, srct]
+          else
+            [reg_real_value(ccgen, gins.inreg[i], gins.outreg[i], node, tup, ti, history), srct]
+          end
         else
-          [reg_real_value(ccgen, gins.inreg[i], gins.outreg[i], node, tup, ti, history), srct]
+          pos = 0
+          ["v#{gins.inreg[0].id}", srct]
         end
 
       when :EQ

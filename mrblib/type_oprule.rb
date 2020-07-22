@@ -746,34 +746,27 @@ module MTypeInf
     define_inf_rule_op :ARYCAT do |infer, inst, node, tup, history|
       arrtype = inst.inreg[0].flush_type(tup)[tup][0]
       eletype = inst.inreg[1].flush_type(tup)[tup][0]
-      type = inst.objcache[tup]
-      if !type then
-        level = infer.callstack.size
-        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-        inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
-      end
-      arrtype.element.each do |key, reg|
-        type.element[key] ||= RiteSSA::Reg.new(inst)
-        type.element[key].add_same reg
-        type.element[key].flush_type(tup)
-      end
 
-      bpos = arrtype.element.keys.size - 1
+      bpos = arrtype.element.keys.size - 2 # - 2 means include UNDEF_VALUE
+      inst.para[0] = bpos
       if !eletype.is_a?(ContainerType) then
-        reg = RiteSSA::Reg.new(inst)
-        reg.type[tup] = [eletype]
-        type.element[bpos] = reg
+        arrtype.element[bpos] = reg
+        arrtype.element[uv].add_same reg
       else
+        uv = ContainerType::UNDEF_VALUE
         eletype.element.each do |key, reg|
           if key.is_a?(Fixnum) then
-            type.element[bpos + key] ||= RiteSSA::Reg.new(nil)
-            type.element[bpos + key].add_same reg
-            type.element[bpos + key].flush_type(tup)
+            arrtype.element[key] ||= RiteSSA::Reg.new(nil)
+            arrtype.element[key].add_same reg
+            arrtype.element[key].flush_type(tup)
+            arrtype.element[uv] ||= RiteSSA::Reg.new(nil)
+            arrtype.element[uv].add_same reg
+            arrtype.element[uv].flush_type(tup)
           end
         end
       end
 
-      inst.outreg[0].add_type type, tup
+      inst.outreg[0].add_type arrtype, tup
       node.root.allocate_reg[tup] ||= []
       regs = node.root.allocate_reg[tup]
       reg = inst.outreg[0]

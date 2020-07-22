@@ -463,8 +463,7 @@ module CodeGenC
       if aescape then
         vals = inst.inreg.map {|ireg|
           val, convp = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-          srct = get_ctype(ccgen, ireg, tup, infer)
-          gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history, reg)
+          gen_type_conversion(ccgen, :mrb_value, convp, val, tup, node, infer, history, reg)
         }
 
         ccgen.dcode << "mrb_value v#{reg.id};\n"
@@ -528,6 +527,16 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ARYCAT do |ccgen, inst, node, infer, history, tup|
+      basereg = inst.inreg[0]
+      valreg = inst.inreg[1]
+      valereg = valreg.type[tup][0].element[inst.para[0]]
+      oreg = inst.outreg[0]
+      elereg = oreg.type[tup][0].element[inst.para[0]]
+      valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{basereg.id}[#{inst.para[0]}] = #{valsrc};\n"
+      ccgen.pcode << "v#{oreg.id} = v#{basereg.id};\n"
       nil
     end
 

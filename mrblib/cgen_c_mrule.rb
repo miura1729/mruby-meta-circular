@@ -678,9 +678,23 @@ module CodeGenC
           end
           outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
           outtype = get_ctype(ccgen, nreg, tup, infer)
-          args = inst.inreg[0..-2].map {|reg|
-            (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
-          }.join(", ")
+          if inst.para[1] == 127 then
+            i = 0
+            inreg = inst.inreg[1]
+            base = "v#{inreg.id}"
+            argsv = []
+            while argr = inreg.type[tup][0].element[i]
+              argsv.push "#{base}[#{i}]"
+              i = i + 1
+            end
+            args = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
+            args += ', '
+            args += argsv.join(', ')
+          else
+            args = inst.inreg[0..-2].map {|reg|
+              (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
+            }.join(", ")
+          end
           reg = inst.inreg[-1]
           tys = reg.get_type(tup)
           if tys and tys.size == 1 and tys[0].class_object != NilClass then
@@ -802,10 +816,10 @@ module CodeGenC
         sizesrc = stype.val.size.to_s
 
       elsif stype.is_escape? then
-        sizesrc = "RSTRING_LEN(#{strsrc})"
+        sizesrc = "RSTRING_LEN(#{strsrc[0]})"
 
       else
-        sizesrc = "strlen(#{strsrc})"
+        sizesrc = "strlen(#{strsrc[0]})"
       end
       otype = get_ctype(ccgen, oreg, tup, infer)
       val = gen_type_conversion(ccgen, otype, :mrb_int, sizesrc, tup, node, infer, history, oreg)
