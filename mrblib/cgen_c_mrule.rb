@@ -237,6 +237,13 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :%, Fixnum do |ccgen, inst, node, infer, history, tup|
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :%)
+      }
+      nil
+    end
+
     define_ccgen_rule_method :chr, Fixnum do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]

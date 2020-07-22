@@ -503,7 +503,7 @@ module CodeGenC
       end
       src = ""
 
-      if [:+, :-, :*, :/, :<<, :>>, :&, :|].include?(op) then
+      if [:+, :-, :*, :/, :<<, :>>, :&, :|, :%].include?(op) then
         if (srcd0 == :mrb_int or srcd0 == :mrb_float2) and
             (srcd1 == :mrb_int or srcd1 == :mrb_float2) then
           if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
@@ -715,7 +715,7 @@ module CodeGenC
 
       when :SEND
         case gins.para[0]
-        when :&, :|, :<<, :>>
+        when :&, :|, :<<, :>>, :%
           do_ifnot_multi_use(ccgen, gins, node, ti, history, tup) {
             gen_term(ccgen, gins, node, tup, ti, history, gins.inreg[0], gins.inreg[1], gins.para[0])
           }
