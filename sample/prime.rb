@@ -3,8 +3,26 @@
 #  make_inline_method  :all?
 #end
 
+module Enumerable
+  def all?(&block)
+    self.each{|val|
+      return false unless block.call(val)
+      nil
+    }
+    true
+  end
+
+  def select(&block)
+    ary = []
+    self.each{|val|
+      ary.push(val.__svalue) if block.call(val)
+    }
+    ary
+  end
+end
+
 def is_prime? n
-  (2...n).all? { |i| n % i != 0 }
+  (2...n-1).all? { |i| n % i != 0 }
 end
 
 def sexy_primes n

@@ -66,6 +66,14 @@ module CodeGenC
 
     define_ccgen_rule_op :GETGLOBAL do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
+      case inst.para[0]
+      when :$/
+        ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+        ccgen.dcode << ";\n"
+        ccgen.pcode << "v#{oreg.id} = mrb_gv_get(mrb, mrb_intern_lit(mrb, \"#{inst.para[0]}\"));\n"
+      else
+
+      end
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
@@ -719,10 +727,12 @@ module CodeGenC
       oreg = inst.outreg[0]
       et = oreg.get_type(tup)[0]
       ereg = et.element[0]
-      bval = reg_real_value(ccgen, inst.inreg[0], ereg, node, tup, infer, history)
-      eval = reg_real_value(ccgen, inst.inreg[1], ereg, node, tup, infer, history)
+      bval, bt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      eval, et = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       etype = get_ctype(ccgen, ereg, tup, infer)
       if oreg.is_escape?(tup) then
+        bval = gen_type_conversion(ccgen, :mrb_value, bt, bval, tup, node, infer, history, oreg)
+        eval = gen_type_conversion(ccgen, :mrb_value, et, eval, tup, node, infer, history, oreg)
         # TODO BOXING Range
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         ccgen.pcode << "v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"

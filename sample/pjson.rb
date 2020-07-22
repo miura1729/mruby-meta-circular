@@ -89,8 +89,8 @@
               c = self.next
               c0 = c.downcase
               i = '0123456789abcdef'.index(c0)
-              if i == nil
-#              if i.nil?
+#              if i == nil
+              if i.nil?
                 self.back
                 break
               end
