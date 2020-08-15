@@ -263,11 +263,12 @@ module CodeGenC
 
           base = 0
           rectype = rectypes[0]
-          condsrc, nice = gen_type_checker(ccgen, inst.inreg[0], rectype)
+          condval = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)[0]
+          condsrc, nice = gen_type_checker(ccgen, condval, rectype)
           if !nice then
             base = 1
             rectype = rectypes[1]
-            condsrc, nice = gen_type_checker(ccgen, inst.inreg[0], rectype)
+            condsrc, nice = gen_type_checker(ccgen, condval, rectype)
           end
           ccgen.pcode << "if (#{condsrc}) {\n"
 
@@ -292,7 +293,7 @@ module CodeGenC
             p inst.filename
             p inst.line
             p name
-            p intype[0][0]
+            p intype[0][base]
             ccgen.pcode << "mrb_no_method_error1(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
           end
 
@@ -318,7 +319,7 @@ module CodeGenC
             p inst.filename
             p inst.line
             p name
-            p intype[0][1]
+            p intype[0][1 - base]
             ccgen.pcode << "mrb_no_method_error2(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
           end
           ccgen.pcode << "}\n"
@@ -380,7 +381,7 @@ module CodeGenC
           p inst.filename
           p inst.line
           p name
-          p intype[0][0]
+          p intype[0]
           ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end
       end
@@ -1109,14 +1110,15 @@ EOS
     end
 
     def self.can_use_caller_area(otype)
-      rc = otype.place.keys.any? {|e|
+      place_kind = otype.place.keys
+      rc = place_kind.any? {|e|
         e.is_a?(MTypeInf::UserDefinedType) or
         e.is_a?(MTypeInf::ContainerType) or
         e == :return_fst
       }
       if rc then
         rc2 = nil
-        if otype.place.keys.all? {|e1|
+        if place_kind.all? {|e1|
             if (e1.is_a?(MTypeInf::UserDefinedType) or
                 e1.is_a?(MTypeInf::ContainerType)) and
                 otype.level == e1.level and rc2 == nil then
@@ -1132,7 +1134,7 @@ EOS
           return rc2
         end
 
-        if otype.place.keys.all? {|e1|
+        if place_kind.all? {|e1|
             !(e1.is_a?(MTypeInf::UserDefinedType) or
             e1.is_a?(MTypeInf::ContainerType)) or
             otype.level <= e1.level + 1
@@ -1141,7 +1143,7 @@ EOS
           return 2
         end
 
-        if otype.place.keys.all? {|e1|
+        if place_kind.all? {|e1|
             !(e1.is_a?(MTypeInf::UserDefinedType) or
             e1.is_a?(MTypeInf::ContainerType)) or
             otype.level <= e1.level + 2
