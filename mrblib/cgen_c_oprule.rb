@@ -540,7 +540,11 @@ module CodeGenC
       valereg = valreg.type[tup][0].element[inst.para[0]]
       oreg = inst.outreg[0]
       elereg = oreg.type[tup][0].element[inst.para[0]]
-      valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
+      if valereg then
+        valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
+      else
+        valsrc = "mrb_nil_value()"
+      end
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{basereg.id}[#{inst.para[0]}] = #{valsrc};\n"

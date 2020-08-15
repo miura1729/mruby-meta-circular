@@ -1199,33 +1199,33 @@ EOS
       nil
     end
 
-    def self.gen_type_checker(ccgen, srcreg, tgtype)
+    def self.gen_type_checker(ccgen, srcval, tgtype)
       tgcls = tgtype.class_object
 
       case tgcls.to_s.to_sym
       when :NilClass
-        ["mrb_nil_p(v#{srcreg.id})", false]
+        ["mrb_nil_p(#{srcval})", false]
 
       when :Fixnum
-        ["mrb_fixnum_p(v#{srcreg.id})", true]
+        ["mrb_fixnum_p(#{srcval})", true]
 
       when :Float
-        ["mrb_float_p(v#{srcreg.id})", true]
+        ["mrb_float_p(#{srcval})", true]
 
       when :String
-        ["mrb_string_p(v#{srcreg.id})", true]
+        ["mrb_string_p(#{srcval})", true]
 
       when :Symbol
-        ["mrb_symbol_p(v#{srcreg.id})", true]
+        ["mrb_symbol_p(#{srcval})", true]
 
       when :Array
-        ["mrb_array_p(v#{srcreg.id})", true]
+        ["mrb_array_p(#{srcval})", true]
 
       when :Hash
-        ["mrb_hash_p(v#{srcreg.id})", true]
+        ["mrb_hash_p(#{srcval})", true]
 
       else
-        ["mrb_obj_is_kind_of(mrb, v#{srcreg.id}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))". true]
+        ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))". true]
       end
     end
 
