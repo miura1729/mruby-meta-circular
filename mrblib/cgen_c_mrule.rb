@@ -890,7 +890,46 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :+, String do |ccgen, inst, node, infer, history, tup|
-      @@ruletab[:CCGEN][:STRCAT].call(ccgen, inst, node, infer, history, tup)
+      ireg0 = inst.inreg[0]
+      ireg0.flush_type(tup)
+      ireg1 = inst.inreg[1]
+      ireg1.flush_type(tup)
+      oreg = inst.outreg[0]
+      ccgen.dcode << "mrb_value v#{oreg.id};\n"
+#      val0t = get_ctype(ccgen, ireg0, tup, infer)
+#      val0 = "v#{ireg0.id}"
+#      val1t = get_ctype(ccgen, ireg1, tup, infer)
+#      val1 = "v#{ireg1.id}"
+      val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
+      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+
+      if val0t == :mrb_value then
+        if val1t == :mrb_value then
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
+        else
+          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
+        end
+      else
+        val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history, oreg)
+        p0var = "v#{oreg.id}"
+        ccgen.pcode << "#{p0var} = #{val0};\n"
+        if val1t == :mrb_value then
+#          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+          p1var = "v#{ireg1.id}"
+          ccgen.dcode << "mrb_value #{p1var};\n"
+          ccgen.pcode << "#{p1var} = #{val1};\n"
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{p0var}, #{p1var});\n"
+        else
+          val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
+          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
+        end
+      end
+
       nil
     end
 
