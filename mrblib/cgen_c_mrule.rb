@@ -156,6 +156,28 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :[], Hash do |ccgen, inst, node, infer, history, tup|
+      hreg = inst.inreg[0]
+      kreg = inst.inreg[1]
+      oreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, oreg, tup, infer)
+      hashsrc, srct = reg_real_value_noconv(ccgen, hreg, node, tup, infer, history)
+      hashsrc = gen_type_conversion(ccgen, :mrb_value, srct, hashsrc, tup, node, infer, history, nil)
+
+      keysrc, srct = reg_real_value_noconv(ccgen, kreg, node, tup, infer, history)
+      keysrc = gen_type_conversion(ccgen, :mrb_value, srct, keysrc, tup, node, infer, history, nil)
+
+
+      gen_gc_table(ccgen, inst, node, infer, history, tup)
+      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      src = "mrb_hash_get(mrb, #{hashsrc}, #{keysrc})"
+      src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :[]=, Hash do |ccgen, inst, node, infer, history, tup|
       hreg = inst.inreg[0]
       kreg = inst.inreg[1]
@@ -175,7 +197,7 @@ module CodeGenC
       ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
-      ccgen.pcode << "#{src}\n;"
+      ccgen.pcode << "#{src};\n"
       nil
     end
 
@@ -186,6 +208,18 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :to_s, Fixnum do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      src, srct = reg_real_value_noconv(ccgen, ireg,  node, tup, infer, history)
+      src = gen_type_conversion(ccgen, [:char, "*"], srct, src, tup, node, infer, history, oreg)
+
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << " = alloca(255);\n"
+      ccgen.pcode << "sprintf(v#{oreg.id}, \"%d\", #{src});\n"
       nil
     end
 
