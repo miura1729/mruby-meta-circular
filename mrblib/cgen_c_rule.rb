@@ -33,7 +33,13 @@ module CodeGenC
     end
 
     def self.is_not_assign_emit(outr)
-      outr.setpoint.size != 0 or outr.refpoint.size < 3 or
+      usep = outr.refpoint[0]
+      if usep and usep.op == :MOVE then
+        nr = usep.outreg[0]
+      else
+        nr = outr
+      end
+      outr.setpoint.size != 0 or nr.refpoint.size < 3 or
         ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
         [
           :SENDB, :SEND, :ARRAY, :MOVE, :GETIV, :STRCAT
