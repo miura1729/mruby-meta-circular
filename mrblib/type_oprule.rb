@@ -781,6 +781,7 @@ module MTypeInf
       arrtype.each do |at|
         if at.class_object == Array then
           inst.outreg[0].add_same at.element[idx]
+          inst.outreg[0].flush_type_alltup(tup)
 
         else
           if idx == 0 then

@@ -297,6 +297,8 @@ module MTypeInf
       if @callstack.size > 0 then
         proc = @callstack[-1][3]
         rets = saairep.retreg.refpoint
+
+        # Check return value is from caller method(Not escape)
         noesc = rets.all? {|rins|
           rreg = rins.inreg[0]
 
@@ -306,6 +308,7 @@ module MTypeInf
           rreg.genpoint.op == :ENTER
         }
 
+        # Check return value is from GETIV
         ivvar = rets.all? {|rins|
           rreg = rins.inreg[0]
           if rreg.genpoint.is_a?(RiteSSA::Inst) then

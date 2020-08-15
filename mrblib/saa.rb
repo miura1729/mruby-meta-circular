@@ -308,15 +308,18 @@ module RiteSSA
       imres = []
       reps.each do |irep|
         irep.iseq.each do |code|
-          if Irep::OPTABLE_SYM[get_opcode(code)] == :GETUPVAR and
-              getarg_c(code) == level then
+          op = Irep::OPTABLE_SYM[get_opcode(code)]
+          lv = getarg_c(code)
+          if op == :GETUPVAR and
+              lv == level then
             exres.push getarg_b(code)
           end
 
-          if Irep::OPTABLE_SYM[get_opcode(code)] == :SETUPVAR and
-              getarg_c(code) == level then
-            exres.push getarg_b(code)
-            imres.push getarg_b(code)
+          if op == :SETUPVAR and
+              lv == level then
+            regpos = getarg_b(code)
+            exres.push regpos
+            imres.push regpos
           end
         end
 

@@ -32,7 +32,7 @@ module MTypeInf
       clsobj = @class_object
       primobj = MTypeInf::PrimitiveType
       selfprimp = is_a?(primobj)
-      if clsobj != Class then
+      unless clsobj == Class then
         i = 0
         ed = arr.size
         while i < ed
@@ -278,7 +278,8 @@ module MTypeInf
     end
 
     def ==(other)
-      self.class == other.class &&
+#      other.class == LiteralType &&
+      other.class == self.class &&
         @class_object == other.class_object &&
         @val == other.val &&
         is_escape? == other.is_escape?
@@ -356,9 +357,9 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object &&
-        @element.size == other.element.size &&
+#        @element.size == other.element.size &&
         @hometown == other.hometown &&
-        @element == other.element &&
+#        @element == other.element &&
         is_escape? == other.is_escape?
 #      equal?(other)# && is_escape? == other.is_escape?
     end
