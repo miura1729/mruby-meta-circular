@@ -233,6 +233,15 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :static_array_allocate, HAL::Mem do |infer, inst, node, tup|
+      oty = inst.inreg[1].flush_type(tup)[tup][0]
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      type = UserDefinedStaticType.new(oty.val, inst, previrep, level)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_class_method :attribute, MMC do |infer, inst, node, tup|
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
@@ -252,6 +261,12 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :offsetof, MMC do |infer, inst, node, tup|
+      type = PrimitiveType.new(Fixnum)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_class_method :addressof, MMC do |infer, inst, node, tup|
       type = PrimitiveType.new(Fixnum)
       inst.outreg[0].add_type(type, tup)
       nil
@@ -470,6 +485,8 @@ module CodeGenC
 
       regnm = "v#{oreg.id}"
 
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
       case dtype
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
@@ -479,19 +496,58 @@ module CodeGenC
           etup = ereg.type.keys[0]
         end
         etype = get_ctype_aux(ccgen, ereg, etup, infer)
-        ccgen.dcode << "#{type} v#{oreg.id};\n"
+        ccgen.dcode << "#{type} #{regnm};\n"
         ccgen.hcode << "#{etype} #{regnm}_ent[];\n"
-        ccgen.pcode << "v#{oreg.id} = ((#{etype})(#{regnm}_ent));\n"
+        ccgen.pcode << "#{regnm} = ((#{etype})(#{regnm}_ent));\n"
 
       when :nil
-        ccgen.dcode << "#{type} v#{oreg.id};\n"
+        ccgen.dcode << "#{type} #{regnm};\n"
         ccgen.hcode << "mrb_value #{regnm}_ent;\n"
-        ccgen.pcode << "v#{oreg.id} = ((#{type})(&#{regnm}_ent));\n"
+        ccgen.pcode << "#{regnm} = ((#{type})(&#{regnm}_ent));\n"
 
       else
-        ccgen.dcode << "#{type} v#{oreg.id};\n"
+        ccgen.dcode << "#{type} #{regnm};\n"
         ccgen.hcode << "#{dtype} #{regnm}_ent;\n"
-        ccgen.pcode << "v#{oreg.id} = ((#{type})(&#{regnm}_ent));\n"
+        ccgen.pcode << "#regnm} = ((#{type})(&#{regnm}_ent));\n"
+      end
+
+      nil
+    end
+
+    define_ccgen_rule_method :static_array_allocate, HAL::Mem do |ccgen, inst, node, infer, history, tup|
+
+      oreg = inst.outreg[0]
+      type = get_ctype_aux_aux(ccgen, inst.outreg[0], tup, infer)
+      if type.is_a?(Array) then
+        dtype = type[0]
+        type = type.join
+      end
+      siz = (reg_real_value_noconv(ccgen, inst.inreg[2], node, tup, infer, history))[0].to_s
+
+      regnm = "v#{oreg.id}"
+
+      case dtype
+      when :array
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        ereg = reg.type[tup][0].element[uv]
+        etup = tup
+        if ereg.type[tup] == nil then
+          etup = ereg.type.keys[0]
+        end
+        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        ccgen.dcode << "#{type} #{regnm};\n"
+        ccgen.hcode << "#{etype} #{regnm}_ent[#{siz}];\n"
+        ccgen.pcode << "#{regnm} = ((#{etype})(#{regnm}_ent));\n"
+
+      when :nil
+        ccgen.dcode << "#{type} #{regnm};\n"
+        ccgen.hcode << "mrb_value #{regnm}_ent[#{siz}];\n"
+        ccgen.pcode << "#{regnm} = ((#{type})(#{regnm}_ent));\n"
+
+      else
+        ccgen.dcode << "#{type} #{regnm};\n"
+        ccgen.hcode << "#{dtype} #{regnm}_ent[#{siz}];\n"
+        ccgen.pcode << "#{regnm} = ((#{type})(#{regnm}_ent));\n"
       end
 
       nil
@@ -506,15 +562,24 @@ module CodeGenC
     end
 
     define_ccgen_rule_class_method :class_sizeof, MMC do |ccgen, inst, node, infer, history, tup|
-      klassobj = inst.inreg[1].flush_type(tup)[tup][0].val
+      oreg = inst.outreg[0]
+
+      cls = inst.inreg[1].flush_type(tup)[tup][0].val
+      clsssa =  RiteSSA::ClassSSA.get_instance(cls)
+      instype = ccgen.using_class[clsssa].values[0][0]
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = sizeof(struct #{instype});\n"
 
       nil
     end
 
     define_ccgen_rule_class_method :instance_sizeof, MMC do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      type = get_ctype_aux_aux(ccgen, inst.inreg[1], tup, infer)
-      ccgen.pcode << "v#{oreg.id} = sizeof(#{trype});"
+      sizecode = get_ctype_aux_aux(ccgen, inst.inreg[1], tup, infer)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = sizeof(#{sizecode[0]});\n"
     end
 
     define_ccgen_rule_class_method :offsetof, MMC do |ccgen, inst, node, infer, history, tup|
@@ -525,6 +590,14 @@ module CodeGenC
       ctype = get_ctype_aux_aux(ccgen, inst.inreg[1], tup, infer)
       ivval = cls.iv[name]
       ccgen.pcode << "v#{oreg.id} = (((#{ctype} *)0)->v#{ivval.id});"
+    end
+
+    define_ccgen_rule_class_method :addressof, MMC do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      objaddrcode = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0].to_s
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = (mrb_int)(#{objaddrcode});\n"
     end
   end
 end

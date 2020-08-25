@@ -1233,7 +1233,7 @@ EOS
         ["mrb_hash_p(#{srcval})", true]
 
       else
-        ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))". true]
+        ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))", true]
       end
     end
 

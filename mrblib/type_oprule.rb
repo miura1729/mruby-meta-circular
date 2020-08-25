@@ -887,6 +887,9 @@ module MTypeInf
       end
       sup = inst.inreg[1].flush_type(tup)[tup]
       supobj = sup[0].class_object
+      if supobj == NilClass then
+        supobj = Object
+      end
       regcls = nil
       cls = inst.objcache[supobj]
       if !cls then
