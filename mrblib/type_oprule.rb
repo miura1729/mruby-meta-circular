@@ -105,6 +105,7 @@ module MTypeInf
 #        p inst.inreg[0].type[tup].map {|ty| ty} if inst.inreg[0].type[tup]
         inst.inreg[0].type.each do |tp, tys|
           p "#{tp} #{tys.map {|ty| ty.place.keys}}"
+          p inst.inreg[0].is_escape?(tup)
 #          p "#{tp} #{tys.map {|ty| ty.place.values}}"
 #          p "#{tp} #{tys.map {|ty| ty.place}}"
         end
@@ -470,7 +471,15 @@ module MTypeInf
         end
 
         if o != 0 and argc > m1 + m2 then
-          pos = argc - m1 - m2
+          if r == 1 then
+            pos = argc - m1 - m2
+            if pos >= inst.para[3].size then
+              pos = inst.para[3].size - 1
+            end
+
+          else
+            pos = argc - m1 - m2
+          end
           nnode = inst.para[3][pos]
           ereg = [node.enter_reg[0]] + inst.outreg
           infer.inference_node(nnode, tup, ereg, history)

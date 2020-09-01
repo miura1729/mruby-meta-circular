@@ -21,6 +21,9 @@ module MTypeInf
       when :GETIV
         return inst.outreg[0]
 
+      when :ENTER
+        return true
+
       when :SEND
         case inst.para[0]
         when :[]
@@ -153,7 +156,7 @@ module MTypeInf
             end
           end
 
-        else
+        elsif genp.op == :ENTER then
           typemethodp = true
           type0 = PrimitiveType.new(NilClass)
           type1 = PrimitiveType.new(false.class)
@@ -161,15 +164,16 @@ module MTypeInf
           addtional_type_spec = [type0, type1]
           atype_spec_pos = addtional_type_spec
           atype_spec_neg = addtional_type_spec
-#          if genp.op == :MOVE then
-#            genp = genp.inreg[0].genpoint
-#          end
+          notp = !notp
+
+        else
+          # Do nothing
         end
       end
 
       type = inst.inreg[0].flush_type(tup)[tup]
       atype = nil
-      if genp.is_a?(RiteSSA::Inst) then
+      if genp.is_a?(RiteSSA::Inst) and genp.op != :ENTER then
         atype = genp.outreg[0].flush_type(tup)[tup]
       end
 
@@ -221,7 +225,11 @@ module MTypeInf
       elsif typemethodp then
         idx = notp ? idx : 1 - idx
         nd = get_jmp_target(node, idx, inst)
-        if greg = get_original_reg(infer, genp, tup) then
+        greg = get_original_reg(infer, genp, tup)
+        if greg == true then
+          greg = inst.inreg[0]
+        end
+        if greg then
           greg.positive_list.push atype_spec_pos
           greg.refpoint.each do |ginst|
             if ginst.outreg[0] then

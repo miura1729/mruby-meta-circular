@@ -252,6 +252,10 @@ module CodeGenC
           p inst.line
         end
         rectypes = intype[0]
+        ty0 = rectypes[0]
+        if rectypes.all? {|ty| ty.class_object == ty0.class_object} then
+          rectypes = [ty0]
+        end
         if rectypes.size == 1 then
           # Not polymorphism
           rectype = rectypes[0]
@@ -290,10 +294,11 @@ module CodeGenC
             end
 
           elsif name != :initialize
+            p "missing2"
             p inst.filename
             p inst.line
             p name
-            p intype[0][base]
+            p intype[0][1 - base]
             ccgen.pcode << "mrb_no_method_error1(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
           end
 
@@ -316,6 +321,7 @@ module CodeGenC
             end
 
           elsif name != :initialize
+            p "missing"
             p inst.filename
             p inst.line
             p name
@@ -378,10 +384,13 @@ module CodeGenC
           end
 
         elsif name != :initialize then
+          p "missing3"
           p inst.filename
           p inst.line
           p name
-          p intype[0]
+          p tup
+          intype[0].each { |ty| p ty.is_escape?}
+          intype[0].each { |ty| p ty.class_object}
           ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end
       end
@@ -890,7 +899,10 @@ module CodeGenC
       cls0 = rtype[0].class_object
 
       # not escape and pointer type is nullable.
-      if rtypesize == 2 then
+      if rtype.all? {|ty| ty.class_object == cls0} and !rtype[0].is_gcobject? then
+#        return rtype[0]
+
+      elsif rtypesize == 2 then
         if cls0 == NilClass then
           cls0 = rtype[1].class_object
         end
@@ -1121,7 +1133,7 @@ EOS
         if place_kind.all? {|e1|
             if (e1.is_a?(MTypeInf::UserDefinedType) or
                 e1.is_a?(MTypeInf::ContainerType)) and
-                otype.level == e1.level and rc2 == nil then
+                otype.level == e1.level and rc2 == nil and otype != e1 then
               rc2 = can_use_caller_area(e1)
             end
             e1 != :return_fst and
@@ -1256,8 +1268,10 @@ EOS
         when :gproc
           p MTypeInf::ProcType.gettab[dstt[1]]
           p "proc"
-          p caller
-          p srct
+#          p caller
+          p src
+          p node.ext_iseq[0].line
+          p node.ext_iseq[0].filename
           raise "Not support yet #{dstt} #{srct}"
 
         when :char
@@ -1505,7 +1519,8 @@ EOS
 
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      eele = inst.inreg[0].get_type(tup)[0].element
+      arytypes = inst.inreg[0].get_type(tup)
+      eele = arytypes[0].element
       elereg = eele[uv]
       nreg = inst.outreg[0]
       aryreg = inst.inreg[0]
@@ -1513,7 +1528,7 @@ EOS
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      if inst.inreg[0].is_escape?(tup) then
+      if inst.inreg[0].is_escape?(tup) or srct == :mrb_value then
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
       else
