@@ -32,13 +32,24 @@ module CodeGenC
       end
     end
 
-    def self.is_not_assign_emit(outr)
+    def self.is_not_assign_emit(outr, tup)
+      outr.flush_type(tup)
+      ty = outr.get_type(tup)
+      if ty then
+        ty = ty[0].class_object
+        if ty != Fixnum and ty != Float and
+            ty != TrueClass and ty != FalseClass then
+          return false
+        end
+      end
+
       usep = outr.refpoint[0]
       if usep and usep.op == :MOVE then
         nr = usep.outreg[0]
       else
         nr = outr
       end
+
       outr.setpoint.size != 0 or nr.refpoint.size < 3 or
         ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
         [
@@ -48,17 +59,23 @@ module CodeGenC
 
     def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
       outr = inst.outreg[0]
-      if !is_not_assign_emit(outr) then
+      if !is_not_assign_emit(outr, tup) then
         val, srct = yield
         dstt = get_ctype(ccgen, outr, tup, infer)
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, outr)
+        if val == nil then
+          p outr.type[tup]
+          p outr.refpoint.size
+          p dstt
+          p srct
+        end
         ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
 
     def self.do_ifnot_multi_use(ccgen, inst, node, ti, history, tup)
       outr = inst.outreg[0]
-      if is_not_assign_emit(outr) then
+      if is_not_assign_emit(outr, tup) then
         yield
       else
         srct = get_ctype(ccgen, outr, tup, ti)
@@ -910,6 +927,8 @@ module CodeGenC
         res = TTABLE[cls0]
         if res and cls0 != Array and cls0 != String then
           return :mrb_value
+        elsif res then
+          return res
         end
       end
 
@@ -1376,6 +1395,7 @@ EOS
           elsif srct.is_a?(String)
             case srct
             when "mrb_sym"
+              raise
               "(mrb_symbol_value(#{src}))"
 
             else
@@ -1407,7 +1427,7 @@ EOS
               p srct
               p src
               p "Not support yet #{dstt} #{srct}"
-              #raise "Not support yet #{dstt} #{srct}"
+              raise "Not support yet #{dstt} #{srct}"
             end
           end
 
@@ -1475,6 +1495,7 @@ EOS
 
         else
 #          p src
+          p "Not support yet #{dstt} #{srct}"
 #          raise "Not support yet #{dstt} #{srct}"
         end
       end

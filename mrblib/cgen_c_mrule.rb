@@ -896,12 +896,12 @@ module CodeGenC
       ireg1.flush_type(tup)
       oreg = inst.outreg[0]
       ccgen.dcode << "mrb_value v#{oreg.id};\n"
-#      val0t = get_ctype(ccgen, ireg0, tup, infer)
-#      val0 = "v#{ireg0.id}"
-#      val1t = get_ctype(ccgen, ireg1, tup, infer)
-#      val1 = "v#{ireg1.id}"
-      val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
-      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+      val0t = get_ctype(ccgen, ireg0, tup, infer)
+      val0 = "v#{ireg0.id}"
+      val1t = get_ctype(ccgen, ireg1, tup, infer)
+      val1 = "v#{ireg1.id}"
+#      val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
+#      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
 
       if val0t == :mrb_value then
         if val1t == :mrb_value then

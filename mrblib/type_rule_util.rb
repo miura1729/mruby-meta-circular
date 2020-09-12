@@ -272,11 +272,12 @@ module MTypeInf
           if rcthen == :return then
             # then part is return from current method, so outer block of if is
             # type limitation of else part.
+            history[nd] ||= []
             nd.exit_link.each do |nd2|
               history[nil].push nd2
-              if history[node].index(nd2) == nil then
-                history[node].push nd2
-                infer.inference_node(nd2, tup, node.exit_reg, history)
+              if history[nd].index(nd2) == nil then
+                history[nd].push nd2
+                infer.inference_node(nd2, tup, nd.exit_reg, history)
               end
               history[nil].pop
             end
