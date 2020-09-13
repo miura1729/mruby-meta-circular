@@ -888,7 +888,9 @@ module CodeGenC
       Proc => :gproc,
       NilClass => :mrb_value,
       String => :string,
-      Symbol => :symbol
+      Symbol => :symbol,
+      TrueClass => :mrb_bool,
+      FalseClass => :mrb_bool
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
@@ -922,13 +924,18 @@ module CodeGenC
       elsif rtypesize == 2 then
         if cls0 == NilClass then
           cls0 = rtype[1].class_object
+          rtypesize = 1
+        elsif rtype[1].class_object == NilClass then
+          rtypesize = 1
         end
-        rtypesize = 1
-        res = TTABLE[cls0]
-        if res and cls0 != Array and cls0 != String then
-          return :mrb_value
-        elsif res then
-          return res
+
+        if rtypesize == 1 then
+          res = TTABLE[cls0]
+          if res and cls0 != Array and cls0 != String then
+            return :mrb_value
+          elsif res then
+            return res
+          end
         end
       end
 

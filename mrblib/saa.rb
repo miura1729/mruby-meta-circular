@@ -754,6 +754,10 @@ module RiteSSA
           dstreg.refpoint.push inst
           inst.outreg.push dstreg
 
+          dstreg = @root.retreg
+          dstreg.refpoint.push inst
+          inst.outreg.push dstreg
+
         when :BLKPUSH
           bx = getarg_bx(code)
           m1 = (bx >> 10) & 0x3f

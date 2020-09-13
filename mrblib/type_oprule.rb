@@ -546,11 +546,17 @@ module MTypeInf
         stpos = infer.callstack.index {|item| item[0] == frame}
         otup = infer.callstack[stpos][1]
         inst.outreg[0].flush_type(otup, tup)
+
         inst.outreg[1].add_same(inst.inreg[0])
         inst.outreg[1].flush_type(otup, tup)
+
+        inst.outreg[2].add_same(inst.inreg[0])
+        otup = infer.callstack[-1][1]
+        inst.outreg[2].flush_type(otup, tup)
       else
         otup = infer.callstack[-1][1]
         inst.outreg[0].flush_type(otup, tup)
+        inst.outreg[0].type
       end
 
       if false and !inst.outreg[0].type[otup] then
