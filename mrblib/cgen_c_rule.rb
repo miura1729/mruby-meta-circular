@@ -894,7 +894,7 @@ module CodeGenC
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
-      rtype = reg.get_type(tup)
+      rtype = reg.type[tup]
       if !rtype then
 #        p caller
 #        p "#{tup} #{infer.typetupletab.rev_table[tup]}"
@@ -931,7 +931,7 @@ module CodeGenC
 
         if rtypesize == 1 then
           res = TTABLE[cls0]
-          if res and cls0 != Array and cls0 != String then
+          if res and cls0 != Array and cls0 != String or true then
             return :mrb_value
           elsif res then
             return res
