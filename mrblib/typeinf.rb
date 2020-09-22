@@ -302,10 +302,14 @@ module MTypeInf
         noesc = rets.all? {|rins|
           rreg = rins.inreg[0]
 
-          rreg.is_a?(RiteSSA::ParmReg) or
-          rreg.genpoint.op == :GETUPVAR or
-          rreg.genpoint.op == :LOADSELF or
-          rreg.genpoint.op == :ENTER
+#          rreg.is_a?(RiteSSA::ParmReg) or
+          if !rreg.is_a?(RiteSSA::ParmReg) then
+            rreg.genpoint.op == :GETUPVAR or
+              rreg.genpoint.op == :LOADSELF or
+              rreg.genpoint.op == :ENTER
+          else
+            false
+          end
         }
 
         # Check return value is from GETIV

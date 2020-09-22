@@ -224,10 +224,15 @@ module CodeGenC
             ccgen.dcode << "#{gen_declare(ccgen, ireg, tup, infer, true)};\n"
           end
 
-          src = reg_real_value(ccgen, ireg, oreg,
-                         node, tup, infer, history)
-          if src then
-            ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
+          if ireg.type[tup] == nil and
+              get_ctype(ccgen, oreg, tup, infer) != :mrb_value then
+            ccgen.pcode << "env.v#{oreg.id} = 0;/*enter */\n"
+          else
+            src = reg_real_value(ccgen, ireg, oreg,
+                           node, tup, infer, history)
+            if src then
+              ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
+            end
           end
         end
       }
@@ -535,11 +540,12 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ARYCAT do |ccgen, inst, node, infer, history, tup|
+      pos = inst.para[0] - 1
       basereg = inst.inreg[0]
       valreg = inst.inreg[1]
-      valereg = valreg.type[tup][0].element[inst.para[0]]
+      valereg = valreg.type[tup][0].element[pos]
       oreg = inst.outreg[0]
-      elereg = oreg.type[tup][0].element[inst.para[0]]
+      elereg = oreg.type[tup][0].element[MTypeInf::ContainerType::UNDEF_VALUE]
       if valereg then
         valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
       else
@@ -547,7 +553,7 @@ module CodeGenC
       end
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{basereg.id}[#{inst.para[0]}] = #{valsrc};\n"
+      ccgen.pcode << "v#{basereg.id}[#{pos}] = #{valsrc};\n"
       ccgen.pcode << "v#{oreg.id} = v#{basereg.id};\n"
       nil
     end

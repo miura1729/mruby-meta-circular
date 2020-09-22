@@ -1393,7 +1393,7 @@ EOS
 
             when :mrb_value
               gen_gc_table2(ccgen, node, oreg)
-              "(mrb_ary_new_value_from_values(mrb, #{srct[2]}, #{src}))"
+              "(mrb_ary_new_from_values(mrb, #{srct[2]}, #{src}))"
 
             else
               raise "Not support yet #{dstt} #{srct}"
