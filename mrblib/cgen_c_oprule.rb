@@ -540,7 +540,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ARYCAT do |ccgen, inst, node, infer, history, tup|
-      pos = inst.para[0] - 1
+      pos = inst.para[0]
       basereg = inst.inreg[0]
       valreg = inst.inreg[1]
       valereg = valreg.type[tup][0].element[pos]
@@ -604,8 +604,10 @@ module CodeGenC
         if val1t == :mrb_value then
 #          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
           p1var = "v#{ireg1.id}"
-          ccgen.dcode << "mrb_value #{p1var};\n"
-          ccgen.pcode << "#{p1var} = #{val1};\n"
+          if p1var != val1 then
+            ccgen.dcode << "mrb_value #{p1var};\n"
+            ccgen.pcode << "#{p1var} = #{val1};\n"
+          end
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{p0var}, #{p1var});\n"
         else

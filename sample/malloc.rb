@@ -3,14 +3,14 @@ class Allocator
   class Header
     def initiaize
       @size = 0
-      @next = 0  # NULL pointer
+      @next = mem::static_cast(0, Header)  # NULL pointer
     end
     attr_accessor :size
     attr_accessor :next
   end
 
   def initialize
-    cpu = HAL::CPU.new(0)
+    cpu = HAL::CPU.instance(0)
     mem = cpu.mem
 
     arena = mem.static_array_allocate(Fixnum, 65536)
@@ -24,7 +24,7 @@ class Allocator
   end
 
   def malloc(klass)
-    cpu = HAL::CPU.new(0)
+    cpu = HAL::CPU.instance(0)
     mem = cpu.mem
 
     size = MMC::class_sizeof(klass)

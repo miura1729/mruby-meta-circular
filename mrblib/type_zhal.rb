@@ -91,7 +91,7 @@ module MTypeInf
   end
 
   class TypeInferencer
-    define_inf_rule_class_method :new, HAL::CPU do |infer, inst, node, tup|
+    define_inf_rule_class_method :instance, HAL::CPU do |infer, inst, node, tup|
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = UserDefinedType.new(HAL::CPU, inst, previrep, level)
@@ -276,7 +276,7 @@ end
 
 module CodeGenC
   class CodeGen
-    define_ccgen_rule_class_method :new, HAL::CPU do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_class_method :instance, HAL::CPU do |ccgen, inst, node, infer, history, tup|
       nil
     end
 
@@ -387,8 +387,17 @@ module CodeGenC
           end
           ccgen.pcode << "asm volatile (\"#{mnemonic} #{src}, #{dst}\");\n"
 
+        elsif valtype.term0.class_object == HAL::Reg and
+            (valtype.opcode == :+ or valtype.opcode == :-) and
+            valtype.term1.class_object == Fixnum then
+          dst = "%#{idxtype.val}"
+          src = "#{valtype.term1.val}(%#{valtype.term0.regid})"
+          if valtype.opcode == :- then
+            src = "-#{src}"
+          end
+          ccgen.pcode << "asm volatile (\"lea #{src}, #{dst}\");\n"
         else
-          # This condition not support normally
+          raise
         end
 
       elsif valtype.class_object == HAL::UniExp then

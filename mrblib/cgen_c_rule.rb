@@ -34,27 +34,41 @@ module CodeGenC
 
     def self.is_not_assign_emit(outr, tup)
       outr.flush_type(tup)
-      ty = outr.get_type(tup)
+      usep = outr.refpoint[0]
+
+      if usep.nil? then
+        return true
+      end
+
+      nr = outr
+      nrgp = nr.genpoint
+      while !nrgp.is_a?(Fixnum) and nrgp.op == :MOVE do
+        nr = nrgp.inreg[0]
+        nrgp = nr.genpoint
+        usep = nr.refpoint[0]
+        if usep.nil? then
+          return true
+        end
+      end
+
+      ty = nr.get_type(tup)
       if ty then
         ty = ty[0].class_object
+        if ty == HAL::Regs or ty == HAL::Reg or ty == HAL::CPU or
+            ty == HAL::BinExp or ty == HAL::Mem then
+          return true
+        end
         if ty != Fixnum and ty != Float and
             ty != TrueClass and ty != FalseClass then
           return false
         end
       end
 
-      usep = outr.refpoint[0]
-      if usep and usep.op == :MOVE then
-        nr = usep.outreg[0]
-      else
-        nr = outr
-      end
-
-      outr.setpoint.size != 0 or nr.refpoint.size < 3 or
-        ((!outr.genpoint.is_a?(RiteSSA::Inst)) or
+      nr.setpoint.size != 0 or nr.refpoint.size < 3 or
+        ((!nr.genpoint.is_a?(RiteSSA::Inst)) or
         [
           :SENDB, :SEND, :ARRAY, :MOVE, :GETIV, :STRCAT
-        ].include?(outr.genpoint.op))
+        ].include?(nr.genpoint.op))
     end
 
     def self.do_if_multi_use(ccgen, inst, node, infer, history, tup)
@@ -571,7 +585,6 @@ module CodeGenC
             end
           end
         else
-          #p reg0.get_type(tup)
           op_send(ccgen, gins, node, ti, history, tup)
           needdecl = false
           src = "v#{gins.outreg[0].id}"

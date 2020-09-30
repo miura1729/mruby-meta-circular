@@ -625,20 +625,20 @@ module RiteSSA
           inst.para.push regtab.dup
           if num == 127 then
             reg = regtab[a + 1]
-            inreg.refpoint.push inst
+            reg.refpoint.push inst
             inst.inreg.push reg
             num = 1
           else
             num.times do |i|
               reg = regtab[a + 1 + i]
-              inreg.refpoint.push inst
+              reg.refpoint.push inst
               inst.inreg.push reg
             end
           end
 
           if Irep::OPTABLE_SYM[op] == :SENDB then
             reg = regtab[a + 1 + num]
-            inreg.refpoint.push inst
+            reg.refpoint.push inst
             inst.inreg.push reg
           else
             nilreg = Reg.new(nil)

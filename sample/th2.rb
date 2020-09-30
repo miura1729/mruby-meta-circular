@@ -1,7 +1,7 @@
 MTypeInf::inference_main {
   MMC::attribute(:section, "BOOT")
   def boot
-    cpu = HAL::CPU.new(0)
+    cpu = HAL::CPU.instance(0)
     regs = cpu.regs
     mem = cpu.mem
     #  $foo = regs
@@ -18,7 +18,8 @@ MTypeInf::inference_main {
     regs[:sp] = 0x7c00
     regs[:ax] = regs[:bx]
     regs[:ax] = regs[:ax] + 1
-    regs[:ax] = regs[:ax] + regs[:bx]
+    regs[:ax] = regs[:bx] + 1
+    regs[:ax] = regs[:ax] + 2
     mem[regs[:ax]] = regs[:ax]
     #  mem[regs[:ax] + 4] = regs[:ax]
     #  regs[:ax] = mem[regs[:ax] + 4]

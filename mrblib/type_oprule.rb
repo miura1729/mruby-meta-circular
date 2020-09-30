@@ -12,6 +12,7 @@ module MTypeInf
 
     define_inf_rule_op :MOVE do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
+      inst.outreg[0].flush_type(tup)
       inst.outreg[0].negative_list = inst.inreg[0].negative_list.clone
       inst.outreg[0].positive_list = inst.inreg[0].positive_list.clone
       olddreg = inst.para[0]
