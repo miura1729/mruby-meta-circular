@@ -719,7 +719,7 @@ module CodeGenC
             mtab = ccgen.proctab[ptype.irep]
             nminf = mtab[0].dup
             bfunc = gen_block_func("p#{ptype.id}", ptype.slf.class_object, 0, utup)
-            dstt = get_ctype(ccgen, inst.inreg[1], tup, infer)
+            dstt = get_ctype(ccgen, inst.inreg[0], tup, infer)
             nminf[0] = bfunc
             nminf[1] = ptype
             nminf[2] = utup

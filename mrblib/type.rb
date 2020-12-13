@@ -449,7 +449,7 @@ module MTypeInf
           end
         }.join(', ')
         if level < 1 then
-          #          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}]>"
+#          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}] e=#{is_escape?}>"
           rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} #{@irep.irep.inspect}>"
         else
           rc = "#{@class_object.inspect}<>"

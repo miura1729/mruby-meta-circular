@@ -171,7 +171,7 @@ module CodeGenC
       if pty == :mrb_value then
         pos = proc.env.index(oreg)
         dst = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
-        val = reg_real_value2(ccgen, ireg, oreg, node, tup, pttup, infer, history)
+        val = reg_real_value2(ccgen, ireg, oreg, node, tup, ptup, infer, history)
         val = gen_type_conversion(ccgen, :mrb_value, dstt, val, tup, node, infer, history, oreg)
         ccgen.pcode << "#{dst} = #{val};\n"
       else

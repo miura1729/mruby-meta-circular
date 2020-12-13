@@ -1415,7 +1415,6 @@ EOS
           elsif srct.is_a?(String)
             case srct
             when "mrb_sym"
-              raise
               "(mrb_symbol_value(#{src}))"
 
             else
@@ -1474,7 +1473,11 @@ EOS
             when :mrb_float2
               "((mrb_int)#{src})"
 
+            when :mrb_bool
+              "((mrb_int)#{src})"
+
             else
+              p src
               raise "Not support yet #{dstt} #{srct}"
             end
           end
