@@ -817,7 +817,27 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :class_defined?, Kernel do |infer, inst, node, tup|
+    define_inf_rule_method :define_method, Kernel do |infer, inst, node, tup|
+      # p inst.inreg[1].flush_type(tup)[tup]
+      inst.inreg[1].flush_type(tup)[tup].each do |ele|
+        name = ele.val.to_sym
+        # p name
+        type = SymbolType.new(Symbol, name)
+        inst.outreg[0].add_type(type, tup)
+        tclass = inst.inreg[0].flush_type(tup)[tup][0].val
+        proc = inst.inreg[2].flush_type(tup)[tup][0]
+        ruby_methodtab = get_ruby_methodtab
+        ruby_methodtab[name] ||= {}
+        ruby_methodtab[name][tclass] = proc
+        tclobj = RiteSSA::ClassSSA.get_instance(tclass)
+        # p tclass
+        tclobj.method[name] = proc.irep
+      end
+
+      nil
+    end
+
+    define_inf_rule_method :class_defubed?, Kernel do |infer, inst, node, tup|
       arg = inst.inreg[1].flush_type(tup)[tup]
       type = LiteralType.new(TrueClass, true)
       inst.outreg[0].add_type(type, tup)
