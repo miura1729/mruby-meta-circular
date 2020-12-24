@@ -14,6 +14,7 @@ module RiteSSA
       @same_parm = {}
       @positive_list = []
       @negative_list = []
+      @use_value = nil
       if ins.is_a?(Inst) then
         ins.node.root.allreg.push self
       end
@@ -77,7 +78,7 @@ module RiteSSA
           end
         end
       end
-      nty.merge(type)
+      nty.merge(type, @use_value)
     end
 
     def add_same(st)
@@ -205,8 +206,19 @@ module RiteSSA
       false
     end
 
+    def set_use_value
+      if @use_value then
+        return
+      end
+      @use_value = true
+      @same_parm.each do |reg, val|
+        reg.set_use_value
+      end
+    end
+
     attr_accessor :positive_list
     attr_accessor :negative_list
+    attr_accessor :use_value
     attr :genpoint
     attr :refpoint
     attr :setpoint
@@ -224,8 +236,23 @@ module RiteSSA
   end
 
   class ParmReg<Reg
-    def initialize(ins)
-      super
+    def initialize(ins, ssairep)
+      @ssairep = ssairep
+      super(ins)
+    end
+
+    def add_same_parm(st)
+      @same_parm[st] = true
+    end
+
+    def set_use_value
+      if @use_value then
+        return
+      end
+      @use_value = true
+      @same_parm.each do |reg, val|
+        reg.set_use_value
+      end
     end
   end
 
@@ -1036,9 +1063,9 @@ module RiteSSA
       end
 
       @nodes.each do |pos, dag|
-        @regtab = [ParmReg.new(0)]
+        @regtab = [ParmReg.new(0, self)]
         (@irep.nregs - 1).times do |i|
-          @regtab.push ParmReg.new(i + 1)
+          @regtab.push ParmReg.new(i + 1, self)
         end
         dag.make_ext_iseq
       end

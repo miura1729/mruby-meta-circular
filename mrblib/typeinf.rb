@@ -121,6 +121,7 @@ module MTypeInf
     attr :messages
     attr :exception
     attr_accessor :fiber
+    attr_accessor :step
 
     def dump_method(name, node)
       level = @option[:dump_level]
@@ -228,7 +229,11 @@ module MTypeInf
       bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil)
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
-       @step += 1
+      @step += 1
+      inference_block(saairep, intype, tup, 2, bproc)
+      @step += 1
+      inference_block(saairep, intype, tup, 2, bproc)
+      @step += 1
       inference_block(saairep, intype, tup, 2, bproc)
       bproc
     end
@@ -238,10 +243,19 @@ module MTypeInf
         return false
       end
       fixp = true
+      instent = @callstack[-1][4]
+      if instent then
+        caller_inst = instent[1]
+      end
       intype.each_with_index do |tys, i|
         if tys then
-          if !saairep.nodes[0].enter_reg[i] then
-            saairep.nodes[0].enter_reg[i] = RiteSSA::ParmReg.new(i)
+          nreg = saairep.nodes[0].enter_reg[i]
+          if !nreg then
+            nreg = RiteSSA::ParmReg.new(i, saairep)
+            saairep.nodes[0].enter_reg[i] = nreg
+          end
+          if caller_inst then
+            nreg.add_same_parm caller_inst.inreg[i]
           end
           tys.each do |ty|
             if saairep.nodes[0].enter_reg[i].add_type(ty, tup) then
@@ -253,18 +267,19 @@ module MTypeInf
 
       if fixp then
         saairep.argtab[tup] ||= 0
-        saairep.argtab[tup] += 1
-      end
 
-      if fixp and saairep.argtab[tup] > @step then
-        exexp = saairep.export_exception
-        if exexp and @exception.size == 0 then
-          reg = RiteSSA::Reg.new(nil)
-          @exception.push reg
-          reg.add_same exexp
+        if saairep.argtab[tup] > @step then
+          exexp = saairep.export_exception
+          if exexp and @exception.size == 0 then
+            reg = RiteSSA::Reg.new(nil)
+            @exception.push reg
+            reg.add_same exexp
+          end
+
+          return true
         end
 
-        return true
+        saairep.argtab[tup] += 1
       end
 
       # clear all regs
@@ -302,7 +317,7 @@ module MTypeInf
         noesc = rets.all? {|rins|
           rreg = rins.inreg[0]
 
-#          rreg.is_a?(RiteSSA::ParmReg) or
+          #          rreg.is_a?(RiteSSA::ParmReg) or
           if !rreg.is_a?(RiteSSA::ParmReg) then
             rreg.genpoint.op == :GETUPVAR or
               rreg.genpoint.op == :LOADSELF or
@@ -351,7 +366,7 @@ module MTypeInf
       in_reg.each_with_index do |ireg, i|
         if ireg then
           if !node.enter_reg[i] then
-            node.enter_reg[i] = RiteSSA::ParmReg.new(i)
+            node.enter_reg[i] = RiteSSA::ParmReg.new(i, nil)
           end
           node.enter_reg[i].add_same ireg
           node.enter_reg[i].flush_type(tup)

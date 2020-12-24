@@ -160,7 +160,11 @@ module MTypeInf
                 inst.outreg[0].flush_type_alltup(tup, false)
 
               when MTypeInf::PrimitiveType
-                inst.outreg[0].add_same altele
+                #inst.outreg[0].add_same altele
+                arrele.each do |idx, typ|
+                  typ.flush_type(tup)
+                  inst.outreg[0].add_same typ
+                end
                 # altele.flush_type_alltup(tup)
                 inst.outreg[0].flush_type_alltup(tup, false)
 
@@ -681,6 +685,7 @@ module MTypeInf
           infer.callstack[-1][0].have_return = true
         end
 
+        infer.callstack[-1][4] = [nil, inst]
         infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg
         inst.outreg[0].flush_type(tup, ntup)
@@ -818,20 +823,24 @@ module MTypeInf
     end
 
     define_inf_rule_method :define_method, Kernel do |infer, inst, node, tup|
-      # p inst.inreg[1].flush_type(tup)[tup]
+      if inst.inreg[1].use_value == nil then
+        infer.step = 0
+        inst.inreg[1].set_use_value
+      end
       inst.inreg[1].flush_type(tup)[tup].each do |ele|
-        name = ele.val.to_sym
-        # p name
-        type = SymbolType.new(Symbol, name)
-        inst.outreg[0].add_type(type, tup)
-        tclass = inst.inreg[0].flush_type(tup)[tup][0].val
-        proc = inst.inreg[2].flush_type(tup)[tup][0]
-        ruby_methodtab = get_ruby_methodtab
-        ruby_methodtab[name] ||= {}
-        ruby_methodtab[name][tclass] = proc
-        tclobj = RiteSSA::ClassSSA.get_instance(tclass)
-        # p tclass
-        tclobj.method[name] = proc.irep
+        if ele.is_a?(LiteralType) then
+          name = ele.val.to_sym
+          type = SymbolType.new(Symbol, name)
+          inst.outreg[0].add_type(type, tup)
+          tclass = inst.inreg[0].flush_type(tup)[tup][0].val
+          proc = inst.inreg[2].flush_type(tup)[tup][0]
+          ruby_methodtab = get_ruby_methodtab
+          ruby_methodtab[name] ||= {}
+          ruby_methodtab[name][tclass] = proc
+          tclobj = RiteSSA::ClassSSA.get_instance(tclass)
+          # p tclass
+          tclobj.method[name] = proc.irep
+        end
       end
 
       nil

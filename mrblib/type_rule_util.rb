@@ -378,6 +378,9 @@ module MTypeInf
       @@ruby_methodtab[name] ||= {}
       misirep = nil
       irepssa = nil
+      if recvtypes == nil then
+        recvtypes = []
+      end
       recvtypes.each do |ty|
         existf = false
         slf = ty.class_object
@@ -442,6 +445,11 @@ module MTypeInf
             # intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
+            intype.size.times do |i|
+              if irepssa.nodes[0].enter_reg[i].use_value then
+                inst.inreg[i].use_value = true
+              end
+            end
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if outreg then
               outreg.add_same irepssa.retreg

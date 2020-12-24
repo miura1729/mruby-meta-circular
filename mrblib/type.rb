@@ -28,10 +28,18 @@ module MTypeInf
     attr_accessor :place
     attr_accessor :version
 
-    def merge(arr)
+    def merge(arr, usevalue)
       clsobj = @class_object
       primobj = MTypeInf::PrimitiveType
       selfprimp = is_a?(primobj)
+
+      if usevalue then
+        unless arr.include?(self) then
+          arr.push self
+        end
+        return true
+      end
+
       unless clsobj == Class then
         i = 0
         ed = arr.size
@@ -61,7 +69,7 @@ module MTypeInf
 
               when MTypeInf::LiteralType
                 if ele.val != @val then
-                  if ele.class_object != Class  then
+                  if ele.class_object != Class and !usevalue then
                     if @val.is_a?(Numeric) then
                       positive = ele.val >= 0 && @val >= 0
                       arr[i] = NumericType.new(ele.class_object, positive)
