@@ -110,6 +110,7 @@ module MTypeInf
       @callstack = [[nil, nil, nil, nil, nil]]
       @messages = {}
       @step = 1
+      @continue = false
       @exception = []
       @fiber = nil
       @allocate_object = []
@@ -121,7 +122,7 @@ module MTypeInf
     attr :messages
     attr :exception
     attr_accessor :fiber
-    attr_accessor :step
+    attr_accessor :continue
 
     def dump_method(name, node)
       level = @option[:dump_level]
@@ -230,11 +231,12 @@ module MTypeInf
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
       @step += 1
-      inference_block(saairep, intype, tup, 2, bproc)
-      @step += 1
-      inference_block(saairep, intype, tup, 2, bproc)
-      @step += 1
-      inference_block(saairep, intype, tup, 2, bproc)
+
+      while @continue
+        @continue = false
+        inference_block(saairep, intype, tup, 2, bproc)
+        @step += 1
+      end
       bproc
     end
 
@@ -267,6 +269,7 @@ module MTypeInf
 
       if fixp then
         saairep.argtab[tup] ||= 0
+        saairep.argtab[tup] += 1
 
         if saairep.argtab[tup] > @step then
           exexp = saairep.export_exception
@@ -278,8 +281,6 @@ module MTypeInf
 
           return true
         end
-
-        saairep.argtab[tup] += 1
       end
 
       # clear all regs

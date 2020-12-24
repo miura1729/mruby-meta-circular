@@ -824,7 +824,7 @@ module MTypeInf
 
     define_inf_rule_method :define_method, Kernel do |infer, inst, node, tup|
       if inst.inreg[1].use_value == nil then
-        infer.step = 0
+        infer.continue = true
         inst.inreg[1].set_use_value
       end
       inst.inreg[1].flush_type(tup)[tup].each do |ele|
