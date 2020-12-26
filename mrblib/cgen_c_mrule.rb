@@ -231,7 +231,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       ireg = inst.inreg[0]
       src, srct = reg_real_value_noconv(ccgen, ireg,  node, tup, infer, history)
-      src = gen_type_conversion(ccgen, [:char, "*"], srct, src, tup, node, infer, history, oreg)
+      #src = gen_type_conversion(ccgen, [:char, "*"], srct, src, tup, node, infer, history, oreg)
 
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << " = alloca(255);\n"
