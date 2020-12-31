@@ -312,10 +312,12 @@ module CodeGenC
         ccgen.pcode << "mrb->exc = 0;\n"
       else
         oreg = inst.outreg[0]
-        ireg0 = inst.inreg[0]
-        ireg1 = inst.inreg[1]
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
-        ccgen.pcode << "v#{oreg.id} = mrb_bool_value(mrb_obj_is_kind_of(mrb, v#{ireg0.id}, mrb_class_ptr(v#{ireg1.id})));\n"
+        if oreg.type[tup].size > 1 then
+          ireg0 = inst.inreg[0]
+          ireg1 = inst.inreg[1]
+          ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
+          ccgen.pcode << "v#{oreg.id} = mrb_bool_value(mrb_obj_is_kind_of(mrb, v#{ireg0.id}, mrb_class_ptr(v#{ireg1.id})));\n"
+        end
       end
       nil
     end
