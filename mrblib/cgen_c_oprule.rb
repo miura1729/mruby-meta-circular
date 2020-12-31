@@ -305,7 +305,7 @@ module CodeGenC
 
     define_ccgen_rule_op :RESCUE do |ccgen, inst, node, infer, history, tup|
       if inst.para[0] == 0 then
-        oreg = inst.outreg[1]
+        oreg = inst.outreg[0]
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
 
         ccgen.pcode << "v#{oreg.id} = mrb_obj_value(mrb->exc);\n"

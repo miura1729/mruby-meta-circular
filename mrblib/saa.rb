@@ -588,7 +588,7 @@ module RiteSSA
         when :ONERR
           off = getarg_sbx(code)
           respc = pc + off
-          inst.para.push respc
+          inst.para.push @root.nodes[respc]
           inst.para.push off
 
         when :RESCUE
@@ -599,12 +599,8 @@ module RiteSSA
           if cont == 0 then
             # No cont
             dstreg = Reg.new(inst)
-            regtab[b] = dstreg
-            inst.outreg.push dstreg
-            dstreg = Reg.new(inst)
             regtab[a] = dstreg
             inst.outreg.push dstreg
-
 
           else
             # cont
@@ -628,9 +624,14 @@ module RiteSSA
           inst.inreg.push inreg
 
         when :RAISE
-          inreg = regtab[getarg_a(code)]
+          a = getarg_a(code)
+          inreg = regtab[a]
           inreg.refpoint.push inst
           inst.inreg.push inreg
+
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
 
         when :EPUSH
           inst.para.push @irep.pool[getarg_bx(code)]

@@ -160,12 +160,15 @@ module MTypeInf
                 inst.outreg[0].flush_type_alltup(tup, false)
 
               when MTypeInf::PrimitiveType
-                #inst.outreg[0].add_same altele
-                arrele.each do |idx, typ|
-                  typ.flush_type(tup)
-                  inst.outreg[0].add_same typ
+                if inst.outreg[0].use_value then
+                  arrele.each do |idx, typ|
+                    typ.flush_type(tup)
+                    inst.outreg[0].add_same typ
+                  end
+                else
+                  inst.outreg[0].add_same altele
+                  altele.flush_type_alltup(tup)
                 end
-                # altele.flush_type_alltup(tup)
                 inst.outreg[0].flush_type_alltup(tup, false)
 
               else
@@ -790,14 +793,6 @@ module MTypeInf
       inst.outreg[0].add_type(type, tup)
       type = PrimitiveType.new(NilClass)
       inst.outreg[0].add_type(type, tup)
-      nil
-    end
-
-    define_inf_rule_method :strip, String do |infer, inst, node, tup|
-      level = infer.callstack.size
-      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-      type = StringType.new(String, inst, previrep, level, 2)
-      inst.outreg[0].add_type type, tup
       nil
     end
 

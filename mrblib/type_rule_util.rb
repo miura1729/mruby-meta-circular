@@ -316,12 +316,21 @@ module MTypeInf
 
     def self.handle_exception(infer, inst, node, tup, outreg, argc, history)
       rescuetab = node.root.rescuetab
-      pos = rescuetab.pop
+      handler = rescuetab.pop
 
-      infer.exception.each do |exreg|
+      if handler then
+        history[node] ||= []
+        history[node].push handler
+        infer.inference_node(handler, tup, inst.para[2], history)
+        false
+
+      else
         excreg = node.root.export_exception
-        excreg.add_same exreg
+        infer.exception.each do |exreg|
+          excreg.add_same exreg
+        end
         excreg.flush_type(tup)
+        false
       end
     end
 
@@ -445,11 +454,6 @@ module MTypeInf
             # intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
-            intype.size.times do |i|
-              if irepssa.nodes[0].enter_reg[i].use_value then
-                inst.inreg[i].use_value = true
-              end
-            end
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if outreg then
               outreg.add_same irepssa.retreg
@@ -506,7 +510,7 @@ module MTypeInf
 
       if infer.exception.size > 0 then
         # exception happen
-        handle_exception(infer, inst, node, tup, outreg, argc, history)
+        return handle_exception(infer, inst, node, tup, outreg, argc, history)
       end
       nil
     end
@@ -514,12 +518,13 @@ module MTypeInf
     def self.rule_send_common(infer, inst, node, tup, history)
       name = inst.para[0]
       argc = inst.para[1]
+      rc = nil
       make_intype(infer, inst.inreg, node, tup, argc) do |intype, argc2|
         recreg = inst.inreg[0]
 
-        rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc2, history)
+        rc = rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, inst.outreg[0], argc2, history)
       end
-      nil
+      rc
     end
 
     def self.rule_send_cfimc(infer, inst, node, tup)
