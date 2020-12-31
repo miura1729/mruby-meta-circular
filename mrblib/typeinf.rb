@@ -272,13 +272,6 @@ module MTypeInf
         saairep.argtab[tup] += 1
 
         if saairep.argtab[tup] > @step then
-          exexp = saairep.export_exception
-          if exexp and @exception.size == 0 then
-            reg = RiteSSA::Reg.new(nil)
-            @exception.push reg
-            reg.add_same exexp
-          end
-
           return true
         end
       end

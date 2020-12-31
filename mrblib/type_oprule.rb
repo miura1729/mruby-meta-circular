@@ -327,15 +327,28 @@ module MTypeInf
 
     define_inf_rule_op :RESCUE do |infer, inst, node, tup, history|
       if inst.para[0] == 0 then
-        infer.exception.each do |ereg|
-          inst.outreg[0].add_same ereg
-        end
+        inst.outreg[0].add_same infer.exception.pop
         inst.outreg[0].flush_type(tup)
       else
-        type = PrimitiveType.new(TrueClass)
-        inst.outreg[0].add_type type, tup
-        type = PrimitiveType.new(FalseClass)
-        inst.outreg[0].add_type type, tup
+        exobj = inst.inreg[0].flush_type(tup)[tup]
+        excls = inst.inreg[1].flush_type(tup)[tup]
+        if exobj.all? {|e| exobj[0].class_object == e.class_object}  and
+            excls.all? {|e| excls[0].val == e.val} then
+          p exobj
+          p excls
+          if exobj[0].class_object == excls[0].val then
+            type = PrimitiveType.new(TrueClass)
+            inst.outreg[0].add_type type, tup
+          else
+            type = PrimitiveType.new(FalseClass)
+            inst.outreg[0].add_type type, tup
+          end
+        else
+          type = PrimitiveType.new(TrueClass)
+          inst.outreg[0].add_type type, tup
+          type = PrimitiveType.new(FalseClass)
+          inst.outreg[0].add_type type, tup
+        end
       end
 
       nil

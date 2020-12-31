@@ -326,8 +326,8 @@ module MTypeInf
 
       else
         excreg = node.root.export_exception
-        infer.exception.each do |exreg|
-          excreg.add_same exreg
+        infer.exception.each do |excr|
+          excreg.add_same excr
         end
         excreg.flush_type(tup)
         false
