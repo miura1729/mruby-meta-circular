@@ -453,11 +453,11 @@ module MTypeInf
         end
 
         if r == 1 then
-          type = inst.objcache[tup]
+          type = inst.objcache[nil]
           if !type then
             level = infer.callstack.size
             previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-            inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
+            inst.objcache[nil] = type = ContainerType.new(Array, inst, previrep, level)
             type.element[uv] = RiteSSA::Reg.new(inst)
           end
 
