@@ -888,6 +888,24 @@ module MTypeInf
       rule_kernel_send(infer, inst, node, tup, intype)
     end
 
+    define_inf_rule_method :eval, Kernel do |infer, inst, node, tup, intype|
+      if inst.inreg[1].use_value == nil then
+        infer.continue = true
+        inst.inreg[1].set_use_value
+      end
+
+      arg = inst.inreg[1].flush_type(tup)[tup]
+      if arg.size == 1 and arg[0].is_a?(LiteralType) then
+        src = arg[0].val
+        proc = eval("lambda { #{src} }")
+        slf = inst.inreg[0].type[tup][0]
+        irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
+        bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil)
+        infer.inference_block(irep, [[slf]], tup, 2, bproc)
+      end
+      nil
+    end
+
     define_inf_rule_class_method :sqrt, Math do |infer, inst, node, tup|
       type = NumericType.new(Float, true)
       inst.outreg[0].add_type(type, tup)

@@ -504,7 +504,8 @@ EOS
 
       isuniq = true
       @compiled_method[proc.irep] ||= {}
-      ccm = @compiled_method[proc.irep]
+      @compiled_method[proc.irep][name] ||= {}
+      ccm = @compiled_method[proc.irep][name]
       ccodes = [rettype, args, @gccode, @dcode, @pcode]
       if ccm.size > 0 then
         ccm.each do |ptup, codes|

@@ -467,14 +467,19 @@ module MTypeInf
 
           # method missing
           irep = Irep::get_irep_instance(slf, :method_missing)
-          if irep then
-            p0 = Proc::search_proc(slf, :method_missing)
-            procssa = make_ssablock(p0)
-            @@ruby_methodtab[:method_missing] ||= {}
-            @@ruby_methodtab[:method_missing][slfcls] = procssa
-            irepssa = procssa.irep
-            clsobj = RiteSSA::ClassSSA.get_instance(slf)
-            clsobj.method[:method_missing] = irepssa
+          if irep or @@ruby_methodtab[:method_missing][slfcls] then
+            if @@ruby_methodtab[:method_missing][slfcls] then
+              procssa = @@ruby_methodtab[:method_missing][slfcls]
+              irepssa = procssa.irep
+            else
+              p0 = Proc::search_proc(slf, :method_missing)
+              procssa = make_ssablock(p0)
+              @@ruby_methodtab[:method_missing] ||= {}
+              @@ruby_methodtab[:method_missing][slfcls] = procssa
+              irepssa = procssa.irep
+              clsobj = RiteSSA::ClassSSA.get_instance(slf)
+              clsobj.method[:method_missing] = irepssa
+            end
             #intype[0] = [ty]
             ncls = SymbolType.instance(Symbol, name)
             intype = [intype[0], [ncls]] + intype[1..-1]
@@ -531,6 +536,11 @@ module MTypeInf
     end
 
     def self.rule_kernel_send(infer, inst, node, tup, intype)
+      if inst.inreg[1].use_value == nil then
+        infer.continue = true
+        inst.inreg[1].set_use_value
+      end
+
       mname = intype[1]
       intype = [intype[0]] + intype[2..-1]
       outr = inst.outreg[0]

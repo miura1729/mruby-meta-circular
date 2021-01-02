@@ -824,13 +824,20 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
-      level = infer.callstack.size
-      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-      type = StringType.new(String, inst, previrep, level)
+      strty0 = inst.inreg[0].flush_type(tup)[tup]
+      strty1 = inst.inreg[1].flush_type(tup)[tup]
 
-#      inst.inreg[0].add_type type, tup
-#      inst.inreg[1].add_type type, tup
-      inst.outreg[0].add_type type, tup
+      if strty0.size == 1 and strty1.size == 1 and
+          strty0[0].is_a?(LiteralType) and strty1[0].is_a?(LiteralType) then
+        val = strty0[0].val.to_s + strty1[0].val.to_s
+        inst.outreg[0].add_type LiteralType.new(String, val), tup
+
+      else
+        level = infer.callstack.size
+        previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+        type = StringType.new(String, inst, previrep, level)
+        inst.outreg[0].add_type type, tup
+      end
 
       inst.outreg[0].type[tup].each do |ty|
         ty.place[true] = [:STRCAT, inst.line]
