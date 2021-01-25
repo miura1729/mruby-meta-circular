@@ -373,6 +373,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
     break;
 
   default:
+    //disasm_once(mrb, irep, **ppc);
     mrb->compile_info.force_compile = 0;
     mrb->compile_info.nest_level = 0;
     rc = NULL;

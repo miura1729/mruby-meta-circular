@@ -4,9 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "opcode.h"
-#include "error.h"
+#include <mruby.h>
+#include <mruby/opcode.h>
+#include <mruby/error.h>
 #include "value_array.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"

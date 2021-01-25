@@ -1,12 +1,12 @@
 #include "mruby/jitcode.h"
-#include "math.h"
+#include <math.h>
 extern "C" {
-#include "mruby.h"
-#include "mruby/primitive.h"
-#include "mruby/array.h"
-#include "mruby/irep.h"
-#include "mruby/variable.h"
-#include "opcode.h"
+#include <mruby.h>
+#include <mruby/primitive.h>
+#include <mruby/array.h>
+#include <mruby/irep.h>
+#include <mruby/variable.h>
+#include <mruby/opcode.h>
 
 mrb_value
 mrbjit_instance_alloc(mrb_state *mrb, mrb_value cv)
@@ -1253,7 +1253,7 @@ mrbjit_prim_math_sin(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_math_callcfunc_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi, (void *)sin);
+  return code->mrbjit_prim_math_callcfunc_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi, (void *)((double (*)(double))sin));
 }
 
 
@@ -1262,7 +1262,7 @@ mrbjit_prim_math_cos(mrb_state *mrb, mrb_value proc, void *status, void *coi)
 {
   MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
 
-  return code->mrbjit_prim_math_callcfunc_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi, (void *)cos);
+  return code->mrbjit_prim_math_callcfunc_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi, (void *)((double (*)(double))cos));
 }
 
 mrb_value

@@ -220,7 +220,7 @@ stack_extend_alloc(mrb_state *mrb, int room)
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
   }
   stack_clear(mrb, &(newstack[oldsize]), size - oldsize);
-  envadjust(mrb, oldbase, newstack, size);
+  envadjust(mrb, oldbase, newstack, oldsize);
   mrb->c->stbase = newstack;
   mrb->c->stack = mrb->c->stbase + off;
   mrb->c->stend = mrb->c->stbase + size;

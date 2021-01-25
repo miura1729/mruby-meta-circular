@@ -3081,7 +3081,7 @@ do {                                                                 \
     emit_move(mrb, coi, reg_tmp0s, reg_tmp0, OffsetOf(mrb_callinfo, ridx));
     emit_cmp(mrb, coi, reg_tmp1s, reg_tmp0s);
     ja("@f", T_NEAR);
-    gen_exit(mrb, NULL, 0, 1, status, coi);
+    gen_exit(mrb, NULL, 1, 1, status, coi);
     L("@@");
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(struct mrb_context, rescue));
     emit_move(mrb, coi, reg_tmp0, reg_context, OffsetOf(struct mrb_context, ci));

@@ -481,7 +481,7 @@ mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
 MRB_API void
 mrb_iv_check(mrb_state *mrb, mrb_sym iv_name)
 {
-  if (!mrb_iv_p(mrb, iv_name)) {
+  if (!mrb_iv_p(mrb, iv_name) && 0) {
     mrb_name_error(mrb, iv_name, "'%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name));
   }
 }
