@@ -387,7 +387,10 @@ module CodeGenC
           if proc.irep.have_return then
             ccgen.have_ret_handler = true
             val = reg_real_value(ccgen, nreg, node.root.retreg2, node, tup, infer, history)
-            ccgen.pcode << "if (gctab->ret_status) return #{val};\n"
+            ccgen.pcode << "if (gctab->ret_status) {\n"
+            ccgen.pcode << "prevgctab->ret_status = gctab->ret_status;\n"
+            ccgen.pcode << "return #{val};\n"
+            ccgen.pcode << "}\n"
           end
 
           if procexport then

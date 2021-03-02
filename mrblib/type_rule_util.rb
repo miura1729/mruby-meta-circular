@@ -451,6 +451,11 @@ module MTypeInf
           end
 
           if irepssa then
+            curirep = infer.callstack[-1][0]
+            if !curirep.strict and irepssa.have_return then
+              # Current method is block and send have_return method
+              curirep.have_return = true
+            end
             # intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]

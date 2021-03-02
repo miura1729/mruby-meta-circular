@@ -338,10 +338,11 @@ int main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
   struct mrb_jmpbuf c_jmp;
+  struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab));
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
-    main_Object_0(mrb, mrb_top_self(mrb), NULL);
+    main_Object_0(mrb, mrb_top_self(mrb), gctab);
   }
   MRB_CATCH(&c_jmp) {
     mrb_p(mrb, mrb_obj_value(mrb->exc));

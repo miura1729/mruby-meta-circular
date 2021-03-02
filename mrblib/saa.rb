@@ -1118,7 +1118,7 @@ module RiteSSA
     attr :export_exception
     attr :rescuetab
     attr :ensuretab
-    attr :strict
+    attr_accessor :strict
     attr_accessor :export_regs
     attr_accessor :import_regs
     attr_accessor :allocate_reg
