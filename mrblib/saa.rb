@@ -333,9 +333,10 @@ module RiteSSA
     def get_export_reg(reps, level)
       exres = []
       imres = []
+      optabsym = Irep::OPTABLE_SYM
       reps.each do |irep|
         irep.iseq.each do |code|
-          op = Irep::OPTABLE_SYM[get_opcode(code)]
+          op = optabsym[get_opcode(code)]
           lv = getarg_c(code)
           if op == :GETUPVAR and
               lv == level then
@@ -368,7 +369,61 @@ module RiteSSA
         inst = Inst.new(op, @irep, pc, self, code)
         @ext_iseq.push inst
         case Irep::OPTABLE_SYM[op]
-        when :NOP
+        when :SEND, :SENDB, :FSEND, :ADD, :SUB,
+              :MUL, :DIV, :EQ, :LT, :LE, :GT, :GE then
+          name = @irep.syms[getarg_b(code)]
+          inst.para.push name
+
+          a = getarg_a(code)
+          num = getarg_c(code)
+          inreg = regtab[a]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg  # push self
+          inst.para.push num
+          inst.para.push regtab.dup
+          if num == 127 then
+            reg = regtab[a + 1]
+            reg.refpoint.push inst
+            inst.inreg.push reg
+            num = 1
+          else
+            num.times do |i|
+              reg = regtab[a + 1 + i]
+              reg.refpoint.push inst
+              inst.inreg.push reg
+            end
+          end
+
+          if Irep::OPTABLE_SYM[op] == :SENDB then
+            reg = regtab[a + 1 + num]
+            reg.refpoint.push inst
+            inst.inreg.push reg
+          else
+            nilreg = Reg.new(nil)
+            inst.inreg.push nilreg
+          end
+
+          # export local variables
+          exp_regset = {}
+          inst.inreg.each_with_index do |reg, ppos|
+            if reg.class == Reg then
+              gins = reg.genpoint
+              if gins.is_a?(Inst) and gins.op == :LAMBDA then
+                exregs = []
+                gins.para[2].each do |regno|
+                  exregs.push regtab[regno]
+                end
+
+                exp_regset[ppos] = exregs
+              end
+            end
+          end
+          inst.para.push exp_regset
+          inst.para.push a
+
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
 
         when :MOVE
           inreg = regtab[getarg_b(code)]
@@ -384,6 +439,61 @@ module RiteSSA
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
+
+        when :RETURN
+          rkind = getarg_b(code)
+          inst.para.push rkind
+          inreg = regtab[getarg_a(code)]
+          inreg.refpoint.push inst
+          inst.inreg.push inreg
+          rnode = @root
+          if rkind == 2 then  # OP_R_RETURN
+            while rnode.parent and !rnode.strict
+              rnode = rnode.parent
+            end
+            inst.para.push rnode
+            if rnode != @root then
+              @root.have_return = true
+            end
+          end
+
+          if rkind == 1 then # OP_R_BREAK
+            @root.have_break = true
+          end
+
+          dstreg = rnode.retreg
+          dstreg.refpoint.push inst
+#          regtab[getarg_a(code)] = dstreg
+          inst.outreg.push dstreg
+
+          dstreg = rnode.retreg2
+          dstreg.refpoint.push inst
+          inst.outreg.push dstreg
+
+          dstreg = @root.retreg
+          dstreg.refpoint.push inst
+          inst.outreg.push dstreg
+
+        when :ENTER
+          arg = getarg_ax(code)
+          o = (arg >> 13) & 0x1f
+          inst.para.push arg
+          inst.para.push @enter_reg
+          inst.para.push []
+          if o > 0 then
+            jmps = []
+            (o + 1).times do |i|
+              ipc = pc + i + 1
+              jmps.push @root.nodes[ipc]
+            end
+            inst.para.push jmps
+          end
+          regtab[1..-1].each_with_index do |reg, i|
+            inst.inreg.push reg
+            dstreg = Reg.new(inst)
+            regtab[i + 1] = dstreg
+            inst.outreg.push dstreg
+          end
 
         when :LOADL
           inst.para.push @irep.pool[getarg_bx(code)]
@@ -639,62 +749,6 @@ module RiteSSA
         when :EPOP
           inst.para.push @irep.pool[getarg_a(code)]
 
-        when :SEND, :SENDB, :FSEND, :ADD, :SUB,
-              :MUL, :DIV, :EQ, :LT, :LE, :GT, :GE then
-          name = @irep.syms[getarg_b(code)]
-          inst.para.push name
-
-          a = getarg_a(code)
-          num = getarg_c(code)
-          inreg = regtab[a]
-          inreg.refpoint.push inst
-          inst.inreg.push inreg  # push self
-          inst.para.push num
-          inst.para.push regtab.dup
-          if num == 127 then
-            reg = regtab[a + 1]
-            reg.refpoint.push inst
-            inst.inreg.push reg
-            num = 1
-          else
-            num.times do |i|
-              reg = regtab[a + 1 + i]
-              reg.refpoint.push inst
-              inst.inreg.push reg
-            end
-          end
-
-          if Irep::OPTABLE_SYM[op] == :SENDB then
-            reg = regtab[a + 1 + num]
-            reg.refpoint.push inst
-            inst.inreg.push reg
-          else
-            nilreg = Reg.new(nil)
-            inst.inreg.push nilreg
-          end
-
-          # export local variables
-          exp_regset = {}
-          inst.inreg.each_with_index do |reg, ppos|
-            if reg.class == Reg then
-              gins = reg.genpoint
-              if gins.is_a?(Inst) and gins.op == :LAMBDA then
-                exregs = []
-                gins.para[2].each do |regno|
-                  exregs.push regtab[regno]
-                end
-
-                exp_regset[ppos] = exregs
-              end
-            end
-          end
-          inst.para.push exp_regset
-          inst.para.push a
-
-          dstreg = Reg.new(inst)
-          regtab[a] = dstreg
-          inst.outreg.push dstreg
-
         when :CALL
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
@@ -729,61 +783,6 @@ module RiteSSA
           inst.para.push getarg_bx(code)
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
-          inst.outreg.push dstreg
-
-        when :ENTER
-          arg = getarg_ax(code)
-          o = (arg >> 13) & 0x1f
-          inst.para.push arg
-          inst.para.push @enter_reg
-          inst.para.push []
-          if o > 0 then
-            jmps = []
-            (o + 1).times do |i|
-              ipc = pc + i + 1
-              jmps.push @root.nodes[ipc]
-            end
-            inst.para.push jmps
-          end
-          regtab[1..-1].each_with_index do |reg, i|
-            inst.inreg.push reg
-            dstreg = Reg.new(inst)
-            regtab[i + 1] = dstreg
-            inst.outreg.push dstreg
-          end
-
-        when :RETURN
-          rkind = getarg_b(code)
-          inst.para.push rkind
-          inreg = regtab[getarg_a(code)]
-          inreg.refpoint.push inst
-          inst.inreg.push inreg
-          rnode = @root
-          if rkind == 2 then  # OP_R_RETURN
-            while rnode.parent and !rnode.strict
-              rnode = rnode.parent
-            end
-            inst.para.push rnode
-            if rnode != @root then
-              @root.have_return = true
-            end
-          end
-
-          if rkind == 1 then # OP_R_BREAK
-            @root.have_break = true
-          end
-
-          dstreg = rnode.retreg
-          dstreg.refpoint.push inst
-#          regtab[getarg_a(code)] = dstreg
-          inst.outreg.push dstreg
-
-          dstreg = rnode.retreg2
-          dstreg.refpoint.push inst
-          inst.outreg.push dstreg
-
-          dstreg = @root.retreg
-          dstreg.refpoint.push inst
           inst.outreg.push dstreg
 
         when :BLKPUSH
@@ -980,6 +979,8 @@ module RiteSSA
           dstreg = Reg.new(inst)
           regtab[getarg_a(code)] = dstreg
           inst.outreg.push dstreg
+
+        when :NOP
 
         else
         end
