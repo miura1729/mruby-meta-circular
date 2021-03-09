@@ -1,14 +1,14 @@
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
-#include "mruby/array.h"
-#include "mruby/proc.h"
-#include "mruby/string.h"
-#include "mruby/opcode.h"
-#include "mruby/irep.h"
-#include "mruby/debug.h"
+#include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
+#include <mruby/array.h>
+#include <mruby/proc.h>
+#include <mruby/string.h>
+#include <mruby/opcode.h>
+#include <mruby/irep.h>
+#include <mruby/debug.h>
 #if defined MRBJIT
-#include "mruby/jit.h"
+#include <mruby/jit.h>
 #endif
 #include <stdio.h>
 
@@ -142,7 +142,7 @@ mrb_irep_get_irep(mrb_state *mrb, mrb_value self)
   c = mrb_class(mrb, recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m.proc && MRB_METHOD_PROC_P(m)) {
+  if (MRB_METHOD_PROC(m) && MRB_METHOD_PROC_P(m)) {
     return mrb_irep_wrap(mrb, mrb_class_ptr(self), MRB_METHOD_PROC(m)->body.irep);
   }
   else {
@@ -162,7 +162,7 @@ mrb_irep_get_irep_instance(mrb_state *mrb, mrb_value self)
   c = mrb_class_ptr(recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m.proc && MRB_METHOD_PROC_P(m) && !MRB_METHOD_CFUNC_P(m)) {
+  if (MRB_METHOD_PROC(m) && MRB_METHOD_PROC_P(m) && !MRB_METHOD_CFUNC_P(m)) {
     return mrb_irep_wrap(mrb, mrb_class_ptr(self), MRB_METHOD_PROC(m)->body.irep);
   }
   else {
@@ -623,7 +623,7 @@ mrb_meta_proc_search_proc(mrb_state *mrb, mrb_value self)
   c = mrb_class_ptr(recv);
   m = mrb_method_search_vm(mrb, &c, mrb_symbol(name));
 
-  if (m.proc && MRB_METHOD_PROC_P(m) && !MRB_METHOD_CFUNC_P(m)) {
+  if (MRB_METHOD_PROC(m) && MRB_METHOD_PROC_P(m) && !MRB_METHOD_CFUNC_P(m)) {
     struct RProc *p =  MRB_METHOD_PROC(m);
     struct RProc *p2 = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
     mrb_proc_copy(p2, p);

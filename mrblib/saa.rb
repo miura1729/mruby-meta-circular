@@ -237,8 +237,8 @@ module RiteSSA
 
   class ParmReg<Reg
     def initialize(ins, ssairep)
-      @ssairep = ssairep
       super(ins)
+      @ssairep = ssairep
     end
 
     def add_same_parm(st)
@@ -258,8 +258,8 @@ module RiteSSA
 
   class InstanceVariable<Storable
     def initialize(name, pos)
-      @name = name
       super(pos)
+      @name = name
     end
 
     attr_accessor :type

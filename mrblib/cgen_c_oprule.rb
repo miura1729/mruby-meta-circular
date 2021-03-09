@@ -10,6 +10,10 @@ module CodeGenC
       @@ruletab[:CCGEN][name] = block
     end
 
+    define_ccgen_rule_op :NOP do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :MOVE do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         outr = inst.outreg[0]
@@ -91,7 +95,12 @@ module CodeGenC
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      val = oreg.type[tup][0].val
+      if oreg.type[tup][0].is_a?(MTypeInf::LiteralType) then
+        val = oreg.type[tup][0].val
+      else
+        p "Unknown Constant value"
+        p oreg.type
+      end
 
       if !(val.is_a?(Fixnum) or val.is_a?(Float) or ccgen.clstab[val]) then
         cno = ccgen.clstab.size

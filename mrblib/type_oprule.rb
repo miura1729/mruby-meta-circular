@@ -10,6 +10,10 @@ module MTypeInf
       @@ruletab[:OP][name] = block
     end
 
+    define_inf_rule_op :NOP do |infer, inst, node, tup, history|
+      nil
+    end
+
     define_inf_rule_op :MOVE do |infer, inst, node, tup, history|
       inst.outreg[0].add_same(inst.inreg[0])
       inst.outreg[0].flush_type(tup)
