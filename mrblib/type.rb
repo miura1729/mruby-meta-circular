@@ -57,8 +57,18 @@ module MTypeInf
             if ele.class == self.class then
               case ele
               when MTypeInf::SymbolType
-                arr.push self
-                arr.uniq!
+                i = 0
+                while arr[i]
+                  if arr[i].is_a?(MTypeInf::SymbolType) and
+                      arr[i].val == self.val then
+                    break
+                  end
+                  i = i + 1
+                end
+
+                unless arr[i] then
+                  arr.push self
+                end
                 return false
 
               when primobj,
