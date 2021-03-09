@@ -1008,7 +1008,9 @@ module MTypeInf
       ruby_methodtab[name] ||= {}
       ruby_methodtab[name][tclass] = method
       tclobj = RiteSSA::ClassSSA.get_instance(tclass)
-      tclobj.method[name] = method.irep
+      saairep = method.irep
+      tclobj.method[name] = saairep
+      saairep.strict = true
       nil
     end
 
