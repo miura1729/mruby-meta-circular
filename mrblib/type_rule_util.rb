@@ -472,28 +472,33 @@ module MTypeInf
 
           # method missing
           irep = Irep::get_irep_instance(slf, :method_missing)
-          if irep or @@ruby_methodtab[:method_missing][slfcls] then
+          if (irep or
+              (@@ruby_methodtab[:method_missing] and
+              @@ruby_methodtab[:method_missing][slfcls])) and
+              !missprocssa then
             if @@ruby_methodtab[:method_missing][slfcls] then
-              procssa = @@ruby_methodtab[:method_missing][slfcls]
-              irepssa = procssa.irep
+              missprocssa = @@ruby_methodtab[:method_missing][slfcls]
             else
               p0 = Proc::search_proc(slf, :method_missing)
-              procssa = make_ssablock(p0)
+              missprocssa = make_ssablock(p0)
               @@ruby_methodtab[:method_missing] ||= {}
-              @@ruby_methodtab[:method_missing][slfcls] = procssa
-              irepssa = procssa.irep
+              @@ruby_methodtab[:method_missing][slfcls] = missprocssa
+              irepss = missprocssa.irep
               clsobj = RiteSSA::ClassSSA.get_instance(slf)
-              clsobj.method[:method_missing] = irepssa
+              clsobj.method[:method_missing] = irepss
             end
-            #intype[0] = [ty]
-            ncls = SymbolType.instance(Symbol, name)
-            intype = [intype[0], [ncls]] + intype[1..-1]
-            ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
-            infer.inference_block(irepssa, intype, ntup, argc + 1, procssa)
-            outreg.add_same irepssa.retreg
-            existf = true
-            break
           end
+        end
+
+        if missprocssa then
+          irepssa = missprocssa.irep
+          #intype[0] = [ty]
+          ncls = SymbolType.instance(Symbol, name)
+          intype = [intype[0], [ncls]] + intype[1..-1]
+          ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
+          infer.inference_block(irepssa, intype, ntup, argc + 1, missprocssa)
+          outreg.add_same irepssa.retreg
+          existf = true
         end
 
         if !existf and !infer.continue then
