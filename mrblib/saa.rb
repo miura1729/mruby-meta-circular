@@ -214,6 +214,13 @@ module RiteSSA
       @same_parm.each do |reg, val|
         reg.set_use_value
       end
+
+      inst = genpoint
+
+      if inst.op == :STRCAT then
+        inst.inreg[0].set_use_value
+        inst.inreg[1].set_use_value
+      end
     end
 
     attr_accessor :positive_list

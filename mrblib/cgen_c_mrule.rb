@@ -462,6 +462,19 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :eval, Kernel do |ccgen, inst, node, infer, history, tup|
+      codetype = inst.inreg[1].type[tup]
+      if codetype.size == 1 and codetype[0].is_a?(MTypeInf::LiteralType) then
+        src = codetype[0].val
+        irep = inst.objcache[src]
+        if irep then
+          slf = inst.inreg[0].type[tup][0]
+          ccgen.code_gen_node(irep.nodes[0], infer, :eval, {}, tup)
+        end
+      end
+      nil
+    end
+
     define_ccgen_rule_method :!, TrueClass do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
