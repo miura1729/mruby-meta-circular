@@ -1,10 +1,12 @@
 MTypeInf::inference_main {
   def foo(n)
-    ["foo", "bar"].each do |sym|
-      $sym = sym
-      eval("def #{sym}; end")
+    ["foo1", "bar"].each do |sym|
+      s = "def #{sym}; end"
+      eval(s)
     end
   end
 
   foo
+  foo1
+  bar
 }

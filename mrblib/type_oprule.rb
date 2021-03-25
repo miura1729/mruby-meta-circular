@@ -831,10 +831,17 @@ module MTypeInf
       strty0 = inst.inreg[0].flush_type(tup)[tup]
       strty1 = inst.inreg[1].flush_type(tup)[tup]
 
-      if strty0.size == 1 and strty1.size == 1 and
-          strty0[0].is_a?(LiteralType) and strty1[0].is_a?(LiteralType) then
-        val = strty0[0].val.to_s + strty1[0].val.to_s
-        inst.outreg[0].add_type LiteralType.new(String, val), tup
+      if inst.outreg[0].use_value then
+        strty0.each do |strty0ele|
+          if strty0ele.is_a?(LiteralType) then
+            strty1.each do |strty1ele|
+              if strty1ele.is_a?(LiteralType) then
+                val = strty0ele.val.to_s + strty1ele.val.to_s
+                inst.outreg[0].add_type LiteralType.new(String, val), tup
+              end
+            end
+          end
+        end
 
       else
         level = infer.callstack.size

@@ -895,15 +895,17 @@ module MTypeInf
       end
 
       arg = inst.inreg[1].flush_type(tup)[tup]
-      if arg.size == 1 and arg[0].is_a?(LiteralType) then
-        src = arg[0].val
-        proc = eval("lambda { #{src} }")
-        slf = inst.inreg[0].type[tup][0]
-        irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
-        bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil)
-        infer.inference_block(irep, [[slf]], tup, 2, bproc)
-        inst.objcache ||= {}
-        inst.objcache[src] = irep
+      arg.each do |argele|
+        if argele.is_a?(LiteralType) then
+          src = argele.val
+          proc = eval("lambda { #{src} }")
+          slf = inst.inreg[0].type[tup][0]
+          irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
+          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil)
+          infer.inference_block(irep, [[slf]], tup, 2, bproc)
+          inst.objcache ||= {}
+          inst.objcache[src] = irep
+        end
       end
       nil
     end
