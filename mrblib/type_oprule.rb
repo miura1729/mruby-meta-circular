@@ -336,7 +336,8 @@ module MTypeInf
       else
         exobj = inst.inreg[0].flush_type(tup)[tup]
         excls = inst.inreg[1].flush_type(tup)[tup]
-        if exobj.all? {|e| exobj[0].class_object == e.class_object}  and
+        if exobj and excls and
+            exobj.all? {|e| exobj[0].class_object == e.class_object}  and
             excls.all? {|e| excls[0].val == e.val} then
           if exobj[0].class_object == excls[0].val then
             type = PrimitiveType.new(TrueClass)

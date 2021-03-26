@@ -392,6 +392,7 @@ module MTypeInf
       end
       recvtypes.each do |ty|
         existf = false
+        missprocssa = nil
         slf = ty.class_object
 
         if !slf.is_a?(Module) then
