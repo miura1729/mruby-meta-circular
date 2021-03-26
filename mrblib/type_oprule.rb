@@ -828,18 +828,38 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
-      strty0 = inst.inreg[0].flush_type(tup)[tup]
-      strty1 = inst.inreg[1].flush_type(tup)[tup]
+      strty0 = inst.inreg[0].flush_type(tup)[tup].select {|e| e.is_a?(LiteralType)}
+      strty1 = inst.inreg[1].flush_type(tup)[tup].select {|e| e.is_a?(LiteralType)}
+        p strty0
+        p strty1
 
       if inst.outreg[0].use_value then
-        strty0.each do |strty0ele|
-          if strty0ele.is_a?(LiteralType) then
-            strty1.each do |strty1ele|
-              if strty1ele.is_a?(LiteralType) then
-                val = strty0ele.val.to_s + strty1ele.val.to_s
-                inst.outreg[0].add_type LiteralType.new(String, val), tup
-              end
-            end
+        # use value mode only
+        if inst.outreg[0].type[tup] and inst.outreg[0].type[tup].size > 0 then
+          inst.outreg[0].type[tup].clear
+        end
+
+        if strty0.size == strty1.size then
+          i = 0
+          strty0.each do |strty0ele|
+            strty1ele = strty1[i]
+            val = strty0ele.val.to_s + strty1ele.val.to_s
+            inst.outreg[0].add_type LiteralType.new(String, val), tup
+            i = i + 1
+          end
+
+        elsif strty0.size < strty1.size then
+          strty1.each do |strty1ele|
+            strty0ele = strty0[0]
+            val = strty0ele.val.to_s + strty1ele.val.to_s
+            inst.outreg[0].add_type LiteralType.new(String, val), tup
+          end
+
+        else
+          strty0.each do |strty0ele|
+            strty1ele = strty1[0]
+            val = strty0ele.val.to_s + strty1ele.val.to_s
+            inst.outreg[0].add_type LiteralType.new(String, val), tup
           end
         end
 
