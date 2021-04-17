@@ -961,6 +961,8 @@ module CodeGenC
         rtypesize = 1
         if res then
           return res
+        elsif rtype[0].is_a?(MTypeInf::CType)
+          rtype[0].cname
         end
       end
 

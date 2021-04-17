@@ -247,6 +247,29 @@ module MTypeInf
   class PrimitiveType<BasicType
   end
 
+  class CType<BasicType
+  end
+
+  class CPrimitiveType<CType
+    def initialize(co, cname, *rest)
+      super(co, *rest)
+      @cname = cname
+    end
+
+    attr :cname
+  end
+
+  class CPointerType<CType
+    def initialize(co, cname, *rest)
+      super(co, basetype, *rest)
+      @basetype = basetype
+    end
+
+    def cname
+      "* #{basetype.cname}"
+    end
+  end
+
   class NumericType<PrimitiveType
     def initialize(co, positive = false, *rest)
       super(co, *rest)
