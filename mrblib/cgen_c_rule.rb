@@ -1328,6 +1328,9 @@ EOS
           when :mrb_value
             "RSTRING_PTR(#{src})"
 
+          when "mrb_sym"
+            "mrb_sym2name(mrb, #{src})"
+
           else
             raise "Not support yet #{dstt} #{srct}"
           end

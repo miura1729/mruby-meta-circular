@@ -52,6 +52,15 @@ module HAL
 end
 
 module MMC
+  module CType
+    IntTypeObj = MTypeInf::CPrimitiveType.new(nil, "int")
+    CharTypeObj = MTypeInf::CPrimitiveType.new(nil, "char")
+    ShortTypeObj = MTypeInf::CPrimitiveType.new(nil, "short")
+    LongTypeObj = MTypeInf::CPrimitiveType.new(nil, "long")
+    LongLongTypeObj = MTypeInf::CPrimitiveType.new(nil, "long long")
+    FloatTypeObj = MTypeInf::CPrimitiveType.new(nil, "float")
+    DoubleTypeObj = MTypeInf::CPrimitiveType.new(nil, "double")
+  end
 end
 
 module MTypeInf

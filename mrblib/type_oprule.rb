@@ -831,9 +831,6 @@ module MTypeInf
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
       strty0 = inst.inreg[0].flush_type(tup)[tup].select {|e| e.is_a?(LiteralType)}
       strty1 = inst.inreg[1].flush_type(tup)[tup].select {|e| e.is_a?(LiteralType)}
-        p strty0
-        p strty1
-
       if inst.outreg[0].use_value then
         # use value mode only
         if inst.outreg[0].type[tup] and inst.outreg[0].type[tup].size > 0 then

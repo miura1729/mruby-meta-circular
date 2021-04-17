@@ -211,6 +211,7 @@ module CodeGenC
           inst.para[2][m1] = "v#{oreg.id}"
         else
           # TODO multiple variale argument
+          inst.para[2][m1] = "v#{inst.outreg[m1].id}"
         end
       end
 
