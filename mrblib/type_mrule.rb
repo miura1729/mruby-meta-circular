@@ -587,6 +587,8 @@ module MTypeInf
           end
         end
       end
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
@@ -605,6 +607,14 @@ module MTypeInf
           end
         end
       end
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :alias_method, Module do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 
