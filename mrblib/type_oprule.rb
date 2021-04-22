@@ -875,7 +875,7 @@ module MTypeInf
     end
 
     define_inf_rule_op :LAMBDA do |infer, inst, node, tup, history|
-      slf = inst.inreg[0].flush_type(tup)[tup][0]
+      slf = inst.inreg[0].flush_type(tup)[tup]
       envtypes = inst.para[1]
       cproc = infer.callstack[-1][3]
       cstop = infer.callstack[-1]
@@ -895,6 +895,8 @@ module MTypeInf
         pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc)
         inst.objcache[previrep] = pty
       end
+      pty.slf = slf
+      pty.tups[0][1] = cstop[1]
       inst.outreg[0].add_type pty, tup
       if cproc then
         cproc.place[pty] = [:LAMBDA, "#{inst.filename}##{inst.line}"]

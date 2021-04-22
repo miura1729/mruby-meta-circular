@@ -676,7 +676,7 @@ module MTypeInf
       make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
         ptype = intype[0][0]
-        intype[0] = [ptype.slf]
+        intype[0] = ptype.slf
         ntup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
         if !ptype.using_tup[ntup] then
           curpos = ptype.using_tup.size

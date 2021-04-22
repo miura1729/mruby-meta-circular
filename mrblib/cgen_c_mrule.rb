@@ -704,7 +704,7 @@ module CodeGenC
       MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         ptype = intype[0][0]
         proc = inst.inreg[0]
-        intype[0] = [ptype.slf]
+        intype[0] = ptype.slf
         if intype[0].size == 1 then
           # store proc object only 1 kind.
           utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
@@ -733,7 +733,7 @@ module CodeGenC
             ptype.using_tup[utup] = codeno
             mtab = ccgen.proctab[ptype.irep]
             nminf = mtab[0].dup
-            bfunc = gen_block_func("p#{ptype.id}", ptype.slf.class_object, 0, utup)
+            bfunc = gen_block_func("p#{ptype.id}", ptype.slf[0].class_object, 0, utup)
             dstt = get_ctype(ccgen, inst.inreg[0], tup, infer)
             nminf[0] = bfunc
             nminf[1] = ptype
@@ -773,7 +773,7 @@ module CodeGenC
           argt << ", struct gctab *"
           if procty == :mrb_value then
             fname = "(MRB_PROC_CFUNC(mrb_proc_ptr(#{procvar})))"
-            fname = "((#{outtype0} (*)(mrb_tsate *, #{argt}))(((void **)#{fname})[#{codeno}]))"
+            fname = "((#{outtype0} (*)(mrb_state *, #{argt}))(((void **)#{fname})[#{codeno}]))"
             ccgen.using_block.push ccgen.proctab[ptype.irep][codeno]
           elsif ccgen.proctab[ptype.irep] then
             minf = ccgen.proctab[ptype.irep][codeno]

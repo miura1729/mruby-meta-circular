@@ -46,7 +46,7 @@ module MTypeInf
       if block.is_a?(ProcType) then
         make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
           #      intype = inst.inreg.map {|reg| reg.flush_type(tup)[tup] || []}
-          intype[0] = [block.slf]
+          intype[0] = block.slf
           ele = rec.sub_type_var[:ele] ? rec.sub_type_var[:ele] : TypeVarType.new(TypeVariable)
           rec.sub_type_var[:ele] = ele
           intype[1] = [ele]

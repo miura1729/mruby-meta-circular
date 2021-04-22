@@ -506,7 +506,7 @@ module MTypeInf
 
     attr :id
     attr :irep
-    attr :slf
+    attr_accessor  :slf
     attr :slfreg
     attr :env
     attr :tups
