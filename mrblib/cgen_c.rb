@@ -339,6 +339,11 @@ int main(int argc, char **argv)
   mrb_state *mrb = mrb_open();
   struct mrb_jmpbuf c_jmp;
   struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab));
+  gctab->prev = NULL;
+  gctab->size = 0;
+  gctab->csize = 0;
+  gctab->osize = 0;
+  gctab->ret_status = 0;
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
