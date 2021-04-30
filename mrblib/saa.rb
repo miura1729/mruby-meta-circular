@@ -43,7 +43,7 @@ module RiteSSA
         end
 
         if cl == Float and pos = clstab[Fixnum] then
-          ntype[pos] = cl
+          ntype[pos] = ty
           next
         end
 
