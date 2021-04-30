@@ -114,6 +114,7 @@ module MTypeInf
       @exception = []
       @fiber = nil
       @allocate_object = []
+      @must_execute = false
     end
 
     attr :option
@@ -123,6 +124,7 @@ module MTypeInf
     attr :exception
     attr_accessor :fiber
     attr_accessor :continue
+    attr_accessor :must_execute
 
     def dump_method(name, node)
       level = @option[:dump_level]
@@ -271,7 +273,7 @@ module MTypeInf
         saairep.argtab[tup] ||= 0
         saairep.argtab[tup] += 1
 
-        if saairep.argtab[tup] > @step then
+        if saairep.argtab[tup] > @step and !@must_execute then
           return true
         end
       end
@@ -353,6 +355,7 @@ module MTypeInf
         end
       end
 
+      @must_execute  = false
       nil
     end
 

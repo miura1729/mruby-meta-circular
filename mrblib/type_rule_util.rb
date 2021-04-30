@@ -460,6 +460,24 @@ module MTypeInf
             # intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
+            have_evar = false
+
+            lmdinst = inst.inreg[-1].genpoint
+            while lmdinst.is_a?(RiteSSA::Inst) and lmdinst.op == :MOVE
+              lmdinst = lmdinst.inreg[0].genpoint
+            end
+
+            if lmdinst.is_a?(RiteSSA::Inst) and lmdinst.op == :LAMBDA then
+              # return without execute.
+              exregs = lmdinst.para[4]
+              exregs.each do |ereg|
+                if ereg.setpoint.size > 0 then
+                  infer.must_execute = true
+                  break
+                end
+              end
+            end
+
             infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if outreg then
               outreg.add_same irepssa.retreg
