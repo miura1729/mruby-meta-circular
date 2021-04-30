@@ -1027,7 +1027,9 @@ module CodeGenC
       idxtype = inst.inreg[1].get_type(tup)[0]
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       strtype = inst.inreg[0].get_type(tup)[0]
-      if strreg.get_type(tup).size == 1 and strtype.is_a?(MTypeInf::LiteralType) then
+      if strreg.get_type(tup).size == 1 and
+          strtype.is_a?(MTypeInf::LiteralType) and
+          idxtype.is_a?(MTypeInf::LiteralType) then
         strval = strtype.val
         #strval = src
         ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
