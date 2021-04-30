@@ -1411,6 +1411,9 @@ EOS
               gen_gc_table2(ccgen, node, oreg)
               "(mrb_ary_new_from_values(mrb, #{srct[2]}, #{src}))"
 
+            when :mrb_int
+              "(mrb_ary_new_from_values(mrb, #{srct[2]}, mrb_fixnum_value(#{src})))"
+
             else
               raise "Not support yet #{dstt} #{srct}"
             end
