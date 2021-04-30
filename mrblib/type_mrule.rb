@@ -699,6 +699,7 @@ module MTypeInf
         end
 
         infer.callstack[-1][4] = [nil, inst]
+
         infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg
         inst.outreg[0].flush_type(tup, ntup)

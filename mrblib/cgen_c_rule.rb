@@ -921,10 +921,7 @@ module CodeGenC
 #          p "  #{tp} #{infer.typetupletab.rev_table[tp]}"
 #        }
         # for element of array
-        rtype = reg.type[reg.type.keys[0]]
-        if rtype.nil? then
-          return :mrb_value
-        end
+        return :mrb_value
       end
 
       if rtype.any? {|ty| ty.is_escape?} then
@@ -1028,17 +1025,14 @@ module CodeGenC
     end
 
     def self.get_ctype(ccgen, reg, tup, infer, strobj = true)
+      if reg.get_type(tup) == nil then
+        tup = reg.type.keys[0]
+      end
       type = get_ctype_aux(ccgen, reg, tup, infer)
       case type
       when :array
         if strobj and !reg.is_escape?(tup) then
           tys = reg.get_type(tup)
-          if !tys then
-            tys = reg.type[reg.type.keys[0]]
-            if !tys then
-              return :mrb_value
-            end
-          end
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = tys[0].element[uv]
           size = tys[0].element.size
