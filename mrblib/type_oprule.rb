@@ -159,7 +159,7 @@ module MTypeInf
       #p slfiv.id
 
       if oty != cty then
-        slftype.version += 1
+#        slftype.version += 1
       end
 
       if valtype then
@@ -453,7 +453,11 @@ module MTypeInf
         end
 
         (m1 + o).times do |i|
-          inst.outreg[i].add_same argv[i]
+          if argv[i] then
+            inst.outreg[i].add_same argv[i]
+          elsif argv[ContainerType::UNDEF_VALUE] then
+            inst.outreg[i].add_same argv[ContainerType::UNDEF_VALUE]
+          end
           inst.outreg[i].flush_type(tup)
         end
 
@@ -736,7 +740,7 @@ module MTypeInf
 
     define_inf_rule_op :ARRAY do |infer, inst, node, tup, history|
       pirep = infer.callstack[-2][0]
-      if pirep and !pirep.strict then
+      if pirep and (!pirep.strict or true) then
         pirep = pirep.irep
       else
         pirep = nil

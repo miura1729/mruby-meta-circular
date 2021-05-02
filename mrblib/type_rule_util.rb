@@ -594,6 +594,11 @@ module MTypeInf
         arrt.place[true] = true
         if arrt.class_object.== Array then
           arrele = arrt.element
+
+          arrele[1] ||= RiteSSA::Reg.new(nil)
+          arrele[1].add_same valreg
+          arrele[1].flush_type(tup)
+
           arrele[ContainerType::UNDEF_VALUE].add_same valreg
           arrele[ContainerType::UNDEF_VALUE].flush_type(tup)
         end

@@ -791,7 +791,11 @@ module CodeGenC
             ccgen.using_block.push ccgen.proctab[ptype.irep][codeno]
           elsif ccgen.proctab[ptype.irep] then
             minf = ccgen.proctab[ptype.irep][codeno]
-            fname = minf[0]
+            if minf then
+              fname = minf[0]
+            else
+              fname = ccgen.proctab[ptype.irep].values[0][0]
+            end
             ret_chk = 0
             ret_chk |= minf[1].irep.have_break ? 1 : 0
             ret_chk |= minf[1].irep.have_return ? 2 : 0

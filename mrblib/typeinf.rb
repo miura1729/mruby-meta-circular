@@ -166,7 +166,8 @@ module MTypeInf
           args = args.map {|tys|
             tys.map {|ele|
               if ele.is_a?(ProcType) and name != "" then
-                dump_method("", ele.irep)
+#                dump_method("", ele.irep)
+                ele.inspect(0)
               else
                 ele.inspect(level)
               end
