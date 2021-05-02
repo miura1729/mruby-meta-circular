@@ -1181,16 +1181,16 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :sysread, IO do |infer, inst, node, tup|
-      level = infer.callstack.size
-      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-      type = StringType.new(String, inst, previrep, level)
-      inst.outreg[0].add_type(type, tup)
-      reg = RiteSSA::Reg.new(nil)
-      type = ExceptionType.new(EOFError)
-      reg.add_type(type, tup)
-      infer.exception.push reg
-      nil
-    end
+#    define_inf_rule_method :sysread, IO do |infer, inst, node, tup|
+#      level = infer.callstack.size
+#      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+#      type = StringType.new(String, inst, previrep, level)
+#      inst.outreg[0].add_type(type, tup)
+#      reg = RiteSSA::Reg.new(nil)
+#      type = ExceptionType.new(EOFError)
+#      reg.add_type(type, tup)
+#      infer.exception.push reg
+#      nil
+#    end
   end
 end

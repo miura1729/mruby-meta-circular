@@ -14,8 +14,9 @@ module MTypeInf
     ti.messages.each do |message, cnt|
       print message
     end
-    #typemess = ti.dump_type
-    #print typemess
+#    typemess = ti.dump_type
+#    print typemess
+#    return
 
     cgen = CodeGenC::CodeGen.new
     cgen.code_gen(bproc, ti)

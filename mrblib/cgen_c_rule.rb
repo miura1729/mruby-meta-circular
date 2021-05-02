@@ -425,6 +425,7 @@ module CodeGenC
           p name
           p tup
           intype[0].each { |ty| p ty.is_escape?}
+          p intype[0]
           intype[0].each { |ty| p ty.class_object}
           ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end

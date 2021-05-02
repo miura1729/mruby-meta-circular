@@ -101,8 +101,9 @@ module MTypeInf
         p inst.para[0]
         p infer.typetupletab.rev_table[tup]
         p inst.line
-        p inst.outreg[0].type
-        p inst.outreg[0].get_type(tup)
+        p inst.inreg[0].id
+        p inst.inreg[0].type
+        p inst.inreg[0].get_type(tup)
         p inst.inreg[0].negative_list
         p inst.inreg[0].positive_list
         p tup
