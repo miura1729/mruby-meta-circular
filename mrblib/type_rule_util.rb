@@ -460,25 +460,31 @@ module MTypeInf
             # intype[0] = [ty]
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
-            have_evar = false
 
-            lmdinst = inst.inreg[-1].genpoint
-            while lmdinst.is_a?(RiteSSA::Inst) and lmdinst.op == :MOVE
-              lmdinst = lmdinst.inreg[0].genpoint
-            end
+            rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
 
-            if lmdinst.is_a?(RiteSSA::Inst) and lmdinst.op == :LAMBDA then
-              # return without execute.
-              exregs = lmdinst.para[4]
-              exregs.each do |ereg|
-                if ereg.setpoint.size > 0 then
-                  infer.must_execute = true
-                  break
+            if rc then
+              # Retry AI
+              have_evar = false
+              oldmexe = infer.must_execute
+              lmdinst = inst.inreg[-1].genpoint
+              while lmdinst.is_a?(RiteSSA::Inst) and lmdinst.op == :MOVE
+                lmdinst = lmdinst.inreg[0].genpoint
+              end
+
+              if lmdinst.is_a?(RiteSSA::Inst) and lmdinst.op == :LAMBDA then
+                # return without execute.
+                exregs = lmdinst.para[1]
+                if exregs.size > 0 and outreg and outreg.type[tup].nil? then
+                  p "exit #{name} #{tup} #{outreg.id}"
+                  infer.must_execute ||= {}
+                  infer.inference_block(irepssa, intype, ntup, argc, procssa)
+                  infer.must_execute = oldmexe
+                  outreg.type[tup] = irepssa.retreg.type[ntup]
                 end
               end
             end
 
-            infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if outreg then
               outreg.add_same irepssa.retreg
               existf = true

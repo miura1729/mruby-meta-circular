@@ -273,15 +273,19 @@ module MTypeInf
       if fixp then
         saairep.argtab[tup] ||= 0
         saairep.argtab[tup] += 1
+        if @must_execute and !@must_execute[saairep] then
+          @must_execute[saairep] = tup
+          saairep.argtab[tup] = 0
+        end
 
-        if saairep.argtab[tup] > @step and !@must_execute then
+        if saairep.argtab[tup] > @step then
           return true
         end
       end
 
       # clear all regs
       saairep.allreg.each do |reg|
-        reg.type.delete(tup)
+        #reg.type.delete(tup)
       end
       intype.each_with_index do |tys, i|
         if tys then
@@ -355,8 +359,6 @@ module MTypeInf
           end
         end
       end
-
-      @must_execute  = false
       nil
     end
 
