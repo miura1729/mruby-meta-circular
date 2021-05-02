@@ -911,6 +911,9 @@ module CodeGenC
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
+      if reg.get_type(tup) == nil then
+        tup = reg.type.keys[0]
+      end
       rtype = reg.type[tup]
       if !rtype then
 #        p caller
@@ -1016,6 +1019,9 @@ module CodeGenC
     end
 
     def self.get_ctype_aux(ccgen, reg, tup, infer)
+      if reg.get_type(tup) == nil then
+        tup = reg.type.keys[0]
+      end
       type = get_ctype_aux_aux(ccgen, reg, tup, infer)
       if type.is_a?(Array) then
         type.join
@@ -1076,6 +1082,8 @@ module CodeGenC
         end
 
       when :gproc
+        #tups = reg.get_type(tup)[0].using_tup
+
         [:gproc, reg.get_type(tup)[0].id]
 
       else
