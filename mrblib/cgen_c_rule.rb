@@ -947,11 +947,20 @@ module CodeGenC
           rtypesize = 1
         elsif rtype[1].class_object == NilClass then
           rtypesize = 1
+        elsif rtype[1].class_object == Fixnum and cls0 == Float then
+          rtypesize = 0
+        elsif rtype[1].class_object == Float and cls0 == Fixnum then
+          rtypesize = 0
+          cls0 = Float
+        end
+
+        if rtypesize == 0 then
+          return TTABLE[cls0]
         end
 
         if rtypesize == 1 then
           res = TTABLE[cls0]
-          if res and cls0 != Array and cls0 != String or true then
+          if res and cls0 != Array and cls0 != String then
             return :mrb_value
           elsif res then
             return res

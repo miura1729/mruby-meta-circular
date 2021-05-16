@@ -196,16 +196,43 @@ module MTypeInf
       end
 
       if type == nil then
-        const = nil
+        notfound = [nil]
+        const = notfound
         while proc and !const
           const = proc.target_class.const_get(name)
           proc = proc.parent
         end
 
+        if const == notfound then
+          begin
+            const = node.root.target_class.class_object.const_get(name)
+          rescue NameError
+            begin
+              const = Object.const_get(name)
+            rescue NameError
+            end
+          end
+        end
+
         #      inst.para.push const
         cls = TypeSource[const.class]
         type = nil
-        if cls then
+        if cls == ContainerType then
+          level = infer.callstack.size
+          previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+          type = cls.new(const.class, inst, previrep, level)
+          if const.class == Hash
+            const.each do |key, value|
+              keyt = LiteralType.new(key.class, key)
+              type.element[key] ||= RiteSSA::Reg.new(inst)
+              type.element[key].add_type(keyt, tup)
+              if key != ContainerType::UNDEF_VALUE then
+                type.key.add_type keyt, 0
+              end
+            end
+          end
+
+        elsif cls then
           type = LiteralType.new(const.class, const)
 
         elsif const.is_a?(Class) and const.ancestors.index(Exception) then
@@ -229,6 +256,19 @@ module MTypeInf
       inst.outreg[0].add_same(inst.inreg[0])
 
       types = inst.outreg[0].flush_type_alltup(tup)[tup]
+      value = nil
+      case types[0]
+      when LiteralType
+        value = types[0].val
+
+      when ContainerType
+        value = realvalue_from_container_type(types[0], tup)
+
+      else
+        raise "Not support yet #{types[0]}"
+      end
+
+      node.root.target_class.const_set(inst.para[0], value)
       # update place infomation
       if types then
         types.each do |ty|

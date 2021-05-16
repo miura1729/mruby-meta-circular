@@ -618,6 +618,22 @@ module MTypeInf
       inst.outreg[0].flush_type(tup)
       nil
     end
+
+    def self.realvalue_from_container_type(type, tup)
+      result = nil
+      if type.class_object == Hash
+        result = {}
+        type.element.each do |key, value|
+          if key != ContainerType::UNDEF_VALUE then
+            result[key] = value
+          end
+        end
+      else
+        raise "Not support yet #{types[0]}"
+      end
+
+      result
+    end
   end
 end
 
