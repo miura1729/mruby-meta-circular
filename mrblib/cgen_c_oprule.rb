@@ -96,10 +96,12 @@ module CodeGenC
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      if oreg.type[tup][0].is_a?(MTypeInf::LiteralType) then
+      if oreg.type[tup] and
+          oreg.type[tup][0].is_a?(MTypeInf::LiteralType) then
         val = oreg.type[tup][0].val
       else
         p "Unknown Constant value"
+        p inst.para[0]
         p oreg.type
       end
 

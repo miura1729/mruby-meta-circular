@@ -330,7 +330,8 @@ module CodeGenC
             p inst.filename
             p inst.line
             p name
-            p intype[0][1 - base]
+            p intype[0]
+            p intype[1]
             ccgen.pcode << "mrb_no_method_error1(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
           end
 
@@ -424,9 +425,10 @@ module CodeGenC
           p inst.line
           p name
           p tup
-          intype[0].each { |ty| p ty.is_escape?}
+          #intype[0].each { |ty| p ty.is_escape?}
           p intype[0]
-          intype[0].each { |ty| p ty.class_object}
+          #intype[0].each { |ty| p ty.class_object}
+          p intype[1]
           ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end
       end
@@ -1532,7 +1534,7 @@ EOS
           "mrb_nil_value()"
 
         else
-#          p src
+          p src
           p "Not support yet #{dstt} #{srct}"
 #          raise "Not support yet #{dstt} #{srct}"
         end

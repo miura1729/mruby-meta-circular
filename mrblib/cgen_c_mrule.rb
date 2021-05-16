@@ -794,7 +794,8 @@ module CodeGenC
             if minf then
               fname = minf[0]
             else
-              fname = ccgen.proctab[ptype.irep].values[0][0]
+              minf = ccgen.proctab[ptype.irep][0]
+              fname = ccgen.proctab[ptype.irep][0][0]
             end
             ret_chk = 0
             ret_chk |= minf[1].irep.have_break ? 1 : 0

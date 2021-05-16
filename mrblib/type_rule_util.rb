@@ -476,7 +476,7 @@ module MTypeInf
                 # return without execute.
                 exregs = lmdinst.para[1]
                 if exregs.size > 0 and outreg and outreg.type[tup].nil? then
-                  p "exit #{name} #{tup} #{outreg.id}"
+                  # p "exit #{name} #{tup} #{outreg.id}"
                   infer.must_execute ||= {}
                   infer.inference_block(irepssa, intype, ntup, argc, procssa)
                   infer.must_execute = oldmexe
