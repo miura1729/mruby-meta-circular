@@ -822,11 +822,11 @@ module MTypeInf
 
       bpos = arrtype.element.keys.size - 2 # - 2 means include UNDEF_VALUE
       inst.para[0] = bpos
+      uv = ContainerType::UNDEF_VALUE
       if !eletype.is_a?(ContainerType) then
-        arrtype.element[bpos] = reg
-        arrtype.element[uv].add_same reg
+        arrtype.element[bpos] = inst.inreg[1].dup
+        arrtype.element[uv].add_same inst.inreg[1]
       else
-        uv = ContainerType::UNDEF_VALUE
         eletype.element.each do |key, reg|
           if key.is_a?(Fixnum) then
             arrtype.element[key] ||= RiteSSA::Reg.new(nil)
