@@ -214,11 +214,13 @@ module CodeGenC
           inst.para[2][m1] = "v#{oreg.id}"
         else
           # TODO multiple variale argument
-          inst.para[2][m1] = "v#{inst.outreg[m1].id}"
+          (argc - m1).times do |i|
+            inst.para[2][m1 + i] = "v#{inst.outreg[m1].id}[#{i}]"
+          end
         end
       end
 
-      inst.inreg.each_with_index {|ireg, i|
+      inst.inreg.each_with_index do |ireg, i|
         oreg = inst.outreg[i]
 
         if node.root.export_regs.include?(oreg) then
@@ -248,8 +250,24 @@ module CodeGenC
             end
           end
         end
-      }
-      nil
+      end
+
+      if o != 0 and argc > m1 + m2 then
+        if r == 1 then
+          pos = argc - m1 - m2
+          if pos >= inst.para[3].size then
+            pos = inst.para[3].size - 1
+          end
+
+        else
+          pos = argc - m1 - m2
+        end
+
+        nnode = inst.para[3][pos].exit_link[0]
+        ["", [nnode]]
+      else
+        nil
+      end
     end
 
     define_ccgen_rule_op :JMP do |ccgen, inst, node, infer, history, tup|
