@@ -1211,6 +1211,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :alias_method, Module do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_method :new, Class do |ccgen, inst, node, infer, history, tup|
 #      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       recvtypes = inst.inreg[0].flush_type(tup)[tup]
