@@ -29,6 +29,7 @@ module CodeGenC
 
       @clstab = {}
       @proctab = {}
+      @symtab = {}
 
       @tmp_attribute = {}
       @method_attribute = {}
@@ -132,6 +133,7 @@ EOS
 
     attr :clstab
     attr :proctab
+    attr :symtab
 
     attr_accessor :gcsingle_psize
     attr_accessor :gcsingle_size
@@ -605,11 +607,12 @@ EOS
     end
 
     def code_gen_node(node, ti, name, history, tup)
+#      p name
       history[node] = true
       @pcode << "L#{node.id}:; \n"
       rc = nil
       node.ext_iseq.each do |ins|
-        #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
+        # p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
 #        rescue NoMethodError => e
