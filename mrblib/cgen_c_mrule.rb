@@ -521,6 +521,20 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :!, NilClass do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg)
+      src = "(!mrb_test(#{src}))"
+      src = gen_type_conversion(ccgen, dstt, :mrb_bool, src, tup, node, infer, history, nreg)
+
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :==, NilClass do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       argcls = inst.inreg[1].get_type(tup)[0].class_object
