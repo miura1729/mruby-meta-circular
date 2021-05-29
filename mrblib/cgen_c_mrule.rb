@@ -113,6 +113,22 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_class_method :exp, Math do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      ireg0 = inst.inreg[1]
+      ireg1 = inst.inreg[2]
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      src0, srct0 = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
+      src0 = gen_type_conversion(ccgen, :mrb_float2, srct0, src0, tup, node, infer, history, nreg)
+      src1, srct1 = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+      src1 = gen_type_conversion(ccgen, :mrb_float2, srct1, src1, tup, node, infer, history, nreg)
+      src = gen_type_conversion(ccgen, dstt, :mrb_float2, "exp(#{src0}, #{src1})", tup, node, infer, history, nreg)
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :begin, Range do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       lsttype = inst.outreg[0].flush_type(tup)[tup][0]
