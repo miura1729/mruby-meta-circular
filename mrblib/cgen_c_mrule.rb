@@ -567,6 +567,12 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :respond_to?, Object do |ccgen, inst, node, infer, history, tup|
+      p "foo"
+      ccgen.pcode << "/* respond_to */"
+      nil
+    end
+
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
       idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
