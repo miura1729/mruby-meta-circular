@@ -13,6 +13,14 @@ assert('Array.[]', '15.2.12.4.1') do
   assert_equal([1, 2, 3], Array.[](1,2,3))
 end
 
+class SubArray < Array
+end
+
+assert('SubArray.[]') do
+  a = SubArray[1, 2, 3]
+  assert_equal(SubArray, a.class)
+end
+
 assert('Array#+', '15.2.12.5.1') do
   assert_equal([1, 1], [1].+([1]))
 end
@@ -47,7 +55,7 @@ assert('Array#[]', '15.2.12.5.4') do
   assert_equal(nil, [1,2,3].[](-4))
 
   a = [ "a", "b", "c", "d", "e" ]
-  assert_equal("b", a[1.1])
+  assert_equal("b", a[1.1]) if class_defined?("Float")
   assert_equal(["b", "c"], a[1,2])
   assert_equal(["b", "c", "d"], a[1..-2])
 end
@@ -82,6 +90,14 @@ assert('Array#[]=', '15.2.12.5.5') do
   a = [1,2,3,4,5]
   a[2...4] = 6
   assert_equal([1,2,6,5], a)
+
+  # passing self (#3274)
+  a = [1,2,3]
+  a[1,0] = a
+  assert_equal([1,1,2,3,2,3], a)
+  a = [1,2,3]
+  a[-1,0] = a
+  assert_equal([1,2,1,2,3,3], a)
 end
 
 assert('Array#clear', '15.2.12.5.6') do
@@ -98,6 +114,11 @@ end
 
 assert('Array#concat', '15.2.12.5.8') do
   assert_equal([1,2,3,4], [1, 2].concat([3, 4]))
+
+  # passing self (#3302)
+  a = [1,2,3]
+  a.concat(a)
+  assert_equal([1,2,3,1,2,3], a)
 end
 
 assert('Array#delete_at', '15.2.12.5.9') do
@@ -216,6 +237,8 @@ assert('Array#pop', '15.2.12.5.21') do
   assert_nil([].pop)
   assert_equal([1,2], a)
   assert_equal(3, b)
+
+  assert_raise(RuntimeError) { [].freeze.pop }
 end
 
 assert('Array#push', '15.2.12.5.22') do
@@ -263,6 +286,8 @@ assert('Array#shift', '15.2.12.5.27') do
   assert_nil([].shift)
   assert_equal([2,3], a)
   assert_equal(1, b)
+
+  assert_raise(RuntimeError) { [].freeze.shift }
 end
 
 assert('Array#size', '15.2.12.5.28') do
@@ -318,7 +343,8 @@ end
 assert('Array#hash', '15.2.12.5.35') do
   a = [ 1, 2, 3 ]
 
-  assert_true(a.hash.is_a? Integer)
+  #assert_true(a.hash.is_a? Integer)
+  assert_true(a.hash.is_a? Integral)  # mruby special
   assert_equal([1,2].hash, [1,2].hash)
 end
 
@@ -358,4 +384,11 @@ assert("Array#rindex") do
   end
   $a = [2, 3, 4, 5, 6, 7, 8, 9, 10, Sneaky.new]
   assert_equal 0, $a.rindex(1)
+end
+
+assert('Array#freeze') do
+  a = [].freeze
+  assert_raise(RuntimeError) do
+    a[0] = 1
+  end
 end

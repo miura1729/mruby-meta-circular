@@ -6,6 +6,8 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
     cc.option_include_path = '-I%s'
     cc.option_define = '-D%s'
     cc.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
+    cc.cxx_compile_flag = '-x c++ -std=c++03'
+    cc.cxx_exception_flag = '-fexceptions'
   end
 
   [conf.cxx].each do |cxx|
@@ -15,6 +17,8 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
     cxx.option_include_path = '-I%s'
     cxx.option_define = '-D%s'
     cxx.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
+    cxx.cxx_compile_flag = '-x c++ -std=c++03'
+    cxx.cxx_exception_flag = '-fexceptions'
   end
 
   conf.linker do |linker|
@@ -50,5 +54,13 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
       end
       @header_search_paths
     end
+  end
+  
+  def conf.enable_sanitizer(*opts)
+    fail 'sanitizer already set' if @sanitizer_list
+
+    @sanitizer_list = opts
+    flg = "-fsanitize=#{opts.join ','}"
+    [self.cc, self.cxx, self.linker].each{|cmd| cmd.flags << flg }
   end
 end

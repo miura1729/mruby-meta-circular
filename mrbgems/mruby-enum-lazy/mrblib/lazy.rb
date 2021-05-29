@@ -2,7 +2,7 @@ module Enumerable
 
   # = Enumerable#lazy implementation
   #
-  # Enumerable#lazy returns an instance of Enumerable::Lazy.
+  # Enumerable#lazy returns an instance of Enumerator::Lazy.
   # You can use it just like as normal Enumerable object,
   # except these methods act as 'lazy':
   #
@@ -16,9 +16,11 @@ module Enumerable
   #   - flat_map  collect_concat
   #   - zip
   def lazy
-    Lazy.new(self)
+    Enumerator::Lazy.new(self)
   end
+end
 
+class Enumerator
   # == Acknowledgements
   #
   #   Based on https://github.com/yhara/enumerable-lazy
@@ -40,6 +42,18 @@ module Enumerable
       }
     end
 
+    def to_enum(meth=:each, *args, &block)
+      unless self.respond_to?(meth)
+        raise NoMethodError, "undefined method #{meth}"
+      end
+      lz = Lazy.new(self, &block)
+      lz.obj = self
+      lz.meth = meth
+      lz.args = args
+      lz
+    end
+    alias enum_for to_enum
+
     def map(&block)
       Lazy.new(self){|yielder, val|
         yielder << block.call(val)
@@ -58,7 +72,7 @@ module Enumerable
 
     def reject(&block)
       Lazy.new(self){|yielder, val|
-        if not block.call(val)
+        unless block.call(val)
           yielder << val
         end
       }
@@ -140,6 +154,21 @@ module Enumerable
           yielder << block.call(ary)
         else
           yielder << ary
+        end
+      }
+    end
+
+    def uniq(&block)
+      hash = {}
+      Lazy.new(self){|yielder, val|
+        if block
+          v = block.call(val)
+        else
+          v = val
+        end
+        unless hash.include?(v)
+          yielder << val
+          hash[v] = val
         end
       }
     end

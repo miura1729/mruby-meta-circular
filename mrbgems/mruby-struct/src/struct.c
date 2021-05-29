@@ -12,9 +12,10 @@
 #include <mruby/variable.h>
 #include <mruby/hash.h>
 #include <mruby/range.h>
+#include <mruby/proc.h>
 
-#define RSTRUCT_LEN(st) mrb_ary_ptr(st)->len
-#define RSTRUCT_PTR(st) mrb_ary_ptr(st)->ptr
+#define RSTRUCT_LEN(st) RARRAY_LEN(st)
+#define RSTRUCT_PTR(st) RARRAY_PTR(st)
 
 static struct RClass *
 struct_class(mrb_state *mrb)
@@ -84,6 +85,16 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
   return ary;
 }
 
+static void
+mrb_struct_modify(mrb_state *mrb, mrb_value strct)
+{
+  if (MRB_FROZEN_P(mrb_basic_ptr(strct))) {
+    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen struct");
+  }
+
+  mrb_write_barrier(mrb, mrb_basic_ptr(strct));
+}
+
 /* 15.2.18.4.6  */
 /*
  *  call-seq:
@@ -103,12 +114,14 @@ mrb_struct_members(mrb_state *mrb, mrb_value obj)
   return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
-static mrb_value struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id);
-
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
-  return struct_aref_sym(mrb, obj, mrb->c->ci->mid);
+  mrb_int i = mrb_fixnum(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_value *ptr = RSTRUCT_PTR(obj);
+
+  if (!ptr) return mrb_nil_value();
+  return ptr[i];
 }
 
 static mrb_sym
@@ -130,24 +143,23 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
   return mid;
 }
 
-static mrb_value mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val);
-
 static mrb_value
 mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 {
+  mrb_int i = mrb_fixnum(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_value *ptr;
   mrb_value val;
 
-  const char *name;
-  mrb_int slen;
-  mrb_sym mid;
-
   mrb_get_args(mrb, "o", &val);
-
-  /* get base id */
-  name = mrb_sym2name_len(mrb, mrb->c->ci->mid, &slen);
-  mid = mrb_intern(mrb, name, slen-1); /* omit last "=" */
-
-  return mrb_struct_aset_sym(mrb, obj, mid, val);
+  mrb_struct_modify(mrb, obj);
+  ptr = RSTRUCT_PTR(obj);
+  if (ptr == NULL || i >= RSTRUCT_LEN(obj)) {
+    mrb_ary_set(mrb, obj, i, val);
+  }
+  else {
+    ptr[i] = val;
+  }
+  return val;
 }
 
 static mrb_bool
@@ -177,15 +189,21 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
     const char *name = mrb_sym2name_len(mrb, id, NULL);
 
     if (is_local_id(mrb, name) || is_const_id(mrb, name)) {
-      mrb_define_method_id(mrb, c, id, mrb_struct_ref, MRB_ARGS_NONE());
-      mrb_define_method_id(mrb, c, mrb_id_attrset(mrb, id), mrb_struct_set_m, MRB_ARGS_REQ(1));
+      mrb_method_t m;
+      mrb_value at = mrb_fixnum_value(i);
+      struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_ref, 1, &at);
+      struct RProc *aset = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_set_m, 1, &at);
+      MRB_METHOD_FROM_PROC(m, aref);
+      mrb_define_method_raw(mrb, c, id, m);
+      MRB_METHOD_FROM_PROC(m, aset);
+      mrb_define_method_raw(mrb, c, mrb_id_attrset(mrb, id), m);
       mrb_gc_arena_restore(mrb, ai);
     }
   }
 }
 
 static mrb_value
-make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * klass)
+make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *klass)
 {
   mrb_value nstr;
   mrb_sym id;
@@ -203,7 +221,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass * k
     }
     if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {
       mrb_warn(mrb, "redefining constant Struct::%S", name);
-      /* ?rb_mod_remove_const(klass, mrb_sym2name(mrb, id)); */
+      mrb_const_remove(mrb, mrb_obj_value(klass), id);
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
@@ -266,38 +284,31 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_int argc;
 
   name = mrb_nil_value();
-  rest = mrb_nil_value();
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 0) { /* special case to avoid crash */
-    rest = mrb_ary_new(mrb);
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
   else {
-    if (argc > 0) name = argv[0];
-    if (argc > 1) rest = argv[1];
-    if (mrb_array_p(rest)) {
-      if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
-        /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-        mrb_ary_unshift(mrb, rest, name);
+    pargv = argv;
+    argcnt = argc;
+    if (argc > 0) {
+      name = argv[0];
+      if (mrb_symbol_p(name)) {
+        /* 1stArgument:symbol -> name=nil rest=argv[0..n] */
         name = mrb_nil_value();
       }
-    }
-    else {
-      pargv = &argv[1];
-      argcnt = argc-1;
-      if (!mrb_nil_p(name) && mrb_symbol_p(name)) {
-        /* 1stArgument:symbol -> name=nil rest=argv[0]-[n] */
-        name = mrb_nil_value();
-        pargv = &argv[0];
-        argcnt++;
+      else {
+        pargv++;
+        argcnt--;
       }
-      rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     }
+    rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     for (i=0; i<RARRAY_LEN(rest); i++) {
       id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
       mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
     }
   }
-  st = make_struct(mrb, name, rest, struct_class(mrb));
+  st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
@@ -346,7 +357,7 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
   mrb_value *argv;
   mrb_int argc;
 
-  mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_get_args(mrb, "*!", &argv, &argc);
   return mrb_struct_initialize_withArg(mrb, argc, argv, self);
 }
 
@@ -458,6 +469,7 @@ mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
   ptr_members = RARRAY_PTR(members);
   for (i=0; i<len; i++) {
     if (mrb_symbol(ptr_members[i]) == id) {
+      mrb_struct_modify(mrb, s);
       ptr[i] = val;
       return val;
     }
@@ -521,6 +533,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
                "offset %S too large for struct(size:%S)",
                mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
   }
+  mrb_struct_modify(mrb, s);
   return RSTRUCT_PTR(s)[i] = val;
 }
 
@@ -646,7 +659,7 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
   mrb_value members, ret;
   mrb_int i;
 
-  members = struct_s_members(mrb, mrb_class(mrb, self));
+  members = struct_members(mrb, self);
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
 
   for (i = 0; i < RARRAY_LEN(members); ++i) {
@@ -687,6 +700,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
+  MRB_SET_INSTANCE_TT(st, MRB_TT_ARRAY);
 
   mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 

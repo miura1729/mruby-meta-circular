@@ -38,11 +38,11 @@ mrb_vec_instance_new(mrb_state *mrb, mrb_value self)
   mrb_ary_set(mrb, ins, 1, argv[1]);
   mrb_ary_set(mrb, ins, 2, argv[2]);
   mrb_ary_set(mrb, ins, 3, argv[3]);*/
-  insp->ptr[0] = argv[0];
-  insp->ptr[1] = argv[1];
-  insp->ptr[2] = argv[2];
-  insp->ptr[3] = argv[3];
-  insp->len = 4;
+  insp->as.heap.ptr[0] = argv[0];
+  insp->as.heap.ptr[1] = argv[1];
+  insp->as.heap.ptr[2] = argv[2];
+  insp->as.heap.ptr[3] = argv[3];
+  insp->as.heap.len = 4;
 
   return ins;
 }
@@ -54,7 +54,7 @@ mrb_vec_aget(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
 
   mrb_get_args(mrb, "o", &index);
-  return a->ptr[mrb_fixnum(index)];
+  return a->as.heap.ptr[mrb_fixnum(index)];
 }
 
 static mrb_value

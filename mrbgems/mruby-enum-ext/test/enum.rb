@@ -25,14 +25,16 @@ end
 
 assert("Enumerable#each_cons") do
   a = []
-  (1..5).each_cons(3){|e| a << e}
+  b = (1..5).each_cons(3){|e| a << e}
   assert_equal [[1, 2, 3], [2, 3, 4], [3, 4, 5]], a
+  assert_equal nil, b
 end
 
 assert("Enumerable#each_slice") do
   a = []
-  (1..10).each_slice(3){|e| a << e}
+  b = (1..10).each_slice(3){|e| a << e}
   assert_equal [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]], a
+  assert_equal nil, b
 end
 
 assert("Enumerable#group_by") do
@@ -98,6 +100,7 @@ end
 assert("Enumerable#none?") do
   assert_true %w(ant bear cat).none? { |word| word.length == 5 }
   assert_false %w(ant bear cat).none? { |word| word.length >= 4 }
+  assert_false [1, 3.14, 42].none?(Float)
   assert_true [].none?
   assert_true [nil, false].none?
   assert_false [nil, true].none?
@@ -107,8 +110,21 @@ assert("Enumerable#one?") do
   assert_true %w(ant bear cat).one? { |word| word.length == 4 }
   assert_false %w(ant bear cat).one? { |word| word.length > 4 }
   assert_false %w(ant bear cat).one? { |word| word.length < 4 }
+  assert_true [1, 3.14, 42].one?(Float)
   assert_false [nil, true, 99].one?
   assert_true [nil, true, false].one?
+  assert_true [ nil, true, 99 ].one?(Integer)
+  assert_false [].one?
+end
+
+assert("Enumerable#all? (enhancement)") do
+  assert_false [1, 2, 3.14].all?(Integer)
+  assert_true [1, 2, 3.14].all?(Numeric)
+end
+
+assert("Enumerable#any? (enhancement)") do
+  assert_false [1, 2, 3].all?(Float)
+  assert_true [nil, true, 99].any?(Integer)
 end
 
 assert("Enumerable#each_with_object") do

@@ -2,9 +2,9 @@ require 'tempfile'
 
 assert('regression for #1564') do
   o = `#{cmd('mruby')} -e #{shellquote('<<')} 2>&1`
-  assert_equal o, "-e:1:2: syntax error, unexpected tLSHFT\n"
+  assert_include o, "-e:1:2: syntax error"
   o = `#{cmd('mruby')} -e #{shellquote('<<-')} 2>&1`
-  assert_equal o, "-e:1:3: syntax error, unexpected tLSHFT\n"
+  assert_include o, "-e:1:3: syntax error"
 end
 
 assert('regression for #1572') do
@@ -43,4 +43,18 @@ p 'legend'
 EOS
   script.flush
   assert_equal "\"test\"\n\"fin\"\n", `#{cmd('mruby')} #{script.path}`
+end
+
+assert('garbage collecting built-in classes') do
+  script = Tempfile.new('test.rb')
+
+  script.write <<RUBY
+NilClass = nil
+GC.start
+Array.dup
+print nil.class.to_s
+RUBY
+  script.flush
+  assert_equal "NilClass", `#{cmd('mruby')} #{script.path}`
+  assert_equal 0, $?.exitstatus
 end

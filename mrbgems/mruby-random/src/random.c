@@ -19,7 +19,7 @@ static const struct mrb_data_type mt_state_type = {
   MT_STATE_KEY, mrb_free,
 };
 
-static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_random_rand(mrb_state *mrb, mrb_value *regs, mrb_int argc);
 static mrb_value mrb_random_srand(mrb_state *mrb, mrb_value self);
 
 static void
@@ -104,11 +104,22 @@ get_random_state(mrb_state *mrb)
   return DATA_GET_PTR(mrb, random_val, &mt_state_type, mt_state);
 }
 
+static void mrb_random_rand_seed(mrb_state *mrb, mt_state *t);
 static mrb_value
-mrb_random_g_rand(mrb_state *mrb, mrb_value self)
+mrb_random_g_rand(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
-  mrb_value random = get_random(mrb);
-  return mrb_random_rand(mrb, random);
+  mrb_value self = get_random(mrb);
+  mrb_value max;
+  mt_state *t = DATA_GET_PTR(mrb, self, &mt_state_type, mt_state);
+
+  if (argc == 1) {
+    max = regs[1];
+  }
+  else {
+    max = mrb_nil_value();
+  }
+  mrb_random_rand_seed(mrb, t);
+  return mrb_random_mt_rand(mrb, t, max);
 }
 
 static mrb_value
@@ -124,6 +135,8 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   mrb_value seed;
   mt_state *t;
 
+  seed = get_opt(mrb);
+
   /* avoid memory leaks */
   t = (mt_state*)DATA_PTR(self);
   if (t) {
@@ -134,7 +147,6 @@ mrb_random_init(mrb_state *mrb, mrb_value self)
   t = (mt_state *)mrb_malloc(mrb, sizeof(mt_state));
   t->mti = N + 1;
 
-  seed = get_opt(mrb);
   seed = mrb_random_mt_srand(mrb, t, seed);
   if (mrb_nil_p(seed)) {
     t->has_seed = FALSE;
@@ -159,12 +171,18 @@ mrb_random_rand_seed(mrb_state *mrb, mt_state *t)
 }
 
 static mrb_value
-mrb_random_rand(mrb_state *mrb, mrb_value self)
+mrb_random_rand(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
+  mrb_value self = regs[0];
   mrb_value max;
   mt_state *t = DATA_GET_PTR(mrb, self, &mt_state_type, mt_state);
 
-  max = get_opt(mrb);
+  if (argc == 1) {
+    max = regs[1];
+  }
+  else {
+    max = mrb_nil_value();
+  }
   mrb_random_rand_seed(mrb, t);
   return mrb_random_mt_rand(mrb, t, max);
 }
@@ -216,13 +234,15 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_int j;
+      mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
+      
 
       j = mrb_fixnum(mrb_random_mt_rand(mrb, random, mrb_fixnum_value(RARRAY_LEN(ary))));
 
-      tmp = RARRAY_PTR(ary)[i];
-      mrb_ary_ptr(ary)->ptr[i] = RARRAY_PTR(ary)[j];
-      mrb_ary_ptr(ary)->ptr[j] = tmp;
+      tmp = ptr[i];
+      ptr[i] = ptr[j];
+      ptr[j] = tmp;
     }
   }
 
@@ -266,7 +286,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   mrb_int n = 0;
   mrb_bool given;
   mt_state *random = NULL;
-  mrb_int len = RARRAY_LEN(ary);
+  mrb_int len;
 
   mrb_get_args(mrb, "|i?d", &n, &given, &random, &mt_state_type);
   if (random == NULL) {
@@ -274,6 +294,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   }
   mrb_random_rand_seed(mrb, random);
   mt_rand(random);
+  len = RARRAY_LEN(ary);
   if (!given) {                 /* pick one element */
     switch (len) {
     case 0:
@@ -320,7 +341,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   struct RClass *random;
   struct RClass *array = mrb->array_class;
 
-  mrb_define_method(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
+  mrb_define_dmethod(mrb, mrb->kernel_module, "rand", mrb_random_g_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
@@ -329,7 +350,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, random, "srand", mrb_random_g_srand, MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, random, "initialize", mrb_random_init, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
+  mrb_define_dmethod(mrb, random, "rand", mrb_random_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "srand", mrb_random_srand, MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));

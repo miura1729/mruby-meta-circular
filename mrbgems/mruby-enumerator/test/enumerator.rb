@@ -33,7 +33,7 @@ assert 'Enumerator.new' do
       a, b = b, a + b
     end
   end
-  assert_equal fib.take(10), [1,1,2,3,5,8,13,21,34,55]
+  assert_equal [1,1,2,3,5,8,13,21,34,55], fib.take(10)
 end
 
 assert 'Enumerator#initialize_copy' do
@@ -50,6 +50,9 @@ end
 assert 'Enumerator#with_index' do
   assert_equal([[1,0],[2,1],[3,2]], @obj.to_enum(:foo, 1, 2, 3).with_index.to_a)
   assert_equal([[1,5],[2,6],[3,7]], @obj.to_enum(:foo, 1, 2, 3).with_index(5).to_a)
+  a = []
+  @obj.to_enum(:foo, 1, 2, 3).with_index(10).with_index(20) { |*i| a << i }
+  assert_equal [[[1, 10], 20], [[2, 11], 21], [[3, 12], 22]], a
 end
 
 assert 'Enumerator#with_index nonnum offset' do
@@ -60,6 +63,13 @@ end
 
 assert 'Enumerator#with_index string offset' do
   assert_raise(TypeError){ @obj.to_enum(:foo, 1, 2, 3).with_index('1').to_a }
+end
+
+assert 'Enumerator#each_with_index' do
+  assert_equal([[1,0],[2,1],[3,2]], @obj.to_enum(:foo, 1, 2, 3).each_with_index.to_a)
+  a = []
+  @obj.to_enum(:foo, 1, 2, 3).each_with_index {|*i| a << i}
+  assert_equal([[1, 0], [2, 1], [3, 2]], a)
 end
 
 assert 'Enumerator#with_object' do
@@ -499,28 +509,28 @@ end
 
 assert 'Hash#select' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.select.with_index {|a,b| a[1] == 4}
+  hret = h.select.with_index {|a,_b| a[1] == 4}
   assert_equal({3=>4}, hret)
   assert_equal({1=>2,3=>4,5=>6}, h)
 end
 
 assert 'Hash#select!' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.select!.with_index {|a,b| a[1] == 4}
+  hret = h.select!.with_index {|a,_b| a[1] == 4}
   assert_equal h, hret
   assert_equal({3=>4}, h)
 end
 
 assert 'Hash#reject' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.reject.with_index {|a,b| a[1] == 4}
+  hret = h.reject.with_index {|a,_b| a[1] == 4}
   assert_equal({1=>2,5=>6}, hret)
   assert_equal({1=>2,3=>4,5=>6}, h)
 end
 
 assert 'Hash#reject!' do
   h = {1=>2,3=>4,5=>6}
-  hret = h.reject!.with_index {|a,b| a[1] == 4}
+  hret = h.reject!.with_index {|a,_b| a[1] == 4}
   assert_equal h, hret
   assert_equal({1=>2,5=>6}, h)
 end

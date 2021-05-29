@@ -17,7 +17,9 @@ MRB_BEGIN_DECL
 
 struct mrb_state;
 
-typedef void (mrb_each_object_callback)(struct mrb_state *mrb, struct RBasic *obj, void *data);
+#define MRB_EACH_OBJ_OK 0
+#define MRB_EACH_OBJ_BREAK 1
+typedef int (mrb_each_object_callback)(struct mrb_state *mrb, struct RBasic *obj, void *data);
 void mrb_objspace_each_objects(struct mrb_state *mrb, mrb_each_object_callback *callback, void *data);
 MRB_API void mrb_free_context(struct mrb_state *mrb, struct mrb_context *c);
 
@@ -31,6 +33,13 @@ typedef enum {
   MRB_GC_STATE_SWEEP
 } mrb_gc_state;
 
+/* Disable MSVC warning "C4200: nonstandard extension used: zero-sized array
+ * in struct/union" when in C++ mode */
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#endif
+
 typedef struct mrb_heap_page {
   struct RBasic *freelist;
   struct mrb_heap_page *prev;
@@ -40,6 +49,10 @@ typedef struct mrb_heap_page {
   mrb_bool old:1;
   void *objects[];
 } mrb_heap_page;
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 typedef struct mrb_gc {
   mrb_heap_page *heaps;                /* heaps for GC */
@@ -62,6 +75,7 @@ typedef struct mrb_gc {
   size_t threshold;
   int interval_ratio;
   int step_ratio;
+  mrb_bool iterating     :1;
   mrb_bool disabled      :1;
   mrb_bool full          :1;
   mrb_bool generational  :1;

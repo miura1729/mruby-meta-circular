@@ -4,9 +4,9 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "opcode.h"
-#include "error.h"
+#include <mruby.h>
+#include <mruby/opcode.h>
+#include <mruby/error.h>
 #include "value_array.h"
 #include "mruby/jit.h"
 #include "mruby/irep.h"
@@ -14,6 +14,7 @@
 #include "mruby/proc.h"
 #include "mruby/class.h"
 #include "mruby/array.h"
+#include "mruby/throw.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <setjmp.h>
@@ -27,6 +28,8 @@
 #define CI_ACC_SKIP    -1
 #define CI_ACC_DIRECT  -2
 #define CI_ACC_RESUMED -3
+
+#define ARENA_RESTORE(mrb,ai) (mrb)->gc.arena_idx = (*status->ai)
 
 int mrb_patch_irep_var2fix(mrb_state *, mrb_irep *, mrb_int);
 
@@ -99,7 +102,7 @@ mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
 
 void *
 mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
-		 struct RProc *m, struct RClass *c)
+		 mrb_method_t m, struct RClass *c)
 {
   /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
   mrb_code *pc = *status->pc;
@@ -115,12 +118,34 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_value recv, result;
   mrb_sym mid = syms[GETARG_B(i)];
   int orgdisflg = mrb->compile_info.disable_jit;
+  int bidx;
+  mrb_value blk;
+
+  /* from OP_ADDI, OP_SUBI */
+  switch (GET_OPCODE(i)) {
+  case OP_ADDI:
+  case OP_SUBI:
+    n = 1;
+  }
 
   recv = regs[a];
+  if (n == CALL_MAXARGS) {
+    bidx = a+2;
+  }
+  else {
+    bidx = a+n+1;
+  }
+  blk = regs[bidx];
 
   // printf("C %d %x %x %x\n", m->body.func, regs, n);
-  // puts(mrb_sym2name(mrb, mid));
+  //puts(mrb_sym2name(mrb, mid));
 
+  if (MRB_DMETHOD_CFUNC_P(m)) {
+    regs[a] = MRB_DMETHOD_CFUNC(m)(mrb, regs, n);
+
+    mrb_gc_arena_restore(mrb, ai);
+    if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+  }
   ci = mrbjit_cipush(mrb);
   ci->stackent = mrb->c->stack;
   if (n == CALL_MAXARGS) {
@@ -132,7 +157,12 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
     ci->nregs = n + 2;
   }
 
-  ci->proc = m;
+  if (MRB_METHOD_PROC_P(m)) {
+    ci->proc = MRB_METHOD_PROC(m);
+  }
+  else {
+    ci->proc = NULL;
+  }
   ci->target_class = c;
 
   ci->pc = pc + 1;
@@ -143,25 +173,35 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 
   //mrb_p(mrb, recv);
   mrb->compile_info.disable_jit = 1;
-  result = m->body.func(mrb, recv);
+  mrb->vmstatus = (void *)status;
+  if (MRB_METHOD_PROC_P(m)) {
+    result = MRB_METHOD_PROC(m)->body.func(mrb, recv);
+  }
+  else {
+    result = MRB_METHOD_CFUNC(m)(mrb, recv);
+  }
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
+  //mrb_gc_arena_shrink(mrb, ai);
 
-  if (mrb->exc) {
-    ci->mid = mid;
-    ci->proc = m;
-    return status->gototable[0];	/* goto L_RAISE; */
+  if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+  ci = mrb->c->ci;
+  if (GET_OPCODE(i) == OP_SENDB) {
+    if (mrb_type(blk) == MRB_TT_PROC) {
+      struct RProc *p = mrb_proc_ptr(blk);
+      if (p && !MRB_PROC_STRICT_P(p) && MRB_PROC_ENV(p) == ci[-1].env) {
+	p->flags |= MRB_PROC_ORPHAN;
+      }
+    }
   }
   if (ci != mrb->c->ci) {
     /* OP_SEND like method ex. __send__  */
     ci[-1].jit_entry = NULL;
   }
-  /* pop stackpos */
-  ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (ci->acc == CI_ACC_RESUMED) {
       mrb->jmp = *status->prev_jmp;
-      (mrb->c->stack)[(*status->irep)->nlocals] = result;
+      regs[(*status->irep)->nlocals] = result;
       return status->gototable[5]; /* goto L_HALT */
     }
     else {
@@ -188,7 +228,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 
 void *
 mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
-		 struct RProc *m, struct RClass *c)
+		 mrb_method_t m, struct RClass *c)
 {
   /* A B C  R(A) := call(R(A),Sym(B),R(A+1),... ,R(A+C-1)) */
   mrb_code *pc = *status->pc;
@@ -221,7 +261,12 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
     ci->nregs = n + 2;
   }
 
-  ci->proc = m;
+  if (MRB_METHOD_PROC_P(m)) {
+    ci->proc = MRB_METHOD_PROC(m);
+  }
+  else {
+    ci->proc = NULL;
+  }
   ci->target_class = c;
 
   ci->pc = pc + 1;
@@ -232,24 +277,26 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
 
   //mrb_p(mrb, recv);
   mrb->compile_info.disable_jit = 1;
-  result = m->body.func(mrb, recv);
+  if (MRB_METHOD_PROC_P(m)) {
+    result = MRB_METHOD_PROC(m)->body.func(mrb, recv);
+  }
+  else {
+    result = MRB_METHOD_CFUNC(m)(mrb, recv);
+  }
   mrb->compile_info.disable_jit = orgdisflg;
   mrb_gc_arena_restore(mrb, ai);
-  if (mrb->exc) {
-    ci->mid = mid;
-    ci->proc = m;
-    return status->gototable[0];	/* goto L_RAISE; */
-  }
+  //mrb_gc_arena_shrink(mrb, ai);
+
+  if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+  ci = mrb->c->ci;
   if (ci != mrb->c->ci) {
     /* OP_SEND like method ex. __send__  */
     ci[-1].jit_entry = NULL;
   }
-  /* pop stackpos */
-  ci = mrb->c->ci;
   if (!ci->target_class) { /* return from context modifying method (resume/yield) */
     if (ci->acc == CI_ACC_RESUMED) {
       mrb->jmp = *status->prev_jmp;
-      (mrb->c->stack)[(*status->irep)->nlocals] = result;
+      regs[(*status->irep)->nlocals] = result;
       return status->gototable[5]; /* goto L_HALT */
     }
     else {
@@ -311,7 +358,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_sym mid = syms[GETARG_B(i)];
 
   /* push callinfo */
-  int eidx = ci->eidx;
   int ridx = ci->ridx;
 
   if (ci + 1 == cxt->ciend) {
@@ -323,7 +369,6 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
     cxt->ciend = cxt->cibase + size * 2;
   }
   ci = ++cxt->ci;
-  ci->eidx = eidx;
   ci->ridx = ridx;
   ci->env = 0;
   ci->jit_entry = NULL;
@@ -349,7 +394,7 @@ mrbjit_exec_send_mruby(mrb_state *mrb, mrbjit_vmstatus *status,
   irep = *status->irep = m->body.irep;
   ci->nregs = irep->nregs;
   if (mrb->c->stack + irep->nregs >= mrb->c->stend) {
-    mrbjit_stack_extend(mrb, irep->nregs,  ci->argc+2);
+    mrbjit_stack_extend(mrb, irep->nregs);
   }
   *status->pc = irep->iseq;
 
@@ -387,8 +432,8 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 
   if (argc < 0) {
     struct RArray *ary = mrb_ary_ptr(regs[1]);
-    argv = ary->ptr;
-    argc = ary->len;
+    argv = ARY_PTR(ary);
+    argc = ARY_LEN(ary);
     mrb_gc_protect(mrb, regs[1]);
   }
   if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
@@ -401,10 +446,9 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
   }
   else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
     mrb_gc_protect(mrb, argv[0]);
-    argc = mrb_ary_ptr(argv[0])->len;
-    argv = mrb_ary_ptr(argv[0])->ptr;
+    argc = ARY_LEN(mrb_ary_ptr(argv[0]));
+    argv = ARY_PTR(mrb_ary_ptr(argv[0]));
   }
-  mrb->c->ci->argc = len;
   if (argc < len) {
     int mlen = m2;
     if (argc < m1+m2) {
@@ -418,15 +462,20 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     if (argv0 != argv) {
       value_move(&regs[1], argv, argc-mlen); /* m1 + o */
     }
+    if (argc < m1) {
+      mrbjit_stack_clear(mrb, &regs[argc+1], m1-argc);
+    }
     if (mlen) {
       value_move(&regs[len-m2+1], &argv[argc-mlen], mlen); /* m2 */
+    }
+    if (mlen < m2) {
+      mrbjit_stack_clear(mrb, &regs[len-m2+mlen+1], m2-mlen);
     }
     if (r) {                  /* r */
       regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
     }
     if (o == 0 || argc < m1+m2) {
       *(status->pc) += 1;
-      return NULL;
     }
     else
       *(status->pc) += argc - m1 - m2 + 1;
@@ -447,8 +496,16 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	struct RProc *p;
 
 	if (nirep == (mrb_irep *)mrb) {
+	  int i;
 	  mrb_irep *cirep = mrb_add_irep(mrb);
 	  *cirep = *irep;
+	  cirep->jit_entry_tab = (mrbjit_codetab *)mrb_calloc(mrb, irep->ilen, sizeof(mrbjit_codetab));
+	  for (i = 0; i < cirep->ilen; i++) {
+	    cirep->jit_entry_tab[i].size = 2;
+	    cirep->jit_entry_tab[i].body = 
+	      (mrbjit_code_info *)mrb_calloc(mrb, 2, sizeof(mrbjit_code_info));
+	  }
+	  cirep->prof_info = (int *)mrb_calloc(mrb, 1, sizeof(int)*irep->ilen);
 	  if (mrb_patch_irep_var2fix(mrb, cirep, m1 + o + 1)) {
 	    if (irep->shared_lambda == 1) {
 	      p = mrbjit_get_local_proc(mrb, cirep);
@@ -458,8 +515,8 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	    }
 	    p->flags = proc->flags;
 	    p->body.irep->refcnt++;
-	    p->target_class = proc->target_class;
-	    p->env = proc->env;
+	    p->e.env = proc->e.env;
+	    p->upper = proc->upper;
 	    (*status->irep)->pool[ipos] = mrb_fixnum_value(((intptr_t)cirep - (intptr_t)mrb));
 	    mrb->c->ci->proc = proc = p;
 	    *status->irep = cirep;
@@ -479,12 +536,12 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	  }
 	  p->flags = proc->flags;
 	  p->body.irep->refcnt++;
-	  p->target_class = proc->target_class;
-	  p->env = proc->env;
+	  p->e.env = proc->e.env;
+	  p->upper = proc->upper;
 	  mrb->c->ci->proc = proc = p;
 	  *status->irep = nirep;
 	  *status->pc = nirep->iseq;
-	  //	      assert(p->env == NULL || p->env->cioff >= 0);
+	  //	      assert(p->e.env == NULL || p->e.env->cioff >= 0);
 	}
       }
       else {
@@ -500,180 +557,284 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
       regs[len+1] = *blk; /* move block */
     }
     *(status->pc) += o + 1;
-    if (o == 0) {
-      return NULL;
-    }
+  }
+
+  mrb->c->ci->argc = len;
+  /* clear local (but non-argument) variables */
+  if ((int)(irep->nlocals-len-2) > 0) {
+    mrbjit_stack_clear(mrb, &regs[len+2], irep->nlocals-len-2);
+  }
+  if (o == 0) {
+    return NULL;
   }
 
   return status->gototable[6]; /* goto L_DISPATCH */
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
+
 void *
 mrbjit_exec_return(mrb_state *mrb, mrbjit_vmstatus *status)
 {
+  /* A B     return R(A) (B=normal,in-block return/break) */
   mrb_code i = **(status->pc);
+  mrb_callinfo *ci;
   void *rc = NULL;
+  mrb_irep *irep;
+  struct RProc *proc = *status->proc;
 
-  //printf("return %x\n", *status->irep);
-  //printf("rc %x %x %s\n", *status->pc, mrb->c->ci, mrb_sym2name(mrb, mrb->c->ci->mid));
-  //printf("%x\n", mrb->c->ci->jit_entry);
+  ci = mrb->c->ci;
+  if (ci->mid) {
+    mrb_value blk;
 
-  /* A      return R(A) */
-  if (mrb->exc) {
-    mrb_callinfo *ci = mrb->c->ci;
-    int eidx;
+    if (ci->argc < 0) {
+      blk = (mrb->c->stack)[2];
+    }
+    else {
+      blk = (mrb->c->stack)[ci->argc+1];
+    }
+    if (mrb_type(blk) == MRB_TT_PROC) {
+      struct RProc *p = mrb_proc_ptr(blk);
 
-  L_RAISE:
-    ci = mrb->c->ci;
-    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, *status->pc));
-    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
-    eidx = ci->eidx;
-    if (ci == mrb->c->cibase) {
-      if (ci->ridx == 0) {
-	return status->gototable[4]; /* L_STOP */
-      }
-      else {
-	goto L_RESCUE;
+      if (!MRB_PROC_STRICT_P(p) &&
+	  ci > mrb->c->cibase && p->e.env == ci[-1].env) {
+	p->flags |= MRB_PROC_ORPHAN;
       }
     }
-    while (eidx > ci[-1].eidx) {
-      mrbjit_ecall(mrb, --eidx);
+  }
+
+  if (mrb->exc) {
+    mrb_callinfo *ci0;
+
+  L_RAISE:
+    ci0 = ci = mrb->c->ci;
+    if (ci == mrb->c->cibase) {
+      if (ci->ridx == 0) goto L_FTOP;
+      goto L_RESCUE;
     }
     while (ci[0].ridx == ci[-1].ridx) {
       mrbjit_cipop(mrb);
-      ci = mrb->c->ci;
-      mrb->c->stack = ci[1].stackent;
-      if (ci[1].acc == CI_ACC_SKIP && *status->prev_jmp) {
+      mrb->c->stack = ci->stackent;
+      if (ci->acc == CI_ACC_SKIP && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
-	longjmp(*(jmp_buf*)mrb->jmp, 1);
+	MRB_THROW(*status->prev_jmp);
       }
-      if (ci > mrb->c->cibase) {
-	while (eidx > mrb->c->ci->eidx) {
-	  mrbjit_ecall(mrb, --eidx);
-	}
-      }
-      else if (ci == mrb->c->cibase) {
+      ci = mrb->c->ci;
+      if (ci == mrb->c->cibase) {
 	if (ci->ridx == 0) {
-	  mrb->c->stack = mrb->c->stbase;
-	  return status->gototable[4]; /* L_STOP */
-	}
-	else {
-	  struct mrb_context *c = mrb->c;
+	L_FTOP:             /* fiber top */
+	  if (mrb->c == mrb->root_c) {
+	    mrb->c->stack = mrb->c->stbase;
+	    return status->gototable[4]; /* L_STOP */
+	  }
+	  else {
+	    struct mrb_context *c = mrb->c;
 
-	  mrb->c = c->prev;
-	  c->prev = NULL;
-	  goto L_RAISE;
+	    while (mrb->c->eidx > ci->epos) {
+	      ptrdiff_t cioff = ci - mrb->c->cibase;\
+	      mrbjit_ecall(mrb);			    \
+	      ci = mrb->c->cibase + cioff;\
+	    }
+	    if (c->fib) {
+	      mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+	    }
+	    mrb->c->status = MRB_FIBER_TERMINATED;
+	    mrb->c = c->prev;
+	    c->prev = NULL;
+	    goto L_RAISE;
+	  }
 	}
 	break;
       }
+      /* call ensure only when we skip this callinfo */
+      if (ci[0].ridx == ci[-1].ridx) {
+	while (mrb->c->eidx > ci->epos) {
+	  ptrdiff_t cioff = ci - mrb->c->cibase;
+	  mrbjit_ecall(mrb);
+	  ci = mrb->c->cibase + cioff;
+	}
+      }
     }
+
   L_RESCUE:
-    if (ci->ridx == 0) {
-      return status->gototable[4]; /* L_STOP */
+    if (ci->ridx == 0) 	return status->gototable[4]; /* L_STOP */
+    proc = *(status->proc) = ci->proc;
+    irep = *status->irep = proc->body.irep;
+    *(status->pool) = irep->pool;
+    *(status->syms) = irep->syms;
+    if (ci < ci0) {
+      mrb->c->stack = ci[1].stackent;
     }
-    *status->proc = ci->proc;
-    *status->irep = ci->proc->body.irep;
-    mrb->c->stack = ci[1].stackent;
-    *status->pc = mrb->c->rescue[--ci->ridx];
+    mrb->c->ci->prev_pc = NULL;
+    mrbjit_stack_extend(mrb, irep->nregs);
+    *(status->pc) = mrb->c->rescue[--ci->ridx];
   }
   else {
-    mrb_callinfo *ci = mrb->c->ci;
+    int acc;
+    mrb_value v;
+    struct RProc *dst;
 
-    int acc, eidx = mrb->c->ci->eidx;
-    mrb_value v = (mrb->c->stack)[GETARG_A(i)];
-    struct RProc *proc = *status->proc;
-
+    ci = mrb->c->ci;
+    v = (mrb->c->stack)[GETARG_A(i)];
+    mrb_gc_protect(mrb, v);
     switch (GETARG_B(i)) {
     case OP_R_RETURN:
-      // Fall through to OP_R_NORMAL otherwise
-      if ((*status->proc)->env && !MRB_PROC_STRICT_P(*status->proc)) {
-	struct REnv *e = mrbjit_top_env(mrb, *status->proc);
+      /* Fall through to OP_R_NORMAL otherwise */
+      if (ci->acc >=0 && MRB_PROC_ENV_P(proc) && !MRB_PROC_STRICT_P(proc)) {
+	mrb_callinfo *cibase = mrb->c->cibase;
+	dst = mrbjit_top_proc(mrb, proc);
 
-	/*	if (!MRB_ENV_STACK_SHARED_P(e)) {
+	if (MRB_PROC_ENV_P(dst)) {
+	  struct REnv *e = MRB_PROC_ENV(dst);
+
+	  if (!MRB_ENV_STACK_SHARED_P(e) || e->cxt != mrb->c) {
+	    mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+	    goto L_RAISE;
+	  }
+	}
+	while (cibase <= ci && ci->proc->body.irep->org_iseq != dst->body.irep->org_iseq) {
+	  if (ci->acc < 0) {
+	    mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+	    goto L_RAISE;
+	  }
+	  ci--;
+	}
+	if (ci <= cibase) {
 	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
 	  goto L_RAISE;
-	  }*/
-	ci = mrb->c->cibase + e->cioff;
-	/*if (ci == mrb->c->cibase) {
-	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-	  goto L_RAISE;
-	  }*/
-	//rc = status->optable[GET_OPCODE(*ci->pc)];
-	mrb->c->stack = mrb->c->ci->stackent;
-	mrb->c->ci = ci;
+	}
 	break;
       }
     case OP_R_NORMAL:
+    NORMAL_RETURN:
       if (ci == mrb->c->cibase) {
+	struct mrb_context *c;
+
 	if (!mrb->c->prev) { /* toplevel return */
 	  mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-	  return status->gototable[0];	/* goto L_RAISE; */
+	  goto L_RAISE;
 	}
 	if (mrb->c->prev->ci == mrb->c->prev->cibase) {
 	  mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
 	  mrb_exc_set(mrb, exc);
-	  return status->gototable[0];	/* goto L_RAISE; */
+	  goto L_RAISE;
+	}
+	while (mrb->c->eidx > 0) {
+	  mrbjit_ecall(mrb);
 	}
 	/* automatic yield at the end */
-	mrb->c->status = MRB_FIBER_TERMINATED;
-	mrb->c = mrb->c->prev;
+	c = mrb->c;
+	c->status = MRB_FIBER_TERMINATED;
+	mrb->c = c->prev;
+	c->prev = NULL;
 	mrb->c->status = MRB_FIBER_RUNNING;
+	ci = mrb->c->ci;
       }
-      ci = mrb->c->ci;
       break;
     case OP_R_BREAK:
-      /*if (!proc->env || !MRB_ENV_STACK_SHARED_P(proc->env)) {
-	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_BREAK);
+      if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
+      if (MRB_PROC_ORPHAN_P(proc)) { 
+	mrb_value exc;
+
+      L_BREAK_ERROR:
+	exc = mrb_exc_new_str_lit(mrb, E_LOCALJUMP_ERROR,
+				  "break from proc-closure");
+	mrb_exc_set(mrb, exc);
 	goto L_RAISE;
-	}*/
+      }
+      if (!proc->e.env || !MRB_ENV_STACK_SHARED_P(proc->e.env)) {
+	goto L_BREAK_ERROR;
+      }
+      else {
+	struct REnv *e = MRB_PROC_ENV(proc);
+
+	if (e == mrb->c->cibase->env && proc->body.irep->org_iseq != mrb->c->cibase->proc->body.irep->org_iseq) {
+	  goto L_BREAK_ERROR;
+	}
+	if (e->cxt != mrb->c) {
+	  goto L_BREAK_ERROR;
+	}
+      }
+      while (mrb->c->eidx > mrb->c->ci->epos) {
+	ptrdiff_t cioff = ci - mrb->c->cibase;
+	mrbjit_ecall(mrb);
+	ci = mrb->c->cibase + cioff;
+      }
       /* break from fiber block */
       if (mrb->c->ci == mrb->c->cibase && mrb->c->ci->pc) {
 	struct mrb_context *c = mrb->c;
-	
+
 	mrb->c = c->prev;
 	c->prev = NULL;
+	ci = mrb->c->ci;
       }
-      ci = mrb->c->ci;
+      if (ci->acc < 0) {
+	ARENA_RESTORE(mrb, ai);
+	mrb->c->vmexec = FALSE;
+	mrb->exc = (struct RObject*)mrbjit_break_new(mrb, proc, v);
+	mrb->jmp = *status->prev_jmp;
+	MRB_THROW(*status->prev_jmp);
+      }
+      if (FALSE) {
+	v = ((struct RBreak*)mrb->exc)->val;
+	proc = ((struct RBreak*)mrb->exc)->proc;
+	mrb->exc = NULL;
+	ci = mrb->c->ci;
+      }
       mrb->c->stack = ci->stackent;
-      mrb->c->ci = mrb->c->cibase + proc->env->cioff + 1;
-      while (ci > mrb->c->ci) {
+      proc = proc->upper;
+      while (mrb->c->cibase < ci &&  ci[-1].proc->body.irep->org_iseq != proc->body.irep->org_iseq) {
 	if (ci[-1].acc == CI_ACC_SKIP) {
-	  mrb->c->ci = ci;
-	  break;
+	  while (ci < mrb->c->ci) {
+	    mrbjit_cipop(mrb);
+	  }
+	  goto L_BREAK_ERROR;
 	}
 	ci--;
+      }
+      if (ci == mrb->c->cibase) {
+	goto L_BREAK_ERROR;
       }
       break;
     default:
       /* cannot happen */
       break;
     }
-    while (eidx > mrb->c->ci[-1].eidx) {
-      mrbjit_ecall(mrb, --eidx);
+    while (ci < mrb->c->ci) {
+      mrbjit_cipop(mrb);
+    }
+    ci[0].ridx = ci[-1].ridx;
+    while (mrb->c->eidx > mrb->c->ci->epos) {
+      ptrdiff_t cioff = ci - mrb->c->cibase;
+      mrbjit_ecall(mrb);
+      ci = mrb->c->cibase + cioff;
     }
     if (mrb->c->vmexec && !mrb->c->ci->target_class) {
+      ARENA_RESTORE(mrb, ai);
       mrb->c->vmexec = FALSE;
       mrb->jmp = *status->prev_jmp;
-      return NULL;
+      (mrb->c->stack)[(*status->irep)->nlocals] = v;
+      return status->gototable[5]; /* L_HALT */
     }
-    mrbjit_cipop(mrb);
+    ci = mrb->c->ci;
     acc = ci->acc;
     mrb->c->stack = ci->stackent;
-    if (acc == CI_ACC_SKIP) {
+    mrbjit_cipop(mrb);
+    if (acc == CI_ACC_SKIP || acc == CI_ACC_DIRECT) {
+      ARENA_RESTORE(mrb, ai);
       mrb->jmp = *status->prev_jmp;
-      return rc;		/* return v */
+      (mrb->c->stack)[(*status->irep)->nlocals] = v;
+      return status->gototable[5]; /* L_HALT */
     }
-    *status->pc = ci->pc;
-    DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
-    *status->proc = mrb->c->ci->proc;
-    *status->irep = (*status->proc)->body.irep;
-    *status->pool = (*status->proc)->body.irep->pool;
-    *status->syms = (*status->proc)->body.irep->syms;
+    *(status->pc) = ci->pc;
+    DEBUG(fprintf(stderr, "from :%s\n", mrb_sym2name(mrb, ci->mid)));
+    proc = *(status->proc) = mrb->c->ci->proc;
+    irep = *(status->irep) = proc->body.irep;
+    *(status->pool) = irep->pool;
+    *(status->syms) = irep->syms;
 
-    mrb->c->stack[acc] = v;
-
-    // return status->optable[GET_OPCODE(*ci->pc)];
+    (mrb->c->stack)[acc] = v;
+    ARENA_RESTORE(mrb, ai);
   }
 
   return rc;
@@ -683,119 +844,143 @@ void *
 mrbjit_exec_return_fast(mrb_state *mrb, mrbjit_vmstatus *status)
 {
   mrb_code i = **(status->pc);
+  mrb_callinfo *ci;
   void *rc = NULL;
+  mrb_irep *irep;
+  struct RProc *proc = *status->proc;
 
   /* A      return R(A) */
   if (mrb->exc) {
-    mrb_callinfo *ci;
-    int eidx;
+    mrb_callinfo *ci0;
 
   L_RAISE:
-    ci = mrb->c->ci;
-    mrb_obj_iv_ifnone(mrb, mrb->exc, mrb_intern_lit(mrb, "lastpc"), mrb_cptr_value(mrb, *status->pc));
-    mrb_obj_iv_set(mrb, mrb->exc, mrb_intern_lit(mrb, "ciidx"), mrb_fixnum_value(ci - mrb->c->cibase));
-    eidx = ci->eidx;
+    ci0 = ci = mrb->c->ci;
     if (ci == mrb->c->cibase) {
-      if (ci->ridx == 0) {
-	return status->gototable[4]; /* L_STOP */
-      }
-      else {
-	goto L_RESCUE;
-      }
-    }
-    while (eidx > ci[-1].eidx) {
-      mrbjit_ecall(mrb, --eidx);
+      if (ci->ridx == 0) goto L_FTOP;
+      goto L_RESCUE;
     }
     while (ci[0].ridx == ci[-1].ridx) {
       mrbjit_cipop(mrb);
-      ci = mrb->c->ci;
-      mrb->c->stack = ci[1].stackent;
-      if (ci[1].acc == CI_ACC_SKIP && *status->prev_jmp) {
+      mrb->c->stack = ci->stackent;
+      if (ci->acc == CI_ACC_SKIP && *status->prev_jmp) {
 	mrb->jmp = *status->prev_jmp;
-	longjmp(*(jmp_buf*)mrb->jmp, 1);
+	MRB_THROW(*status->prev_jmp);
       }
-      if (ci > mrb->c->cibase) {
-	while (eidx > mrb->c->ci[-1].eidx) {
-	  mrbjit_ecall(mrb, --eidx);
-	}
-      }
-      else if (ci == mrb->c->cibase) {
+      ci = mrb->c->ci;
+      if (ci == mrb->c->cibase) {
 	if (ci->ridx == 0) {
-	  mrb->c->stack = mrb->c->stbase;
-	  return status->gototable[4]; /* L_STOP */
-	}
-	else {
-	  struct mrb_context *c = mrb->c;
+	L_FTOP:             /* fiber top */
+	  if (mrb->c == mrb->root_c) {
+	    mrb->c->stack = mrb->c->stbase;
+	    return status->gototable[4]; /* L_STOP */
+	  }
+	  else {
+	    struct mrb_context *c = mrb->c;
 
-	  mrb->c = c->prev;
-	  c->prev = NULL;
-	  goto L_RAISE;
+	    while (mrb->c->eidx > ci->epos) {
+	      ptrdiff_t cioff = ci - mrb->c->cibase;\
+	      mrbjit_ecall(mrb);			    \
+	      ci = mrb->c->cibase + cioff;\
+	    }
+	    if (c->fib) {
+	      mrb_write_barrier(mrb, (struct RBasic*)c->fib);
+	    }
+	    mrb->c->status = MRB_FIBER_TERMINATED;
+	    mrb->c = c->prev;
+	    c->prev = NULL;
+	    goto L_RAISE;
+	  }
 	}
 	break;
       }
+      /* call ensure only when we skip this callinfo */
+      if (ci[0].ridx == ci[-1].ridx) {
+	while (mrb->c->eidx > ci->epos) {
+	  ptrdiff_t cioff = ci - mrb->c->cibase;
+	  mrbjit_ecall(mrb);
+	  ci = mrb->c->cibase + cioff;
+	}
+      }
     }
+
   L_RESCUE:
-    if (ci->ridx == 0) {
-      return status->gototable[4]; /* L_STOP */
+    if (ci->ridx == 0) 	return status->gototable[4]; /* L_STOP */
+    proc = *(status->proc) = ci->proc;
+    irep = *status->irep = proc->body.irep;
+    *(status->pool) = irep->pool;
+    *(status->syms) = irep->syms;
+    if (ci < ci0) {
+      mrb->c->stack = ci[1].stackent;
     }
-    *status->proc = ci->proc;
-    *status->irep = ci->proc->body.irep;
-    mrb->c->stack = ci[1].stackent;
-    *status->pc = mrb->c->rescue[--ci->ridx];
+    mrb->c->ci->prev_pc = NULL;
+    mrbjit_stack_extend(mrb, irep->nregs);
+    *(status->pc) = mrb->c->rescue[--ci->ridx];
   }
   else {
-    struct mrb_context *c = mrb->c;
-    mrb_callinfo *ci = c->ci;
-
     int acc;
-    int eidx = mrb->c->ci->eidx;
-    mrb_value v = (c->stack)[GETARG_A(i)];
+    mrb_value v;
 
+    ci = mrb->c->ci;
+    v = (mrb->c->stack)[GETARG_A(i)];
+    mrb_gc_protect(mrb, v);
     if (ci == mrb->c->cibase) {
-      //      if (!mrb->c->prev) { /* toplevel return */
-      //	localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-      //	return status->gototable[0];	/* goto L_RAISE; */
-      //      }
+      struct mrb_context *c;
+
+      if (!mrb->c->prev) { /* toplevel return */
+	mrbjit_localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+	goto L_RAISE;
+      }
       if (mrb->c->prev->ci == mrb->c->prev->cibase) {
 	mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
 	mrb_exc_set(mrb, exc);
 	goto L_RAISE;
       }
+      while (mrb->c->eidx > 0) {
+	mrbjit_ecall(mrb);
+      }
       /* automatic yield at the end */
-      mrb->c->status = MRB_FIBER_TERMINATED;
-      mrb->c = mrb->c->prev;
+      c = mrb->c;
+      c->status = MRB_FIBER_TERMINATED;
+      mrb->c = c->prev;
+      c->prev = NULL;
       mrb->c->status = MRB_FIBER_RUNNING;
+      ci = mrb->c->ci;
     }
-    ci = mrb->c->ci;
-
-    while (eidx > c->ci->eidx) {
-      mrbjit_ecall(mrb, --eidx);
-    }
-    if (mrb->c->vmexec && !mrb->c->ci->target_class) {
-      mrb->c->vmexec = FALSE;
-      mrb->jmp = *status->prev_jmp;
-      return rc;
-    }
-
-    if (mrb->c->ci->env) {
+    while (ci < mrb->c->ci) {
       mrbjit_cipop(mrb);
     }
-    else {
-      c->ci--;
+    ci[0].ridx = ci[-1].ridx;
+    while (mrb->c->eidx > mrb->c->ci->epos) {
+      ptrdiff_t cioff = ci - mrb->c->cibase;
+      mrbjit_ecall(mrb);
+      ci = mrb->c->cibase + cioff;
     }
-    acc = ci->acc;
-    c->stack = ci->stackent;
-    if (acc == CI_ACC_SKIP) {
+    if (mrb->c->vmexec && !mrb->c->ci->target_class) {
+      ARENA_RESTORE(mrb, ai);
+      mrb->c->vmexec = FALSE;
       mrb->jmp = *status->prev_jmp;
-      c->stack[(*status->irep)->nlocals] = v;
+      (mrb->c->stack)[(*status->irep)->nlocals] = v;
       return status->gototable[5]; /* L_HALT */
     }
-    *status->pc = ci->pc;
-    DEBUG(printf("from :%s\n", mrb_sym2name(mrb, ci->mid)));
-    *status->proc = c->ci->proc;
-    *status->irep = (*status->proc)->body.irep;
+    ci = mrb->c->ci;
+    acc = ci->acc;
+    mrb->c->stack = ci->stackent;
+    mrbjit_cipop(mrb);
+    if (acc == CI_ACC_SKIP || acc == CI_ACC_DIRECT) {
+      ARENA_RESTORE(mrb, ai);
+      mrb->jmp = *status->prev_jmp;
+      (mrb->c->stack)[(*status->irep)->nlocals] = v;
+      return status->gototable[5]; /* L_HALT */
+    }
+    *(status->pc) = ci->pc;
+    DEBUG(fprintf(stderr, "from :%s\n", mrb_sym2name(mrb, ci->mid)));
+    proc = *(status->proc) = mrb->c->ci->proc;
+    irep = *(status->irep) = proc->body.irep;
+    *(status->pool) = irep->pool;
+    *(status->syms) = irep->syms;
 
-    (c->stack)[acc] = v;
+    (mrb->c->stack)[acc] = v;
+    ARENA_RESTORE(mrb, ai);
   }
 
   return rc;
@@ -808,18 +993,14 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb_value *stack = mrb->c->stack; 
   mrb_value recv = stack[0];
   struct RProc *m = mrb_proc_ptr(recv);
-  struct REnv *env = m->env;
+  struct REnv *env = m->e.env;
   mrb_irep *irep = m->body.irep;
 
   /* replace callinfo */
   ci = mrb->c->ci;
-  ci->target_class = m->target_class;
   ci->proc = m;
   ci->nregs = irep->nregs;
 
-  if (env->mid) {
-    ci->mid = env->mid;
-  }
   stack[0] = env->stack[0];
 
   /* setup environment for calling method */
@@ -831,14 +1012,31 @@ mrbjit_exec_call(mrb_state *mrb, mrbjit_vmstatus *status)
 }
 
 void
-mrbjit_reset_proc(mrb_state *mrb, mrbjit_vmstatus *status, struct RProc *p)
+mrbjit_reset_irep_mild(mrb_state *mrb, mrbjit_vmstatus *status, mrb_irep *irep)
 {
   /* Disable JIT output code for redefined method */
-  mrb_irep *irep = p->body.irep;
   mrbjit_codetab *tab = irep->jit_entry_tab;
   mrbjit_code_info *entry;
   int i;
 
+  for (i = 0; i < tab->size; i++) {
+    entry = tab->body + i;
+    if (entry->used > 0) {
+      mrbjit_code_area cbase = mrb->compile_info.code_base;
+      mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+    }
+  }
+}
+
+void
+mrbjit_reset_irep(mrb_state *mrb, mrbjit_vmstatus *status, mrb_irep *irep)
+{
+  /* Disable JIT output code for redefined method */
+  mrbjit_codetab *tab = irep->jit_entry_tab;
+  mrbjit_code_info *entry;
+  int i;
+
+  irep->entry = NULL;
   for (i = 0; i < tab->size; i++) {
     entry = tab->body + i;
     if (entry->used > 0) {
@@ -857,26 +1055,36 @@ mrbjit_reset_caller_aux(mrb_state *mrb, mrbjit_vmstatus *status)
   mrbjit_codetab *tab = irep->jit_entry_tab;
   mrbjit_code_info *entry;
   int i;
-  int j;
 
-  for (i = 0; i < tab->size; i++) {
-    entry = tab->body + i;
-    if (entry->used > 0) {
-      mrbjit_code_area cbase = mrb->compile_info.code_base;
-      if (irep->block_lambda) {
-	mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, NULL, status, NULL);
-      }
-      else {
-	mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+  if (tab) {
+    for (i = 0; i < tab->size; i++) {
+      entry = tab->body + i;
+      if (entry->used > 0) {
+	mrbjit_code_area cbase = mrb->compile_info.code_base;
+	if (irep->block_lambda) {
+	  mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, NULL, status, NULL);
+	}
+	else {
+	  mrbjit_gen_exit_patch(cbase, mrb, (void *)entry->entry, irep->iseq, status, NULL);
+	}
       }
     }
   }
-  for (j = 0; j < irep->ilen; j++) {
-    for (i = 0; i < tab[j].size; i++) {
-      entry = tab[j].body + i;
-      entry->entry = NULL;
-      entry->used = -1;
+  irep->entry = NULL;
+  if (irep->jit_entry_tab) {
+    int i;
+    int j;
+
+    for (i = 0; i < irep->ilen; i++) {
+      for (j = 0; j < irep->jit_entry_tab[i].size; j++) {
+	if (irep->jit_entry_tab[i].body[j].reginfo) {
+	  mrb_free(mrb, irep->jit_entry_tab[i].body[j].reginfo);
+	}
+      }
     }
+    mrb_free(mrb, irep->jit_entry_tab->body);
+    mrb_free(mrb, irep->jit_entry_tab);
+    irep->jit_entry_tab = NULL;
   }
 }
 

@@ -15,7 +15,6 @@ assert('Class#initialize', '15.2.3.3.1') do
   assert_equal(c.test, :test)
 end
 
-assert('Class#initialize_copy', '15.2.3.3.2') do
   class TestClass
     attr_accessor :n
     def initialize(n)
@@ -26,6 +25,7 @@ assert('Class#initialize_copy', '15.2.3.3.2') do
     end
   end
 
+assert('Class#initialize_copy', '15.2.3.3.2') do
   c1 = TestClass.new('Foo')
   c2 = c1.dup
   c3 = TestClass.new('Bar')
@@ -36,7 +36,7 @@ end
 
 assert('Class#new', '15.2.3.3.3') do
   assert_raise(TypeError, 'Singleton should raise TypeError') do
-    "a".singleton_class.new
+      "a".singleton_class.new
   end
 
   class TestClass
@@ -358,7 +358,7 @@ assert('singleton tests') do
         7
       end
     end
-  end
+  end if class_defined?("Float")
 end
 
 assert('clone Class') do
@@ -384,6 +384,19 @@ assert('class variable and class << self style class method') do
   assert_equal("value", ClassVariableTest.class_variable)
 end
 
+assert('class variable definition in singleton_class') do
+  class ClassVariableDefinitionInSingletonTest
+    class << self
+      @@class_variable = "value"
+    end
+    def class_variable
+      @@class_variable
+    end
+  end
+
+  assert_equal("value", ClassVariableDefinitionInSingletonTest.new.class_variable)
+end
+
 assert('class variable in module and class << self style class method') do
   module ClassVariableInModuleTest
     @@class_variable = "value"
@@ -397,7 +410,42 @@ assert('class variable in module and class << self style class method') do
   assert_equal("value", ClassVariableInModuleTest.class_variable)
 end
 
+assert('child class/module defined in singleton class get parent constant') do
+  actual = module GetParentConstantTest
+            EXPECT = "value"
+            class << self
+              class CHILD
+                class << self
+                    EXPECT
+                end
+              end
+            end
+          end
+  assert_equal("value", actual)
+end
+
+assert('overriding class variable with a module (#3235)') do
+  module ModuleWithCVar
+    @@class_variable = 1
+  end
+  class CVarOverrideTest
+    @@class_variable = 2
+    include ModuleWithCVar
+
+    assert_equal(1, @@class_variable)
+  end
+end
+
 assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }
+end
+
+assert("remove_method doesn't segfault if the passed in argument isn't a symbol") do
+  klass = Class.new
+  assert_raise(TypeError) { klass.remove_method nil }
+  assert_raise(TypeError) { klass.remove_method 123 }
+  assert_raise(TypeError) { klass.remove_method 1.23 }
+  assert_raise(NameError) { klass.remove_method "hello" }
+  assert_raise(TypeError) { klass.remove_method Class.new }
 end

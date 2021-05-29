@@ -13,13 +13,24 @@
 /* allocated memory address should be multiple of POOL_ALIGNMENT */
 /* or undef it if alignment does not matter */
 #ifndef POOL_ALIGNMENT
+#if INTPTR_MAX == INT64_MAX
+#define POOL_ALIGNMENT 8
+#else
 #define POOL_ALIGNMENT 4
+#endif
 #endif
 /* page size of memory pool */
 #ifndef POOL_PAGE_SIZE
 #define POOL_PAGE_SIZE 16000
 #endif
 /* end of configuration section */
+
+/* Disable MSVC warning "C4200: nonstandard extension used: zero-sized array
+ * in struct/union" when in C++ mode */
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#endif
 
 struct mrb_pool_page {
   struct mrb_pool_page *next;
@@ -28,6 +39,10 @@ struct mrb_pool_page {
   void *last;
   char page[];
 };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 struct mrb_pool {
   mrb_state *mrb;

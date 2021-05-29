@@ -70,7 +70,9 @@ enum {
   OP_GETSPECIAL,/*A Bx    R(A) := Special[Bx]                             */
   OP_SETSPECIAL,/*A Bx    Special[Bx] := R(A)                             */
   OP_GETIV,/*     A Bx    R(A) := ivget(Syms(Bx))                         */
+  OP_GETIV2,/*    A Bx    R(A) := ivget(Syms(Bx)) of R(A)                 */
   OP_SETIV,/*     A Bx    ivset(Syms(Bx),R(A))                            */
+  OP_SETIV2,/*    A Bx    ivset(Syms(Bx),R(A)) of R(A)                    */
   OP_GETCV,/*     A Bx    R(A) := cvget(Syms(Bx))                         */
   OP_SETCV,/*     A Bx    cvset(Syms(Bx),R(A))                            */
   OP_GETCONST,/*  A Bx    R(A) := constget(Syms(Bx))                      */
@@ -84,7 +86,8 @@ enum {
   OP_JMPIF,/*     A sBx   if R(A) pc+=sBx                                 */
   OP_JMPNOT,/*    A sBx   if !R(A) pc+=sBx                                */
   OP_ONERR,/*     sBx     rescue_push(pc+sBx)                             */
-  OP_RESCUE,/*    A       clear(exc); R(A) := exception (ignore when A=0) */
+  OP_RESCUE,/*    A B C   if A (if C exc=R(A) else R(A) := exc);
+                          if B R(B) := exc.isa?(R(B)); clear(exc)         */
   OP_POPERR,/*    A       A.times{rescue_pop()}                           */
   OP_RAISE,/*     A       raise(R(A))                                     */
   OP_EPUSH,/*     Bx      ensure_push(SEQ[Bx])                            */

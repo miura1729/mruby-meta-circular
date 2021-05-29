@@ -9,7 +9,7 @@
 
 typedef struct mrbjit_vmstatus mrbjit_vmstatus;
 
-#define COMPILE_THRESHOLD 10
+#define COMPILE_THRESHOLD 1000
 #define NO_INLINE_METHOD_LEN 10
 
 typedef struct mrbjit_codetab {
@@ -28,11 +28,15 @@ int mrbjit_check_inlineble(mrb_state *, struct mrb_irep *);
 mrb_value mrb_uvget(mrb_state *, int, int);
 void mrb_uvset(mrb_state *, int, int, mrb_value);
 mrb_callinfo* mrbjit_cipush(mrb_state *);
+struct RProc*mrbjit_top_proc(mrb_state *, struct RProc *);
 void mrbjit_cipop(mrb_state *);
-void mrbjit_stack_extend(mrb_state *, int, int);
+void mrbjit_stack_extend(mrb_state *, int);
+void mrbjit_stack_clear(mrb_state *, mrb_value *, size_t);
 void mrbjit_argnum_error(mrb_state *, int);
-void mrbjit_ecall(mrb_state *, int);
+void mrbjit_ecall(mrb_state *);
+int mrbjit_uvoff(mrb_state *, int);
 struct REnv* mrbjit_top_env(mrb_state *, struct RProc *);
+struct RBreak* mrbjit_break_new(mrb_state *, struct RProc *, mrb_value);
 void mrbjit_localjump_error(mrb_state *, localjump_error_kind);
 
 extern void mrbjit_gen_exit_patch(mrbjit_code_area, mrb_state *, void *, mrb_code *, mrbjit_vmstatus *, mrbjit_code_info *);
@@ -41,7 +45,8 @@ extern void mrbjit_gen_exit_patch2(mrbjit_code_area, mrb_state *, void *, mrb_co
 mrbjit_code_info *mrbjit_search_codeinfo_prev(mrbjit_codetab *, mrb_code *, mrb_code *, uint16_t);
 
 void disp_type(mrb_state *, mrbjit_reginfo *rinfo);
-void mrbjit_reset_proc(mrb_state *, mrbjit_vmstatus *, struct RProc *);
+void mrbjit_reset_irep_mild(mrb_state *, mrbjit_vmstatus *, struct mrb_irep *);
+void mrbjit_reset_irep(mrb_state *, mrbjit_vmstatus *, struct mrb_irep *);
 void mrbjit_reset_caller();
 mrb_value mrbjit_instance_alloc(mrb_state *, mrb_value);
 

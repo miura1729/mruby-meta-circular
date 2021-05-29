@@ -32,7 +32,8 @@ module Rand
 end
 
 class Vec
-  include  MMM
+  include MMM
+  include Inline
 
   def initialize(x, y, z)
     @x = x
@@ -54,21 +55,25 @@ class Vec
   def vsub(b)
     Vec.new(@x - b.x, @y - b.y, @z - b.z)
   end
+#  make_inline_method  :vsub
 
   def vcross(b)
     Vec.new(@y * b.z - @z * b.y,
             @z * b.x - @x * b.z,
             @x * b.y - @y * b.x)
   end
+#  make_inline_method  :vcross
 
   def vdot(b)
     r = @x * b.x + @y * b.y + @z * b.z
     r
   end
+#  make_inline_method  :vdot
 
   def vlength
     Math.sqrt(@x * @x + @y * @y + @z * @z)
   end
+#  make_inline_method  :vlength
 
   def vnormalize
     len = vlength
@@ -81,6 +86,7 @@ class Vec
     end
     v
   end
+#  make_inline_method  :vnormalize
 end
 
 

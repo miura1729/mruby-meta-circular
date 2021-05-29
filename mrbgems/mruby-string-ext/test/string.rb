@@ -1,3 +1,4 @@
+# coding: utf-8
 ##
 # String(Ext) Test
 
@@ -28,6 +29,18 @@ assert('String#setbyte') do
   str1.setbyte(0, h)
   assert_equal(h, str1.getbyte(0))
   assert_equal("Hello", str1)
+end
+
+assert("String#setbyte raises IndexError if arg conversion resizes String") do
+  $s = "01234\n"
+  class Tmp
+      def to_i
+          $s.chomp! ''
+          95
+      end
+  end
+  tmp = Tmp.new
+  assert_raise(IndexError) { $s.setbyte(5, tmp) }
 end
 
 assert('String#byteslice') do
@@ -110,12 +123,16 @@ assert('String#swapcase!') do
 end
 
 assert('String#concat') do
-  s = "Hello "
-  s.concat "World!"
-  t = "Hello "
-  t << "World!"
-  assert_equal "Hello World!", t
-  assert_equal "Hello World!", s
+  assert_equal "Hello World!", "Hello " << "World" << 33
+  assert_equal "Hello World!", "Hello ".concat("World").concat(33)
+
+  o = Object.new
+  def o.to_str
+    "to_str"
+  end
+  assert_equal "hi to_str", "hi " << o
+
+  assert_raise(TypeError) { "".concat(Object.new) }
 end
 
 assert('String#casecmp') do
@@ -421,6 +438,7 @@ end
 assert('String#ljust') do
   assert_equal "hello", "hello".ljust(4)
   assert_equal "hello               ", "hello".ljust(20)
+  assert_equal 20, "hello".ljust(20).length
   assert_equal "hello123412341234123", "hello".ljust(20, '1234')
   assert_equal "hello", "hello".ljust(-3)
 end
@@ -428,11 +446,67 @@ end
 assert('String#rjust') do
   assert_equal "hello", "hello".rjust(4)
   assert_equal "               hello", "hello".rjust(20)
+  assert_equal 20, "hello".rjust(20).length
   assert_equal "123412341234123hello", "hello".rjust(20, '1234')
   assert_equal "hello", "hello".rjust(-3)
 end
 
+if UTF8STRING
+  assert('String#ljust with UTF8') do
+    assert_equal "helloん              ", "helloん".ljust(20)
+    assert_equal "helloó                            ", "helloó".ljust(34)
+    assert_equal 34, "helloó".ljust(34).length
+    assert_equal "helloんんんんんんんんんんんんんん", "hello".ljust(19, 'ん')
+    assert_equal "helloんんんんんんんんんんんんんんん", "hello".ljust(20, 'ん')
+  end
+
+  assert('String#rjust with UTF8') do
+    assert_equal "              helloん", "helloん".rjust(20)
+    assert_equal "                            helloó", "helloó".rjust(34)
+    # assert_equal 34, "helloó".rjust(34).length
+    assert_equal "んんんんんんんんんんんんんんhello", "hello".rjust(19, 'ん')
+    assert_equal "んんんんんんんんんんんんんんんhello", "hello".rjust(20, 'ん')
+  end
+
+  assert('UTF8 byte counting') do
+    ret = '                                  '
+    ret[-6..-1] = "helloó"
+    assert_equal 34, ret.length
+  end
+end
+
+assert('String#ljust should not change string') do
+  a = "hello"
+  a.ljust(20)
+  assert_equal "hello", a
+end
+
+assert('String#rjust should not change string') do
+  a = "hello"
+  a.rjust(20)
+  assert_equal "hello", a
+end
+
+assert('String#ljust should raise on zero width padding') do
+  assert_raise(ArgumentError) { "foo".ljust(10, '') }
+end
+
+assert('String#rjust should raise on zero width padding') do
+  assert_raise(ArgumentError) { "foo".rjust(10, '') }
+end
+
 assert('String#upto') do
+  assert_equal %w(a8 a9 b0 b1 b2 b3 b4 b5 b6), "a8".upto("b6").to_a
+  assert_equal ["9", "10", "11"], "9".upto("11").to_a
+  assert_equal [], "25".upto("5").to_a
+  assert_equal ["07", "08", "09", "10", "11"], "07".upto("11").to_a
+
+if UTF8STRING
+  assert_equal ["あ", "ぃ", "い", "ぅ", "う", "ぇ", "え", "ぉ", "お"], "あ".upto("お").to_a
+end
+
+  assert_equal ["9", ":", ";", "<", "=", ">", "?", "@", "A"], "9".upto("A").to_a
+
   a     = "aa"
   start = "aa"
   count = 0
@@ -492,6 +566,8 @@ assert('String#upto') do
     count += 1
   })
   assert_equal(2, count)
+
+  assert_raise(TypeError) { "a".upto(:c) {} }
 end
 
 assert('String#ord') do
@@ -590,3 +666,17 @@ assert('String#each_codepoint(UTF-8)') do
   end
   assert_equal expect, cp
 end if UTF8STRING
+
+assert('String#delete_prefix') do
+  assert_equal "llo", "hello".delete_prefix("he")
+  assert_equal "hello", "hello".delete_prefix("llo")
+  assert_equal "llo", "hello".delete_prefix!("he")
+  assert_nil "hello".delete_prefix!("llo")
+end
+
+assert('String#delete_suffix') do
+  assert_equal "he", "hello".delete_suffix("llo")
+  assert_equal "hello", "hello".delete_suffix("he")
+  assert_equal "he", "hello".delete_suffix!("llo")
+  assert_nil "hello".delete_suffix!("he")
+end

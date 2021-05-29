@@ -16,7 +16,9 @@
 .ccmalloc
 .svn
 /.git
+cscope.files
 cscope.out
+tags
 /src/y.tab.c
 /bin
 /build

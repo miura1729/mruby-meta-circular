@@ -487,7 +487,7 @@ static mrb_value
 math_log(mrb_state *mrb, mrb_value obj)
 {
   mrb_float x, base;
-  int argc;
+  mrb_int argc;
 
   argc = mrb_get_args(mrb, "f|f", &x, &base);
   if (x < 0.0) {
@@ -658,7 +658,7 @@ math_ldexp(mrb_state *mrb, mrb_value obj)
   mrb_int   i;
 
   mrb_get_args(mrb, "fi", &x, &i);
-  x = ldexp(x, i);
+  x = ldexp(x, (int)i);
 
   return mrb_float_value(mrb, x);
 }
@@ -746,7 +746,9 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
 #endif
 
   mrb_define_module_function(mrb, mrb_math, "sin", math_sin, MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, ((struct RBasic *)mrb_math)->c, "sin", mrbjit_prim_math_sin);
   mrb_define_module_function(mrb, mrb_math, "cos", math_cos, MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, ((struct RBasic *)mrb_math)->c, "cos", mrbjit_prim_math_cos);
   mrb_define_module_function(mrb, mrb_math, "tan", math_tan, MRB_ARGS_REQ(1));
 
   mrb_define_module_function(mrb, mrb_math, "asin", math_asin, MRB_ARGS_REQ(1));

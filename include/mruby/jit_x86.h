@@ -30,9 +30,10 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   Xbyak::Reg32 reg_tmp1s;	/* edx (32bit version)*/
   Xbyak::Xmm reg_dtmp0;		/* xmm0 */
   Xbyak::Xmm reg_dtmp1;		/* xmm1 */
+  Xbyak::Xmm xmmtab[8];
 
   MRBGenericCodeGenerator() 
-    :CodeGenerator(1024 * 1024 * 10)
+    :CodeGenerator(1024 * 1024 * 300)
   {
     reg_regs = ecx;
     reg_vars = ebx;
@@ -47,6 +48,14 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     
     reg_dtmp0 = xmm0;
     reg_dtmp1 = xmm1;
+    xmmtab[0] = xmm0;
+    xmmtab[1] = xmm1;
+    xmmtab[2] = xmm2;
+    xmmtab[3] = xmm3;
+    xmmtab[4] = xmm4;
+    xmmtab[5] = xmm5;
+    xmmtab[6] = xmm6;
+    xmmtab[7] = xmm7;
   }
   
   void
@@ -66,12 +75,28 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     dinfo->unboxedp = 0;
   }
 
+  void
+    gen_flush_xmm(mrb_state *mrb, mrbjit_code_info *coi, const cpu_word_t dstno) 
+  {
+    mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
+
+    movsd(ptr [reg_regs + dstno * sizeof(mrb_value)],
+	  xmmtab[dinfo->regplace - MRBJIT_REG_XMM0]);
+    dinfo->constp = 1;
+    dinfo->unboxedp = 0;
+  }
+
 #define DEREF_REGNO(regno)                                           \
   ({								     \
     mrbjit_reginfo *rinfo = &coi->reginfo[regno];                    \
     if (rinfo->regplace == MRBJIT_REG_IMMIDATE) {		     \
       gen_flush_literal(mrb, coi, regno);			     \
       rinfo->regplace = MRBJIT_REG_MEMORY;	                     \
+    }                                                                \
+    if (MRBJIT_REG_XMM1 <= rinfo->regplace &&                        \
+        rinfo->regplace <= MRBJIT_REG_XMM7) {                        \
+      movsd(ptr [reg_regs + regno * sizeof(mrb_value)],              \
+	    xmmtab[rinfo->regplace - MRBJIT_REG_XMM0]);		     \
     }                                                                \
     if (rinfo->regplace == MRBJIT_REG_AL) {                          \
       emit_bool_boxing(mrb, coi, reg_tmp0);                          \
@@ -141,6 +166,11 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     mov(ptr [reg_regs + regno * sizeof(mrb_value)], src);
   }
 
+  void emit_local_var_value_write_noopt(mrb_state *mrb, mrbjit_code_info *coi, int regno, Xbyak::Reg32 src)
+  {
+    mov(ptr [reg_regs + regno * sizeof(mrb_value)], src);
+  }
+
   void emit_local_var_type_read(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int regno)
   {
     mrbjit_reginfo *rinfo = &coi->reginfo[regno];
@@ -177,12 +207,6 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
   void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, cpu_word_t src) {
     switch(src) {
-    case -2:
-      xor(dst, dst);
-      dec(dst);
-      dec(dst);
-      break;
-
     case -1:
       xor(dst, dst);
       dec(dst);
@@ -194,12 +218,6 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
 
     case 1:
       xor(dst, dst);
-      inc(dst);
-      break;
-
-    case 2:
-      xor(dst, dst);
-      inc(dst);
       inc(dst);
       break;
 
@@ -285,21 +303,11 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 base, cpu_word_t offset) {
-    if (offset == 0) {
-      mov(dst, ptr [base]);
-    }
-    else {
-      mov(dst, ptr [base + offset]);
-    }
+    mov(dst, ptr [base + offset]);
   }
 
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, Xbyak::Reg32 src) {
-    if (offset == 0) {
-      mov(ptr [base], src);
-    }
-    else {
-      mov(ptr [base + offset], src);
-    }
+    mov(ptr [base + offset], src);
   }
 
   void emit_movew(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, Xbyak::Reg16 src) {
@@ -307,30 +315,19 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, cpu_word_t src) {
-    if (offset == 0) {
-      mov(dword [base], src);
-    }
-    else {
-      mov(dword [base + offset], src);
-    }
+    mov(dword [base + offset], src);
+  }
+
+  void emit_moves(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, uint32_t src) {
+    emit_move(mrb, coi, base, offset, src);
   }
 
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm dst, Xbyak::Reg32 base, cpu_word_t offset) {
-    if (offset == 0) {
-      movsd(dst, ptr [base]);
-    }
-    else {
-      movsd(dst, ptr [base + offset]);
-    }
+    movsd(dst, ptr [base + offset]);
   }
 
   void emit_move(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, Xbyak::Xmm src) {
-    if (offset == 0) {
-      movsd(ptr [base], src);
-    }
-    else {
-      movsd(ptr [base + offset], src);
-    }
+    movsd(ptr [base + offset], src);
   }
 
   void emit_bool_boxing(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst) {
@@ -365,12 +362,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 src, Xbyak::Reg32 base, cpu_word_t offset) {
-    if (offset == 0) {
-      cmp(src, ptr [base]);
-    }
-    else {
-      cmp(src, ptr [base + offset]);
-    }
+    cmp(src, ptr [base + offset]);
   }
 
   void emit_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 srcr, cpu_word_t src) {
@@ -386,12 +378,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_cmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Xmm src, Xbyak::Reg32 base, cpu_word_t offset) {
-    if (offset == 0) {
-      comisd(src, ptr [base]);
-    }
-    else {
-      comisd(src, ptr [base + offset]);
-    }
+    comisd(src, ptr [base + offset]);
   }
 
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, cpu_word_t src) {
@@ -412,21 +399,11 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   }
 
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, Xbyak::Reg32 base, cpu_word_t offset) {
-    if (offset == 0) {
-      add(dst, ptr [base]);
-    }
-    else {
-      add(dst, ptr [base + offset]);
-    }
+    add(dst, ptr [base + offset]);
   }
 
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, Xbyak::Reg32 src) {
-    if (offset == 0) {
-      add(ptr [base], src);
-    }
-    else {
-      add(ptr [base + offset], src);
-    }
+    add(ptr [base + offset], src);
   }
 
   void emit_add(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 base, cpu_word_t offset, cpu_word_t src) {
@@ -434,12 +411,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
       inc(dword [base + offset]);
     }
     else {
-      if (offset == 0) {
-	add(dword [base], src);
-      }
-      else {
-	add(dword [base + offset], src);
-      }
+      add(dword [base + offset], src);
     }
   }
 

@@ -11,10 +11,16 @@
 # error MRB_INT16 is too small for MRB_WORD_BOXING.
 #endif
 
+#if defined(MRB_INT64) && !defined(MRB_64BIT)
+#error MRB_INT64 cannot be used with MRB_WORD_BOXING in 32-bit mode.
+#endif
+
+#ifndef MRB_WITHOUT_FLOAT
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
 };
+#endif
 
 struct RCptr {
   MRB_OBJECT_HEADER;
@@ -22,7 +28,11 @@ struct RCptr {
 };
 
 #define MRB_FIXNUM_SHIFT 1
+#ifdef MRB_WITHOUT_FLOAT
+#define MRB_TT_HAS_BASIC MRB_TT_CPTR
+#else
 #define MRB_TT_HAS_BASIC MRB_TT_FLOAT
+#endif
 
 enum mrb_special_consts {
   MRB_Qnil    = 0,
@@ -47,22 +57,30 @@ typedef union mrb_value {
       mrb_sym sym : (sizeof(mrb_sym) * CHAR_BIT);
     };
     struct RBasic *bp;
+#ifndef MRB_WITHOUT_FLOAT
     struct RFloat *fp;
+#endif
     struct RCptr *vp;
   } value;
   unsigned long w;
 } mrb_value;
 
 MRB_API mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
+#ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
+#endif
 
+#ifndef MRB_WITHOUT_FLOAT
 #define mrb_float_pool(mrb,f) mrb_word_boxing_float_pool(mrb,f)
+#endif
 
 #define mrb_ptr(o)     (o).value.p
 #define mrb_cptr(o)    (o).value.vp->p
+#ifndef MRB_WITHOUT_FLOAT
 #define mrb_float(o)   (o).value.fp->f
-#define mrb_fixnum(o)  (o).value.i
+#endif
+#define mrb_fixnum(o)  ((mrb_int)(o).value.i)
 #define mrb_symbol(o)  (o).value.sym
 
 static inline enum mrb_vtype
@@ -91,18 +109,20 @@ mrb_type(mrb_value o)
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
 
-#define BOXWORD_SET_VALUE(o, ttt, attr, v) do {\
+#define BOXWORD_SET_VALUE(o, ttt, attr, v) do { \
   switch (ttt) {\
   case MRB_TT_FALSE:  (o).w = (v) ? MRB_Qfalse : MRB_Qnil; break;\
   case MRB_TT_TRUE:   (o).w = MRB_Qtrue; break;\
   case MRB_TT_UNDEF:  (o).w = MRB_Qundef; break;\
-  case MRB_TT_FIXNUM: (o).value.i_flag = MRB_FIXNUM_FLAG; (o).attr = (v); break;\
-  case MRB_TT_SYMBOL: (o).value.sym_flag = MRB_SYMBOL_FLAG; (o).attr = (v); break;\
+  case MRB_TT_FIXNUM: (o).w = 0;(o).value.i_flag = MRB_FIXNUM_FLAG; (o).attr = (v); break;\
+  case MRB_TT_SYMBOL: (o).w = 0;(o).value.sym_flag = MRB_SYMBOL_FLAG; (o).attr = (v); break;\
   default:            (o).w = 0; (o).attr = (v); if ((o).value.bp) (o).value.bp->tt = ttt; break;\
   }\
 } while (0)
 
+#ifndef MRB_WITHOUT_FLOAT
 #define SET_FLOAT_VALUE(mrb,r,v) r = mrb_word_boxing_float_value(mrb, v)
+#endif
 #define SET_CPTR_VALUE(mrb,r,v) r = mrb_word_boxing_cptr_value(mrb, v)
 #define SET_NIL_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 #define SET_FALSE_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)

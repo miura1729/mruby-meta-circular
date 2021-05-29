@@ -8,6 +8,7 @@
 #include <mruby/class.h>
 #include <mruby/numeric.h>
 #include <mruby/string.h>
+#include <mruby/class.h>
 
 MRB_API mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
@@ -23,8 +24,10 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   case MRB_TT_SYMBOL:
     return (mrb_symbol(v1) == mrb_symbol(v2));
 
+#ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
     return (mrb_float(v1) == mrb_float(v2));
+#endif
 
   default:
     return (mrb_ptr(v1) == mrb_ptr(v2));
@@ -265,6 +268,7 @@ mrb_init_object(mrb_state *mrb)
   struct RClass *f;
 
   mrb->nil_class   = n = mrb_define_class(mrb, "NilClass",   mrb->object_class);
+  MRB_SET_INSTANCE_TT(n, MRB_TT_TRUE);
   mrb_undef_class_method(mrb, n, "new");
   mrb_define_method(mrb, n, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
   mrb_define_method(mrb, n, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
@@ -274,6 +278,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, n, "inspect", nil_inspect, MRB_ARGS_NONE());
 
   mrb->true_class  = t = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
+  MRB_SET_INSTANCE_TT(t, MRB_TT_TRUE);
   mrb_undef_class_method(mrb, t, "new");
   mrb_define_method(mrb, t, "&",    true_and,       MRB_ARGS_REQ(1));  /* 15.2.5.3.1  */
   mrb_define_method(mrb, t, "^",    true_xor,       MRB_ARGS_REQ(1));  /* 15.2.5.3.2  */
@@ -282,12 +287,14 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, t, "inspect", true_to_s,   MRB_ARGS_NONE());
 
   mrb->false_class = f = mrb_define_class(mrb, "FalseClass", mrb->object_class);
+  MRB_SET_INSTANCE_TT(f, MRB_TT_TRUE);
   mrb_undef_class_method(mrb, f, "new");
   mrb_define_method(mrb, f, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
   mrb_define_method(mrb, f, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
   mrb_define_method(mrb, f, "to_s", false_to_s,     MRB_ARGS_NONE());  /* 15.2.6.3.3  */
   mrb_define_method(mrb, f, "|",    false_or,       MRB_ARGS_REQ(1));  /* 15.2.6.3.4  */
   mrb_define_method(mrb, f, "inspect", false_to_s,  MRB_ARGS_NONE());
+
 }
 
 static mrb_value
@@ -369,7 +376,9 @@ static const struct types {
   {MRB_TT_ICLASS, "iClass"},  /* internal use: mixed-in module holder */
   {MRB_TT_SCLASS, "SClass"},
   {MRB_TT_PROC,   "Proc"},
+#ifndef MRB_WITHOUT_FLOAT
   {MRB_TT_FLOAT,  "Float"},
+#endif
   {MRB_TT_ARRAY,  "Array"},
   {MRB_TT_HASH,   "Hash"},
   {MRB_TT_STRING, "String"},
@@ -380,7 +389,7 @@ static const struct types {
 /*    {MRB_TT_VARMAP,  "Varmap"}, */ /* internal use: dynamic variables */
 /*    {MRB_TT_NODE,  "Node"}, */ /* internal use: syntax tree node */
 /*    {MRB_TT_UNDEF,  "undef"}, */ /* internal use: #undef; should not happen */
-    {-1,  0}
+  {MRB_TT_MAXDEFINE,  0}
 };
 
 MRB_API void
@@ -434,13 +443,13 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
 MRB_API mrb_value
 mrb_any_to_s(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value str = mrb_str_buf_new(mrb, 20);
+  mrb_value str = mrb_str_new_capa(mrb, 20);
   const char *cname = mrb_obj_classname(mrb, obj);
 
   mrb_str_cat_lit(mrb, str, "#<");
   mrb_str_cat_cstr(mrb, str, cname);
   mrb_str_cat_lit(mrb, str, ":");
-  mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(obj)));
+  mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_ptr(obj)));
   mrb_str_cat_lit(mrb, str, ">");
 
   return str;
@@ -519,7 +528,7 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
 }
 
 MRB_API mrb_value
-mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
+mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
 {
   mrb_value tmp;
 
@@ -528,12 +537,17 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
       mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Integer");
   }
   switch (mrb_type(val)) {
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
       if (base != 0) goto arg_error;
-      if (FIXABLE(mrb_float(val))) {
-        break;
+      else {
+        mrb_float f = mrb_float(val);
+        if (FIXABLE_FLOAT(f)) {
+          break;
+        }
       }
       return mrb_flo_to_fixnum(mrb, val);
+#endif
 
     case MRB_TT_FIXNUM:
       if (base != 0) goto arg_error;
@@ -549,6 +563,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, int base)
   if (base != 0) {
     tmp = mrb_check_string_type(mrb, val);
     if (!mrb_nil_p(tmp)) {
+      val = tmp;
       goto string_conv;
     }
 arg_error:
@@ -567,6 +582,7 @@ mrb_Integer(mrb_state *mrb, mrb_value val)
   return mrb_convert_to_integer(mrb, val, 0);
 }
 
+#ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value
 mrb_Float(mrb_state *mrb, mrb_value val)
 {
@@ -587,6 +603,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
       return mrb_convert_type(mrb, val, MRB_TT_FLOAT, "Float", "to_f");
   }
 }
+#endif
 
 MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)

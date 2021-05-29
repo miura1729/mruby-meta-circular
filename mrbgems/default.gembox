@@ -14,6 +14,9 @@ MRuby::GemBox.new do |conf|
   # Use standard Struct class
   conf.gem :core => "mruby-struct"
 
+  # Use Comparable module extension
+  conf.gem :core => "mruby-compar-ext"
+
   # Use Enumerable module extension
   conf.gem :core => "mruby-enum-ext"
 
@@ -53,7 +56,7 @@ MRuby::GemBox.new do |conf|
   # Use Enumerator class (require mruby-fiber)
   conf.gem :core => "mruby-enumerator"
 
-  # Use Enumerable::Lazy class (require mruby-enumerator)
+  # Use Enumerator::Lazy class (require mruby-enumerator)
   conf.gem :core => "mruby-enum-lazy"
 
   # Use toplevel object (main) methods extension

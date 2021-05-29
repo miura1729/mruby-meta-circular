@@ -8,12 +8,15 @@ mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state)
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value result = mrb_nil_value();
+  int orgdisflg = mrb->compile_info.disable_jit;
 
   if (state) { *state = FALSE; }
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
+    mrb->compile_info.disable_jit = 1;
     result = body(mrb, data);
+    mrb->compile_info.disable_jit = orgdisflg;
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     mrb->jmp = prev_jmp;
@@ -32,10 +35,13 @@ mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_func_t ensure,
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value result;
+  int orgdisflg = mrb->compile_info.disable_jit;
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
+    mrb->compile_info.disable_jit = 1;
     result = body(mrb, b_data);
+    mrb->compile_info.disable_jit = orgdisflg;
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     mrb->jmp = prev_jmp;
@@ -64,10 +70,13 @@ mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_fun
   mrb_value result;
   mrb_bool error_matched = FALSE;
   mrb_int i;
+  int orgdisflg = mrb->compile_info.disable_jit;
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
+    mrb->compile_info.disable_jit = 1;
     result = body(mrb, b_data);
+    mrb->compile_info.disable_jit = orgdisflg;
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     mrb->jmp = prev_jmp;

@@ -29,6 +29,18 @@ end
 
 # TODO not implemented ATM assert('Module.nesting', '15.2.2.3.2') do
 
+assert('Module.nesting', '15.2.2.2.2') do
+  module Test4ModuleNesting
+    module Test4ModuleNesting2
+      assert_equal [Test4ModuleNesting2, Test4ModuleNesting],
+                   Module.nesting
+    end
+  end
+  module Test4ModuleNesting::Test4ModuleNesting2
+    assert_equal [Test4ModuleNesting::Test4ModuleNesting2], Module.nesting
+  end
+end
+
 assert('Module#ancestors', '15.2.2.4.9') do
   class Test4ModuleAncestors
   end
@@ -81,7 +93,6 @@ assert('Module#attr NameError') do
 
 end
 
-assert('Module#attr', '15.2.2.4.11') do
   class AttrTest
     class << self
       attr :cattr
@@ -94,6 +105,7 @@ assert('Module#attr', '15.2.2.4.11') do
       @iattr = val
     end
   end
+assert('Module#attr', '15.2.2.4.11') do
 
   test = AttrTest.new
   assert_true AttrTest.respond_to?(:cattr)
@@ -109,13 +121,13 @@ assert('Module#attr', '15.2.2.4.11') do
   assert_equal 'test', AttrTest.cattr
 end
 
-assert('Module#attr_accessor', '15.2.2.4.12') do
   class AttrTestAccessor
     class << self
       attr_accessor :cattr
     end
     attr_accessor :iattr, 'iattr2'
   end
+assert('Module#attr_accessor', '15.2.2.4.12') do
 
   attr_instance = AttrTestAccessor.new
   assert_true AttrTestAccessor.respond_to?(:cattr=)
@@ -125,14 +137,13 @@ assert('Module#attr_accessor', '15.2.2.4.12') do
   assert_true attr_instance.respond_to?(:iattr)
   assert_true attr_instance.respond_to?(:iattr2)
 
-  attr_instance.iattr = 'test'
-  assert_equal 'test', attr_instance.iattr
+#  attr_instance.iattr = 'test'
+#  assert_equal 'test', attr_instance.iattr
 
-  AttrTestAccessor.cattr = 'test'
-  assert_equal 'test', AttrTestAccessor.cattr
+#  AttrTestAccessor.cattr = 'test'
+#  assert_equal 'test', AttrTestAccessor.cattr
 end
 
-assert('Module#attr_reader', '15.2.2.4.13') do
   class AttrTestReader
     class << self
       attr_reader :cattr
@@ -146,6 +157,7 @@ assert('Module#attr_reader', '15.2.2.4.13') do
     end
   end
 
+assert('Module#attr_reader', '15.2.2.4.13') do
   attr_instance = AttrTestReader.new
   assert_true AttrTestReader.respond_to?(:cattr)
   assert_true attr_instance.respond_to?(:iattr)
@@ -155,14 +167,13 @@ assert('Module#attr_reader', '15.2.2.4.13') do
   assert_false attr_instance.respond_to?(:iattr=)
   assert_false attr_instance.respond_to?(:iattr2=)
 
-  attr_instance.iattr_val = 'test'
-  assert_equal 'test', attr_instance.iattr
+#  attr_instance.iattr_val = 'test'
+#  assert_equal 'test', attr_instance.iattr
 
-  AttrTestReader.cattr_val = 'test'
-  assert_equal 'test', AttrTestReader.cattr
+#  AttrTestReader.cattr_val = 'test'
+#  assert_equal 'test', AttrTestReader.cattr
 end
 
-assert('Module#attr_writer', '15.2.2.4.14') do
   class AttrTestWriter
     class << self
       attr_writer :cattr
@@ -175,6 +186,7 @@ assert('Module#attr_writer', '15.2.2.4.14') do
       @iattr
     end
   end
+assert('Module#attr_writer', '15.2.2.4.14') do
 
   attr_instance = AttrTestWriter.new
   assert_true AttrTestWriter.respond_to?(:cattr=)
@@ -268,6 +280,12 @@ assert('Module#const_get', '15.2.2.4.21') do
   end
 
   assert_equal 42, Test4ConstGet.const_get(:Const4Test4ConstGet)
+  assert_equal 42, Test4ConstGet.const_get("Const4Test4ConstGet")
+  assert_equal 42, Object.const_get("Test4ConstGet::Const4Test4ConstGet")
+
+  assert_raise(TypeError){ Test4ConstGet.const_get(123) }
+  assert_raise(NameError){ Test4ConstGet.const_get(:I_DO_NOT_EXIST) }
+  assert_raise(NameError){ Test4ConstGet.const_get("I_DO_NOT_EXIST::ME_NEITHER") }
 end
 
 assert('Module#const_missing', '15.2.2.4.22') do
@@ -280,7 +298,7 @@ assert('Module#const_missing', '15.2.2.4.22') do
   assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
-assert('Module#const_get', '15.2.2.4.23') do
+assert('Module#const_set', '15.2.2.4.23') do
   module Test4ConstSet
     Const4Test4ConstSet = 42
   end
@@ -309,10 +327,14 @@ assert('Module#include', '15.2.2.4.27') do
     Const4Include = 42
   end
   module Test4Include2
-    include Test4Include
+    @include_result = include Test4Include
+    class << self
+      attr_reader :include_result
+    end
   end
 
   assert_equal 42, Test4Include2.const_get(:Const4Include)
+  assert_equal Test4Include2, Test4Include2.include_result
 end
 
 assert('Module#include?', '15.2.2.4.28') do
@@ -544,6 +566,18 @@ end
     assert_equal(expected, obj.m1)
   end
 
+  assert('Module#prepend result') do
+    module TestPrepended; end
+    module TestPrependResult
+      @prepend_result = prepend TestPrepended
+      class << self
+        attr_reader :prepend_result
+      end
+    end
+
+    assert_equal TestPrependResult, TestPrependResult.prepend_result
+  end
+
   # mruby shouldn't be affected by this since there is
   # no visibility control (yet)
   assert('Module#prepend public') do
@@ -605,7 +639,7 @@ end
     c.singleton_class.class_eval do
       define_method(:method_removed) {|id| removed = id}
     end
-    assert_nothing_raised(NoMethodError, NameError, '[Bug #7843]') do
+    assert_nothing_raised('[Bug #7843]') do
       c.class_eval do
         remove_method(:foo)
       end
@@ -694,7 +728,7 @@ end
     end
     a = c.new
     assert_true a.respond_to?(:foo), bug8005
-    assert_nothing_raised(NoMethodError, bug8005) {a.send :foo}
+    assert_nothing_raised(bug8005) {a.send :foo}
   end
 
   # mruby has no visibility control
@@ -795,10 +829,28 @@ end
 # @!endgroup prepend
 
 assert('Module#to_s') do
-  module Test4to_sModules
+  module Outer
+    class Inner; end
+    const_set :SetInner, Class.new
   end
 
-  assert_equal 'Test4to_sModules', Test4to_sModules.to_s
+  assert_equal 'Outer', Outer.to_s
+  assert_equal 'Outer::Inner', Outer::Inner.to_s
+  assert_equal 'Outer::SetInner', Outer::SetInner.to_s
+
+  outer = Module.new do
+    const_set :SetInner, Class.new
+  end
+  Object.const_set :SetOuter, outer
+
+  assert_equal 'SetOuter', SetOuter.to_s
+  assert_equal 'SetOuter::SetInner', SetOuter::SetInner.to_s
+
+  mod = Module.new
+  cls = Class.new
+
+  assert_equal "#<Module:0x", mod.to_s[0,11]
+  assert_equal "#<Class:0x", cls.to_s[0,10]
 end
 
 assert('Module#inspect') do
@@ -856,4 +908,15 @@ end
 assert('module with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { module 0::M1 end }
   assert_raise(TypeError) { module []::M2 end }
+end
+
+assert('get constant of parent module in singleton class; issue #3568') do
+  actual = module GetConstantInSingletonTest
+    EXPECTED = "value"
+    class << self
+      EXPECTED
+    end
+  end
+
+  assert_equal("value", actual)
 end
