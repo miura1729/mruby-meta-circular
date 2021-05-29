@@ -224,6 +224,7 @@ module MTypeInf
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
+        arrt.place[true] = [:delete_at]
         if arrt.class_object. == Array then
           arrele = arrt.element
           if arrele[0].nil? then
@@ -232,6 +233,7 @@ module MTypeInf
           end
           inst.outreg[0].add_same arrele[0]
           type = PrimitiveType.new(NilClass)
+          type.place[true] = [:delete_at]
           inst.outreg[0].add_type type, tup
           arrele[0].flush_type_alltup(tup)
         end
