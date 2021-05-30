@@ -755,7 +755,11 @@ module CodeGenC
         ["self", srct]
 
       when :GETCONST
-        val = gins.outreg[0].get_type(tup)[0].val
+        begin
+          val = gins.outreg[0].get_type(tup)[0].val
+        rescue NoMethodError
+          p gins.outreg[0].type
+        end
         vid =  ccgen.clstab[val]
         if vid then
           [vid[1], srct]
@@ -1617,6 +1621,16 @@ EOS
 
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
+    end
+
+    def self.gen_send_mruby_method(ccgen, inst, node, infer, history, tup)
+      name = inst.para[0]
+      if !ccgen.symtab[name] then
+        ccgen.symtab[name] = true
+      end
+
+      slft = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      slf = gen_type_conversion(ccgen, :mrb_value, slft, inst.inreg[0], tup, node, infer, history, inst.outreg[0])
     end
 
     def self.gen_array_range_check(ccgen, inst, tup, idx)
