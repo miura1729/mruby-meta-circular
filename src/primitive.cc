@@ -559,7 +559,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   add(reg_tmp0s, dword [reg_sp]);
   jl(".retnil");
   L(".normal");
-  emit_cmp(mrb, coi, reg_tmp0s, reg_tmp1, OffsetOf(struct RArray, as.heap.len));
+  emit_cmp(mrb, coi, reg_tmp0s, reg_tmp1s, OffsetOf(struct RArray, as.heap.len));
   jge(".retnil");
 
   emit_local_var_read(mrb, coi, reg_dtmp0, valno);
