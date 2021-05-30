@@ -2288,8 +2288,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       if (mrb_nil_p(regs[m1 + r + m2 + 1])) {
 	return NULL;
       }
-      emit_local_var_type_read(mrb, coi, reg_tmp1, m1 + r + m2 + 1);
-      emit_local_var_value_read(mrb, coi, reg_tmp0, m1 + r + m2 + 1);
+      emit_local_var_type_read(mrb, coi, reg_tmp1s, m1 + r + m2 + 1);
+      emit_local_var_value_read(mrb, coi, reg_tmp0s, m1 + r + m2 + 1);
     }
     else {
       int i;
@@ -2311,11 +2311,11 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct REnv, c));
       }
       emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(struct REnv, stack));
-      emit_move(mrb, coi, reg_tmp1, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value) + 4);
-      emit_move(mrb, coi, reg_tmp0, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value));
+      emit_move(mrb, coi, reg_tmp1s, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value) + 4);
+      emit_move(mrb, coi, reg_tmp0s, reg_tmp0,  (m1 + r + m2 + 1) * sizeof(mrb_value));
     }
 
-    cmp(reg_tmp1, 0xfff00001);
+    cmp(reg_tmp1s, 0xfff00001);
     jnz("@f");
 
     emit_cfunc_start(mrb, coi);
@@ -2331,8 +2331,8 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     ret();
 
     L("@@");
-    emit_local_var_value_write(mrb, coi, a, reg_tmp0);
-    emit_local_var_type_write(mrb, coi, a, reg_tmp1);
+    emit_local_var_value_write(mrb, coi, a, reg_tmp0s);
+    emit_local_var_type_write(mrb, coi, a, reg_tmp1s);
 
     return code;
   }
