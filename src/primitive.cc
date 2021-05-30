@@ -512,7 +512,7 @@ MRBJitCode::mrbjit_prim_ary_aget_impl(mrb_state *mrb, mrb_value proc,
     emit_local_var_type_write(mrb, coi, aryno, reg_tmp0s);
 
     L(".exit");
-    add(reg_sp, 4);
+    add(reg_sp, sizeof(cpu_word_t));
   }
   outLocalLabel();
   
@@ -608,7 +608,7 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   emit_local_var_write_from_cfunc(mrb, coi, regno);
 
   L(".exit");
-  add(reg_sp, 4);
+  add(reg_sp, sizeof(cpu_word_t));
 
   outLocalLabel();
   
