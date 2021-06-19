@@ -3169,11 +3169,16 @@ do {                                                                 \
     emit_arg_push(mrb, coi, 0, reg_mrb);
     if (flags & OP_L_CAPTURE) {
       emit_call(mrb, coi, (void *)mrb_closure_new);
+      emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
     }
     else {
       emit_call(mrb, coi, (void *)mrb_proc_new);
+      emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
+
+      emit_load_literal(mrb, coi, reg_tmp1, (cpu_word_t)MRB_PROC_SCOPE);
+      shl(reg_tmp1, 11);
+      or(ptr [reg_tmp0], reg_tmp1);
     }
-    emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
     emit_load_literal(mrb, coi, reg_tmp1s, 0xfff00000 | MRB_TT_PROC);
     emit_local_var_type_write(mrb, coi, dstno, reg_tmp1s);
     if (flags & OP_L_STRICT) {

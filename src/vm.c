@@ -1582,7 +1582,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       else if (rc == (void *(*)())5) {
 	/* block guard fail need stack overflow check */
 	//method_arg_ver = mrb->c->ci->method_arg_ver;
-	irep->arg_ver_num++;
+	//irep->arg_ver_num++;
 	method_arg_ver = irep->arg_ver_num;
 	//mrb->c->ci->prev_tentry_offset = -1;
 	

@@ -9,8 +9,8 @@
 
 typedef struct mrbjit_vmstatus mrbjit_vmstatus;
 
-#define COMPILE_THRESHOLD 1000
-#define NO_INLINE_METHOD_LEN 10
+#define COMPILE_THRESHOLD 10000
+#define NO_INLINE_METHOD_LEN 100
 
 typedef struct mrbjit_codetab {
   int size;
