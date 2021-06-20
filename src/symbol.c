@@ -12,6 +12,8 @@
 #include <mruby/dump.h>
 #include <mruby/class.h>
 
+#include "mruby/primitive.h"
+
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
   mrb_bool lit : 1;
@@ -491,4 +493,5 @@ mrb_init_symbol(mrb_state *mrb)
   mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,     MRB_ARGS_NONE());              /* 15.2.11.3.4  */
   mrb_define_method(mrb, sym, "inspect",         sym_inspect,    MRB_ARGS_NONE());              /* 15.2.11.3.5(x)  */
   mrb_define_method(mrb, sym, "<=>",             sym_cmp,        MRB_ARGS_REQ(1));
+  mrbjit_define_primitive(mrb, sym, "<=>", mrbjit_prim_sym_cmp);
 }

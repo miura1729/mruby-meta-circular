@@ -375,6 +375,46 @@ mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_fix_to_f_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_sym_cmp_impl(mrb_state *mrb, mrb_value proc,
+					mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  int dstno = regno;
+  mrbjit_reginfo *dinfo;
+
+  gen_class_guard(mrb, dstno + 1, status, *status->pc, coi, mrb->symbol_class, 2);
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);
+  emit_local_var_cmp(mrb, coi, reg_tmp0s, regno + 1);
+  setnz(al);
+  xor(ah, ah);
+  cwde();
+
+  dstno = get_dst_regno(mrb, status, coi, dstno);
+  emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FIXNUM);
+  emit_local_var_type_write(mrb, coi, dstno, reg_tmp0s);
+
+  dinfo = &coi->reginfo[dstno];
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
+  dinfo->unboxedp = 0;
+  dinfo->constp = 0;
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_sym_cmp(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_sym_cmp_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
 const void *
 MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
 					  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo)
