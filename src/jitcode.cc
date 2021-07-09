@@ -137,6 +137,7 @@ mrbjit_emit_code_aux(mrb_state *mrb, mrbjit_vmstatus *status,
   }
     
   if (irep->iseq == *ppc && GET_OPCODE(**ppc) != OP_CALL) {
+    //printf("entry %x %s \n", code->getCurr(), mrb_sym2name(mrb, mrb->c->ci->mid));
     /* Top of iseq */
     rc2 = code->ent_block_guard(mrb, status, coi);
     mrb->compile_info.force_compile = 0;

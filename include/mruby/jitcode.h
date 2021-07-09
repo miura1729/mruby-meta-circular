@@ -403,12 +403,14 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /* Input reg_tmp0 for type tag */
     if (tt == MRB_TT_FLOAT) {
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000);
+      db(0x3e);
       jb("@f", T_NEAR);
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff80000);
       jz("@f", T_NEAR);
     } 
     else {
       emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000 | tt);
+      db(0x3e);
       jz("@f", T_NEAR);
     }
 
@@ -486,6 +488,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       }
       else {
 	emit_cmp(mrb, coi, reg_tmp0s, 0xfff00000 | tt);
+	db(0x3e);
 	jz("@f", T_NEAR);
       }
 
@@ -545,6 +548,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 	  jnz(".exitpos");
 	}
 	else {
+	  db(0x3e);
 	  jz("@f", T_NEAR);
 	  gen_exit(mrb, pc, 2, 0, status, coi);
 	}
@@ -627,7 +631,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_arg_push(mrb, coi, 1, reg_tmp0);
     emit_arg_push(mrb, coi, 0, reg_mrb);
     emit_call(mrb, coi, (void *)mrb->code_fetch_hook);
-    emit_cfunc_end(mrb, coi, sizeof(void *) * 4);
+    emit_cfunc_end(mrb, coi, sizeof(void *) * 3);
     emit_pop(mrb, coi, reg_tmp0);
     emit_pop(mrb, coi, reg_tmp1);
   }
@@ -1957,6 +1961,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       outLocalLabel();
 
       emit_jmp(mrb, coi, reg_tmp0);
+      ud2();
       irep->entry = getCurr();
 
       if (mrb->compile_info.force_compile) {
@@ -1974,30 +1979,20 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     }
 
 #if 1
-    if (GET_OPCODE(*pc) != OP_ENTER ||
+    else if (GET_OPCODE(*pc) != OP_ENTER ||
 	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
 	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
       gen_class_guard(mrb, 0, status, pc, coi, mrb_class(mrb, regs[0]), 2);
       selfinfo->type = (mrb_vtype)mrb_type(regs[0]);
       selfinfo->klass = mrb_class(mrb, regs[0]);
       selfinfo->constp = 1;
+
       if (mrb->c->ci->argc != -1) {
 	int i = mrb->c->ci->argc + 1;
-	gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
-      }
-    }
-#endif
-
-#if 0
-    if (GET_OPCODE(*pc) != OP_ENTER ||
-	(MRB_ASPEC_OPT(GETARG_Ax(*pc)) == 0 &&
-	 MRB_ASPEC_REST(GETARG_Ax(*pc)) == 0)) {
-      /* + 1 means block */
-      if (mrb->c->ci->argc != -1) {
-	for (i = 0; i <= mrb->c->ci->argc + 1; i++) {
-	  gen_class_guard(mrb, i, status, pc, coi, mrb_class(mrb, regs[i]), 2);
+	struct RClass *cls = mrb_class(mrb, regs[i]);
+	if (cls != mrb->nil_class) {
+	  gen_class_guard(mrb, i, status, pc, coi, cls, 2);
 	}
-	//gen_class_guard(mrb, 0, status, pc, coi, mrb_class(mrb, regs[i]), 2);
       }
     }
 #endif
@@ -2183,6 +2178,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       L("@@");
       emit_jmp(mrb, coi, reg_tmp0);
+      ud2();
     }
     else {
       emit_jmp(mrb, coi, "@f");
@@ -2298,6 +2294,7 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 
       while (up--) {
 	if (!e) return NULL;
+
 	e = (struct REnv*)e->c;
       }
 
@@ -3366,10 +3363,6 @@ do {                                                                 \
   mrb_value 
     mrbjit_prim_obj_equal_m_impl(mrb_state *mrb, mrb_value proc,
 				     mrbjit_vmstatus *status, mrbjit_code_info *coi);
-
-  const void *
-    mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
-				  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo);
 
   mrb_value 
     mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,

@@ -367,7 +367,7 @@ get_local_proc(mrb_state *mrb, mrb_irep *mirep)
   }
 
   /* Search already allocated proc object */
-  /* This function for unescaped lambda so don't warry */
+  /* This function for unescaped lambda so 't warry */
   for (i = -1; c->proc_pool[i].proc.tt == MRB_TT_PROC; i--) {
     if (c->proc_pool[i].proc.body.irep == mirep) {
       p = &(c->proc_pool[i].proc);
@@ -564,6 +564,7 @@ ecall(mrb_state *mrb)
   ci->target_class = MRB_PROC_TARGET_CLASS(p);
   c->stack += nregs;
   exc = mrb->exc; mrb->exc = 0;
+  mrb->compile_info.force_compile = 0;
   mrb->compile_info.disable_jit = 1;
   if (exc) {
     mrb_gc_protect(mrb, mrb_obj_value(exc));
@@ -739,6 +740,7 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
 {
   int orgdisflg = mrb->compile_info.disable_jit;
   mrb_value rc;
+  mrb->compile_info.force_compile = 0;
   mrb->compile_info.disable_jit = 1;
   rc = mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
   mrb->compile_info.disable_jit = orgdisflg;
@@ -992,6 +994,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   if (MRB_PROC_CFUNC_P(p)) {
     int orgdisflg = mrb->compile_info.disable_jit;
 
+    mrb->compile_info.force_compile = 0;
     mrb->compile_info.disable_jit = 1;
     val = MRB_PROC_CFUNC(p)(mrb, self);
     mrb->compile_info.disable_jit = orgdisflg;
@@ -1547,8 +1550,18 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 		   : "=c"(prev_entry));
 #else
       assert((*status->proc)->body.irep->ilen == (*status->irep)->ilen);
+      //intf("enter %x ", entry);
+      //sasm_once(mrb, *status->irep, **status->pc);
       rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, entry, &prev_entry);
+      //printf("%x %x ", *status->irep, *status->pc);
+      //printf("exitr %x ", prev_entry);
+      //disasm_once(mrb, *status->irep, **status->pc);
 
+      /*      if (*status->pc - irep->iseq >= 0 && *status->pc - irep->iseq < irep->ilen) {
+      disasm_once(mrb, irep, **status->pc);
+      n = ISEQ_OFFSET_OF(*ppc);
+      printf("%d %d \n", rc, irep->prof_info[n]);
+      }*/
 #endif
       irep = *status->irep;
       regs = mrb->c->stack;
@@ -1569,6 +1582,8 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	/* Maybe arg guard fail */
 	irep->arg_ver_num++;
 	method_arg_ver = irep->arg_ver_num;
+	
+	irep->prof_info[n] = COMPILE_THRESHOLD + 1;
 	//printf("new version %d \n", method_arg_ver);
 	mrb->c->ci->prev_tentry_offset = -1;
 	rc = NULL;
@@ -1733,10 +1748,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
     }
   }
    
-  if (cbase && irep->prof_info[n] > 0 &&
-      entry == NULL &&
-      GET_OPCODE(*irep->iseq) != OP_CALL &&
-      !mrb->compile_info.force_compile) {
+  if ((cbase && irep->prof_info[n] > 0 &&
+       entry == NULL &&
+       GET_OPCODE(*irep->iseq) != OP_CALL &&
+       !mrb->compile_info.force_compile) ||
+      mrb->compile_info.disable_jit ||
+      irep->disable_jit) {
     /* Finish compile */
     mrbjit_gen_exit(cbase, mrb, irep, ppc, status, ci);
     //mrbjit_gen_align(cbase, 16);
@@ -1750,6 +1767,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   /* This cause infinit loop in make test */
   if (prev_entry && ci && ci->used > 0 && prev_entry != ci->entry) {
     cbase = mrb->compile_info.code_base;
+    //printf("patch2 %x %x \n", prev_entry, ci->patch_pos);
     mrbjit_gen_jmp_patch(mrb, cbase, prev_entry, ci->entry, status, ci);
   }
 
@@ -1760,6 +1778,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
   mrb->c->ci->method_arg_ver = method_arg_ver;
   if (ci) {
     if (ci->patch_pos && ci->used > 0) {
+      //printf("patch3 %x %x \n", ci->patch_pos, entry);
       mrbjit_gen_load_patch(cbase, mrb, (void *)ci->patch_pos, ci->entry, status, ci);
       ci->patch_pos = NULL;
     }
@@ -2402,6 +2421,7 @@ RETRY_TRY_BLOCK:
 
       if (MRB_METHOD_CFUNC_P(m)) {
         ci->nregs = (argc < 0) ? 3 : n+2;
+	mrb->compile_info.force_compile = 0;
 	mrb->compile_info.disable_jit = 1;
         if (MRB_METHOD_PROC_P(m)) {
           struct RProc *p = MRB_METHOD_PROC(m);
@@ -2488,7 +2508,8 @@ RETRY_TRY_BLOCK:
 
       /* prepare stack */
       if (MRB_PROC_CFUNC_P(m)) {
-	orgdisflg = mrb->compile_info.disable_jit;
+	orgdisflg = mrb->compile_info.disable_jit;	
+	mrb->compile_info.force_compile = 0;
 	mrb->compile_info.disable_jit = 1;
 	mrb->vmstatus = (void *)&status;
         recv = MRB_PROC_CFUNC(m)(mrb, recv);
@@ -2632,6 +2653,7 @@ RETRY_TRY_BLOCK:
         mrb_value v;
 
 	orgdisflg = mrb->compile_info.disable_jit;
+	mrb->compile_info.force_compile = 0;
 	mrb->compile_info.disable_jit = 1;
         ci->nregs = (argc < 0) ? 3 : n+2;
 	mrb->vmstatus = (void *)&status;
@@ -2842,8 +2864,8 @@ RETRY_TRY_BLOCK:
 		p->upper = proc->upper;
 		irep->pool[ipos] = mrb_fixnum_value((uintptr_t)cirep - (uintptr_t)mrb);
 		mrb->c->ci->proc = proc = p;
+		pc = cirep->iseq + (pc - irep->iseq);
 		irep = cirep;
-		pc = cirep->iseq;
 		mrb->c->ci->prev_pc = NULL;
 		//assert(p->env == NULL || p->env->cioff >= 0);
 	      }
@@ -2863,8 +2885,8 @@ RETRY_TRY_BLOCK:
 	      p->e.env = proc->e.env;
 	      p->upper = proc->upper;
 	      mrb->c->ci->proc = proc = p;
+	      pc = nirep->iseq + (pc - irep->iseq);
 	      irep = nirep;
-	      pc = nirep->iseq;
 	      mrb->c->ci->prev_pc = NULL;
 	      //	      assert(p->env == NULL || p->env->cioff >= 0);
 	    }
@@ -3259,6 +3281,7 @@ RETRY_TRY_BLOCK:
       if (MRB_METHOD_CFUNC_P(m)) {
         mrb_value v;
 	orgdisflg = mrb->compile_info.disable_jit;
+	mrb->compile_info.force_compile = 0;
 	mrb->compile_info.disable_jit = 1;
 	mrb->vmstatus = (void *)&status;
 	v = MRB_METHOD_CFUNC(m)(mrb, recv);
