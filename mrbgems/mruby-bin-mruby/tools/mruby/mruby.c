@@ -1,11 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/compile.h>
 #include <mruby/dump.h>
 #include <mruby/variable.h>
+
+void disasm_once(mrb_state *, mrb_irep *, mrb_code);
+void disasm_irep(mrb_state *, mrb_irep *);
+
 
 #ifdef MRB_DISABLE_STDIO
 static void
@@ -165,6 +170,26 @@ cleanup(mrb_state *mrb, struct _args *args)
   mrb_close(mrb);
 }
 
+void
+trace_hook(struct mrb_state *mrb,
+                     struct mrb_irep *irep,
+                     mrb_code *pc,
+                     mrb_value *regs)
+{
+  printf("%x %x \n", irep, pc);
+}
+
+void
+assert_hook(struct mrb_state *mrb,
+                     struct mrb_irep *irep,
+                     mrb_code *pc,
+                     mrb_value *regs)
+{
+  printf("%x %x ", irep, pc);
+  disasm_once(mrb, irep, *pc);
+  assert(pc >= irep->iseq && pc <= irep->iseq + irep->ilen);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -192,6 +217,7 @@ main(int argc, char **argv)
     int ai = mrb_gc_arena_save(mrb);
 
     mrb->logfp = fopen("sym", "w");
+    //mrb->code_fetch_hook = assert_hook;
     ARGV = mrb_ary_new_capa(mrb, args.argc);
     for (i = 0; i < args.argc; i++) {
       char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);

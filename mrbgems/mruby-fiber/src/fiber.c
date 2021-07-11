@@ -411,6 +411,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
 
+  mrbjit_define_primitive(mrb, c, "yield", mrbjit_prim_fiber_resume);
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
 

@@ -375,16 +375,98 @@ mrbjit_prim_fix_to_f(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_fix_to_f_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
-const void *
-MRBJitCode::mrbjit_prim_obj_not_equal_aux(mrb_state *mrb, mrb_value proc,
-					  mrbjit_vmstatus *status, mrbjit_code_info *coi, mrbjit_reginfo *dinfo)
+mrb_value
+MRBJitCode::mrbjit_prim_sym_cmp_impl(mrb_state *mrb, mrb_value proc,
+					mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  int i = *pc;
+  int regno = GETARG_A(i);
+  int dstno = regno;
+  mrbjit_reginfo *dinfo;
+
+  gen_class_guard(mrb, dstno + 1, status, *status->pc, coi, mrb->symbol_class, 2);
+
+  emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);
+  emit_local_var_cmp(mrb, coi, reg_tmp0s, regno + 1);
+  setnz(al);
+  xor(ah, ah);
+  cwde();
+
+  dstno = get_dst_regno(mrb, status, coi, dstno);
+  emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FIXNUM);
+  emit_local_var_type_write(mrb, coi, dstno, reg_tmp0s);
+
+  dinfo = &coi->reginfo[dstno];
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
+  dinfo->unboxedp = 0;
+  dinfo->constp = 0;
+
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_sym_cmp(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_sym_cmp_impl(mrb, proc, (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
+mrb_value
+MRBJitCode::mrbjit_prim_obj_equal_m_impl(mrb_state *mrb, mrb_value proc,
+					     mrbjit_vmstatus *status, mrbjit_code_info *coi)
 {
   mrb_code **ppc = status->pc;
+  int regno = GETARG_A(**ppc);
+  int dstno = get_dst_regno(mrb, status, coi, regno);
   mrb_value *regs  = mrb->c->stack;
+  enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
+  enum mrb_vtype tt2 = (enum mrb_vtype) mrb_type(regs[regno + 1]);
+  mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
+  dinfo->unboxedp = 0;
 
-  COMP_GEN(setnz(al), setnz(al));
+  /* Import from class.h */
+  switch (tt) {
+  case MRB_TT_TRUE:
+    gen_type_guard(mrb, regno, status, *ppc, coi);
+    gen_type_guard(mrb, regno + 1, status, *ppc, coi);
+    emit_load_literal(mrb, coi, reg_tmp0s, 1); /* true */
+    COMP_BOOL_SET;
+    break;
 
-  return NULL;
+  case MRB_TT_FALSE:
+  case MRB_TT_OBJECT:
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
+    gen_type_guard(mrb, regno, status, *ppc, coi);
+    gen_type_guard(mrb, regno + 1, status, *ppc, coi);
+    emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);
+    emit_local_var_cmp(mrb, coi, reg_tmp0s, regno + 1);
+    setz(al);
+    COMP_BOOL_SET;
+    break;
+
+  default:
+    return mrb_nil_value();
+  }
+
+  dinfo->type = MRB_TT_TRUE;
+  dinfo->klass = mrb->true_class;
+  dinfo->constp = 0;
+  dinfo->unboxedp = 0;
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_obj_equal_m(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_obj_equal_m_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
 mrb_value
@@ -393,43 +475,54 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 {
   mrb_code **ppc = status->pc;
   int regno = GETARG_A(**ppc);
+  int dstno = get_dst_regno(mrb, status, coi, regno);
   mrb_value *regs  = mrb->c->stack;
   enum mrb_vtype tt = (enum mrb_vtype) mrb_type(regs[regno]);
   enum mrb_vtype tt2 = (enum mrb_vtype) mrb_type(regs[regno + 1]);
-  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+  mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
   dinfo->unboxedp = 0;
 
   /* Import from class.h */
   switch (tt) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_TRUE:
+    gen_type_guard(mrb, regno, status, *ppc, coi);
+    gen_type_guard(mrb, regno + 1, status, *ppc, coi);
+    emit_load_literal(mrb, coi, reg_tmp0s, 0); /* false */
+    COMP_BOOL_SET;
+    break;
+
   case MRB_TT_FLOAT:
+    gen_type_guard(mrb, regno, status, *ppc, coi);
+    gen_type_guard(mrb, regno + 1, status, *ppc, coi);
+    emit_local_var_read(mrb, coi, reg_dtmp0, regno);
+    emit_local_var_cmp(mrb, coi, reg_dtmp0, regno + 1);
+    setnz(al);
+    COMP_BOOL_SET;
+    break;
 
-    switch (tt2) {
-    case MRB_TT_FIXNUM:
-    case MRB_TT_FLOAT:
-      mrbjit_prim_obj_not_equal_aux(mrb, proc, status, coi, dinfo);
-      dinfo->type = MRB_TT_TRUE;
-      dinfo->klass = mrb->true_class;
-      dinfo->constp = 0;
-
-      return mrb_true_value();
-
-    default:
-      break;
-    }
+  case MRB_TT_FALSE:
+  case MRB_TT_FIXNUM:
+  case MRB_TT_OBJECT:
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+  case MRB_TT_SCLASS:
+    gen_type_guard(mrb, regno, status, *ppc, coi);
+    gen_type_guard(mrb, regno + 1, status, *ppc, coi);
+    emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);
+    emit_local_var_cmp(mrb, coi, reg_tmp0s, regno + 1);
+    setnz(al);
+    COMP_BOOL_SET;
+    break;
 
   default:
-    dinfo->type = MRB_TT_TRUE;
-    dinfo->klass = mrb->true_class;
-    dinfo->constp = 0;
-
     return mrb_nil_value();
   }
 
   dinfo->type = MRB_TT_TRUE;
   dinfo->klass = mrb->true_class;
   dinfo->constp = 0;
-  return mrb_nil_value();
+  dinfo->unboxedp = 0;
+  return mrb_true_value();
 }
 
 extern "C" mrb_value
@@ -671,6 +764,7 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   mrb_code i = *pc;
   int regno = GETARG_A(i);
   int nargs = GETARG_C(i);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
 
 
   // No support 1 args only no args.
@@ -678,7 +772,7 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
     return mrb_nil_value();
   }
 
-  gen_flush_regs(mrb, pc, status, coi, 1);
+  //gen_flush_regs(mrb, pc, status, coi, 1);
 
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
 
@@ -688,6 +782,8 @@ MRBJitCode::mrbjit_prim_ary_size_impl(mrb_state *mrb, mrb_value proc,
   emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FIXNUM);
   emit_local_var_type_write(mrb, coi, regno, reg_tmp0s);
   
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
   return mrb_true_value();
 }
 
@@ -813,7 +909,7 @@ MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
     else {
       gen_send_mruby(mrb, MRB_METHOD_PROC(m), mid, klass, c, status, pc, coi);
     }
-    gen_exit(mrb, pirep->iseq, 2, 0, status, coi);
+    gen_exit(mrb, pirep->iseq, 1, 0, status, coi);
   }
 
   dinfo->type = MRB_TT_OBJECT;

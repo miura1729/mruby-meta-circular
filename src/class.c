@@ -2558,6 +2558,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "==",                      mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
+  //mrbjit_define_primitive(mrb, bob, "==", mrbjit_prim_obj_equal_m);
   mrb_define_method(mrb, bob, "!=",                      mrb_obj_not_equal_m,      MRB_ARGS_REQ(1));
   mrbjit_define_primitive(mrb, bob, "!=", mrbjit_prim_obj_not_equal_m);
   mrb_define_method(mrb, bob, "__id__",                  mrb_obj_id_m,             MRB_ARGS_NONE()); /* 15.3.1.3.3  */

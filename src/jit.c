@@ -61,8 +61,8 @@ mrbjit_check_inlineble(mrb_state *mrb, mrb_irep *irep)
     case OP_SETCV:
     case OP_GETCONST:
     case OP_GETMCNST:
-    case OP_SENDB:
-    case OP_SEND:
+      //case OP_SENDB:
+      //case OP_SEND:
     case OP_CALL:
     case OP_ENTER:
     case OP_RETURN:
@@ -477,8 +477,9 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
     if (o == 0 || argc < m1+m2) {
       *(status->pc) += 1;
     }
-    else
+    else {
       *(status->pc) += argc - m1 - m2 + 1;
+    }
   }
   else {
     int rnum = 0;
@@ -520,7 +521,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	    (*status->irep)->pool[ipos] = mrb_fixnum_value(((intptr_t)cirep - (intptr_t)mrb));
 	    mrb->c->ci->proc = proc = p;
 	    *status->irep = cirep;
-	    *status->pc = cirep->iseq;
+	    *status->pc = cirep->iseq + (*status->pc - irep->iseq);
 	    //assert(p->env == NULL || p->env->cioff >= 0);
 	  }
 	  else {
@@ -540,7 +541,7 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	  p->upper = proc->upper;
 	  mrb->c->ci->proc = proc = p;
 	  *status->irep = nirep;
-	  *status->pc = nirep->iseq;
+	  *status->pc = nirep->iseq + (*status->pc - irep->iseq);
 	  //	      assert(p->e.env == NULL || p->e.env->cioff >= 0);
 	}
       }
