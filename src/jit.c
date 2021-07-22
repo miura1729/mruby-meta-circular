@@ -18,6 +18,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <setjmp.h>
+#include <assert.h>
 
 #ifdef JIT_DEBUG
 # define DEBUG(x) (x)
@@ -145,6 +146,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
 
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc) return status->gototable[0]; /* L_RAISE */
+    return NULL;
   }
   ci = mrbjit_cipush(mrb);
   ci->stackent = mrb->c->stack;

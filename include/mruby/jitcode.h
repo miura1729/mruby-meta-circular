@@ -638,23 +638,24 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 #endif
 
   void
-    gen_stack_extend(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi,
-		     cpu_word_t room, cpu_word_t keep, cpu_word_t nlocal)
+    gen_stack_extend_common(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
   {
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, stend));
-    emit_sub(mrb, coi, reg_tmp1, room * sizeof(mrb_value));
+    neg(reg_tmp0);
+    lea(reg_tmp1, ptr[reg_tmp1 + reg_tmp0 * sizeof(mrb_value)]);
+    emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
     emit_cmp(mrb, coi, reg_regs, reg_tmp1);
     jb("@f");
+    neg(reg_tmp0);
 
     if (addr_call_stack_extend == NULL) {
-      emit_load_label(mrb, coi, reg_tmp0, "@f");
-      emit_push(mrb, coi, reg_tmp0);
-      emit_load_literal(mrb, coi, reg_tmp1, room);
+      emit_load_label(mrb, coi, reg_tmp1, "@f");
+      emit_push(mrb, coi, reg_tmp1);
 
       addr_call_stack_extend = (void *)getCurr();
 
       emit_cfunc_start(mrb, coi);
-      emit_arg_push(mrb, coi, 1, reg_tmp1);
+      emit_arg_push(mrb, coi, 1, reg_tmp0);
       emit_arg_push(mrb, coi, 0, reg_mrb);
       emit_call(mrb, coi, (void *) mrbjit_stack_extend);
       emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
@@ -663,12 +664,26 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       ret();
     }
     else {
-      emit_load_literal(mrb, coi, reg_tmp1, room);
-      emit_load_literal(mrb, coi, reg_tmp0, keep);
       call(addr_call_stack_extend);
     }
       
     L("@@");
+
+    emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
+  }
+
+  void
+    gen_stack_extend(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi, cpu_word_t room)
+  {
+    emit_load_literal(mrb, coi, reg_tmp0, room);
+    gen_stack_extend_common(mrb, status, coi);
+  }
+
+
+  void
+    gen_stack_extend2(mrb_state *mrb, mrbjit_vmstatus *status, mrbjit_code_info *coi)
+  {
+    gen_stack_extend_common(mrb, status, coi);
   }
 
   void
@@ -742,7 +757,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
 			 GET_OPCODE(m->body.irep->iseq[0]) == OP_CALL);
     int cisize = 6 + (sizeof(mrb_callinfo) > 64);
 
-    callee_nregs = m->body.irep->nregs;
     callee_nlocals = m->body.irep->nlocals;
 
     /* Reg map */
@@ -846,12 +860,12 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
     
     if (!is_block_call) {
+      callee_nregs = m->body.irep->nregs;
       if (n == CALL_MAXARGS) {
-	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs, 3,
-			 (callee_nlocals < 2) ? 3 : callee_nlocals + 1);
+	gen_stack_extend(mrb, status, coi, (callee_nregs < 3) ? 3 : callee_nregs);
       }
       else {
-	gen_stack_extend(mrb, status, coi, callee_nregs, n + 2, callee_nlocals);
+	gen_stack_extend(mrb, status, coi, callee_nregs);
       }
     }
 
@@ -888,14 +902,19 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_move(mrb, coi, reg_tmp1s, reg_tmp1, OffsetOf(mrb_irep, nregs));
       emit_move(mrb, coi, reg_tmp0, OffsetOf(mrb_callinfo, nregs), reg_tmp1s);
 
-      emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, 0); /* self */
-      emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RProc, body.irep));
-      emit_move(mrb, coi, reg_tmp1, reg_tmp1, OffsetOf(mrb_irep, iseq));
-      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp1);
+      emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, 0); /* self */
+      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(struct RProc, body.irep));
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0, OffsetOf(mrb_irep, iseq));
+      emit_vm_var_write(mrb, coi, VMSOffsetOf(pc), reg_tmp0);
 
-      emit_move(mrb, coi, reg_tmp1, reg_tmp0, OffsetOf(struct RProc, e.env));
-      emit_move(mrb, coi, reg_tmp1, reg_tmp1 , OffsetOf(struct REnv, stack));
-      emit_move(mrb, coi, reg_dtmp0, reg_tmp1, 0);
+      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(struct RProc, e.env));
+      emit_move(mrb, coi, reg_tmp0, reg_tmp0 , OffsetOf(struct REnv, stack));
+      emit_move(mrb, coi, reg_dtmp0, reg_tmp0, 0);
+
+      emit_move(mrb, coi, reg_tmp0, reg_tmp1, OffsetOf(struct RProc, body.irep));
+      emit_move(mrb, coi, reg_tmp0s, reg_tmp0, OffsetOf(mrb_irep, nregs));
+      gen_stack_extend2(mrb, status, coi);
+
       emit_move(mrb, coi, reg_regs, reg_context, OffsetOf(mrb_context, stack));
       emit_move(mrb, coi, reg_regs, 0, reg_dtmp0);
 
@@ -1963,19 +1982,6 @@ class MRBJitCode: public MRBGenericCodeGenerator {
       emit_jmp(mrb, coi, reg_tmp0);
       ud2();
       irep->entry = getCurr();
-
-      if (mrb->compile_info.force_compile) {
-	keep = mrb->c->ci->argc;
-	room = irep->nregs;
-	nlocal = irep->nlocals;
-	if (keep == -1) {
-	  gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, 3,
-			   nlocal < 1 ? 3 : nlocal + 2);
-	}
-	else {
-	  gen_stack_extend(mrb, status, coi, (room < 3) ? 3 : room, keep + 2, nlocal);
-	}
-      }
     }
 
 #if 1
