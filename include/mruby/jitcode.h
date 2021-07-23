@@ -763,9 +763,9 @@ class MRBJitCode: public MRBGenericCodeGenerator {
     /*    old ci  reg_tmp1 */
     /*    tmp  reg_tmp0 */
     emit_move(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ci));
-    emit_add(mrb, coi, reg_tmp1, sizeof(mrb_callinfo) * 2);
+    emit_add(mrb, coi, reg_tmp1, sizeof(mrb_callinfo));
     emit_cmp(mrb, coi, reg_tmp1, reg_context, OffsetOf(mrb_context, ciend));
-    jl("@f");
+    jnz("@f");
 
     if (addr_call_extend_callinfo == NULL) {
       emit_load_label(mrb, coi, reg_tmp0, "@f");
