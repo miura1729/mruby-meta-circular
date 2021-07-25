@@ -185,9 +185,10 @@ assert_hook(struct mrb_state *mrb,
                      mrb_code *pc,
                      mrb_value *regs)
 {
-  printf("%x %x ", irep, pc);
-  disasm_once(mrb, irep, *pc);
+  //  printf("%x %x ", irep, pc);
+  //disasm_once(mrb, irep, *pc);
   assert(pc >= irep->iseq && pc <= irep->iseq + irep->ilen);
+  assert(mrb->c->stack < mrb->c->stend - irep->nregs);
 }
 
 int

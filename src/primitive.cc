@@ -438,10 +438,10 @@ MRBJitCode::mrbjit_prim_obj_equal_m_impl(mrb_state *mrb, mrb_value proc,
     break;
 
   case MRB_TT_FALSE:
-  case MRB_TT_OBJECT:
+    /*  case MRB_TT_OBJECT:
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
-  case MRB_TT_SCLASS:
+  case MRB_TT_SCLASS:*/
     gen_type_guard(mrb, regno, status, *ppc, coi);
     gen_type_guard(mrb, regno + 1, status, *ppc, coi);
     emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);
@@ -502,10 +502,10 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
 
   case MRB_TT_FALSE:
   case MRB_TT_FIXNUM:
-  case MRB_TT_OBJECT:
+    /*  case MRB_TT_OBJECT:
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
-  case MRB_TT_SCLASS:
+  case MRB_TT_SCLASS:*/
     gen_type_guard(mrb, regno, status, *ppc, coi);
     gen_type_guard(mrb, regno + 1, status, *ppc, coi);
     emit_local_var_value_read(mrb, coi, reg_tmp0s, regno);

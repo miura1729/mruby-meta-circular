@@ -1550,12 +1550,12 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 		   : "=c"(prev_entry));
 #else
       assert((*status->proc)->body.irep->ilen == (*status->irep)->ilen);
-      //intf("enter %x ", entry);
-      //sasm_once(mrb, *status->irep, **status->pc);
+      //      printf("enter %x ", entry);
+      //disasm_once(mrb, *status->irep, **status->pc);
       rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, entry, &prev_entry);
       //printf("%x %x ", *status->irep, *status->pc);
       //printf("exitr %x ", prev_entry);
-      //disasm_once(mrb, *status->irep, **status->pc);
+      //      disasm_once(mrb, *status->irep, **status->pc);
 
       /*      if (*status->pc - irep->iseq >= 0 && *status->pc - irep->iseq < irep->ilen) {
       disasm_once(mrb, irep, **status->pc);
@@ -1602,10 +1602,10 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
 	//mrb->c->ci->prev_tentry_offset = -1;
 	
 	if (mrb->c->ci->argc == -1) {
-	  mrbjit_stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
+	  stack_extend(mrb, (irep->nregs < 3) ? 3 : irep->nregs);
 	}
 	else {
-	  mrbjit_stack_extend(mrb, irep->nregs);
+	  stack_extend(mrb, irep->nregs);
 	}
 	rc = NULL;
       }
@@ -3017,7 +3017,7 @@ RETRY_TRY_BLOCK:
         }
 
       L_RESCUE:
-	if (mrb->compile_info.code_base) {
+	if (mrb->compile_info.code_base && !mrb->compile_info.disable_jit) {
 	  mrbjit_gen_exit2(mrb->compile_info.code_base, mrb, irep, &pc, &status, NULL);
 	  mrb->compile_info.code_base = NULL;
 	}
