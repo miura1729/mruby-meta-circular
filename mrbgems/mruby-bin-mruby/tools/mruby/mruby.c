@@ -7,6 +7,7 @@
 #include <mruby/compile.h>
 #include <mruby/dump.h>
 #include <mruby/variable.h>
+#include <mruby/proc.h>
 
 void disasm_once(mrb_state *, mrb_irep *, mrb_code);
 void disasm_irep(mrb_state *, mrb_irep *);
@@ -185,8 +186,10 @@ assert_hook(struct mrb_state *mrb,
                      mrb_code *pc,
                      mrb_value *regs)
 {
-  //  printf("%x %x ", irep, pc);
-  //disasm_once(mrb, irep, *pc);
+  printf("%x %x %x %x", irep, pc, mrb->c->ci);
+  if (mrb->c->ci[-1].proc)
+    printf("%x ", mrb->c->ci[-1].proc->body.irep);
+  disasm_once(mrb, irep, *pc);
   assert(pc >= irep->iseq && pc <= irep->iseq + irep->ilen);
   assert(mrb->c->stack < mrb->c->stend - irep->nregs);
 }

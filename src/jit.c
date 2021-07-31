@@ -122,6 +122,8 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   int bidx;
   mrb_value blk;
 
+  assert(mrb->c->stack < mrb->c->stend);
+
   /* from OP_ADDI, OP_SUBI */
   switch (GET_OPCODE(i)) {
   case OP_ADDI:

@@ -428,6 +428,10 @@ MRBJitCode::mrbjit_prim_obj_equal_m_impl(mrb_state *mrb, mrb_value proc,
   mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
   dinfo->unboxedp = 0;
 
+  if (tt != tt2) {
+    return mrb_nil_value();
+  }
+
   /* Import from class.h */
   switch (tt) {
   case MRB_TT_TRUE:
@@ -481,6 +485,10 @@ MRBJitCode::mrbjit_prim_obj_not_equal_m_impl(mrb_state *mrb, mrb_value proc,
   enum mrb_vtype tt2 = (enum mrb_vtype) mrb_type(regs[regno + 1]);
   mrbjit_reginfo *dinfo = &coi->reginfo[dstno];
   dinfo->unboxedp = 0;
+
+  if (tt != tt2) {
+    return mrb_nil_value();
+  }
 
   /* Import from class.h */
   switch (tt) {

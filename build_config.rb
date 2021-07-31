@@ -21,18 +21,18 @@ MRuby::Build.new do |conf|
   #   g.cc.flags << '-g' # append cflags in this gem
   # end
   # conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
-  # conf.gem :core => 'mruby-eval'
-  # conf.gem :mgem => 'mruby-io'
+  #conf.gem :mgem => 'mruby-io'
   # conf.gem :github => 'iij/mruby-io'
   # conf.gem :git => 'git@github.com:iij/mruby-io.git', :branch => 'master', :options => '-v'
 
   # include the default GEMs
   #conf.gem '../mruby-pp'
-  #conf.gem '../mruby-meta-circular'
   #conf.gem '../mruby-pjson'
   #conf.gem '../mruby-profiler'
 #  conf.gem '../mruby-inline'
+  conf.gem :core => 'mruby-io'
   conf.gembox 'default'
+  conf.gem '../mruby-meta-circular'
 #  conf.gem 'mrbgems/mruby-mmm'
 #  conf.gem 'mrbgems/mruby-parray'
 
@@ -42,15 +42,15 @@ MRuby::Build.new do |conf|
   #   cc.flags = [ENV['CFLAGS'] || %w()]
   #   cc.include_paths = ["#{root}/include"]
   #   cc.defines = %w(DISABLE_GEMS)
-  #   cc.option_include_path = '-I%s'
+  #   cc.option_include_path = '-I%s -I.'
   #   cc.option_define = '-D%s'
   #   cc.compile_options = "%{flags} -MMD -o %{outfile} -c %{infile}"
   # end
 
-  # mrbc settings
-  # conf.mrbc do |mrbc|
-  #   mrbc.compile_options = "-g -B%{funcname} -o-" # The -g option is required for line numbers
-  # end
+  #mrbc settings
+  conf.mrbc do |mrbc|
+    mrbc.compile_options = "-g -B%{funcname} -o-" # The -g option is required for line numbers
+  end
 
   # Linker settings
   # conf.linker do |linker|
