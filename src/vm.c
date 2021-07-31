@@ -1190,6 +1190,7 @@ add_codeinfo(mrb_state *mrb, mrbjit_codetab *tab, mrb_irep *irep)
     oldsize = tab->size;
     tab->size = oldsize + (oldsize >> 1) + 2;
     tab->body = mrb_realloc(mrb, tab->body, sizeof(mrbjit_code_info) * tab->size);
+    assert(tab->body != NULL);
     for (i = oldsize; i < tab->size; i++) {
       tab->body[i].used = 0;
       tab->body[i].reginfo = NULL;
@@ -1555,7 +1556,7 @@ mrbjit_dispatch(mrb_state *mrb, mrbjit_vmstatus *status)
       rc = mrbjit_invoke(regs, status->pc, mrb, mrb->c, entry, &prev_entry);
       //printf("%x %x ", *status->irep, *status->pc);
       //printf("exitr %x ", prev_entry);
-      //      disasm_once(mrb, *status->irep, **status->pc);
+      //disasm_once(mrb, *status->irep, **status->pc);
 
       /*      if (*status->pc - irep->iseq >= 0 && *status->pc - irep->iseq < irep->ilen) {
       disasm_once(mrb, irep, **status->pc);
