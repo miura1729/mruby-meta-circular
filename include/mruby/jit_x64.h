@@ -343,9 +343,14 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
   void emit_call(mrb_state *mrb, mrbjit_code_info *coi, void *addr)
   {
     intptr_t off;
-    off = ((uintptr_t)addr) - ((uintptr_t)mrbjit_instance_alloc);
-    lea(rax, ptr [r15 + off]);
-    call(rax);
+    if (abs((long long)((uintptr_t)addr - (uintptr_t)mrbjit_instance_alloc)) < 0x100000000) {
+      off = ((uintptr_t)addr) - ((uintptr_t)mrbjit_instance_alloc);
+      lea(rax, ptr [r15 + off]);
+      call(rax);
+    }
+    else {
+      call(addr);
+    }
   }
 
   void emit_jmp(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 reg)
