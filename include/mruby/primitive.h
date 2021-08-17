@@ -13,6 +13,7 @@ extern mrb_value mrbjit_prim_ary_aget(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_ary_aset(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_ary_first(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_ary_size(mrb_state *, mrb_value, void *, void *);
+extern mrb_value mrbjit_prim_ary_ary_eq(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_instance_new(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_mmm_instance_new(mrb_state *, mrb_value, void *, void *);
 extern mrb_value mrbjit_prim_mmm_move(mrb_state *, mrb_value, void *, void *);

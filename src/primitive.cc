@@ -803,6 +803,75 @@ mrbjit_prim_ary_size(mrb_state *mrb, mrb_value proc, void *status, void *coi)
   return code->mrbjit_prim_ary_size_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
 }
 
+mrb_value
+MRBJitCode::mrbjit_prim_ary_ary_eq_impl(mrb_state *mrb, mrb_value proc,
+				      mrbjit_vmstatus *status, mrbjit_code_info *coi)
+{
+  mrb_code *pc = *status->pc;
+  mrb_code i = *pc;
+  int regno = GETARG_A(i);
+  int dstno = GETARG_A(i);
+  int nargs = GETARG_C(i);
+  mrbjit_reginfo *dinfo = &coi->reginfo[regno];
+
+  emit_local_var_type_read(mrb, coi, reg_tmp0, regno + 1);
+  emit_cmp(mrb, coi, reg_tmp0, 0xfff00000 | MRB_TT_ARRAY);
+  jne(".falsereturn");
+
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, regno + 1);
+  emit_cmp(mrb, coi, reg_tmp0, reg_tmp1);
+  je(".truereturn");
+
+  emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+  shr(reg_tmp0s, 11);
+  and(reg_tmp0s, (uint32_t)MRB_ARY_EMBED_MASK);
+  dec(reg_tmp0s);
+  cmovs(reg_tmp0s, ptr [reg_tmp1 + OffsetOf(struct RArray, as.heap.len)]);
+  push(reg_tmp0s);
+
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, regno + 1);
+  emit_move(mrb, coi, reg_tmp0s, reg_tmp1, 0);
+  shr(reg_tmp0s, 11);
+  and(reg_tmp0s, (uint32_t)MRB_ARY_EMBED_MASK);
+  dec(reg_tmp0s);
+  cmovs(reg_tmp0s, ptr [reg_tmp1 + OffsetOf(struct RArray, as.heap.len)]);
+  emit_cmp(mrb, coi, reg_tmp0s, reg_sp, 0);
+  pop(reg_tmp0s);
+  jne(".falsereturn");
+  
+  emit_local_var_value_read(mrb, coi, reg_tmp1s, regno + 1);
+  emit_local_var_value_write(mrb, coi, dstno, reg_tmp1s);
+  emit_jmp(mrb, coi, ".exit");
+
+  L(".truereturn");
+  emit_load_literal(mrb, coi, reg_tmp0s, 1);
+  emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_TRUE);
+  emit_local_var_type_write(mrb, coi, dstno, reg_tmp0s);
+  emit_jmp(mrb, coi, ".exit");
+
+  L(".falsereturn");
+  emit_load_literal(mrb, coi, reg_tmp0s, 1);
+  emit_local_var_value_write(mrb, coi, dstno, reg_tmp0s);
+  emit_load_literal(mrb, coi, reg_tmp0s, 0xfff00000 | MRB_TT_FALSE);
+  emit_local_var_type_write(mrb, coi, dstno, reg_tmp0s);
+
+  L(".exit");
+  
+  dinfo->type = MRB_TT_FIXNUM;
+  dinfo->klass = mrb->fixnum_class;
+  return mrb_true_value();
+}
+
+extern "C" mrb_value
+mrbjit_prim_ary_ary_eq(mrb_state *mrb, mrb_value proc, void *status, void *coi)
+{
+  MRBJitCode *code = (MRBJitCode *)mrb->compile_info.code_base;
+
+  return code->mrbjit_prim_ary_ary_eq_impl(mrb, proc,  (mrbjit_vmstatus *)status, (mrbjit_code_info *)coi);
+}
+
 void
 MRBJitCode::gen_call_initialize(mrb_state *mrb, mrb_value proc,
 				mrbjit_vmstatus *status, mrbjit_code_info *coi)
