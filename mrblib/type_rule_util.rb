@@ -535,7 +535,7 @@ module MTypeInf
 
         if !existf and !infer.continue then
           mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
-          # print mess #for debug
+          print mess #for debug
           infer.messages[mess] ||= 0
           infer.messages[mess] += 1
         end

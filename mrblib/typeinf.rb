@@ -384,7 +384,7 @@ module MTypeInf
         begin
           rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         rescue Object => e
-          p "#{ins.op} #{ins.filename}##{ins.line}"
+          p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para[0]}"
           raise e
         end
         if rc then

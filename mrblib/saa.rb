@@ -56,10 +56,10 @@ module RiteSSA
 
     def add_type(nty, tup)
       rc = add_type_noplace(nty, tup)
-      @type[tup].each do |ele|
+#      @type[tup].each do |ele|
         #ele.placemerge!(place)
         #nty.place.merge!(ele.place)
-      end
+#      end
       rc
     end
 
