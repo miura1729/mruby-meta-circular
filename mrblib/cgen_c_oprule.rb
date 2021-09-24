@@ -215,7 +215,11 @@ module CodeGenC
         else
           # TODO multiple variale argument
           (argc - m1).times do |i|
-            inst.para[2][m1 + i] = "v#{inst.outreg[m1].id}[#{i}]"
+            if inst.outreg[m1].is_escape?(tup) then
+              inst.para[2][m1 + i] = "(ARY_PTR(mrb_ary_ptr(v#{inst.outreg[m1].id}))[#{i}])"
+            else
+              inst.para[2][m1 + i] = "v#{inst.outreg[m1].id}[#{i}]"
+            end
           end
         end
       end

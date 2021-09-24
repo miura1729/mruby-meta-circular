@@ -240,8 +240,14 @@ module CodeGenC
         i = 0
         base, baset = reg_real_value_noconv(ccgen, inreg[1], node, tup, infer, history)
         argsv = []
-        while argr = inreg[1].type[tup][0].element[i]
-          argsv.push "#{base}[#{i}]"
+        bs = inreg[1].type[tup][0]
+        while argr = bs.element[i]
+          if bs.is_escape?(tup) then
+            argsv.push "(ARY_PTR(mrb_ary_ptr(#{base}))[#{i}])"
+          else
+            argsv.push "#{base}[#{i}]"
+          end
+
           i = i + 1
         end
         args = argsv.join(', ')
