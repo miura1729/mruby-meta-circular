@@ -513,8 +513,8 @@ module MTypeInf
         inst.outreg[0].add_type(type, tup)
       end
       if slf.size != 1 ||
-          slf[0].class_object != NilClass ||
-          slf[0].class_object != FalseClass then
+          (slf[0].class_object != NilClass &&
+          slf[0].class_object != FalseClass) then
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end
@@ -883,8 +883,10 @@ module MTypeInf
         reg.flush_type(tup)
       end
 
-      reg.type[tup].each do |ty|
-        ty.place[true] = [:raise]
+      if reg.type[tup] then
+        reg.type[tup].each do |ty|
+          ty.place[true] = [:raise]
+        end
       end
 
 #      p inst.line

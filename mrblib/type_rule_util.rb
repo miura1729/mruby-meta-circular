@@ -19,7 +19,7 @@ module MTypeInf
         return inst.inreg[0]
 
       when :GETIV
-        return inst.outreg[0]
+        return inst.inreg[0]
 
       when :ENTER
         return true
@@ -167,7 +167,14 @@ module MTypeInf
           notp = !notp
 
         else
-          # Do nothing
+          typemethodp = true
+          type0 = PrimitiveType.new(NilClass)
+          type1 = PrimitiveType.new(false.class)
+
+          addtional_type_spec = [type0, type1]
+          atype_spec_pos = addtional_type_spec
+          atype_spec_neg = addtional_type_spec
+          notp = !notp
         end
       end
 
