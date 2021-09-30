@@ -327,7 +327,8 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :mem, HAL::CPU do |ccgen, inst, node, infer, history, tup|
-      nil
+      ccgen.dcode << gen_declare(ccgen, inst.outreg[0], tup, infer)
+      ccgen.dcode << ";\n"
     end
 
     define_ccgen_rule_method :[], HAL::Regs do |ccgen, inst, node, infer, history, tup|
