@@ -78,13 +78,17 @@ class Allocator
     cchunk = @root
     pchunk = cchunk
     header = mem::static_cast(haddr, Header)
-    while cchunk != mem::static_cast(0, Header) and haddr < MMC::addressof(cchunk.next)
+    while cchunk != mem::static_cast(0, Header) and MMC::addressof(cchunk.next) < haddr
       pchunk = cchunk
       cchunk = cchunk.next
     end
 
     if MMC::addressof(pchunk) + pchunk.size == oaddr then
       pchunk.size += header.size
+      if MMC::addressof(pchunk) + pchunk.size == MMC::addressof(cchunk) then
+        pchunk.size += cchunk.size
+        pchunk.next = cchunk.next
+      end
 
     elsif oaddr + header.size == MMC::addressof(cchunk) then
       header.size += cchunk.size
@@ -92,8 +96,8 @@ class Allocator
       pchunk.next = header
 
     else
-      header.next = cchunk
-      pchunk.next = header
+      header.next = cchunk.next
+      cchunk.next = header
     end
 
     nil
@@ -120,10 +124,10 @@ c = a.malloc(Bar)
 p MMC::addressof(c)
 d = a.malloc(Foo)
 p MMC::addressof(d)
-a.free(c)
-a.free(b)
-c = a.malloc(Bar)
-p MMC::addressof(c)
+a.free(d)
 d = a.malloc(Foo)
 p MMC::addressof(d)
+a.free(c)
+c = a.malloc(Bar)
+p MMC::addressof(c)
 }
