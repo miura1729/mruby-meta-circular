@@ -125,6 +125,9 @@ module MTypeInf
               when MTypeInf::ExpType
                 return false
 
+              when MTypeInf::CType
+                return false
+
               else
                 raise self
               end
@@ -260,14 +263,12 @@ module MTypeInf
   end
 
   class CPointerType<CType
-    def initialize(co, cname, *rest)
-      super(co, basetype, *rest)
+    def initialize(co, basetype, *rest)
+      super(co, *rest)
       @basetype = basetype
     end
 
-    def cname
-      "* #{basetype.cname}"
-    end
+    attr :basetype
   end
 
   class NumericType<PrimitiveType

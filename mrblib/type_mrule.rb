@@ -417,10 +417,15 @@ module MTypeInf
     end
 
     define_inf_rule_method :respond_to?, Object do |infer, inst, node, tup|
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
+      objs = inst.inreg[0].get_type(tup)
+      syms = inst.inreg[1].get_type(tup)
+      if objs[0].class_object.instance_methods.include?(syms[0].val) then
+        type = LiteralType.new(TrueClass, true)
+        inst.outreg[0].add_type(type, tup)
+      else
+        type = LiteralType.new(FalseClass, false)
+        inst.outreg[0].add_type(type, tup)
+      end
       nil
     end
 

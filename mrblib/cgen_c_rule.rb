@@ -983,6 +983,10 @@ module CodeGenC
         rtypesize = 1
         if res then
           return res
+        elsif rtype[0].is_a?(MTypeInf::CPointerType)
+          cent = get_type(ccgen, rtype[0].basetype, tup, infer)
+          [cent, "*"]
+
         elsif rtype[0].is_a?(MTypeInf::CType)
           rtype[0].cname
         end

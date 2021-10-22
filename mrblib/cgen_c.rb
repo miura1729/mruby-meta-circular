@@ -642,7 +642,7 @@ EOS
               argt = ti.typetupletab.rev_table[tup]
               if !is_virgin_reg?(node, sreg, argt) then
                 src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
-                @pcode << "v#{nreg.id} = #{src};\n"
+                @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
               end
               if node.root.export_regs.include?(nreg) then
                 @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"

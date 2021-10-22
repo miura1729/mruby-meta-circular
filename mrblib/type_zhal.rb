@@ -276,7 +276,8 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :addressof, MMC do |infer, inst, node, tup|
-      type = PrimitiveType.new(Fixnum)
+      enttype = inst.inreg[1].flush_type(tup)[tup][0]
+      type = CPointerType.new(Fixnum, enttype)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -565,7 +566,7 @@ module CodeGenC
 
       else
         ccgen.dcode << "#{type} #{regnm};\n"
-        ccgen.hcode << "#{dtype} #{regnm}_ent[#{siz}];\n"
+        ccgen.hcode << "#{type} #{regnm}_ent[#{siz}];\n"
         ccgen.pcode << "#{regnm} = ((#{type})(#{regnm}_ent));\n"
       end
 
@@ -620,3 +621,4 @@ module CodeGenC
     end
   end
 end
+
