@@ -689,17 +689,23 @@ module MTypeInf
     define_inf_rule_op :SUB do |infer, inst, node, tup, history|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = inst.inreg[1].flush_type(tup)[tup]
+      arg0cls = arg0type[0].class_object
 
-      if arg1type and arg1type[0].class_object == Float then
-        ty = NumericType.new(Float, false)
-        inst.outreg[0].add_type ty, tup
+      if !(arg0cls == Fixnum or arg0cls == Float) then
+        @@ruletab[:METHOD][:-][arg0cls].call(infer, inst, node, tup)
 
-      elsif arg0type then
-        arg0type.each do |ty|
-          if ty.is_a?(LiteralType) then
-            ty = NumericType.new(ty.class_object, false)
-          end
+      else
+        if arg1type and arg1type[0].class_object == Float then
+          ty = NumericType.new(Float, false)
           inst.outreg[0].add_type ty, tup
+
+        elsif arg0type then
+          arg0type.each do |ty|
+            if ty.is_a?(LiteralType) then
+              ty = NumericType.new(ty.class_object, false)
+            end
+            inst.outreg[0].add_type ty, tup
+          end
         end
       end
       nil
@@ -766,14 +772,24 @@ module MTypeInf
     define_inf_rule_op :SUBI do |infer, inst, node, tup, history|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = LiteralType.new(Fixnum, inst.para[1])
+      arg0cls = arg0type[0].class_object
 
-      if arg0type then
-        arg0type.each do |ty|
-          if ty.is_a?(LiteralType) then
-            ty = NumericType.new(ty.class_object, false)
+      if !(arg0cls == Fixnum or arg0cls == Float) then
+        if @@ruletab[:METHOD][:-] then
+          @@ruletab[:METHOD][:-][arg0cls].call(infer, inst, node, tup)
+        else
+          @@ruletab[:METHOD][:method_missing][arg0cls].call(infer, inst, node, tup)
+        end
+
+      else
+        if arg0type then
+          arg0type.each do |ty|
+            if ty.is_a?(LiteralType) then
+              ty = NumericType.new(ty.class_object, false)
+            end
+            #ty = PrimitiveType.new(ty.class_object)
+            inst.outreg[0].add_type ty, tup
           end
-          #ty = PrimitiveType.new(ty.class_object)
-          inst.outreg[0].add_type ty, tup
         end
       end
       nil
