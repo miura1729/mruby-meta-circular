@@ -508,7 +508,8 @@ module MTypeInf
               (@@ruby_methodtab[:method_missing] and
               @@ruby_methodtab[:method_missing][slfcls])) and
               !missprocssa then
-            if @@ruby_methodtab[:method_missing][slfcls] then
+            if @@ruby_methodtab[:method_missing] and
+                @@ruby_methodtab[:method_missing][slfcls] then
               missprocssa = @@ruby_methodtab[:method_missing][slfcls]
             else
               p0 = Proc::search_proc(slf, :method_missing)
