@@ -242,7 +242,7 @@ module CodeGenC
         argsv = []
         bs = inreg[1].type[tup][0]
         while argr = bs.element[i]
-          if bs.is_escape?(tup) then
+          if bs.is_escape? then
             argsv.push "(ARY_PTR(mrb_ary_ptr(#{base}))[#{i}])"
           else
             argsv.push "#{base}[#{i}]"
