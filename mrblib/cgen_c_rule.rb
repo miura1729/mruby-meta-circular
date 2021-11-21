@@ -1011,7 +1011,7 @@ module CodeGenC
           end
           ivtypes.push val
         end
-        ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
+        ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
         if !ccgen.using_class[clsssa][ivtup] then
           clsssa.iv.each do |nm, reg|
             if reg.get_type(tup) then

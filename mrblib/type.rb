@@ -18,7 +18,8 @@ module MTypeInf
     end
 
     def type_equal(other, tup)
-      self == other
+      @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
 
     attr :class_object
@@ -327,13 +328,6 @@ module MTypeInf
         is_escape? == other.is_escape?
     end
 
-    def type_equal(other, tup)
-      self.class == other.class &&
-        @class_object == other.class_object &&
-        @val == other.val &&
-        is_escape? == other.is_escape?
-    end
-
     def inspect_aux(hist, level)
       case  @val
       when NilClass, TrueClass, FalseClass
@@ -355,6 +349,21 @@ module MTypeInf
 
   class SymbolType<LiteralType
     @@symtab = {}
+
+    def ==(other)
+#      other.class == LiteralType &&
+      other.class == self.class &&
+        @class_object == other.class_object &&
+        @val == other.val &&
+        is_escape? == other.is_escape?
+    end
+
+    def type_equal(other, tup)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @val == other.val &&
+        is_escape? == other.is_escape?
+    end
 
     def self.instance(klass, val)
       if @@symtab[val] then
@@ -404,6 +413,11 @@ module MTypeInf
 #        @element == other.element &&
         is_escape? == other.is_escape?
 #      equal?(other)# && is_escape? == other.is_escape?
+    end
+
+    def type_equal(other, tup)
+      @class_object == other.class_object &&
+        is_escape? == other.is_escape?
     end
 
     def inspect_aux(hist, level)
@@ -564,14 +578,6 @@ module MTypeInf
     end
 
     def ==(other)
-      self.class == other.class &&
-        @class_object == other.class_object &&
-        @hometown == other.hometown &&
-        @version == other.version &&
-        is_escape? == other.is_escape?
-    end
-
-    def type_equal(other, tup)
       self.class == other.class &&
         @class_object == other.class_object &&
         @hometown == other.hometown &&
