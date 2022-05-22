@@ -199,13 +199,17 @@ module MTypeInf
         if cls == TypeVariable then
           acls = cls.ancestors[1]
           mblk = clsobj.method.values[0]
-          sreg = mblk.regtab[0]
-          slftype = sreg.type.values[0][0]
-          tvpara = slftype.sub_type_var.map {|name, ty| ty }
-          interface = slftype.using_method.map {|name, ty|
-            name.val
-          }
-          mess << "#{acls.class} #{acls} #{tvpara} #{interface} \n"
+          if mblk then
+            sreg = mblk.regtab[0]
+            slftype = sreg.type.values[0][0]
+            tvpara = slftype.sub_type_var.map {|name, ty| ty }
+            interface = slftype.using_method.map {|name, ty|
+              name.val
+            }
+            mess << "#{acls.class} #{acls} #{tvpara} #{interface} \n"
+          else
+            mess << "#{acls.class} #{acls} \n"
+          end
         else
           mess << "#{cls.class} #{cls}\n"
         end

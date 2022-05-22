@@ -188,8 +188,8 @@ def clamp(f)
   if i > 255.0
     i = 255.0
   end
-  if i < 0.0
-    i = 0.0
+  if i < 1.0
+    i = 1.0
   end
   i.to_i
 end
@@ -315,7 +315,7 @@ class Scene
 
             eye = Vec.new(px, py, -1.0).vnormalize
 
-            ray = Ray2.new(Vec.new(0.0, 0.0, 0.0), eye)
+            ray = Ray.new(Vec.new(0.0, 0.0, 0.0), eye)
 
             isect = Isect.new
             @spheres[0].intersect(ray, isect)
@@ -336,12 +336,12 @@ class Scene
         r = rad.x / (nsf * nsf)
         g = rad.y / (nsf * nsf)
         b = rad.z / (nsf * nsf)
-#        printf("%c", clamp(r))
-#        printf("%c", clamp(g))
-#        printf("%c", clamp(b))
-        clamp(r)
-        clamp(g)
-        clamp(b)
+        printf("%c", clamp(r))
+        printf("%c", clamp(g))
+        printf("%c", clamp(b))
+#        clamp(r)
+#        clamp(g)
+#        clamp(b)
         1
       end
     end

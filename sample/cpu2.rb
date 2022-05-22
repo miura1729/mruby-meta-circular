@@ -1,4 +1,6 @@
-MTypeInf::inference_main {
+MTypeInf::inference_main({
+    :dump_level => 0
+  }) {
       ADDRESSING_MODES = {
         :ctl =>  [:imm,   :zpg, :imm, :abs, nil,    :zpg_x, nil,    :abs_x],
         :rmw =>  [:imm,   :zpg, :imm, :abs, nil,    :zpg_y, nil,    :abs_y],
@@ -7,16 +9,18 @@ MTypeInf::inference_main {
       }
 
       def op(opcodes, args)
-        #$foo = args
+        #$foo = opcodes
         opcodes.each do |opcode|
           if args.kind_of?(Array) && [:r_op, :w_op, :rw_op].include?(args[0])
-            kind, op, mode = args
+            kind, op0, mode = args
+            #$foo = op0
             mode = ADDRESSING_MODES[mode][opcode >> 2 & 7]
-            send_args = [kind, op, mode]
+            send_args = [kind, op0, mode]
+            #$foo = mode
             send_args << (mode.to_s.start_with?("zpg") ? :store_zpg : :store_mem) if kind != :r_op
-            #$dispatch[opcode] = send_args
+            DISPATCH[opcode] = send_args
           else
-            #$dispatch[opcode] = [*args]
+            DISPATCH[opcode] = [*args]
           end
         end
       end
@@ -134,10 +138,13 @@ def foo
       op([0x00],                                                 :_brk)
       op([0x02, 0x12, 0x22, 0x32, 0x42, 0x52, 0x62, 0x72, 0x92, 0xb2, 0xd2, 0xf2], :_jam)
 
-  #$dispatch[0]
 end
 
-  #    $dispatch = []
+#dispatch = []
+
+DISPATCH = []
 
       foo
+
+$foo = DISPATCH[0xab]
 }

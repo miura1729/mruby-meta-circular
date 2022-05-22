@@ -1032,7 +1032,7 @@ module CodeGenC
           clsssa.iv.each do |nm, reg|
             ivtypes.push reg.flush_type(tup)[tup]
           end
-          ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, true)
+          ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
           rtype.each do |e|
             cls = e.class_object
             clsssa =  RiteSSA::ClassSSA.get_instance(cls)

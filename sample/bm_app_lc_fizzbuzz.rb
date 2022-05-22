@@ -17,7 +17,7 @@ FIRST     = -> l { LEFT[RIGHT[l]] }
 IF        = -> b { b }
 LEFT      = -> p { p[-> x { -> y { x } } ] }
 RIGHT     = -> p { p[-> x { -> y { y } } ] }
-IS_EMPTY  = LEFT
+IS_EMPTY  = -> p { p[-> x { -> y { x } } ] }    #LEFT
 REST      = -> l { RIGHT[RIGHT[l]] }
 
 def to_integer(proc)
@@ -37,6 +37,8 @@ def to_array(proc)
     $bar =to_boolean(IS_EMPTY[proc])
     $foo = to_boolean(IS_EMPTY[[REST[REST[[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[REST[[REST[REST[REST[REST[REST[REST[REST[REST[proc]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]])
   end
+
+  $foo = array
 
   array
 end

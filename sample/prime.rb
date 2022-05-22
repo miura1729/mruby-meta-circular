@@ -14,8 +14,9 @@ module Enumerable
 
   def select(&block)
     ary = []
-    self.each{|val|
-      ary.push(val.__svalue) if block.call(val)
+    self.each{|*val|
+      ary.push(val.__svalue) if block.call(*val)
+      nil
     }
     ary
   end

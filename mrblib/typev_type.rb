@@ -16,6 +16,8 @@ module MTypeInf
     end
 
     def inspect_aux(hist, level)
+      p @name
+      p @using_method
       "TV#{@name}"
     end
 

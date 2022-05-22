@@ -18,7 +18,7 @@ class Allocator
     header = mem::static_cast(MMC::addressof(arena), Header)
     header.size = 0
     nheader = mem::static_cast(MMC::addressof(arena) + hsize, Header)
-    nheader.size = 65536 - 1
+    nheader.size = 65536 - hsize
     nheader.next = mem::static_cast(0, Header)
     header.next = nheader
     @root = header
@@ -113,7 +113,11 @@ end
 
 class Bar
   def initialize
-    @a = 1
+    @a = 12
+  end
+
+  def a
+    @a
   end
 end
 
@@ -129,5 +133,5 @@ d = a.malloc(Foo)
 p MMC::addressof(d)
 a.free(c)
 c = a.malloc(Bar)
-p MMC::addressof(c)
+p c.a
 }

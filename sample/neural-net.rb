@@ -57,16 +57,162 @@ class Array
   end
   alias reduce inject
 
-  def collect(&block)
+  def map(&block)
     ary = []
     self.each{|val| ary.push(block.call(val))}
     ary
   end
-  alias map collect
+  def map2(&block)
+    ary = []
+    self.each{|val| ary.push(block.call(val))}
+    ary
+  end
+  #alias map collect
+
+  def zip(*args, &block)
+    args = args.map do |a|
+      if a.respond_to?(:to_ary)
+        a.to_ary.to_enum(:each)
+      elsif a.respond_to?(:each)
+        a.to_enum(:each)
+      else
+        raise TypeError # , "wrong argument type #{a.class} (must respond to :each)"
+      end
+    end
+
+    result = block ? nil : []
+
+    each do |*val|
+      tmp = [val.__svalue]
+      args.each do |arg|
+        v = if arg.nil?
+              nil
+        else
+          begin
+            arg.next
+          rescue StopIteration
+            0
+          end
+        end
+        tmp.push(v)
+      end
+      if block
+        block.call(tmp)
+      else
+        result.push(tmp)
+      end
+    end
+    result
+  end
 end
 
 module Enumerator
   attr_accessor :obj, :meth, :args, :fib
+  def initialize(obj=nil, meth=:each, *args, &block)
+    if block
+      obj = Generator.new(&block)
+    else
+      raise ArgumentError unless obj
+    end
+    if @obj and !self.respond_to?(meth)
+      raise NoMethodError, "undefined method #{meth}"
+    end
+
+    @obj = obj
+    @meth = meth
+    @args = args.dup
+    @fib = nil
+    @dst = nil
+    @lookahead = nil
+    @feedvalue = nil
+    @stop_exc = false
+  end
+
+  def each(*argv, &block)
+    obj = self
+    if 0 < argv.length
+      obj = self.dup
+      args = obj.args
+      if !args.empty?
+        args = args.dup
+        args.concat argv
+      else
+        args = argv.dup
+      end
+      obj.args = args
+    end
+    return obj unless block
+    enumerator_block_call(&block)
+  end
+
+  def enumerator_block_call(&block)
+    @obj.__send__ @meth, *@args, &block
+  end
+
+  ##
+  # call-seq:
+  #   e.next   -> object
+  #
+  # Returns the next object in the enumerator, and move the internal position
+  # forward.  When the position reached at the end, StopIteration is raised.
+  #
+  # === Example
+  #
+  #   a = [1,2,3]
+  #   e = a.to_enum
+  #   p e.next   #=> 1
+  #   p e.next   #=> 2
+  #   p e.next   #=> 3
+  #   p e.next   #raises StopIteration
+  #
+  # Note that enumeration sequence by +next+ does not affect other non-external
+  # enumeration methods, unless the underlying iteration methods itself has
+  # side-effect
+  #
+  def next
+    next_values[0]
+  end
+
+  def next_values
+    if @lookahead
+      vs = @lookahead
+      @lookahead = nil
+      return vs
+    end
+    raise @stop_exc if @stop_exc
+
+    curr = Fiber.current
+
+    if !@fib ||
+        !@fib.alive?
+      @dst = curr
+      @fib = Fiber.new do
+        result = each do |*args|
+          feedvalue = nil
+          Fiber.yield args
+          if @feedvalue
+            feedvalue = @feedvalue
+            @feedvalue = nil
+          end
+          feedvalue
+        end
+        @stop_exc = StopIteration.new "iteration reached an end"
+        @stop_exc.result = result
+        Fiber.yield nil
+      end
+      @lookahead = nil
+    end
+
+    vs = @fib.resume curr
+    if @stop_exc
+      @fib = nil
+      @dst = nil
+      @lookahead = nil
+      @feedvalue = nil
+      raise @stop_exc
+    end
+    vs
+  end
 end
 
 class DeterministicRandom
@@ -160,8 +306,6 @@ class NeuralNetwork
     @output_layer= a
 
     @input_layer.product(@hidden_layer).each do |source, dest|
-#      $foo = source
-#      $bar = dest
       synapse = Synapse.new(source, dest, prng)
       source.synapses_out << synapse
       dest.synapses_in << synapse
@@ -176,6 +320,7 @@ class NeuralNetwork
   def train(inputs, targets)
     feed_forward(inputs)
 
+    # $foo = @output_layer.zip(targets)
     @output_layer.zip(targets).each do |neuron, target|
       neuron.output_train(0.3, target)
     end
@@ -198,7 +343,7 @@ class NeuralNetwork
 
   def current_outputs
     @output_layer.map do |neuron|
-        neuron.output
+      neuron.output
     end
   end
 
@@ -214,7 +359,7 @@ def run(n)
     xor.train([1, 1], [0])
   end
 
-  checksum = 0
+  checksum = 0.0
 
   n.times do
     xor.feed_forward([0, 0])
@@ -242,7 +387,12 @@ def harness_verify(output)
   output - 20018.21456752439 < 0.00001
 end
 
-input = harness_input
-actual_output = harness_sample(input)
-p actual_output
+def foo
+  input = harness_input
+  actual_output = harness_sample(input)
+  p actual_output
+end
+
+foo
+nil
 }

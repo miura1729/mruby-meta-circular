@@ -1,3 +1,15 @@
+class Array
+   def each(&block)
+    return to_enum :each unless block
+
+    idx = 0
+    while idx < length
+      block.call(self[idx])
+      idx += 1
+    end
+     self
+  end
+end
   class Context
 
     WHITE_SPACES = [" ", "\t", "\r", "\n"]
@@ -12,6 +24,7 @@
       while [" ", "\t", "\r", "\n"].include? @buf[@index] do
         @index += 1
       end
+      $foo = @index
     end
     def has_next?
       @index < @length
@@ -223,10 +236,11 @@
 def top
   10000.times do
     p parse('{"foo": "bar"}')
-    p parse('{"foo": "baz", "abc": "abaz"}')
-     p parse('[true, "foo"]')
-    p parse('{"label":[true, "foo"]}')
-    p parse('[true, {"foo" : "bar"}]')
+#    p parse('{"foo": "baz", "abc": "abaz"}')
+#    p parse('[true, "foo"]')
+#    p parse('{"label":[true, "foo"]}')
+#    p parse('[true, {"foo" : "bar"}]')
+#    p parse('[1, {"2.0" : 3.0}]')
   end
 end
 
