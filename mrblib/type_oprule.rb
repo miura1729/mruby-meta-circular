@@ -452,22 +452,18 @@ module MTypeInf
               level = infer.callstack.size
               previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
               inst.objcache[tup] = type = ContainerType.new(Array, inst, previrep, level)
-              type.element[uv] = RiteSSA::Reg.new(inst)
             end
 
             (anum - m1 - o).times do |i|
               nreg = type.element[i] || RiteSSA::Reg.new(inst)
               if ele[m1 + o +  i] then
                 nreg.add_same ele[m1 + o +  i]
-                type.element[uv].add_same ele[m1 + o +  i]
               else
                 nreg.add_same ele[uv]
-                type.element[uv].add_same ele[uv]
               end
               nreg.flush_type_alltup(tup)
               type.element[i] = nreg
             end
-            type.element[uv].flush_type(tup)
 
             inst.outreg[m1 + o].add_type(type, tup)
           end
@@ -508,17 +504,14 @@ module MTypeInf
             level = infer.callstack.size
             previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             inst.objcache[nil] = type = ContainerType.new(Array, inst, previrep, level)
-            type.element[uv] = RiteSSA::Reg.new(inst)
           end
 
           (argc - m1 - o).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(inst)
             nreg.add_same argv[m1 + o +  i]
-            type.element[uv].add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
             type.element[i] = nreg
           end
-          type.element[uv].flush_type(tup)
 
           inst.outreg[m1 + o].type[tup] = [type]
           inst.outreg[m1 + o + 1].add_same inreg[argc]

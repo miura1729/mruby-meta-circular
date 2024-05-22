@@ -84,6 +84,8 @@ class Array
 
     each do |*val|
       tmp = [val.__svalue]
+      $nnn = val.__svalue
+#      $nnn = val[0]
       args.each do |arg|
         v = if arg.nil?
               nil
@@ -320,8 +322,10 @@ class NeuralNetwork
   def train(inputs, targets)
     feed_forward(inputs)
 
-    # $foo = @output_layer.zip(targets)
+    $foo = @output_layer.zip(targets)[0]
+    #$foo = targets
     @output_layer.zip(targets).each do |neuron, target|
+      #$foo = neuron
       neuron.output_train(0.3, target)
     end
     @hidden_layer.each do |neuron|

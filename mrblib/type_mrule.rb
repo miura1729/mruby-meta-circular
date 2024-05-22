@@ -262,6 +262,7 @@ module MTypeInf
                 no = idxtype.val
                 if arrele[no].nil? then
                   arrele[no] = RiteSSA::Reg.new(nil)
+                  arrt.immidiate_only = false
                 end
                 arrele[no].add_same valreg
                 arrele[no].flush_type(tup)
@@ -452,17 +453,6 @@ module MTypeInf
     end
 
     alias_inf_rule_method :to_ary, :to_a, Array
-
-    define_inf_rule_method :__svalue, Array do |infer, inst, node, tup|
-      arrtypes = inst.inreg[0].flush_type(tup)[tup]
-      arrtypes.each do |arrt|
-        if arrt.class_object == Array then
-          inst.outreg[0].add_same arrt.element[0]
-        end
-      end
-      inst.outreg[0].flush_type(tup)
-      nil
-    end
 
 
     define_inf_rule_method :nil?, Object do |infer, inst, node, tup|
