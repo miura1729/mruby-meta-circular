@@ -627,6 +627,31 @@ module MTypeInf
       nil
     end
 
+    def self.rule_compare_common(infer, inst, node, tup)
+      arg0types = inst.inreg[0].flush_type(tup)[tup]
+      arg0type = arg0types[0]
+      arg1types = inst.inreg[1].flush_type(tup)[tup]
+      arg1type = arg1types[0]
+      if arg0types.size == 1 and arg1types.size == 1 and
+          arg0type.is_a?(LiteralType) and arg1type.is_a?(LiteralType) then
+        res = yield(arg0type.val, arg1type.val)
+        if res then
+          type = LiteralType.new(TrueClass, true)
+        else
+          type = LiteralType.new(FalseClass, false)
+        end
+        inst.outreg[0].add_type(type, tup)
+
+      else
+        type = LiteralType.new(TrueClass, true)
+        inst.outreg[0].add_type(type, tup)
+        type = LiteralType.new(FalseClass, false)
+        inst.outreg[0].add_type(type, tup)
+      end
+
+      nil
+    end
+
     def self.realvalue_from_container_type(type, tup)
       result = nil
       if type.class_object == Hash

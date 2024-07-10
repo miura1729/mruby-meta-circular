@@ -601,7 +601,9 @@ EOS
       else
         @ccode << "struct proc#{proc.id} *proc = (struct proc#{proc.id} *)cgproc;\n"
         @ccode << "#{slfdecl} = proc->self;\n"
-        @pcode << "env.prev = proc->env;\n"
+        if proc.parent.parent or proc.env.size > 0 then
+          @pcode << "env.prev = proc->env;\n"
+        end
       end
       @ccode << code_gen_method_aux(block, ti, name, proc, tup, pproc, nil)
     end

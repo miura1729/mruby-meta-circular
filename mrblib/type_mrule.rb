@@ -78,6 +78,17 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :^, Fixnum do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :~, Fixnum do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
 
     define_inf_rule_method :chr, Fixnum do |infer, inst, node, tup|
       level = infer.callstack.size
@@ -350,7 +361,13 @@ module MTypeInf
     end
 
     define_inf_rule_method :length, Array do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, true)
+      intypes = inst.inreg[0].get_type(tup)
+      if intypes.size == 1 and intypes[0].immidiate_only then
+        type = LiteralType.new(Fixnum, intypes[0].element.size - 1)
+      else
+        type = NumericType.new(Fixnum, true)
+      end
+
       inst.outreg[0].add_type(type, tup)
       nil
     end

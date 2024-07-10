@@ -622,30 +622,33 @@ module MTypeInf
     end
 
     define_inf_rule_op :EQ do |infer, inst, node, tup, history|
-      inst.inreg[0].flush_type(tup)
-      inst.inreg[1].flush_type(tup)
-
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
-      nil
+      rule_compare_common(infer, inst, node, tup) {|x, y|
+        x == y
+      }
     end
 
     define_inf_rule_op :LT do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
+      rule_compare_common(infer, inst, node, tup) {|x, y|
+        x < y
+      }
     end
 
     define_inf_rule_op :LE do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
+      rule_compare_common(infer, inst, node, tup) {|x, y|
+        x <= y
+      }
     end
 
     define_inf_rule_op :GT do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
+      rule_compare_common(infer, inst, node, tup) {|x, y|
+        x > y
+      }
     end
 
     define_inf_rule_op :GE do |infer, inst, node, tup, history|
-        @@ruletab[:OP][:EQ].call(infer, inst, node, tup)
+      rule_compare_common(infer, inst, node, tup) {|x, y|
+        x >= y
+      }
     end
 
     define_inf_rule_op :ADD do |infer, inst, node, tup, history|

@@ -209,7 +209,11 @@ module CodeGenC
           if oreg.is_escape?(tup) then
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
           else
-            ccgen.pcode << "v#{oreg.id} = &v#{inst.inreg[m1].id};\n"
+            val, srct = reg_real_value_noconv(ccgen, inst.inreg[m1], node, tup, infer, history)
+            val = gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history, nil)
+            #ccgen.pcode << "v#{oreg.id} = &v#{inst.inreg[m1].id}; // xxx\n"
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(mrb_value)); // xxx\n"
+            ccgen.pcode << "*v#{oreg.id} = #{val};\n"
           end
           inst.para[2][m1] = "v#{oreg.id}"
         else

@@ -371,7 +371,9 @@ module CodeGenC
           return
 
         else
+          p "Poly"
           # polymorphism
+          ccgen.pcode << "mrb_no_method_error2(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end
 
         if fname == :ccall and proc.nil? then
@@ -573,7 +575,7 @@ module CodeGenC
       end
       src = ""
 
-      if [:+, :-, :*, :/, :<<, :>>, :&, :|, :%].include?(op) then
+      if [:+, :-, :*, :/, :<<, :>>, :&, :|, :%, :^].include?(op) then
         if (srcd0 == :mrb_int or srcd0 == :mrb_float2) and
             (srcd1 == :mrb_int or srcd1 == :mrb_float2) then
           if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
@@ -1443,7 +1445,7 @@ EOS
 
             when :mrb_value
               gen_gc_table2(ccgen, node, oreg)
-              "(mrb_ary_new_from_values(mrb, #{srct[2]}, #{src}))"
+              "(mrb_ary_new_from_values(mrb, #{srct[2]}, &#{src}))"
 
             when :mrb_int
               "(mrb_ary_new_from_values(mrb, #{srct[2]}, mrb_fixnum_value(#{src})))"
