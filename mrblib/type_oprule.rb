@@ -113,7 +113,7 @@ module MTypeInf
           p "#{tp} #{tys.map {|ty| ty.place.keys}}"
           p inst.inreg[0].is_escape?(tup)
 #          p "#{tp} #{tys.map {|ty| ty.place.values}}"
-#          p "#{tp} #{tys.map {|ty| ty.place}}"
+          p "#{tp} #{tys.map {|ty| ty.place}}"
         end
       end
       nil

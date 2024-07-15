@@ -29,7 +29,7 @@ module MTypeInf
         when :[]
           rectype = inst.inreg[0].get_type(tup)
           idxtype = inst.inreg[1].get_type(tup)
-          if rectype.size == 1 then
+          if rectype and rectype.size == 1 then
             if rectype[0].class_object == Array or rectype[0].class_object == Hash then
               if idxtype.size == 1 and
                   idxtype[0].is_a?(MTypeInf::LiteralType) then

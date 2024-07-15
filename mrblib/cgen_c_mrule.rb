@@ -600,8 +600,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
-      idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
+      gen_array_aref(ccgen, inst, node, infer, history, tup, inst.inreg[1])
     end
 
     define_ccgen_rule_method :[]=, Array do |ccgen, inst, node, infer, history, tup|
@@ -650,7 +649,7 @@ module CodeGenC
           src = "mrb_nil_value()"
         else
           src = "#{src}[0]"
-          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
+          src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
         end
       end
 
@@ -1155,11 +1154,30 @@ module CodeGenC
         ccgen.pcode << "v#{oreg.id} = #{src};\n"
         ccgen.pcode << "};\n"
       else
-        src = "mrb_str_aref(mrb, #{src}, #{idx})"
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
-        ccgen.pcode << "v#{oreg.id} = #{src};\n"
-      end
+        src = "(RSTRING_PTR(#{src}))"
+        if  idxtype.class_object == Fixnum then
+          if idxtype.is_a?(MTypeInf::LiteralType) then
+            ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
+            if idx < 0 then
+              src = "(#{src}+ strlen(#{src}) - #{idx})"
+            else
+              src = "(#{src} + #{idx})"
+            end
+          else
+            if idxtype.positive then
+              src = "(#{src} + #{idx})"
+            else
+              src1 = "(#{src} + #{idx})"
+              src2 = "(#{src} + strlen(#{src}) + #{idx})"
+              src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+            end
+          end
 
+          src = "mrb_str_new(mrb, #{src}, 1)"
+          src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nil)
+          ccgen.pcode << "v#{oreg.id} = #{src};\n"
+        end
+      end
       nil
     end
 

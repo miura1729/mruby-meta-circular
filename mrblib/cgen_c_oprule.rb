@@ -40,6 +40,7 @@ module CodeGenC
 
     define_ccgen_rule_op :LOADL do |ccgen, inst, node, infer, history, tup|
       @@ruletab[:CCGEN][:LOADI].call(ccgen, inst, node, infer, history, tup)
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -55,6 +56,7 @@ module CodeGenC
 
 
     define_ccgen_rule_op :LOADSELF do |ccgen, inst, node, infer, history, tup|
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -107,7 +109,8 @@ module CodeGenC
 
       if !(val.is_a?(Fixnum) or val.is_a?(Float) or ccgen.clstab[val]) then
         cno = ccgen.clstab.size
-        ccgen.hcode << "#{get_ctype(ccgen, oreg, tup, infer)} const#{cno};\n"
+        ccgen.hcode << gen_declare_core(ccgen, oreg, tup, infer, false, "const#{cno}")
+        ccgen.hcode << ";\n"
         ccgen.clstab[val] = [inst.para[0], "const#{cno}"]
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
@@ -119,6 +122,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :GETMCNST do |ccgen, inst, node, infer, history, tup|
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -149,16 +153,17 @@ module CodeGenC
         proc = proc.parent
       end
       dstt = get_ctype(ccgen, oreg, tup, infer)
+      srct = get_ctype(ccgen, ireg, tup, infer)
 
       ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
       if pty == :mrb_value then
         pos = proc.env.index(ireg)
         val = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
-        val = gen_type_conversion(ccgen, dstt, :mrb_value, val, tup, node, infer, history, oreg)
+        val = gen_type_conversion(ccgen, src, dstt, val, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{val};\n"
       else
         val = "proc->env#{"->prev" * up}->v#{ireg.id}"
-        #val = gen_type_conversion(ccgen, pty, dstt, val, tup, node, infer, history, oreg)
+        val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{val};\n"
       end
       nil
@@ -364,6 +369,7 @@ module CodeGenC
     define_ccgen_rule_op :POPERR do |ccgen, inst, node, infer, history, tup|
       ccgen.pcode << "mrb->jmp = oldjmp;\n"
       ccgen.pcode << "}\n"
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -430,6 +436,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -437,6 +444,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :<)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -444,6 +452,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :<=)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -451,6 +460,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :>)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -458,6 +468,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :>=)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -465,6 +476,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :+)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -472,6 +484,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :-)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -479,6 +492,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :*)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -486,6 +500,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup)  {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :/)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -493,6 +508,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :+)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -500,6 +516,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :-)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -596,6 +613,7 @@ module CodeGenC
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{basereg.id}[#{pos}] = #{valsrc};\n"
       ccgen.pcode << "v#{oreg.id} = v#{basereg.id};\n"
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -609,13 +627,14 @@ module CodeGenC
       strlit = unescape_string(inst.para[0])
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
-        ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)}\n"
         gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0)
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-        ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});"
+        ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});\n"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
       end
+      set_closure_env(ccgen, inst, node, infer, history, tup)
 
       nil
     end
@@ -657,6 +676,7 @@ module CodeGenC
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
       end
+      set_closure_env(ccgen, inst, node, infer, history, tup)
 
       nil
     end
@@ -730,6 +750,8 @@ module CodeGenC
         ccgen.pcode << "v#{oreg.id}->last = #{eval};\n"
         ccgen.pcode << "v#{oreg.id}->exclude_end = #{inst.para[0]};\n"
       end
+      set_closure_env(ccgen, inst, node, infer, history, tup)
+
       nil
     end
 
@@ -759,6 +781,7 @@ module CodeGenC
 
       ccgen.pcode << "}\n"
       ccgen.pcode << "#{fname}();\n"
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -796,6 +819,8 @@ module CodeGenC
         ccgen.pcode << "v#{oreg.id}->last = #{eval};\n"
         ccgen.pcode << "v#{oreg.id}->exclude_end = #{inst.para[0]};\n"
       end
+      set_closure_env(ccgen, inst, node, infer, history, tup)
+
       nil
     end
   end

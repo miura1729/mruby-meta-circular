@@ -628,7 +628,7 @@ EOS
 
       node.exit_link.each do |nd|
         declf = nil
-        if nd.enter_link.size > 1 then
+        if nd.enter_link.size > 0 then
           if nd.enter_link.count {|n| history[n]} == 1 then
             declf = true
           end

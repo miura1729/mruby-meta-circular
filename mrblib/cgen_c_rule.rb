@@ -165,6 +165,7 @@ module CodeGenC
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
       op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      set_closure_env(ccgen, inst, node, infer, history, tup)
     end
 
     def self.op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
@@ -494,7 +495,7 @@ module CodeGenC
       src, srct, needdecl = gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
       if needdecl then
         outr = gins.outreg[0]
-        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, ti)};/*snd*/\n"
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, ti)};/*snd1*/\n"
       end
       [src, srct]
     end
@@ -1615,6 +1616,8 @@ EOS
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) or srct == :mrb_value then
+        idx, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
+        idx = gen_type_conversion(ccgen, :mrb_int, idxt, idx, tup, node, infer, history, nreg)
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
       else
@@ -1626,7 +1629,7 @@ EOS
         if srct == :nil then
           src = "mrb_nil_value()"
         else
-          src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx)}]"
+          src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)}]"
           src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
         end
       end
@@ -1645,12 +1648,13 @@ EOS
       slf = gen_type_conversion(ccgen, :mrb_value, slft, inst.inreg[0], tup, node, infer, history, inst.outreg[0])
     end
 
-    def self.gen_array_range_check(ccgen, inst, tup, idx)
-      if inst.inreg[1] then
-        idxty = inst.inreg[1].get_type(tup)[0]
-      else
-        idxty = NumericType.new(Fixnum, idx >= 0)
-      end
+    def self.gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)
+      idx, idxty = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
+#      if inst.inreg[1] then
+#        idxty = inst.inreg[1].get_type(tup)[0]
+#      else
+#        idxty = NumericType.new(Fixnum, idx >= 0)
+#      end
       aryty = inst.inreg[0].get_type(tup)[0]
       rc = idx
       case idxty
