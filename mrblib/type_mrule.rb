@@ -428,6 +428,20 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :+, Array do |infer, inst, node, tup|
+      # TODO check element type is same to 1st arg.
+
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
+    define_inf_rule_method :-, Array do |infer, inst, node, tup|
+      # TODO check element type is same to 1st arg.
+
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
     define_inf_rule_method :lambda, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[1]
       inst.outreg[0].flush_type(tup)

@@ -620,7 +620,7 @@ module CodeGenC
       else
         srct = get_ctype(ccgen, elereg, tup, infer)
         val2 = gen_type_conversion(ccgen, srct, valt, val, tup, node, infer, history, nreg)
-        ccgen.pcode << "#{slf}[#{gen_array_range_check(ccgen, inst, tup, idx)}] = #{val2};\n"
+        ccgen.pcode << "#{slf}[#{gen_array_range_check(ccgen, inst, tup, inst.inreg[1], node, infer, history)}] = #{val2};\n"
       end
 
       ccgen.pcode << "v#{nreg.id} = #{val};\n"

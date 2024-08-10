@@ -181,6 +181,7 @@ EOS
       end
       hash[node] = true
       if reg.refpoint.size > 1 then
+#        p reg.refpoint.map {|r| r.op}
         return true
       elsif reg.refpoint.size == 0 then
         return nil
@@ -188,6 +189,10 @@ EOS
         rc = node.exit_link.any? {|n|
           is_live_reg_aux(n, n.enter_reg[pos], pos, hash)
         }
+        return rc
+
+      elsif reg.refpoint[0].op == :MOVE then
+        rc = reg.refpoint[0].outreg.any? {|dr| is_live_reg?(node, dr, pos)}
         return rc
 
       else
@@ -224,6 +229,10 @@ EOS
         rc = node.exit_link.any? {|n|
           is_live_reg_local_aux(n, n.enter_reg[pos], pos, hash)
         }
+        return rc
+
+      elsif reg.refpoint[0].op == :MOVE then
+        rc = reg.refpoint[0].outreg.any? {|dr| is_live_reg?(node, dr, pos)}
         return rc
 
       else
@@ -641,10 +650,18 @@ EOS
                 @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
                 @dcode << ";\n"
               end
-              argt = ti.typetupletab.rev_table[tup]
-              if !is_virgin_reg?(node, sreg, argt) then
-                src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
-                @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
+              if !(nreg.refpoint.size == 1 and [:GETUPVAR].include?(nreg.refpoint[0].op)) then
+                argt = ti.typetupletab.rev_table[tup]
+                if !is_virgin_reg?(node, sreg, argt) then
+                  src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
+#                  p nd.object_id
+#                  p nreg.object_id
+#                  p nreg.id
+#                  p is_live_reg?(nd, nreg)
+#                  p nreg.refpoint
+#                  p nreg.genpoint
+                  @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
+                end
               end
               if node.root.export_regs.include?(nreg) then
                 @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"

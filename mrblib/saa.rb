@@ -172,7 +172,12 @@ module RiteSSA
 
     def get_type(tup)
       types = @type[tup]
-      filter_type(types)
+      if types then
+        filter_type(types)
+      else
+        types = @type.values[0]
+        filter_type(types)
+      end
     end
 
     def is_escape?(tup)
