@@ -159,7 +159,7 @@ module CodeGenC
       if pty == :mrb_value then
         pos = proc.env.index(ireg)
         val = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
-        val = gen_type_conversion(ccgen, src, dstt, val, tup, node, infer, history, oreg)
+        val = gen_type_conversion(ccgen, pty, dstt, val, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{val};\n"
       else
         val = "proc->env#{"->prev" * up}->v#{ireg.id}"

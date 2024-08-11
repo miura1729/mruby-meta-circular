@@ -649,7 +649,7 @@ module CodeGenC
           src = "mrb_nil_value()"
         else
           src = "#{src}[0]"
-          src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
+          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
         end
       end
 

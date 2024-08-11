@@ -1650,11 +1650,11 @@ EOS
 
     def self.gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)
       idx, idxty = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
-#      if inst.inreg[1] then
-#        idxty = inst.inreg[1].get_type(tup)[0]
-#      else
-#        idxty = NumericType.new(Fixnum, idx >= 0)
-#      end
+      if inst.inreg[1] then
+        idxty = inst.inreg[1].get_type(tup)[0]
+      else
+        idxty = NumericType.new(Fixnum, idx >= 0)
+      end
       aryty = inst.inreg[0].get_type(tup)[0]
       rc = idx
       case idxty
