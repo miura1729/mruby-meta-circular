@@ -96,7 +96,7 @@ module RiteSSA
       @same = []
       samecp.each do |var|
         var.flush_type(stup, nil, true)
-        tys = var.get_type(stup)
+        tys = filter_type(var.type[stup])
         if tys then
           tys.each do |ty|
             add_type(ty, dtup)
@@ -172,12 +172,15 @@ module RiteSSA
 
     def get_type(tup)
       types = @type[tup]
-      if types then
-        filter_type(types)
-      else
+      if types == nil then
         types = @type.values[0]
-        filter_type(types)
       end
+      filter_type(types)
+    end
+
+    def get_type_or_nil(tup)
+      types = @type[tup]
+      filter_type(types)
     end
 
     def is_escape?(tup)

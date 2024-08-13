@@ -376,12 +376,15 @@ module MTypeInf
           yield intype, intype.size - 2
 
         else
-          arg0 = inreg[0].flush_type(tup)[tup]
-          arg2 = inreg[2].flush_type(tup)[tup]
+          inreg[0].flush_type(tup)
+          inreg[2].flush_type(tup)
+          arg0 = inreg[0].get_type(tup)
+          arg2 = inreg[2].get_type(tup)
           yield [arg0, arg2], 0
         end
       else
-        yield inreg.map {|reg| reg.flush_type(tup)[tup] || []}, argc
+        intype = inreg.map {|reg| reg.get_type(tup) || []}
+        yield intype, argc
       end
 
       nil
@@ -633,7 +636,7 @@ module MTypeInf
       arg1types = inst.inreg[1].flush_type(tup)[tup]
       arg1type = arg1types[0]
       if arg0types.size == 1 and arg1types.size == 1 and
-          arg0type.is_a?(LiteralType) and arg1type.is_a?(LiteralType) and false then
+          arg0type.is_a?(LiteralType) and arg1type.is_a?(LiteralType) then
         res = yield(arg0type.val, arg1type.val)
         if res then
           type = LiteralType.new(TrueClass, true)

@@ -778,10 +778,11 @@ module MTypeInf
       else
         if arg0type then
           arg0type.each do |ty|
-            if ty.is_a?(LiteralType) # or ty.val < inst.para[1] then
+            if ty.is_a?(LiteralType) and ty.val >= inst.para[1] then
+              ty = NumericType.new(ty.class_object, true)
+            else
               ty = NumericType.new(ty.class_object, false)
             end
-            #ty = PrimitiveType.new(ty.class_object)
             inst.outreg[0].add_type ty, tup
           end
         end

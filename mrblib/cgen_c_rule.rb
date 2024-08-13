@@ -51,7 +51,7 @@ module CodeGenC
         end
       end
 
-      ty = nr.get_type(tup)
+      ty = nr.get_type_or_nil(tup)
       if ty then
         ty = ty[0].class_object
         if ty == HAL::Regs or ty == HAL::Reg or ty == HAL::CPU or
@@ -131,10 +131,10 @@ module CodeGenC
       (pos + num).times do |i|
         r = regs[i]
         if r == nil or
-            (r.get_type(tup) and r.get_type(tup)[0].is_gcobject? and
+            (r.get_type_or_nil(tup) and r.get_type(tup)[0].is_gcobject? and
             !r.is_escape?(tup)) then
 
-        elsif !(r.get_type(tup) and r.get_type(tup).any? {|ty| ty.is_gcobject?} and
+        elsif !(r.get_type_or_nil(tup) and r.get_type(tup).any? {|ty| ty.is_gcobject?} and
             r.is_escape?(tup)) or
             (r.genpoint.is_a?(Fixnum) and
             !ccgen.is_live_reg?(node, r) and
@@ -265,7 +265,7 @@ module CodeGenC
       end
 
       reg = inreg[-1]
-      tys = reg.get_type(tup)
+      tys = reg.get_type_or_nil(tup)
       if tys and (tys.size == 1 and tys[0].class_object != NilClass) then
         args << ", "
         rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
@@ -297,7 +297,7 @@ module CodeGenC
         end
         if rectypes.size == 1 then
           # Not polymorphism
-          rectype = rectypes[0]
+          rectype = ty0
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
 
         elsif rectypes.size == 2 then
@@ -305,7 +305,7 @@ module CodeGenC
           gen_gc_table(ccgen, inst, node, infer, history, tup)
 
           base = 0
-          rectype = rectypes[0]
+          rectype = ty0
           condval = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)[0]
           condsrc, nice = gen_type_checker(ccgen, condval, rectype)
           if !nice then
@@ -507,7 +507,7 @@ module CodeGenC
         reg0.flush_type(tup)
         reg0.rearrange_type(tup)
         arg0, srcs0 = reg_real_value_noconv(ccgen, reg0, node, tup, ti, history)
-        if reg0.get_type(tup) then
+        if reg0.get_type_or_nil(tup) then
           case reg0.get_type(tup).size
           when 1
             srcd0 = get_ctype(ccgen, reg0, tup, ti, false)
@@ -540,7 +540,7 @@ module CodeGenC
         reg1.flush_type(tup)
         reg1.rearrange_type(tup)
         arg1, srcs1 = reg_real_value_noconv(ccgen, reg1, node, tup, ti, history)
-        if reg1.get_type(tup) then
+        if reg1.get_type_or_nil(tup) then
           case reg1.get_type(tup).size
           when 1
             srcd1 = get_ctype(ccgen, reg1, tup, ti, false)
@@ -927,7 +927,7 @@ module CodeGenC
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
-      if reg.get_type(tup) == nil then
+      if reg.get_type_or_nil(tup) == nil then
         tup = reg.type.keys[0]
       end
       rtype = reg.type[tup]
@@ -1017,7 +1017,7 @@ module CodeGenC
         ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
         if !ccgen.using_class[clsssa][ivtup] then
           clsssa.iv.each do |nm, reg|
-            if reg.get_type(tup) then
+            if reg.get_type_or_nil(tup) then
               reg.type[ivtup] = reg.get_type(tup).dup
             end
           end
@@ -1048,7 +1048,7 @@ module CodeGenC
     end
 
     def self.get_ctype_aux(ccgen, reg, tup, infer)
-      if reg.get_type(tup) == nil then
+      if reg.get_type_or_nil(tup) == nil then
         tup = reg.type.keys[0]
       end
       type = get_ctype_aux_aux(ccgen, reg, tup, infer)
@@ -1060,14 +1060,14 @@ module CodeGenC
     end
 
     def self.get_ctype(ccgen, reg, tup, infer, strobj = true)
-      if reg.get_type(tup) == nil then
+      if reg.get_type_or_nil(tup) == nil then
         tup = reg.type.keys[0]
       end
       type = get_ctype_aux(ccgen, reg, tup, infer)
       case type
       when :array
         if strobj and !reg.is_escape?(tup) then
-          tys = reg.get_type(tup)
+          tys = reg.get_type_or_nil(tup)
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = tys[0].element[uv]
           size = tys[0].element.size
@@ -1133,7 +1133,7 @@ module CodeGenC
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.get_type(tup)[0].element[uv]
         etup = tup
-        if ereg.get_type(tup) == nil then
+        if ereg.get_type_or_nil(tup) == nil then
           etup = ereg.type.keys[0]
         end
         etype = get_ctype(ccgen, ereg, etup, infer)
@@ -1145,7 +1145,7 @@ module CodeGenC
       when :range
         ereg = reg.get_type(tup)[0].element[0]
         etup = tup
-        if ereg.get_type(tup) == nil then
+        if ereg.get_type_or_nil(tup) == nil then
           etup = ereg.type.keys[0]
         end
         etype = get_ctype_aux(ccgen, ereg, etup, infer)
@@ -1255,7 +1255,7 @@ EOS
           eele = reg.get_type(tup)[0].element
           ereg = eele[uv]
           etup = tup
-          if ereg.get_type(tup) == nil then
+          if ereg.get_type_or_nil(tup) == nil then
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
@@ -1279,7 +1279,7 @@ EOS
         when :range
           ereg = otype.element[0]
           etup = tup
-          if ereg.get_type(tup) == nil then
+          if ereg.get_type_or_nil(tup) == nil then
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
