@@ -1070,7 +1070,7 @@ module CodeGenC
           tys = reg.get_type_or_nil(tup)
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = tys[0].element[uv]
-          size = tys[0].element.size
+          size = tys[0].element.size - 1
           rc = nil
           etup = tup
           if ereg.type[etup] == nil then
@@ -1446,7 +1446,11 @@ EOS
 
             when :mrb_value
               gen_gc_table2(ccgen, node, oreg)
-              "(mrb_ary_new_from_values(mrb, #{srct[2]}, &#{src}))"
+              if srct[1] == "*" then
+                "(mrb_ary_new_from_values(mrb, #{srct[2]}, #{src}))"
+              else
+                "(mrb_ary_new_from_values(mrb, #{srct[2]}, &#{src}))"
+              end
 
             when :mrb_int
               "(mrb_ary_new_from_values(mrb, #{srct[2]}, mrb_fixnum_value(#{src})))"
@@ -1615,7 +1619,7 @@ EOS
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      if inst.inreg[0].is_escape?(tup) or srct == :mrb_value then
+      if srct == :mrb_value then
         idx, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
         idx = gen_type_conversion(ccgen, :mrb_int, idxt, idx, tup, node, infer, history, nreg)
         src = "mrb_ary_ref(mrb, #{src}, #{idx})"

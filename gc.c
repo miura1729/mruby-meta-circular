@@ -344,8 +344,7 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
-#define MAJOR_GC_INC_RATIO 120
-#define MAJOR_GC_TOOMANY 10000
+#define DEFAULT_MAJOR_GC_INC_RATIO 200
 #define is_generational(gc) ((gc)->generational)
 #define is_major_gc(gc) (is_generational(gc) && (gc)->full)
 #define is_minor_gc(gc) (is_generational(gc) && !(gc)->full)
@@ -426,7 +425,7 @@ gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
 MRB_API void
 mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 {
-  if (mrb_immediate_p(obj)) return;
+  if (mrb_immediate_p(obj) || (obj.value.ttt == MRB_TT_FREE)) return;
   gc_protect(mrb, &mrb->gc, mrb_basic_ptr(obj));
 }
 
@@ -502,6 +501,8 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
     }
     tt = MRB_INSTANCE_TT(cls);
     if (tt != MRB_TT_FALSE &&
+        ttype != MRB_TT_CLASS &&
+        ttype != MRB_TT_OBJECT &&
         ttype != MRB_TT_SCLASS &&
         ttype != MRB_TT_ICLASS &&
         ttype != MRB_TT_ENV &&
@@ -568,7 +569,7 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
   for (i=0; i<e; i++) {
     mrb_value v = c->stbase[i];
 
-    if (!mrb_immediate_p(v)) {
+    if (!(mrb_immediate_p(v) || (v.value.ttt == MRB_TT_FREE))) {
       mrb_gc_mark(mrb, mrb_basic_ptr(v));
     }
   }
@@ -731,9 +732,11 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
     /* immediate - no mark */
+  case MRB_TT_FREE:
   case MRB_TT_TRUE:
   case MRB_TT_FIXNUM:
   case MRB_TT_SYMBOL:
+  case MRB_TT_CACHE_VALUE:
     /* cannot happen */
     return;
 
@@ -850,8 +853,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   obj->tt = MRB_TT_FREE;
 }
 
-void *mrb_mark_local(struct mrb_state *);
-
 static void
 root_scan_phase(mrb_state *mrb, mrb_gc *gc)
 {
@@ -910,6 +911,7 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   if (mrb->root_c != mrb->c) {
     mark_context(mrb, mrb->root_c);
   }
+  mark_context(mrb, mrb->root_c);
 }
 
 static size_t
@@ -943,7 +945,7 @@ gc_gray_mark(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     break;
 
   case MRB_TT_ENV:
-    children += MRB_ENV_STACK_LEN(obj);
+    children += (int)obj->flags;
     break;
 
   case MRB_TT_FIBER:
@@ -1215,17 +1217,8 @@ mrb_incremental_gc(mrb_state *mrb)
     }
 
     if (is_major_gc(gc)) {
-      size_t threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
-
+      gc->majorgc_old_threshold = gc->live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
       gc->full = FALSE;
-      if (threshold < MAJOR_GC_TOOMANY) {
-        gc->majorgc_old_threshold = threshold;
-      }
-      else {
-        /* too many objects allocated during incremental GC, */
-        /* instead of increasing threshold, invoke full GC. */
-        mrb_full_gc(mrb);
-      }
     }
     else if (is_minor_gc(gc)) {
       if (gc->live > gc->majorgc_old_threshold) {
@@ -1263,7 +1256,7 @@ mrb_full_gc(mrb_state *mrb)
   gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
 
   if (is_generational(gc)) {
-    gc->majorgc_old_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+    gc->majorgc_old_threshold = gc->live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
     gc->full = FALSE;
   }
 
@@ -1464,7 +1457,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
   }
   else if (!is_generational(gc) && enable) {
     incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
-    gc->majorgc_old_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+    gc->majorgc_old_threshold = gc->live_after_mark/100 * DEFAULT_MAJOR_GC_INC_RATIO;
     gc->full = FALSE;
   }
   gc->generational = enable;
@@ -1508,9 +1501,10 @@ gc_generational_mode_set(mrb_state *mrb, mrb_value self)
 static void
 gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, void *data)
 {
-  mrb_heap_page* page;
+  mrb_heap_page* page = gc->heaps;
+  mrb_bool old_disable = gc->disabled;
 
-  page = gc->heaps;
+  gc->disabled = TRUE;
   while (page != NULL) {
     RVALUE *p;
     int i;
@@ -1522,6 +1516,7 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
     }
     page = page->next;
   }
+  gc->disabled = old_disable;
 }
 
 void
