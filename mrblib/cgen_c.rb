@@ -637,7 +637,7 @@ EOS
 
       node.exit_link.each do |nd|
         declf = nil
-        if nd.enter_link.size > 1 then
+        if nd.enter_link.size > 0 then
           if nd.enter_link.count {|n| history[n]} == 1 then
             declf = true
           end
@@ -645,26 +645,36 @@ EOS
           nd.enter_reg.each_with_index do |nreg, i|
             if is_live_reg?(nd, nreg, i) and
                 !(nreg.is_a?(RiteSSA::ParmReg) and nreg.genpoint == 0) then
-              sreg = node.exit_reg[i]
-              if declf then
-                @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
-                @dcode << ";\n"
-              end
-              if !(nreg.refpoint.size == 1 and [:GETUPVAR].include?(nreg.refpoint[0].op)) then
-                argt = ti.typetupletab.rev_table[tup]
-                if !is_virgin_reg?(node, sreg, argt) then
-                  src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
-#                  p nd.object_id
-#                  p nreg.object_id
-#                  p nreg.id
-#                  p is_live_reg?(nd, nreg)
-#                  p nreg.refpoint
-#                  p nreg.genpoint
-                  @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
+              if nd.enter_link.size > 1 then
+                sreg = node.exit_reg[i]
+                if declf then
+                  @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
+                  @dcode << ";\n"
                 end
-              end
-              if node.root.export_regs.include?(nreg) then
-                @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"
+                if !(nreg.refpoint.size == 1 and [:GETUPVAR].include?(nreg.refpoint[0].op)) then
+                  argt = ti.typetupletab.rev_table[tup]
+                  if !is_virgin_reg?(node, sreg, argt) then
+                    src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
+                    @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
+                  end
+                end
+                if node.root.export_regs.include?(nreg) then
+                  @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"
+                end
+              else
+                if node.root.export_regs.include?(nreg) then
+                  sreg = node.exit_reg[i]
+                  argt = ti.typetupletab.rev_table[tup]
+                  if declf then
+                    @dcode << CodeGen::gen_declare(self, nreg, tup, ti)
+                    @dcode << ";\n"
+                  end
+                  if !is_virgin_reg?(node, sreg, argt) then
+                    src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
+                    @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
+                  end
+                  @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"
+                end
               end
             end
           end
