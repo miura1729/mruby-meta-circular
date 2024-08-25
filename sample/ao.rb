@@ -228,7 +228,7 @@ class Scene
 
   def ambient_occlusion(isect)
     basis = Array.new(3)
-#    otherBasis(basis, isect.n)
+    otherBasis(basis, isect.n)
 
   n = isect.n
   basis[2] = Vec.new(n.x, n.y, n.z)

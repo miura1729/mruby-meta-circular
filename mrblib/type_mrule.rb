@@ -273,7 +273,7 @@ module MTypeInf
                 no = idxtype.val
                 if arrele[no].nil? then
                   arrele[no] = RiteSSA::Reg.new(nil)
-                  arrt.immidiate_only = false
+#                  arrt.immidiate_only = false
                 end
                 arrele[no].add_same valreg
                 arrele[no].flush_type(tup)
@@ -362,7 +362,7 @@ module MTypeInf
 
     define_inf_rule_method :length, Array do |infer, inst, node, tup|
       intypes = inst.inreg[0].get_type(tup)
-      if intypes.size == 1 and intypes[0].immidiate_only then
+      if intypes.size == 1 and intypes[0].immiditae_only then
         type = LiteralType.new(Fixnum, intypes[0].element.size - 1)
       else
         type = NumericType.new(Fixnum, true)

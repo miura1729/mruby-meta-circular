@@ -112,8 +112,9 @@ module MTypeInf
         inst.inreg[0].type.each do |tp, tys|
           p "#{tp} #{tys.map {|ty| ty.place.keys}}"
           p inst.inreg[0].is_escape?(tup)
-#          p "#{tp} #{tys.map {|ty| ty.place.values}}"
-          p "#{tp} #{tys.map {|ty| ty.place}}"
+          p "#{tp} #{tys.map {|ty| ty.place.values}}"
+          p "#{tp} #{tys.map {|ty| ty.place.keys}}"
+#          p "#{tp} #{tys.map {|ty| ty.place}}"
         end
       end
       nil

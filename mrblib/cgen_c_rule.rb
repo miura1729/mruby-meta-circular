@@ -1622,7 +1622,11 @@ EOS
       if srct == :mrb_value then
         idx, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
         idx = gen_type_conversion(ccgen, :mrb_int, idxt, idx, tup, node, infer, history, nreg)
-        src = "mrb_ary_ref(mrb, #{src}, #{idx})"
+        if arytypes[0].immidiate_only then
+          src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idx}]"
+        else
+          src = "mrb_ary_ref(mrb, #{src}, #{idx})"
+        end
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
       else
         etup = tup
