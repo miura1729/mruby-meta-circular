@@ -64,7 +64,7 @@ module CodeGenC
         end
       end
 
-      nr.setpoint.size != 0 or nr.refpoint.size < 3 or
+      nr.setpoint.size != 0 or outr.refpoint.size < 2 or
         ((!nr.genpoint.is_a?(RiteSSA::Inst)) or
         [
           :SENDB, :SEND, :ARRAY, :MOVE, :GETIV, :STRCAT, :GETCONST
