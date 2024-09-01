@@ -622,6 +622,11 @@ module MTypeInf
       :return
     end
 
+    define_inf_rule_op :BLKPUSH do |infer, inst, node, tup, history|
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
     define_inf_rule_op :EQ do |infer, inst, node, tup, history|
       rule_compare_common(infer, inst, node, tup) {|x, y|
         x == y

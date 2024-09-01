@@ -352,17 +352,29 @@ module RiteSSA
       reps.each do |irep|
         irep.iseq.each do |code|
           op = optabsym[get_opcode(code)]
-          lv = getarg_c(code)
-          if op == :GETUPVAR and
-              lv == level then
-            exres.push getarg_b(code)
-          end
+          if op == :BLKPUSH then
+            bx = getarg_bx(code)
+            m1 = (bx >> 10) & 0x3f
+            r = (bx >> 9) & 0x1
+            m2 = (bx >> 4) & 0x1f
+            lv = (bx >> 0) & 0x1f
+            if lv == level then
+              exres.push (m1 + r + m2 + 1)
+            end
 
-          if op == :SETUPVAR and
-              lv == level then
-            regpos = getarg_b(code)
-            exres.push regpos
-            imres.push regpos
+          else
+            lv = getarg_c(code)
+            if lv == level then
+              case op
+              when :GETUPVAR
+                exres.push getarg_b(code)
+
+              when :SETUPVAR
+                regpos = getarg_b(code)
+                exres.push regpos
+                imres.push regpos
+              end
+            end
           end
         end
 
@@ -814,14 +826,22 @@ module RiteSSA
             curframe = @root
             lv.times do
               curframe = curframe.parent
-              stack = curframe.regtab
             end
+            stack = curframe.regtab
           end
 
-          inst.inreg.push stack[m1 + r + m2 + 1]
-          dstreg = @root.retreg
-          regtab[getarg_a(code)] = dstreg
-          inst.outreg.push dstreg
+          inst.para.push curframe
+          inst.para.push lv
+          inst.para.push m1
+          inst.para.push r
+          inst.para.push m2
+
+          inreg = stack[m1 + r + m2 + 1]
+          inst.inreg.push inreg
+          inreg.refpoint.push inst
+          outreg = Reg.new(inst)
+          regtab[getarg_a(code)] = outreg
+          inst.outreg.push outreg
 
         when :ADDI, :SUBI then
           name = @irep.syms[getarg_b(code)]

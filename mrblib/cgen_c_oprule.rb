@@ -432,6 +432,36 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_op :BLKPUSH do |ccgen, inst, node, infer, history, tup|
+      up = inst.para[1]
+      ireg = inst.inreg[0]
+      oreg = inst.outreg[0]
+      pty = ccgen.callstack[-1][2]
+      up.times do
+        proc = proc.parent
+      end
+      dstt = get_ctype(ccgen, oreg, tup, infer)
+      srct = get_ctype(ccgen, ireg, tup, infer)
+
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+      if up == 0 then
+        val, proct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
+        ccgen.pcode << "v#{oreg.id} = (struct proc#{proct[1]} *)#{val};\n"
+      else
+        if pty == :mrb_value then
+          pos = proc.env.index(ireg)
+          val = "(mrb_proc_ptr(mrbproc))->e.env->stack[#{pos + 1}]"
+          val = gen_type_conversion(ccgen, pty, dstt, val, tup, node, infer, history, oreg)
+          ccgen.pcode << "v#{oreg.id} = #{val};\n"
+        else
+          val = "proc->env#{"->prev" * up}->v#{ireg.id}"
+          val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, oreg)
+          ccgen.pcode << "v#{oreg.id} = #{val};\n"
+        end
+      end
+      nil
+    end
+
     define_ccgen_rule_op :EQ do |ccgen, inst, node, infer, history, tup|
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
