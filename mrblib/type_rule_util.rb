@@ -47,6 +47,10 @@ module MTypeInf
         else
           return inst.outreg[0]
         end
+
+      when :LT
+        return inst.inreg[0].genpoint.inreg[0]
+
       else
         return nil
       end
@@ -153,6 +157,21 @@ module MTypeInf
                 atype_spec_pos = [pt]
                 atype_spec_neg = [type]
               end
+            end
+          end
+
+        elsif genp.op == :LT then
+          if genp.inreg[1] then
+            type0 = genp.inreg[0].get_type(tup)[0]
+            genp1 = genp.inreg[1].genpoint
+            if genp1.is_a?(RiteSSA::Inst) and
+                genp1.op == :SEND and
+                (genp1.para[0] == :size or genp1.para[0] == :length) and
+                (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
+              typemethodp = true
+              type = IndexOfArrayType.new(type0.class_object, atype, true)
+              atype_spec_pos = [type]
+              atype_spec_neg = []
             end
           end
 

@@ -137,6 +137,15 @@ module RiteSSA
     def filter_type(types)
       if types then
         posl = @positive_list.flatten(1)
+        if types.size == 1 then
+          if types[0].class_object == Fixnum then
+            arr = posl.find_all {|e| e.is_a?(MTypeInf::IndexOfArrayType) }
+            if arr.size == 1 then
+              return arr
+            end
+          end
+        end
+
         if posl.size > 0 then
           types = types.find_all {|ele| posl.any? {|e|
               if e.is_a?(MTypeInf::LiteralType) then

@@ -1620,12 +1620,17 @@ EOS
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if srct == :mrb_value then
-        idx, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
-        idx = gen_type_conversion(ccgen, :mrb_int, idxt, idx, tup, node, infer, history, nreg)
-        if arytypes[0].immidiate_only then
-          src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idx}]"
+        idxc, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
+        idxc = gen_type_conversion(ccgen, :mrb_int, idxt, idxc, tup, node, infer, history, nreg)
+        idxtype = idx.get_type(tup)[0]
+        if arytypes[0].immidiate_only or
+          (idxtype.is_a?(MTypeInf::IndexOfArrayType) and
+            idxtype.base_array == arytypes[0]) then
+          src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}]"
+        elsif idxtype.positive then
+          src = "((#{idxc}) < ARY_LEN(mrb_ary_ptr(#{src}))) ? ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}] : mrb_nil_value()"
         else
-          src = "mrb_ary_ref(mrb, #{src}, #{idx})"
+          src = "mrb_ary_ref(mrb, #{src}, #{idxc})"
         end
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
       else

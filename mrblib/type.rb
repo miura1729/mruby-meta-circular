@@ -592,6 +592,30 @@ module MTypeInf
     end
   end
 
+  class IndexOfArrayType<NumericType
+    def initialize(co, array, *rest)
+      super(co, *rest)
+      @base_array = array
+      @positive = true
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object &&
+        @base_array == other.base_array
+    end
+
+    def is_gcobject?
+      false
+    end
+
+    def inspect_aux(hist, level)
+      "Index of #{@base_array.inspect} e=#{is_escape?} pos =#{@positive}"
+    end
+
+    attr :base_array
+  end
+
   TypeSource = {
     NilClass => PrimitiveType,
     Fixnum => NumericType,

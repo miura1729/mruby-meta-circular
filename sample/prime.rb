@@ -4,6 +4,17 @@
 #end
 
 module Enumerable
+  def each(&block)
+    return to_enum :each unless block
+
+    idx = 0
+    while idx < length
+      block.call(self[idx])
+      idx += 1
+    end
+    self
+  end
+
   def all?(&block)
     self.each{|val|
       return false unless block.call(val)
