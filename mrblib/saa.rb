@@ -96,7 +96,7 @@ module RiteSSA
       @same = []
       samecp.each do |var|
         var.flush_type(stup, nil, true)
-        tys = filter_type(var.type[stup])
+        tys = var.type[stup]
         if tys then
           tys.each do |ty|
             add_type(ty, dtup)
@@ -138,10 +138,12 @@ module RiteSSA
       if types then
         posl = @positive_list.flatten(1)
         if types.size == 1 then
-          if types[0].class_object == Fixnum then
-            arr = posl.find_all {|e| e.is_a?(MTypeInf::IndexOfArrayType) }
-            if arr.size == 1 then
-              return arr
+          type = types[0]
+          if type.is_a?(MTypeInf::NumericType) and
+              type.class_object == Fixnum and type.positive then
+            arr = posl.find {|e| e.is_a?(MTypeInf::IndexOfArrayType) }
+            if arr then
+              return [arr]
             end
           end
         end
