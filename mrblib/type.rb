@@ -597,6 +597,7 @@ module MTypeInf
       super(co, *rest)
       @base_array = array
       @positive = true
+      self  # for mruby JIT Bug
     end
 
     def ==(other)

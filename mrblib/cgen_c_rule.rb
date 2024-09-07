@@ -1627,7 +1627,7 @@ EOS
           (idxtype.is_a?(MTypeInf::IndexOfArrayType) and
             idxtype.base_array == arytypes[0]) then
           src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}]"
-        elsif idxtype.positive then
+        elsif idxtype.is_a?(MTypeInf::NumericType) and idxtype.positive then
           src = "((#{idxc}) < ARY_LEN(mrb_ary_ptr(#{src}))) ? ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}] : mrb_nil_value()"
         else
           src = "mrb_ary_ref(mrb, #{src}, #{idxc})"
