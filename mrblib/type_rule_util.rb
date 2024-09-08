@@ -162,13 +162,13 @@ module MTypeInf
 
         elsif genp.op == :LT then
           if genp.inreg[1] then
-            type0 = genp.inreg[0].get_type(tup)[0]
             genp1 = genp.inreg[1].genpoint
             if genp1.is_a?(RiteSSA::Inst) and
                 genp1.op == :SEND and
                 (genp1.para[0] == :size or genp1.para[0] == :length) and
                 (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
               typemethodp = true
+              type0 = genp.inreg[0].get_type(tup)[0]
               type = IndexOfArrayType.new(type0.class_object, atype, true)
               atype_spec_pos = [type]
               atype_spec_neg = []
@@ -233,9 +233,10 @@ module MTypeInf
           infer.inference_node(enode, tup, node.exit_reg, history)
         end
         history[nil].pop
-        true
+        return true
+      end
 
-      elsif type and type.size == 1 then
+      if type and type.size == 1 then
         enode = get_jmp_target(node, 1 - idx, inst)
         ninst= enode.ext_iseq[0]
         history[node] ||= []
@@ -246,9 +247,10 @@ module MTypeInf
           infer.inference_node(enode, tup, node.exit_reg, history)
         end
         history[nil].pop
-        true
+        return true
+      end
 
-      elsif typemethodp then
+      if typemethodp then
         idx = notp ? idx : 1 - idx
         nd = get_jmp_target(node, idx, inst)
         greg = get_original_reg(infer, genp, tup)
@@ -316,28 +318,27 @@ module MTypeInf
               ginst.outreg[0].negative_list.pop
             end
           end
-        else
-          history[nil] ||= []
-          history[node] ||= []
-          nd = get_jmp_target(node, 0, inst)
-          history[nil].push nd
-          if history[node].index(nd) == nil then
-            history[node].push nd
-            infer.inference_node(nd, tup, node.exit_reg, history)
-          end
-          nd = get_jmp_target(node, 1, inst)
-          history[nil][-1] = nd
-          if history[node].index(nd) == nil then
-            history[node].push nd
-            infer.inference_node(nd, tup, node.exit_reg, history)
-          end
-          history[nil].pop
+          return true
         end
-
-        true
-      else
-        nil
       end
+
+      history[nil] ||= []
+      history[node] ||= []
+      nd = get_jmp_target(node, 0, inst)
+      history[nil].push nd
+      if history[node].index(nd) == nil then
+        history[node].push nd
+        infer.inference_node(nd, tup, node.exit_reg, history)
+      end
+      nd = get_jmp_target(node, 1, inst)
+      history[nil][-1] = nd
+      if history[node].index(nd) == nil then
+        history[node].push nd
+        infer.inference_node(nd, tup, node.exit_reg, history)
+      end
+      history[nil].pop
+
+      true
     end
 
     def self.handle_exception(infer, inst, node, tup, outreg, argc, history)
