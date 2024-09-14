@@ -140,10 +140,22 @@ module RiteSSA
         if types.size == 1 then
           type = types[0]
           if type.is_a?(MTypeInf::NumericType) and
-              type.class_object == Fixnum and type.positive then
+              type.class_object == Fixnum then
+            if !type.positive then
+              typek = posl.find {|e|
+                e.is_a?(MTypeInf::NumericType) and e.positive
+              }
+              if typek == nil then
+                return [type]
+              end
+              type = typek
+            end
+
             arr = posl.find {|e| e.is_a?(MTypeInf::IndexOfArrayType) }
             if arr then
               return [arr]
+            else
+              return [type]
             end
           end
         end

@@ -88,7 +88,8 @@ module MTypeInf
           genp = genp.inreg[0].genpoint
         end
 
-        if genp.op == :SEND then
+        case(genp.op)
+        when :SEND
           addtional_type_spec = nil
           atype_spec_pos = nil
           atype_spec_neg = nil
@@ -127,7 +128,7 @@ module MTypeInf
             atype_spec_neg = addtional_type_spec
           end
 
-        elsif genp.op == :EQ then
+        when :EQ
           type = genp.inreg[0].get_type(tup)[0]
           if type.is_a?(MTypeInf::LiteralType) then
             genp = genp.inreg[1].genpoint
@@ -159,23 +160,47 @@ module MTypeInf
               end
             end
           end
+          atype_reg = get_original_reg(infer, genp, tup)
 
-        elsif genp.op == :LT then
-          if genp.inreg[1] then
-            genp1 = genp.inreg[1].genpoint
-            if genp1.is_a?(RiteSSA::Inst) and
-                genp1.op == :SEND and
-                (genp1.para[0] == :size or genp1.para[0] == :length) and
-                (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
-              typemethodp = true
-              type0 = genp.inreg[0].get_type(tup)[0]
-              type = IndexOfArrayType.new(type0.class_object, atype, true)
-              atype_spec_pos = [type]
-              atype_spec_neg = []
-            end
+        when :GE
+          type0 = genp.inreg[0].get_type(tup)[0]
+          type1 = genp.inreg[1].get_type(tup)[0]
+
+          if type1.is_a?(MTypeInf::LiteralType) and
+              type1.val >= 0 then
+            typemethodp = true
+            type = NumericType.new(type0.class_object, true)
+            atype_spec_pos = [type]
+            atype_spec_neg = []
+            atype_reg = genp.inreg[0].genpoint.inreg[0]
           end
 
-        elsif genp.op == :ENTER then
+        when :LT
+          type0 = genp.inreg[0].get_type(tup)[0]
+          type1 = genp.inreg[1].get_type(tup)[0]
+          genp1 = genp.inreg[1].genpoint
+
+          if type0.is_a?(MTypeInf::LiteralType) and
+              type0.val >= 0 then
+            typemethodp = true
+            type = NumericType.new(type1.class_object, true)
+
+            atype_spec_pos = [type]
+            atype_spec_neg = []
+            atype_reg = genp.inreg[1].genpoint.inreg[0]
+
+          elsif genp1.is_a?(RiteSSA::Inst) and
+              genp1.op == :SEND and
+              (genp1.para[0] == :size or genp1.para[0] == :length) and
+              (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
+            typemethodp = true
+            type = IndexOfArrayType.new(type0.class_object, atype, true)
+            atype_spec_pos = [type]
+            atype_spec_neg = []
+            atype_reg = genp.inreg[0].genpoint.inreg[0]
+          end
+
+        when :ENTER
           typemethodp = true
           type0 = PrimitiveType.new(NilClass)
           type1 = PrimitiveType.new(false.class)
@@ -184,6 +209,7 @@ module MTypeInf
           atype_spec_pos = addtional_type_spec
           atype_spec_neg = addtional_type_spec
           notp = !notp
+          atype_reg = get_original_reg(infer, genp, tup)
 
         else
           typemethodp = true
@@ -194,6 +220,7 @@ module MTypeInf
           atype_spec_pos = addtional_type_spec
           atype_spec_neg = addtional_type_spec
           notp = !notp
+          atype_reg = get_original_reg(infer, genp, tup)
         end
       end
 
@@ -253,13 +280,13 @@ module MTypeInf
       if typemethodp then
         idx = notp ? idx : 1 - idx
         nd = get_jmp_target(node, idx, inst)
-        greg = get_original_reg(infer, genp, tup)
-        if greg == true then
-          greg = inst.inreg[0]
+
+        if atype_reg == true then
+          atype_reg = inst.inreg[0]
         end
-        if greg then
-          greg.positive_list.push atype_spec_pos
-          greg.refpoint.each do |ginst|
+        if atype_reg then
+          atype_reg.positive_list.push atype_spec_pos
+          atype_reg.refpoint.each do |ginst|
             if ginst.outreg[0] then
               ginst.outreg[0].positive_list.push atype_spec_pos
             end
@@ -273,8 +300,8 @@ module MTypeInf
             rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
           end
           history[nil].pop
-          greg.positive_list.pop
-          greg.refpoint.each do |ginst|
+          atype_reg.positive_list.pop
+          atype_reg.refpoint.each do |ginst|
             if ginst.outreg[0] then
               ginst.outreg[0].positive_list.pop
             end
@@ -282,8 +309,8 @@ module MTypeInf
 
           idx = 1 - idx
           nd = get_jmp_target(node, idx, inst)
-          greg.negative_list.push atype_spec_neg
-          greg.refpoint.each do |ginst|
+          atype_reg.negative_list.push atype_spec_neg
+          atype_reg.refpoint.each do |ginst|
             if ginst.outreg[0] then
               ginst.outreg[0].negative_list.push atype_spec_neg
             end
@@ -311,8 +338,8 @@ module MTypeInf
             end
           end
 
-          greg.negative_list.pop
-          greg.refpoint.each do |ginst|
+          atype_reg.negative_list.pop
+          atype_reg.refpoint.each do |ginst|
             if ginst.outreg[0] then
 
               ginst.outreg[0].negative_list.pop
