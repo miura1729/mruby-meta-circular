@@ -96,6 +96,7 @@ module MTypeInf
           case genp.para[0]
           when :kind_of?, :is_a?
             typemethodp = true
+            atype_reg = get_original_reg(infer, genp, tup)
             tcls = genp.inreg[1].flush_type(tup)[tup]
             cls = nil
             if tcls.size == 1 and tcls[0].val.class == Class then
@@ -110,6 +111,7 @@ module MTypeInf
 
           when :nil?
             typemethodp = true
+            atype_reg = get_original_reg(infer, genp, tup)
             type = PrimitiveType.new(NilClass)
 
             addtional_type_spec = [type]
@@ -119,6 +121,7 @@ module MTypeInf
 
           else
             typemethodp = true
+            atype_reg = get_original_reg(infer, genp, tup)
             notp = !notp
             type0 = PrimitiveType.new(NilClass)
             type1 = PrimitiveType.new(FalseClass)
