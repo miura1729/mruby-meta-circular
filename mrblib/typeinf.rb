@@ -105,6 +105,7 @@ module MTypeInf
   class TypeInferencer
     @@ruletab ||= {}
     @@methodtab ||= {}
+    @@threadtab ||= []
     def initialize(option)
       @option = option
       @typetupletab = TypeTupleTab.new
@@ -116,6 +117,7 @@ module MTypeInf
       @fiber = nil
       @allocate_object = []
       @must_execute = false
+      @@threadtab[0] = @thread = ThreadType.new(MMC_EXT::Thread, nil)
     end
 
     attr :option
@@ -126,6 +128,14 @@ module MTypeInf
     attr_accessor :fiber
     attr_accessor :continue
     attr_accessor :must_execute
+
+    attr :thread
+    def thread=(val)
+      @thread = val
+      if !@threadtype.include?(val) then
+        @@threadtab.push val
+      end
+    end
 
     def dump_method(name, node)
       level = @option[:dump_level]
@@ -235,7 +245,8 @@ module MTypeInf
       ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
-      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil)
+      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil, @thread)
+      @thread.proc = bproc
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)
       @step += 1

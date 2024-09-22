@@ -464,8 +464,9 @@ module MTypeInf
       @@tab
     end
 
-    def initialize(co, irep, slf, slfreg, env, tups, pproc,  *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, pproc, thread,  *rest)
       super(co, *rest)
+      @thread = thread
       @id = @@tab.size
       @@tab.push self
       @irep = irep
@@ -527,6 +528,7 @@ module MTypeInf
     attr :tups
     attr :using_tup
     attr :parent
+    attr :thread
   end
 
   class FiberType<BasicType

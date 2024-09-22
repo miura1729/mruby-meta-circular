@@ -942,7 +942,7 @@ module MTypeInf
           proc = eval("lambda { #{src} }")
           slf = inst.inreg[0].type[tup][0]
           irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
-          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil)
+          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil, nil)
           infer.inference_block(irep, [[slf]], tup, 2, bproc)
           inst.objcache ||= {}
           inst.objcache[src] = irep
@@ -1145,6 +1145,15 @@ module MTypeInf
       end
 
       inst.outreg[0].flush_type(tup)
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      curirep = infer.callstack[-1][0].irep
+      if valreg.type[tup] then
+        valreg.type[tup].each do |ty|
+          hashtypes.each do |at|
+            ty.place[at] = [curirep, previrep, :[]=, inst.line]
+          end
+        end
+      end
       nil
     end
 
