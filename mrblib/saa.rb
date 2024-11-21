@@ -298,6 +298,8 @@ module RiteSSA
     def initialize(name, pos)
       super(pos)
       @name = name
+      @read_threads = []
+      @write_threads = []
     end
 
     attr_accessor :type
@@ -1108,6 +1110,8 @@ module RiteSSA
       @export_exception = Reg.new(self)
       @rescuetab = []
       @ensuretab = []
+      @call_blocks = {}
+      @effects = {}
       @export_regs = []
       @import_regs = []
       @allocate_reg = {}
@@ -1177,6 +1181,8 @@ module RiteSSA
     attr :export_exception
     attr :rescuetab
     attr :ensuretab
+    attr :call_blocks
+    attr :effects
     attr_accessor :strict
     attr_accessor :export_regs
     attr_accessor :import_regs

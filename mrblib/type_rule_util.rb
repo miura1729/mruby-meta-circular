@@ -521,8 +521,11 @@ module MTypeInf
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
 
+            curirep.call_blocks[irepssa] ||= {}
+            recvtypes.each do |ty|
+              curirep.call_blocks[irepssa][ty] = true
+            end
             rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
-
             if rc then
               # Retry AI
               have_evar = false
@@ -588,6 +591,7 @@ module MTypeInf
         end
 
         if !existf and !infer.continue then
+          p "Method missing able to call #{slf}##{name}"
           mess = "Method missing able to call #{slf}##{name} in #{inst.line}:#{inst.filename}\n"
           print mess #for debug
           infer.messages[mess] ||= 0
@@ -705,6 +709,32 @@ module MTypeInf
       nil
     end
 
+    def self.rule_yield_passed_block(infer, inst, node, tup, proc, type)
+      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
+        intype[0] = proc
+#        intype[0] = [type]
+#        intype = [proc] + intype
+        ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node, 33) #33 is :send maybe
+        ninst.para.push :call
+        ninst.para.push argc + 1
+        intype.each {|tys|
+          nreg = RiteSSA::Reg.new(nil)
+          tys.each do |ty|
+            nreg.add_type ty, tup
+          end
+          ninst.inreg.push nreg
+        }
+
+        dmyreg = RiteSSA::Reg.new(nil)
+        dmyreg.add_type proc[0], tup
+        ninst.outreg.push dmyreg
+
+        rule_send_common_aux(infer, ninst, node, tup, :call, intype, ninst.inreg[0], dmyreg, argc, nil)
+
+        inst.outreg[0].add_type type, tup
+      end
+    end
+
     def self.realvalue_from_container_type(type, tup)
       result = nil
       if type.class_object == Hash
@@ -719,6 +749,13 @@ module MTypeInf
       end
 
       result
+    end
+
+    def self.collect_features
+      @@ruby_method_tab.each do |name, clsmtab|
+        clsmtab.each do |cls, block|
+        end
+      end
     end
   end
 end

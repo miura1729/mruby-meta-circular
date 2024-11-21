@@ -129,6 +129,9 @@ module MTypeInf
               when MTypeInf::CType
                 return false
 
+              when MTypeInf::ThreadType
+                return false
+
               else
                 raise self
               end
@@ -484,7 +487,7 @@ module MTypeInf
         @class_object == other.class_object &&
         @irep == other.irep &&
         @env == other.env &&
-        @tups[0][1] == other.tups[0][1] &&
+        ((!@tups[0] && !other.tups[0]) || @tups[0][1] == other.tups[0][1]) &&
         is_escape? == other.is_escape?
     end
 

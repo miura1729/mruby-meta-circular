@@ -132,7 +132,7 @@ module MTypeInf
     attr :thread
     def thread=(val)
       @thread = val
-      if !@threadtype.include?(val) then
+      if !@@threadtab.include?(val) then
         @@threadtab.push val
       end
     end
@@ -232,6 +232,8 @@ module MTypeInf
         mess << "\n methodes \n"
         clsobj.method.each do |name, node|
           mess << "  " + dump_method(name, node)
+          mess << "---- effects ---"
+          mess << node.effects.values.join("\n")
           mess << "\n"
         end
         mess << "\n"

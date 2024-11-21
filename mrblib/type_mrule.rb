@@ -1175,34 +1175,13 @@ module MTypeInf
     end
 
     define_inf_rule_class_method :new, Fiber do |infer, inst, node, tup|
-      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
-        proc = intype[-1]
-        type = FiberType.new(Fiber, proc[0])
+      proc = inst.inreg[-1].flush_type(tup)[tup]
+      fibtype = FiberType.new(Fiber, proc[0])
+      curfib = infer.fiber
+      infer.fiber = fibtype
+      rule_yield_passed_block(infer, inst, node, tup, proc, fibtype)
+      infer.fiber = curfib
 
-        intype[0] = [type]
-        intype = [proc] + intype
-        ninst = RiteSSA::Inst.new(33, proc[0].irep, 0, node, 33) #33 is :send maybe
-        ninst.para.push :call
-        ninst.para.push argc + 1
-        intype.each {|tys|
-          nreg = RiteSSA::Reg.new(nil)
-          tys.each do |ty|
-            nreg.add_type ty, tup
-          end
-          ninst.inreg.push nreg
-        }
-
-        dmyreg = RiteSSA::Reg.new(nil)
-        dmyreg.add_type proc[0], tup
-        ninst.outreg.push dmyreg
-
-        curfib = infer.fiber
-        infer.fiber = type
-        rule_send_common_aux(infer, ninst, node, tup, :call, intype, dmyreg, dmyreg, argc, nil)
-        infer.fiber = curfib
-
-        inst.outreg[0].add_type type, tup
-      end
       nil
     end
 

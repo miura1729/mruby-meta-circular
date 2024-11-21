@@ -135,6 +135,9 @@ module MTypeInf
       if inst.outreg[0].type[tup] == nil then
         inst.outreg[0].add_type PrimitiveType.new(NilClass), tup
       end
+
+      node.root.effects[:iv_read] ||= []
+      node.root.effects[:iv_read].push [inst.para[0], inst]
       #p inst.para[0]
       nil
     end
@@ -169,6 +172,9 @@ module MTypeInf
           ty.place[slftype] = [curirep, previrep, :SETIV, inst.line]
         end
       end
+
+      node.root.effects[:iv_write] ||= []
+      node.root.effects[:iv_write].push [inst.para[0], inst]
 
       nil
     end
