@@ -298,11 +298,13 @@ module RiteSSA
     def initialize(name, pos)
       super(pos)
       @name = name
-      @read_threads = []
-      @write_threads = []
+      @read_threads = {}
+      @write_threads = {}
     end
 
     attr_accessor :type
+    attr_accessor :read_threads
+    attr_accessor :write_threads
   end
 
   class Inst
@@ -1117,6 +1119,7 @@ module RiteSSA
       @allocate_reg = {}
       @have_break = false
       @have_return = false
+      @thread_top = false
 
       @regtab = nil
 
@@ -1190,6 +1193,7 @@ module RiteSSA
 
     attr_accessor :have_break
     attr_accessor :have_return
+    attr_accessor :thread_top
 
     def collect_block_head(iseq)
       res = [0]

@@ -10,6 +10,11 @@ module MTypeInf
 
     b = RiteSSA::Block.new(irep, nil, TOP_SELF.class, true)
     bproc = ti.inference_top(b)
+
+    TypeInferencer::threadtab.each do |th|
+      ti.update_effects(th, th.proc.irep)
+    end
+
     #UserDefinedType.reset_hometown
     ti.messages.each do |message, cnt|
       print message
@@ -106,6 +111,11 @@ module MTypeInf
     @@ruletab ||= {}
     @@methodtab ||= {}
     @@threadtab ||= []
+
+    def self.threadtab
+      @@threadtab
+    end
+
     def initialize(option)
       @option = option
       @typetupletab = TypeTupleTab.new
@@ -232,14 +242,40 @@ module MTypeInf
         mess << "\n methodes \n"
         clsobj.method.each do |name, node|
           mess << "  " + dump_method(name, node)
-          mess << "---- effects ---"
-          mess << node.effects.values.join("\n")
+          mess << "\n-- effects ---\n"
+          mess << node.effects.map {|key, effarr|
+            effarr.map {|ins|
+              "#{key} #{ins[0]} #{ins[1].op} #{ins[2].read_threads.size} #{ins[2].write_threads.size}"
+            }
+          }.join("\n")
           mess << "\n"
         end
         mess << "\n"
       end
 
       mess
+    end
+
+    def update_effects(thread, tblk)
+      if tblk.thread_top and thread.proc.irep != tblk then
+        return
+      end
+
+      tblk.call_blocks.each do |prc, dmy|
+        update_effects(thread, prc)
+      end
+
+      tblk.effects.each do |event, value|
+        value.each do |ele|
+          case event
+          when :iv_read
+            ele[2].read_threads[thread] = true
+
+          when :iv_write
+            ele[2].write_threads[thread] = true
+          end
+        end
+      end
     end
 
     def inference_top(saairep)

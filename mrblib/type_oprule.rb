@@ -137,7 +137,7 @@ module MTypeInf
       end
 
       node.root.effects[:iv_read] ||= []
-      node.root.effects[:iv_read].push [inst.para[0], inst]
+      node.root.effects[:iv_read].push [inst.para[0], inst, inreg]
       #p inst.para[0]
       nil
     end
@@ -174,7 +174,7 @@ module MTypeInf
       end
 
       node.root.effects[:iv_write] ||= []
-      node.root.effects[:iv_write].push [inst.para[0], inst]
+      node.root.effects[:iv_write].push [inst.para[0], inst, slfiv]
 
       nil
     end
