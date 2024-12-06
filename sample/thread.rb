@@ -19,7 +19,9 @@ def foo
   c.a.push 1
   MMC_EXT::Thread.new(c) {|chan|
     :foo
+    a = c.a.pop
     p chan.a
+    p a
   }
 end
 

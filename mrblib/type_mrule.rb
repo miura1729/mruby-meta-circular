@@ -260,6 +260,8 @@ module MTypeInf
         raise "multiple argument not support yet in Array::[]="
       end
 
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
@@ -319,18 +321,26 @@ module MTypeInf
     end
 
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       rule_ary_push_common(infer, inst, node, tup)
     end
 
     define_inf_rule_method :push, Array do |infer, inst, node, tup|
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       rule_ary_push_common(infer, inst, node, tup)
     end
 
     define_inf_rule_method :append, Array do |infer, inst, node, tup|
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       rule_ary_push_common(infer, inst, node, tup)
     end
 
     define_inf_rule_method :pop, Array do |infer, inst, node, tup|
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
@@ -346,6 +356,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :replace, Array do |infer, inst, node, tup|
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
       nil
@@ -353,6 +365,8 @@ module MTypeInf
 
 
     define_inf_rule_method :shift, Array do |infer, inst, node, tup|
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
       type = PrimitiveType.new(NilClass)
@@ -889,6 +903,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :__printstr__, Kernel do |infer, inst, node, tup|
+      node.root.effects[:io] ||= {}
+      node.root.effects[:io][inst] = inst.inreg[0]
       inst.outreg[0].add_same inst.inreg[1]
       inst.outreg[0].flush_type(tup)
       nil
@@ -1108,6 +1124,9 @@ module MTypeInf
         raise "multiple argument not support yet in Hash::[]="
       end
 
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0]
+
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
@@ -1206,6 +1225,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :sysread, IO do |infer, inst, node, tup|
+      node.root.effects[:io] ||= {}
+      node.root.effects[:io][inst] = inst.inreg[0]
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)

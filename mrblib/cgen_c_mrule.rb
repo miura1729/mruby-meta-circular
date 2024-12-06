@@ -820,8 +820,7 @@ module CodeGenC
             nminf[3] = dstt
             mtab[codeno] = nminf
           end
-          outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
-          outtype = get_ctype(ccgen, nreg, tup, infer)
+
           if inst.para[1] == 127 then
             i = 0
             inreg = inst.inreg[1]
@@ -846,6 +845,9 @@ module CodeGenC
             args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
           end
           args << ", gctab"
+
+          outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
+          outtype = get_ctype(ccgen, nreg, tup, infer)
           argt = inst.inreg.map {|reg|
             gen_declare(ccgen, reg, tup, infer)
           }.join(", ")

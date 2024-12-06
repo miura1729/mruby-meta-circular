@@ -244,9 +244,17 @@ module MTypeInf
           mess << "  " + dump_method(name, node)
           mess << "\n-- effects ---\n"
           mess << node.effects.map {|key, effarr|
-            effarr.map {|ins|
-              "#{key} #{ins[0]} #{ins[1].op} #{ins[2].read_threads.size} #{ins[2].write_threads.size}"
-            }
+            case key
+            when :iv_read, :iv_write
+              effarr.map {|ins|
+                "#{key} #{ins[0]} #{ins[1].op} #{ins[2].read_threads.size} #{ins[2].write_threads.size}"
+              }
+
+            when :modify
+              effarr.map {|ins, ty|
+                "#{key} #{ins.para[0]} #{ty.type}"
+              }
+            end
           }.join("\n")
           mess << "\n"
         end
