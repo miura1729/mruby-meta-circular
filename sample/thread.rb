@@ -14,14 +14,18 @@ class Chan
   end
 end
 
+def bar(c)
+  c
+end
+
 def foo
   c = Chan.new
   c.a.push 1
-  MMC_EXT::Thread.new(c) {|chan|
+  MMC_EXT::Thread.new(c, 1) {|chan, i|
     :foo
-    a = c.a.pop
+    a = chan.a.pop
+    bar(chan)
     p chan.a
-    p a
   }
 end
 

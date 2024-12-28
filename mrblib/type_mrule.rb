@@ -261,7 +261,7 @@ module MTypeInf
       end
 
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
@@ -322,25 +322,25 @@ module MTypeInf
 
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       rule_ary_push_common(infer, inst, node, tup)
     end
 
     define_inf_rule_method :push, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       rule_ary_push_common(infer, inst, node, tup)
     end
 
     define_inf_rule_method :append, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       rule_ary_push_common(infer, inst, node, tup)
     end
 
     define_inf_rule_method :pop, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
@@ -357,7 +357,7 @@ module MTypeInf
 
     define_inf_rule_method :replace, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
       nil
@@ -366,7 +366,7 @@ module MTypeInf
 
     define_inf_rule_method :shift, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
       type = PrimitiveType.new(NilClass)
@@ -904,7 +904,7 @@ module MTypeInf
 
     define_inf_rule_method :__printstr__, Kernel do |infer, inst, node, tup|
       node.root.effects[:io] ||= {}
-      node.root.effects[:io][inst] = inst.inreg[0]
+      node.root.effects[:io][inst] = inst.inreg[0].type
       inst.outreg[0].add_same inst.inreg[1]
       inst.outreg[0].flush_type(tup)
       nil
@@ -958,7 +958,7 @@ module MTypeInf
           proc = eval("lambda { #{src} }")
           slf = inst.inreg[0].type[tup][0]
           irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
-          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil, nil)
+          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil)
           infer.inference_block(irep, [[slf]], tup, 2, bproc)
           inst.objcache ||= {}
           inst.objcache[src] = irep
@@ -1125,7 +1125,7 @@ module MTypeInf
       end
 
       node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0]
+      node.root.effects[:modify][inst] = inst.inreg[0].type
 
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
       hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
@@ -1198,7 +1198,7 @@ module MTypeInf
       fibtype = FiberType.new(Fiber, proc[0])
       curfib = infer.fiber
       infer.fiber = fibtype
-      rule_yield_passed_block(infer, inst, node, tup, proc, fibtype)
+      rule_yield_passed_block(infer, inst, node, tup, proc, fibtype, inst.inreg)
       infer.fiber = curfib
 
       nil
@@ -1226,7 +1226,7 @@ module MTypeInf
 
     define_inf_rule_method :sysread, IO do |infer, inst, node, tup|
       node.root.effects[:io] ||= {}
-      node.root.effects[:io][inst] = inst.inreg[0]
+      node.root.effects[:io][inst] = inst.inreg[0].type
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
       type = StringType.new(String, inst, previrep, level)

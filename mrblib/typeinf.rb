@@ -252,7 +252,7 @@ module MTypeInf
 
             when :modify
               effarr.map {|ins, ty|
-                "#{key} #{ins.para[0]} #{ty.type}"
+                "#{key} #{ins.para[0]} #{ty.values}"
               }
             end
           }.join("\n")
@@ -274,13 +274,24 @@ module MTypeInf
       end
 
       tblk.effects.each do |event, value|
-        value.each do |ele|
-          case event
-          when :iv_read
+        case event
+        when :iv_read
+          value.each do |ele|
             ele[2].read_threads[thread] = true
+          end
 
-          when :iv_write
+        when :iv_write
+          value.each do |ele|
             ele[2].write_threads[thread] = true
+          end
+
+        when :modify
+          value.each do |inst, typetups|
+            typetups.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :modify
+              end
+            end
           end
         end
       end
@@ -291,7 +302,7 @@ module MTypeInf
       ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
-      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil, @thread)
+      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil)
       @thread.proc = bproc
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)

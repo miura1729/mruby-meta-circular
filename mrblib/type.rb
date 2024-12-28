@@ -9,6 +9,7 @@ module MTypeInf
       @place = {}
       @escape_cache = nil
       @version = 0
+      @threads = {}
     end
 
     def ==(other)
@@ -22,12 +23,21 @@ module MTypeInf
         is_escape? == other.is_escape?
     end
 
-    attr :class_object
+    def class_object
+      if threads.size > 1 then
+        # racing object. lock need when access
+        MMC_EXT::Mutex
+      else
+        @class_object
+      end
+    end
+
     attr_accessor :hometown
     attr_accessor :phometowns
     attr_accessor :level
     attr_accessor :place
     attr_accessor :version
+    attr :threads
 
     def merge(arr, usevalue)
       clsobj = @class_object
@@ -162,7 +172,12 @@ module MTypeInf
     end
 
     def inspect(level = 0)
-      inspect_aux({}, level)
+      core = inspect_aux({}, level)
+      if @threads.size > 0 then
+        "Mutex<#{core}>"
+      else
+        core
+      end
     end
 
     def is_escape?(hist = {})
@@ -467,9 +482,8 @@ module MTypeInf
       @@tab
     end
 
-    def initialize(co, irep, slf, slfreg, env, tups, pproc, thread,  *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, pproc,  *rest)
       super(co, *rest)
-      @thread = thread
       @id = @@tab.size
       @@tab.push self
       @irep = irep
@@ -531,7 +545,6 @@ module MTypeInf
     attr :tups
     attr :using_tup
     attr :parent
-    attr :thread
   end
 
   class FiberType<BasicType

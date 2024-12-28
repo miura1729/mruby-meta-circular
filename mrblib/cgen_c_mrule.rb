@@ -1302,6 +1302,7 @@ module CodeGenC
               reg.type[ivtup] = reg.get_type(tup).map {|e| e}
             end
           end
+
           clsid = ["cls#{clsssa.id}_#{ivtup}", otype.hometown]
           ccgen.using_class[clsssa][ivtup] ||= clsid
           rc = can_use_caller_area(otype)

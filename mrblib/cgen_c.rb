@@ -53,6 +53,7 @@ module CodeGenC
 #include <mruby/error.h>
 #include <mruby/variable.h>
 #include <mruby/throw.h>
+#include <mruby/data.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,6 +131,10 @@ EOS
     attr :using_block
     attr :using_class
     attr :using_proc
+
+    attr :defined_method
+    attr :defined_block
+    attr :defined_class
 
     attr :clstab
     attr :proctab
@@ -332,9 +337,15 @@ EOS
             hometown = val[1]
             if !@defined_class[id] then
               @scode << "struct #{id} {\n"
-              clsssa.iv.each do |name, reg|
-                @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)}; /* #{name} */\n"
-                # @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
+              if clsssa.class_object == MMC_EXT::Thread then
+                @scode << "pthread_t thread;\n"
+                @scode << "void *argv;\n"
+                @scode << "void (*thread_func)(void *);\n"
+              else
+                clsssa.iv.each do |name, reg|
+                  @scode << "#{CodeGen::gen_declare(self, reg, tup, ti)}; /* #{name} */\n"
+                  # @scode << "mrb_value v#{reg.id}; /* #{name} */\n"
+                end
               end
               @scode << "};\n"
               @defined_class[id] = clsssa

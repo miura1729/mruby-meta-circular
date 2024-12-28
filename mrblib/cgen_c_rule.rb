@@ -923,7 +923,7 @@ module CodeGenC
       String => :string,
       Symbol => :symbol,
       TrueClass => :mrb_bool,
-      FalseClass => :mrb_bool
+      FalseClass => :mrb_bool,
     }
 
     def self.get_ctype_aux_aux(ccgen, reg, tup, infer)
@@ -988,10 +988,10 @@ module CodeGenC
           return res
         elsif rtype[0].is_a?(MTypeInf::CPointerType)
           cent = get_type(ccgen, rtype[0].basetype, tup, infer)
-          [cent, "*"]
+          return [cent, "*"]
 
         elsif rtype[0].is_a?(MTypeInf::CType)
-          rtype[0].cname
+          return rtype[0].cname
         end
       end
 
@@ -1114,6 +1114,9 @@ module CodeGenC
         #tups = reg.get_type(tup)[0].using_tup
 
         [:gproc, reg.get_type(tup)[0].id]
+
+      when :mutex
+        "Mutex"
 
       else
 #        if reg.get_type(tup)
@@ -1565,6 +1568,8 @@ EOS
 
         else
           p src
+          p dstt
+          p srct
           p "Not support yet #{dstt} #{srct}"
 #          raise "Not support yet #{dstt} #{srct}"
         end

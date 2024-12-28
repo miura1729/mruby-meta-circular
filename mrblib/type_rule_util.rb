@@ -404,7 +404,7 @@ module MTypeInf
       irep = Irep::get_proc_irep(p0)
       if irep then
         blk = RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
-        ProcType.new(Proc, blk, tclass, nil,  [], [], pproc, nil)
+        ProcType.new(Proc, blk, tclass, nil,  [], [], pproc)
       else
         nil
       end
@@ -709,8 +709,8 @@ module MTypeInf
       nil
     end
 
-    def self.rule_yield_passed_block(infer, inst, node, tup, proc, type)
-      make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
+    def self.rule_yield_passed_block(infer, inst, node, tup, proc, type, inreg)
+      make_intype(infer, inreg, node, tup, inst.para[1]) do |intype, argc|
         intype[0] = proc
 #        intype[0] = [type]
 #        intype = [proc] + intype
@@ -731,7 +731,11 @@ module MTypeInf
 
         rule_send_common_aux(infer, ninst, node, tup, :call, intype, ninst.inreg[0], dmyreg, argc, nil)
 
-        inst.outreg[0].add_type type, tup
+        if type then
+          inst.outreg[0].add_type type, tup
+        else
+          inst.outreg[0].add_type dmyreg.get_type(tup)[0], tup
+        end
       end
     end
 
