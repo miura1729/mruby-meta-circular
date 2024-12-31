@@ -10,6 +10,20 @@ module MTypeInf
       @@ruletab[:OP][name] = block
     end
 
+    define_inf_rule_op :START do |infer, inst, node, tup, history|
+      minfo = node.root.effects[:modify]
+      if minfo then
+        minfo.each do |minst, mtype|
+          p minst.inreg[0].genpoint.op
+        end
+      end
+      inst.inreg.each_with_index do |ireg, idx|
+        inst.outreg[idx].add_same ireg
+        inst.outreg[idx].flush_type_alltup(tup)
+      end
+      nil
+    end
+
     define_inf_rule_op :NOP do |infer, inst, node, tup, history|
       nil
     end
@@ -539,7 +553,7 @@ module MTypeInf
             pos = argc - m1 - m2
           end
           nnode = inst.para[3][pos]
-          ereg = [node.enter_reg[0]] + inst.outreg
+          ereg = [inst.inreg[0]] + inst.outreg
           infer.inference_node(nnode, tup, ereg, history)
 
           rc = true

@@ -336,7 +336,7 @@ module RiteSSA
     attr :outreg
     attr :para
     attr :pc
-    attr :op
+    attr_accessor :op
     attr :node
     attr :irep
     attr :code
@@ -415,7 +415,15 @@ module RiteSSA
 
     def make_ext_iseq
       @enter_reg = regtab.dup
-      @ext_iseq = []
+      inst = Inst.new(0, @irep, 0, self, nil)
+      inst.op = :START
+      regtab[0..-1].each_with_index do |reg, i|
+        inst.inreg.push reg
+        dstreg = Reg.new(inst)
+        regtab[i] = dstreg
+        inst.outreg.push dstreg
+      end
+      @ext_iseq = [inst]
       pc = @pos
 
       @iseq.each do |code|

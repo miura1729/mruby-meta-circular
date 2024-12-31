@@ -10,6 +10,10 @@ module CodeGenC
       @@ruletab[:CCGEN][name] = block
     end
 
+    define_ccgen_rule_op :START do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_op :NOP do |ccgen, inst, node, infer, history, tup|
       nil
     end

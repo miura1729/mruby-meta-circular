@@ -32,6 +32,10 @@ module MTypeInf
       end
     end
 
+    def class_object_core
+      @class_object
+    end
+
     attr_accessor :hometown
     attr_accessor :phometowns
     attr_accessor :level

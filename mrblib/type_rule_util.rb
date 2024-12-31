@@ -454,6 +454,9 @@ module MTypeInf
         existf = false
         missprocssa = nil
         slf = ty.class_object
+        if slf.is_a?(MMC_EXT::Mutex) then
+          slf = class_object_core
+        end
 
         if !slf.is_a?(Module) then
           next

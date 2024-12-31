@@ -25,7 +25,7 @@ def foo
     :foo
     a = chan.a.pop
     bar(chan)
-    p chan.a
+    chan.a
   }
 end
 

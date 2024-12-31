@@ -173,7 +173,11 @@ module CodeGenC
       fname = nil
       utup = nil
       proc = nil
-      rectype.class_object.ancestors.each do |rt|
+      mutexp = false
+      if rectype.is_a?(MMC_EXT::Mutex) then
+        mutexp = true
+      end
+      rectype.class_object_core.ancestors.each do |rt|
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
 #          orgrec = inst.inreg[0].get_type(tup)
           inst.inreg[0].positive_list.push [rectype]
@@ -910,7 +914,8 @@ module CodeGenC
 
     def self.gen_block_func(name, rectype, blkno, tup)
       name = gen_name_marshal(name)
-      "#{name}_#{rectype}_#{blkno}_#{tup}"
+      rect = gen_name_marshal(rectype.inspect)
+      "#{name}_#{rect}_#{blkno}_#{tup}"
     end
 
     TTABLE = {
