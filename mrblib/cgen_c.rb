@@ -89,6 +89,11 @@ struct gctab {
   mrb_value *single[0];
 };
 
+struct mutex_wrapper {
+  pthread_mutex lock;
+  mrb_value *object;
+};
+
 void mrb_mark_local(mrb_state *mrb)
 {
   struct gctab *curtab = (struct gctab *)mrb->ud;

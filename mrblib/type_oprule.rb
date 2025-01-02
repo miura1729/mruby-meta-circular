@@ -11,12 +11,6 @@ module MTypeInf
     end
 
     define_inf_rule_op :START do |infer, inst, node, tup, history|
-      minfo = node.root.effects[:modify]
-      if minfo then
-        minfo.each do |minst, mtype|
-          p minst.inreg[0].genpoint.op
-        end
-      end
       inst.inreg.each_with_index do |ireg, idx|
         inst.outreg[idx].add_same ireg
         inst.outreg[idx].flush_type_alltup(tup)

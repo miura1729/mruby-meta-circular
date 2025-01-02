@@ -482,6 +482,14 @@ module RiteSSA
           end
           inst.para.push exp_regset
           inst.para.push a
+          inst.para.push nil
+          # map of inst.para
+          #  0  name of method
+          #  1  num of send
+          #  2  reg tab
+          #  3  export reg
+          #  4  start reg no of arg
+          #  5  locked reciver reg (i.e. original recreg)
 
           dstreg = Reg.new(inst)
           regtab[a] = dstreg

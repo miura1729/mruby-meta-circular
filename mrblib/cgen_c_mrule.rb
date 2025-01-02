@@ -1346,7 +1346,7 @@ module CodeGenC
     end
 
 #    define_ccgen_rule_method :sysread, IO do |ccgen, inst, node, infer, history, tup|
-#      
+#
 #    end
   end
 end

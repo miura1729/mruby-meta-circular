@@ -454,8 +454,17 @@ module MTypeInf
         existf = false
         missprocssa = nil
         slf = ty.class_object
-        if slf.is_a?(MMC_EXT::Mutex) then
-          slf = class_object_core
+
+        if inst.para[5] == nil then
+          unlock_recreg = RiteSSA::Reg.new(nil)
+          unlock_recreg.setpoint.push inst
+          inst.para[5] = inst.inreg[0]
+          inst.inreg[0] = unlock_recreg
+        end
+        inst.para[5].type.each do |tup, types|
+          types.each do |type|
+            inst.inreg[0].add_type type.clone, tup
+          end
         end
 
         if !slf.is_a?(Module) then
@@ -678,7 +687,7 @@ module MTypeInf
         end
       end
 
-      if inst.inreg[0].class == RiteSSA::Reg then
+      if inst.inreg[0].class == RiteSSA::Reg and inst.inreg[0].genpoint then
         inst.inreg[0].genpoint.outreg[0].add_same inst.inreg[0]
         inst.inreg[0].genpoint.outreg[0].flush_type(tup)
       end

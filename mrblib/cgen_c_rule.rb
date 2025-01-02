@@ -173,7 +173,20 @@ module CodeGenC
       fname = nil
       utup = nil
       proc = nil
+
       mutexp = false
+      lock_recreg = inst.para[5]
+      unlock_recreg = inst.inreg[0]
+      unlock_recreg.type[tup][0].threads = []
+      ccgen.dcode << gen_declare(ccgen, unlock_recreg, tup, infer)
+      ccgen.dcode << "\n"
+      src = "v#{lock_recreg.id}"
+      src = reg_real_value(ccgen, lock_recreg, unlock_recreg, tup, node, infer, history, nil)
+#      p unlock_recreg.get_type(tup)[0].threads
+#      p unlock_recreg.get_type(tup)[0]
+#      p lock_recreg.get_type(tup)[0]
+      ccgen.pcode << "v#{unlock_recreg.id} = #{src}\n"
+
       if rectype.is_a?(MMC_EXT::Mutex) then
         mutexp = true
       end
@@ -948,12 +961,16 @@ module CodeGenC
         return :mrb_value
       end
 
-      if rtype.any? {|ty| ty.is_escape?} then
-        return :mrb_value
-      end
-
       rtypesize = rtype.size
       cls0 = rtype[0].class_object
+
+      if rtype.any? {|ty| ty.is_escape?} then
+        if cls0 == MMC_EXT::Mutex then
+          return :mrb_value_mutex
+        else
+          return :mrb_value
+        end
+      end
 
       # not escape and pointer type is nullable.
       if rtype.all? {|ty| ty.class_object == cls0} and !rtype[0].is_gcobject? then
@@ -1389,7 +1406,7 @@ EOS
           p src
           p dstt
           p srct
-          raise "Not support yet #{dstt} #{srct}"
+          raise "Not support yet #{dstt} #{srct} foo"
         end
 
       else
@@ -1496,6 +1513,9 @@ EOS
               p caller
               "conv_to_rvalue(#{src})"
 
+            when :mrb_value_mutex
+              "DATA_PTR(#{src})->object"
+
             else
               p node.root.irep.disasm
               p srct
@@ -1571,11 +1591,21 @@ EOS
         when :nil
           "mrb_nil_value()"
 
+        when :mrb_value_mutex
+          <<"EOS"
+({
+  struct mutex_wrapper mutex;
+  mutex.lock = pthread_mutex();
+  mutex.object = #{src};
+  mrb_data_object_alloc(mrb, );
+})
+EOS
+
         else
           p src
           p dstt
           p srct
-          p "Not support yet #{dstt} #{srct}"
+          p "Not support yet #{dstt} #{srct} bar"
 #          raise "Not support yet #{dstt} #{srct}"
         end
       end
@@ -1590,7 +1620,7 @@ EOS
       if slf.is_escape?(tup) then
         idx = ivreg.genpoint
         src = "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
+        src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
         ccgen.pcode << "v#{dst.id} = #{src};\n"
       else
         src = "#{slfsrc}->v#{ivreg.id}"
@@ -1606,7 +1636,7 @@ EOS
       val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
       slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       if slf.is_escape?(tup) then
-        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
+        val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
     # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
         if valr.type[tup].any? {|t| t.is_gcobject?} then

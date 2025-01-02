@@ -577,8 +577,12 @@ module CodeGenC
         ccgen.pcode << vals.join(', ')
         ccgen.pcode << "\n};\n"
         gen_gc_table2(ccgen, node, reg)
-        ccgen.pcode << "v#{reg.id} = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
-        ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{reg.id}), #{vals.size});\n"
+        ccgen.pcode << "mrb_value array = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
+        src = "array"
+        regt = get_ctype(ccgen, reg, tup, infer)
+        src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, reg)
+        ccgen.pcode << "v#{reg.id} = #{src};\n"
+        ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(array), #{vals.size});\n"
         ccgen.callstack[-1][1] = true
         ccgen.pcode << "}\n"
       else

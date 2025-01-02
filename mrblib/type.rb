@@ -41,7 +41,7 @@ module MTypeInf
     attr_accessor :level
     attr_accessor :place
     attr_accessor :version
-    attr :threads
+    attr_accessor :threads
 
     def merge(arr, usevalue)
       clsobj = @class_object
