@@ -11,6 +11,25 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :START do |ccgen, inst, node, infer, history, tup|
+      argc = infer.typetupletab.rev_table[tup].size - 4;
+      oreg = inst.outreg[0]
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+      ccgen.pcode << "v#{oreg.id} = self;\n"
+      if argc >= 1 then
+        inst.outreg[1..argc].each_with_index do |oreg, i|
+          if oreg.type[tup] then
+            ireg = inst.inreg[i + 1]
+            ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+            ccgen.pcode << "v#{oreg.id} = v#{ireg.id};\n"
+          end
+        end
+      end
+      oreg = inst.outreg[argc + 1]
+      if oreg.type[tup][0].class_object != NilClass then
+        ireg = inst.inreg[argc + 1]
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+        ccgen.pcode << "v#{oreg.id} = v#{ireg.id};\n"
+      end
       nil
     end
 
@@ -666,7 +685,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)}\n"
-        gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0)
+        gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0) {|code| ccgen.pcode << code}
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});\n"
       else
@@ -738,7 +757,7 @@ module CodeGenC
           ccgen.hcode << "void *code[#{tupnum}];\n"
         end
 
-        slfdecl = gen_declare(ccgen, proc.slfreg, tup, infer, false, true)
+        slfdecl = gen_declare_core(ccgen, proc.slfreg, tup, infer, false, "self")
         ccgen.hcode << "#{slfdecl};\n"
         ccgen.hcode << "};\n"
 

@@ -11,9 +11,12 @@ module MTypeInf
     end
 
     define_inf_rule_op :START do |infer, inst, node, tup, history|
-      inst.inreg.each_with_index do |ireg, idx|
-        inst.outreg[idx].add_same ireg
-        inst.outreg[idx].flush_type_alltup(tup)
+      inst.inreg.each_with_index do |dmy, idx|
+        inst.inreg[idx].type.each do |tp, types|
+          types.each do |type|
+            inst.outreg[idx].add_type type, tp
+          end
+        end
       end
       nil
     end
@@ -437,7 +440,6 @@ module MTypeInf
       m2 = (ax >> 7) & 0x1f
       inreg = inst.inreg.clone
       uv = ContainerType::UNDEF_VALUE
-
       argc = infer.callstack[-1][2]
       len = m1 + o + r + m2
 
@@ -448,7 +450,6 @@ module MTypeInf
         inreg[n] = inst.para[1][n + 1]
         n = n + 1
       end
-
       if argc == 127 then
         certup = infer.callstack[-2][1]
         arytypes = inreg[0].flush_type(tup)[tup]

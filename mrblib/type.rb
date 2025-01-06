@@ -24,7 +24,7 @@ module MTypeInf
     end
 
     def class_object
-      if threads.size > 1 then
+      if @threads.size > 1 then
         # racing object. lock need when access
         MMC_EXT::Mutex
       else
@@ -177,7 +177,7 @@ module MTypeInf
 
     def inspect(level = 0)
       core = inspect_aux({}, level)
-      if @threads.size > 0 then
+      if @threads.size > 1 then
         "Mutex<#{core}>"
       else
         core

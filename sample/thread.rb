@@ -10,7 +10,7 @@ class Chan
   end
 
   def b
-    @a
+    @b
   end
 end
 
@@ -20,13 +20,16 @@ end
 
 def foo
   c = Chan.new
+  b = []
   c.a.push 1
+  c.b.push "ab"
   MMC_EXT::Thread.new(c, 1) {|chan, i|
     :foo
     a = chan.a.pop
     bar(chan)
-    chan.a
+    a
   }
+  c.b.pop
 end
 
   foo

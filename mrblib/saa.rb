@@ -413,17 +413,22 @@ module RiteSSA
       [exres.uniq, imres.uniq]
     end
 
+
     def make_ext_iseq
       @enter_reg = regtab.dup
-      inst = Inst.new(0, @irep, 0, self, nil)
-      inst.op = :START
-      regtab[0..-1].each_with_index do |reg, i|
-        inst.inreg.push reg
-        dstreg = Reg.new(inst)
-        regtab[i] = dstreg
-        inst.outreg.push dstreg
+      if @pos == 0 then
+        inst = Inst.new(0, @irep, 0, self, nil)
+        inst.op = :START
+        regtab[0..(@irep.nlocals)].each_with_index do |reg, i|
+          inst.inreg.push reg
+          dstreg = Reg.new(inst)
+          regtab[i] = dstreg
+          inst.outreg.push dstreg
+        end
+        @ext_iseq = [inst]
+      else
+        @ext_iseq = []
       end
-      @ext_iseq = [inst]
       pc = @pos
 
       @iseq.each do |code|

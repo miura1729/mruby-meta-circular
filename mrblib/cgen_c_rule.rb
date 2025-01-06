@@ -164,7 +164,7 @@ module CodeGenC
 
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
-      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      op_send_lock(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
       set_closure_env(ccgen, inst, node, infer, history, tup)
     end
 
@@ -174,22 +174,6 @@ module CodeGenC
       utup = nil
       proc = nil
 
-      mutexp = false
-      lock_recreg = inst.para[5]
-      unlock_recreg = inst.inreg[0]
-      unlock_recreg.type[tup][0].threads = []
-      ccgen.dcode << gen_declare(ccgen, unlock_recreg, tup, infer)
-      ccgen.dcode << "\n"
-      src = "v#{lock_recreg.id}"
-      src = reg_real_value(ccgen, lock_recreg, unlock_recreg, tup, node, infer, history, nil)
-#      p unlock_recreg.get_type(tup)[0].threads
-#      p unlock_recreg.get_type(tup)[0]
-#      p lock_recreg.get_type(tup)[0]
-      ccgen.pcode << "v#{unlock_recreg.id} = #{src}\n"
-
-      if rectype.is_a?(MMC_EXT::Mutex) then
-        mutexp = true
-      end
       rectype.class_object_core.ancestors.each do |rt|
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
 #          orgrec = inst.inreg[0].get_type(tup)
@@ -301,12 +285,14 @@ module CodeGenC
       MTypeInf::TypeInferencer::make_intype(infer, inreg, node, tup, inst.para[1]) do |intype, argc|
         #      intype[0] = [intype[0][0]]
         if !intype[0][0]
+          p "Recive is nil"
           p name
           p tup
           p inreg[0].type
           p intype
           p inst.line
         end
+
         rectypes = intype[0]
         ty0 = rectypes[0]
         if rectypes.all? {|ty| ty.class_object == ty0.class_object} then
@@ -459,6 +445,21 @@ module CodeGenC
         end
       end
       nil
+    end
+
+    def self.op_send_lock(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
+      lock_recreg = inst.para[5]
+      unlock_recreg = inst.inreg[0]
+      unlock_recreg.type[tup][0].threads = []
+      ccgen.dcode << gen_declare(ccgen, unlock_recreg, tup, infer)
+      ccgen.dcode << ";\n"
+      src = reg_real_value(ccgen, lock_recreg, unlock_recreg, node, tup, infer, history)
+#      p unlock_recreg.get_type(tup)[0].threads
+#      p unlock_recreg.get_type(tup)[0]
+#      p lock_recreg.get_type(tup)[0]
+      ccgen.pcode << "v#{unlock_recreg.id} = #{src};\n"
+
+      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
     end
 
     def self.op_send_initialize(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
@@ -661,7 +662,7 @@ module CodeGenC
             src = "(#{arg0} #{op} #{arg1})"
           end
         else
-          op_send_aux(ccgen, gins, gins.inreg, gins.outreg, node, ti, history, tup, :==)
+          op_send_lock(ccgen, gins, gins.inreg, gins.outreg, node, ti, history, tup, :==)
           needdecl = false
           src = "v#{gins.outreg[0].id}"
         end
@@ -1514,8 +1515,14 @@ EOS
               "conv_to_rvalue(#{src})"
 
             when :mrb_value_mutex
-              "DATA_PTR(#{src})->object"
-
+              gen_gc_table2(ccgen, node, oreg)
+              <<"EOS"
+({
+  struct mutex_wrapper *mutex = DATA_PTR(#{src});
+  pthread_mutex_lock(mutex->mp);
+  mutex->object
+})
+EOS
             else
               p node.root.irep.disasm
               p srct
@@ -1592,12 +1599,12 @@ EOS
           "mrb_nil_value()"
 
         when :mrb_value_mutex
+          gen_gc_table2(ccgen, node, oreg)
           <<"EOS"
-({
-  struct mutex_wrapper mutex;
-  mutex.lock = pthread_mutex();
+( struct mutex_wrapper *mutex = malloc(szeof(pthread_mutex_t));
+  pthread_mutex_init(&utex->mp, NULL);
   mutex.object = #{src};
-  mrb_data_object_alloc(mrb, );
+  mrb_data_object_alloc(mrb, mrb->object_class, mutex, mutex_data_header);
 })
 EOS
 

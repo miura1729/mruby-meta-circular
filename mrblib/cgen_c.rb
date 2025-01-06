@@ -90,9 +90,18 @@ struct gctab {
 };
 
 struct mutex_wrapper {
-  pthread_mutex lock;
+  pthread_mutex_t mp;
   mrb_value *object;
 };
+
+void mrb_mutex_free(mrb_state *mrb, void *data)
+{
+  struct mutex_wrapper *mutex_data = (struct mutex_wrapper *)data;
+  pthread_mutex_destroy(&mutex_data->mp);
+  mrb_free(mrb, data);
+}
+
+mrb_data_type mutex_data_header = {"Mutex Data", mrb_mutex_free};
 
 void mrb_mark_local(mrb_state *mrb)
 {
@@ -639,7 +648,7 @@ EOS
       @pcode << "L#{node.id}:; \n"
       rc = nil
       node.ext_iseq.each do |ins|
-        # p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
+        #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
 #        rescue NoMethodError => e
