@@ -25,7 +25,7 @@ module CodeGenC
         end
       end
       oreg = inst.outreg[argc + 1]
-      if oreg.type[tup][0].class_object != NilClass then
+      if oreg.type[tup] and oreg.type[tup][0].class_object != NilClass then
         ireg = inst.inreg[argc + 1]
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         ccgen.pcode << "v#{oreg.id} = v#{ireg.id};\n"

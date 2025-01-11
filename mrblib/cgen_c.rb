@@ -37,6 +37,8 @@ module CodeGenC
       @range_types = []
 
       @compiled_method = {}
+
+      @unlock_instruction = {}
       init_code
     end
 
@@ -169,6 +171,8 @@ EOS
     attr :range_types
 
     attr :compiled_method
+
+    attr :unlock_instruction
 
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then
@@ -651,6 +655,10 @@ EOS
         #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
+          if (oreg = @unlock_instruction[ins]) then
+            @pcode << "Unlock v#{oreg.id}\n"
+            @unlock_instruction.delete(ins)
+          end
 #        rescue NoMethodError => e
         rescue  Object => e
           p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para}"

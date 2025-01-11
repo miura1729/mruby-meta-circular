@@ -283,6 +283,11 @@ module MTypeInf
         when :iv_write
           value.each do |ele|
             ele[2].write_threads[thread] = true
+            ele[3].type.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :iv_write
+              end
+            end
           end
 
         when :modify

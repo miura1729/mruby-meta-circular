@@ -459,6 +459,9 @@ module MTypeInf
           unlock_recreg = RiteSSA::Reg.new(nil)
           unlock_recreg.setpoint.push inst
           inst.para[5] = inst.inreg[0]
+          inst.para[5].refpoint.each do |ins|
+            unlock_recreg.refpoint.push ins
+          end
           inst.inreg[0] = unlock_recreg
         end
         inst.para[5].type.each do |tup, types|

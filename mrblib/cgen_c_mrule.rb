@@ -745,7 +745,10 @@ module CodeGenC
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-          ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{initsize});\n"
+          regt = get_ctype(ccgen, oreg, tup, infer)
+          src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
+          src = "mrb_ary_new_capa(mrb, #{initsize})"
+          ccgen.pcode << "v#{oreg.id} = #{src};\n"
           ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{initsize});\n"
           ccgen.callstack[-1][1] = true
@@ -1281,7 +1284,10 @@ module CodeGenC
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-          ccgen.pcode << "v#{oreg.id} = mrb_ary_new_capa(mrb, #{clsssa.iv.size});\n"
+          src = "rb_ary_new_capa(mrb, #{clsssa.iv.size})"
+          regt = get_ctype(ccgen, oreg, tup, infer)
+          src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
+          ccgen.pcode << "v#{oreg.id} = #{src};\n"
           ccgen.pcode << "for (int i = 0;i < #{clsssa.iv.size}; i++) ARY_PTR(mrb_ary_ptr(v#{oreg.id}))[i] = mrb_nil_value();\n"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(v#{oreg.id}), #{clsssa.iv.size});\n"
           ccgen.callstack[-1][1] = true

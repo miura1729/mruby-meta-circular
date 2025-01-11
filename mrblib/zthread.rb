@@ -51,8 +51,6 @@ module MTypeInf
       inst.outreg[0].add_type(thtype, tup)
       rule_yield_passed_block(infer, inst, node, tup, proc, thtype, inreg)
       infer.thread = curth
-      retreg = node.root.retreg
-      retreg.add_same inst.outreg[0]
       nil
     end
   end

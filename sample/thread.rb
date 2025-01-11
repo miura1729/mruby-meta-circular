@@ -1,4 +1,3 @@
-MTypeInf::inference_main {
 class Chan
   def initialize
     @a = []
@@ -11,6 +10,10 @@ class Chan
 
   def b
     @b
+  end
+
+  def foo
+    @a = [:a]
   end
 end
 
@@ -27,11 +30,14 @@ def foo
     :foo
     a = chan.a.pop
     bar(chan)
+    chan.foo
     a
   }
+  c.foo
   c.b.pop
 end
 
+MTypeInf::inference_main {
   foo
 }
 

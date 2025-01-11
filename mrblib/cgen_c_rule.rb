@@ -450,6 +450,9 @@ module CodeGenC
     def self.op_send_lock(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
       lock_recreg = inst.para[5]
       unlock_recreg = inst.inreg[0]
+      if !unlock_recreg.type[tup] then
+        tup = unlock_recreg.type.keys[0]
+      end
       unlock_recreg.type[tup][0].threads = []
       ccgen.dcode << gen_declare(ccgen, unlock_recreg, tup, infer)
       ccgen.dcode << ";\n"
@@ -1506,7 +1509,7 @@ EOS
               "((#{src}) ? mrb_true_value() : mrb_false_value())"
 
             when :nil
-              "#{src}"
+              src.to_s
 
             when String
               p src
@@ -1516,6 +1519,8 @@ EOS
 
             when :mrb_value_mutex
               gen_gc_table2(ccgen, node, oreg)
+              uins = oreg.refpoint[-1]
+              ccgen.unlock_instruction[uins] = oreg
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = DATA_PTR(#{src});
@@ -1644,11 +1649,14 @@ EOS
       slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       if slf.is_escape?(tup) then
         val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
+        ccgen.pcode << "{"
+        ccgen.pcode << "#{ivt} val = #{val};\n"
     # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
+        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
         if valr.type[tup].any? {|t| t.is_gcobject?} then
-          ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), #{val});\n"
+          ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
         end
+        ccgen.pcode << "}\n"
       else
         val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "#{slfsrc}->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
