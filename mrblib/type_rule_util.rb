@@ -456,14 +456,12 @@ module MTypeInf
         slf = ty.class_object
 
         if inst.para[5] == nil then
-          unlock_recreg = RiteSSA::Reg.new(nil)
-          unlock_recreg.setpoint.push inst
-          inst.para[5] = inst.inreg[0]
-          inst.para[5].refpoint.each do |ins|
-            unlock_recreg.refpoint.push ins
-          end
-          inst.inreg[0] = unlock_recreg
+          lock_recreg = RiteSSA::Reg.new(nil)
+          lock_recreg.setpoint.push inst
+          inst.para[5] = lock_recreg
+          lock_recreg.refpoint.push inst
         end
+
         inst.para[5].type.each do |tup, types|
           types.each do |type|
             inst.inreg[0].add_type type.clone, tup

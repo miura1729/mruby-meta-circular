@@ -420,6 +420,7 @@ module RiteSSA
         inst = Inst.new(0, @irep, 0, self, nil)
         inst.op = :START
         regtab[0..(@irep.nlocals)].each_with_index do |reg, i|
+          reg.refpoint.push inst
           inst.inreg.push reg
           dstreg = Reg.new(inst)
           regtab[i] = dstreg
@@ -494,8 +495,7 @@ module RiteSSA
           #  2  reg tab
           #  3  export reg
           #  4  start reg no of arg
-          #  5  locked reciver reg (i.e. original recreg)
-
+          #  5  lock self reg
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
           inst.outreg.push dstreg
@@ -662,6 +662,7 @@ module RiteSSA
           inreg.refpoint.push inst
           inst.inreg.push inreg
           slfreg = regtab[0]
+          slfreg.refpoint.push inst
           inst.inreg.push slfreg
           name = @irep.syms[getarg_bx(code)]
           inst.para.push name

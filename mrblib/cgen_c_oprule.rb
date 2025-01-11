@@ -12,9 +12,17 @@ module CodeGenC
 
     define_ccgen_rule_op :START do |ccgen, inst, node, infer, history, tup|
       argc = infer.typetupletab.rev_table[tup].size - 4;
+      ireg = inst.inreg[0]
       oreg = inst.outreg[0]
+      if !oreg.type[tup] then
+        tup = oreg.type.keys[0]
+      end
+      oreg.type[tup].each do |type|
+        type.threads = []
+      end
+      src, srct = reg_real_value(ccgen, ireg, oreg, node, tup, infer, history)
       ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
-      ccgen.pcode << "v#{oreg.id} = self;\n"
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
       if argc >= 1 then
         inst.outreg[1..argc].each_with_index do |oreg, i|
           if oreg.type[tup] then

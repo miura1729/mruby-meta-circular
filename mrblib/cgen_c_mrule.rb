@@ -662,14 +662,16 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :push, Array do |ccgen, inst, node, infer, history, tup|
-      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
-      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
+      loreg = inst.para[5]
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, inst.inreg[0])
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, nreg)
-      ccgen.pcode <<  "mrb_ary_push(mrb, #{src}, #{val});\n"
+      val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, inst.inreg[1])
+      ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
+      ccgen.pcode <<  "mrb_ary_push(mrb, v#{loreg.id}, #{val});\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
@@ -678,12 +680,12 @@ module CodeGenC
     alias_ccgen_rule_method :append, :push, Array
 
     define_ccgen_rule_method :pop, Array do |ccgen, inst, node, infer, history, tup|
-      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, inst.inreg[0])
       nreg = inst.outreg[0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode <<  "v#{nreg.id} = mrb_ary_pop(mrb, #{src});\n"
+      ccgen.pcode <<  "v#{nreg.id} = mrb_ary_pop(mrb, #{srclo});\n"
       nil
     end
 

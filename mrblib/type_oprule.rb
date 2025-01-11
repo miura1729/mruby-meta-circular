@@ -14,7 +14,7 @@ module MTypeInf
       inst.inreg.each_with_index do |dmy, idx|
         inst.inreg[idx].type.each do |tp, types|
           types.each do |type|
-            inst.outreg[idx].add_type type, tp
+            inst.outreg[idx].add_type type.clone, tp
           end
         end
       end

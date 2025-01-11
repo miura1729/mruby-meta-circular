@@ -93,7 +93,6 @@ struct gctab {
 
 struct mutex_wrapper {
   pthread_mutex_t mp;
-  mrb_value *object;
 };
 
 void mrb_mutex_free(mrb_state *mrb, void *data)
@@ -184,7 +183,7 @@ EOS
       elsif reg.is_a?(RiteSSA::Reg) then
         ginst = reg.genpoint
         if ginst.is_a?(RiteSSA::Inst) then
-          if ginst.op == :ENTER then
+          if ginst.op == :ENTER or ginst.op == :START then
             ginst.outreg.index(reg) + 1
           else
             ((ginst.code) >> 23) & 0x1ff
@@ -656,7 +655,7 @@ EOS
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
           if (oreg = @unlock_instruction[ins]) then
-            @pcode << "Unlock v#{oreg.id}\n"
+            @pcode << "pthread_mutex_unlock((DATA_PTR(v#{oreg.id}))->mp);\n"
             @unlock_instruction.delete(ins)
           end
 #        rescue NoMethodError => e

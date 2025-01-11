@@ -164,7 +164,7 @@ module CodeGenC
 
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
-      op_send_lock(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
       set_closure_env(ccgen, inst, node, infer, history, tup)
     end
 
@@ -1520,12 +1520,15 @@ EOS
             when :mrb_value_mutex
               gen_gc_table2(ccgen, node, oreg)
               uins = oreg.refpoint[-1]
+              if uins.op == :NOP then
+                uins = oreg.refpoint[-2]
+              end
               ccgen.unlock_instruction[uins] = oreg
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = DATA_PTR(#{src});
   pthread_mutex_lock(mutex->mp);
-  mutex->object
+  mrb_iv_get(mrb, #{src}, mrb_intern_cstr(mrb, "@object"));
 })
 EOS
             else
@@ -1607,9 +1610,9 @@ EOS
           gen_gc_table2(ccgen, node, oreg)
           <<"EOS"
 ( struct mutex_wrapper *mutex = malloc(szeof(pthread_mutex_t));
+  mrb_value  mutexobj = mrb_data_object_alloc(mrb, mrb->object_class, mutex, mutex_data_header);
   pthread_mutex_init(&utex->mp, NULL);
-  mutex.object = #{src};
-  mrb_data_object_alloc(mrb, mrb->object_class, mutex, mutex_data_header);
+  mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), #{src}))
 })
 EOS
 
