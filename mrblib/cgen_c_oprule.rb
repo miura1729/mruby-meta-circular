@@ -692,7 +692,7 @@ module CodeGenC
       strlit = unescape_string(inst.para[0])
       oreg = inst.outreg[0]
       if oreg.is_escape?(tup) then
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)}\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0) {|code| ccgen.pcode << code}
         ccgen.pcode << "mrb->ud = (void *)gctab;\n"
         ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});\n"

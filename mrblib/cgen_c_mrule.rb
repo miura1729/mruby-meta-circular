@@ -668,6 +668,8 @@ module CodeGenC
       srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, inst.inreg[0])
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
+      ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
+      ccgen.dcode << ";\n"
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, inst.inreg[1])
       ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
@@ -680,12 +682,16 @@ module CodeGenC
     alias_ccgen_rule_method :append, :push, Array
 
     define_ccgen_rule_method :pop, Array do |ccgen, inst, node, infer, history, tup|
-      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, inst.inreg[0])
+      slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      slflo = gen_type_conversion(ccgen, :mrb_value, slft, slf, tup, node, infer, history, inst.inreg[0])
+      src = "mrb_ary_pop(mrb, #{slflo})"
       nreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
+
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode <<  "v#{nreg.id} = mrb_ary_pop(mrb, #{srclo});\n"
+      ccgen.pcode <<  "v#{nreg.id} = #{src};\n"
       nil
     end
 
@@ -1286,7 +1292,7 @@ module CodeGenC
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
           ccgen.pcode << "mrb->ud = (void *)gctab;\n"
-          src = "rb_ary_new_capa(mrb, #{clsssa.iv.size})"
+          src = "mrb_ary_new_capa(mrb, #{clsssa.iv.size})"
           regt = get_ctype(ccgen, oreg, tup, infer)
           src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
           ccgen.pcode << "v#{oreg.id} = #{src};\n"

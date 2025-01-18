@@ -25,16 +25,18 @@ def foo
   c = Chan.new
   b = []
   c.a.push 1
+  c.a.push 2
   c.b.push "ab"
-  MMC_EXT::Thread.new(c, 1) {|chan, i|
+  th = MMC_EXT::Thread.new(c, 1) {|chan, i|
     :foo
     a = chan.a.pop
     bar(chan)
     chan.foo
-    a
+    p a
   }
   c.foo
   c.b.pop
+  th
 end
 
 MTypeInf::inference_main {

@@ -1518,7 +1518,7 @@ EOS
               "conv_to_rvalue(#{src})"
 
             when :mrb_value_mutex
-              gen_gc_table2(ccgen, node, oreg)
+              # gen_gc_table2(ccgen, node, oreg)
               uins = oreg.refpoint[-1]
               if uins.op == :NOP then
                 uins = oreg.refpoint[-2]
@@ -1526,8 +1526,8 @@ EOS
               ccgen.unlock_instruction[uins] = oreg
               <<"EOS"
 ({
-  struct mutex_wrapper *mutex = DATA_PTR(#{src});
-  pthread_mutex_lock(mutex->mp);
+  struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
+  pthread_mutex_lock(&mutex->mp);
   mrb_iv_get(mrb, #{src}, mrb_intern_cstr(mrb, "@object"));
 })
 EOS
@@ -1609,10 +1609,11 @@ EOS
         when :mrb_value_mutex
           gen_gc_table2(ccgen, node, oreg)
           <<"EOS"
-( struct mutex_wrapper *mutex = malloc(szeof(pthread_mutex_t));
-  mrb_value  mutexobj = mrb_data_object_alloc(mrb, mrb->object_class, mutex, mutex_data_header);
-  pthread_mutex_init(&utex->mp, NULL);
-  mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), #{src}))
+({ struct mutex_wrapper *mutex = malloc(sizeof(struct mutex_wrapper));
+  mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, pthread_class, mutex, &mutex_data_header));
+  pthread_mutex_init(&mutex->mp, NULL);
+  mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), #{src});
+  mutexobj;
 })
 EOS
 
@@ -1653,7 +1654,8 @@ EOS
       if slf.is_escape?(tup) then
         val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "{"
-        ccgen.pcode << "#{ivt} val = #{val};\n"
+        ccgen.pcode << "#{ivt} val;\n"
+        ccgen.pcode << "val = #{val};\n"
     # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
         if valr.type[tup].any? {|t| t.is_gcobject?} then

@@ -56,10 +56,12 @@ module CodeGenC
 #include <mruby/variable.h>
 #include <mruby/throw.h>
 #include <mruby/data.h>
+#include <mruby/class.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <pthread.h>
 #undef mrb_int
 typedef mrb_float mrb_float2;
 
@@ -91,6 +93,7 @@ struct gctab {
   mrb_value *single[0];
 };
 
+typedef mrb_value mrb_value_mutex;
 struct mutex_wrapper {
   pthread_mutex_t mp;
 };
@@ -131,6 +134,8 @@ void mrb_mark_local(mrb_state *mrb)
     curtab = curtab->prev;
   }
 }
+
+struct RClass *pthread_class;
 EOS
     end
 
@@ -383,6 +388,9 @@ int main(int argc, char **argv)
   gctab->csize = 0;
   gctab->osize = 0;
   gctab->ret_status = 0;
+
+  pthread_class = mrb_define_class(mrb, "Pthread", mrb->object_class);
+  MRB_SET_INSTANCE_TT(pthread_class, MRB_TT_DATA);
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
@@ -655,7 +663,7 @@ EOS
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
           if (oreg = @unlock_instruction[ins]) then
-            @pcode << "pthread_mutex_unlock((DATA_PTR(v#{oreg.id}))->mp);\n"
+            @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(DATA_PTR(v#{oreg.id})))->mp);\n"
             @unlock_instruction.delete(ins)
           end
 #        rescue NoMethodError => e

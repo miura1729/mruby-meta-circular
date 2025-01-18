@@ -747,7 +747,7 @@ module MTypeInf
         if type then
           inst.outreg[0].add_type type, tup
         else
-          inst.outreg[0].add_type dmyreg.get_type(tup)[0], tup
+#          inst.outreg[0].add_type dmyreg.get_type(tup)[0], tup
         end
       end
     end
