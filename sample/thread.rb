@@ -36,6 +36,7 @@ def foo
   }
   c.foo
   p c.b.pop
+  th.join
   p "end"
   nil
 end

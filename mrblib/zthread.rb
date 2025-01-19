@@ -52,6 +52,12 @@ module MTypeInf
       infer.thread = curth
       nil
     end
+
+    define_inf_rule_method :join, MMC_EXT::Thread do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
   end
 end
 
@@ -178,6 +184,21 @@ module CodeGenC
           ccgen.pcode << "}\n"
         end
       end
+    end
+
+    define_ccgen_rule_method :join, MMC_EXT::Thread do |ccgen, inst, node, infer, history, tup|
+      slfreg = inst.inreg[0]
+      oreg = inst.outreg[0]
+      val = reg_real_value(ccgen, slfreg, oreg, node, tup,
+                     infer, history)
+      ccgen.dcode << gen_declare(ccgen, slfreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "void *ret;\n"
+      ccgen.pcode << "pthread_join(val, &#{val}->thread);\n"
+      ccgen.pcode << "}\n"
     end
   end
 end
