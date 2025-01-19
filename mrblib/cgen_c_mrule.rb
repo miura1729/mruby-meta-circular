@@ -369,9 +369,12 @@ module CodeGenC
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->ud = (void *)gctab;\n"
       ccgen.pcode << "mrb_p(mrb, #{src2});\n"
+
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      dstt = get_ctype(ccgen, nreg, tup, infer)
+      src2 = gen_type_conversion(ccgen, dstt, :mrb_value, src2, tup, node, infer, history, nreg)
+      ccgen.pcode << "v#{nreg.id} = #{src2};\n"
 
       nil
     end

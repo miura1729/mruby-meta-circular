@@ -161,19 +161,20 @@ module CodeGenC
           ccgen.pcode << ";\n"
           ccgen.pcode << "void *apply_thproc(void *arg) {\n"
           ccgen.pcode << "struct thprocarg#{inst.outreg[0].id} *tpargv = (struct thprocarg#{inst.outreg[0].id} *)arg;\n"
-          ccgen.pcode << "return #{fname}("
+          ccgen.pcode << "#{fname}("
           ccgen.pcode << args.map {|mem, val|
             "tpargv->#{mem}"
           }.join(", ")
           ccgen.pcode << ");\n"
+          ccgen.pcode << "return NULL;\n"
           ccgen.pcode << "}\n"
 
           ccgen.dcode << CodeGen::gen_declare(ccgen, oreg, tup, infer)
           ccgen.dcode << ";\n"
 
           ccgen.pcode << "v#{oreg.id} = malloc(sizeof(*v#{oreg.id}));\n"
-          ccgen.pcode << "pthread_create(&v#{oreg.id}->thread, NULL, apply_thproc, tpargv);\n"
           ccgen.pcode << "v#{oreg.id}->argv = tpargv;\n"
+          ccgen.pcode << "pthread_create(&v#{oreg.id}->thread, NULL, apply_thproc, tpargv);\n"
           ccgen.pcode << "}\n"
         end
       end

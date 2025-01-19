@@ -35,8 +35,9 @@ def foo
     p a
   }
   c.foo
-  c.b.pop
-  th
+  p c.b.pop
+  p "end"
+  nil
 end
 
 MTypeInf::inference_main {
