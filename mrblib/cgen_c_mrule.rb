@@ -214,7 +214,7 @@ module CodeGenC
 
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
-      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       src = "mrb_hash_get(mrb, #{hashsrc}, #{keysrc})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
@@ -239,7 +239,7 @@ module CodeGenC
       valsrc = gen_type_conversion(ccgen, :mrb_value, srct, valsrc, tup, node, infer, history, nil)
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
-      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
       ccgen.pcode << "#{src};\n"
@@ -341,7 +341,7 @@ module CodeGenC
       ccgen.pcode << "tmpstr[0] = #{src};\n"
       ccgen.pcode << "tmpstr[1] = '\\0';\n"
       gen_gc_table(ccgen, inst, node, infer, history, tup)
-      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       if oreg.is_escape?(tup) then
         ccgen.pcode << "v#{oreg.id} = mrb_str_new_cstr(mrb, tmpstr);\n"
       else
@@ -367,7 +367,7 @@ module CodeGenC
       src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg)
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
-      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       ccgen.pcode << "mrb_p(mrb, #{src2});\n"
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
@@ -622,7 +622,7 @@ module CodeGenC
       if inst.inreg[0].is_escape?(tup) then
         val2 = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, nreg)
         gen_gc_table(ccgen, inst, node, infer, history, tup)
-        ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+        ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
         ccgen.pcode << "mrb_ary_set(mrb, #{slf}, #{idx}, #{val2});\n"
       else
         srct = get_ctype(ccgen, elereg, tup, infer)
@@ -755,7 +755,7 @@ module CodeGenC
 
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           regt = get_ctype(ccgen, oreg, tup, infer)
           src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
           src = "mrb_ary_new_capa(mrb, #{initsize})"
@@ -1036,11 +1036,11 @@ module CodeGenC
 
       if val0t == :mrb_value then
         if val1t == :mrb_value then
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       else
@@ -1052,11 +1052,11 @@ module CodeGenC
           p1var = "v#{ireg1.id}"
           ccgen.dcode << "mrb_value #{p1var};\n"
           ccgen.pcode << "#{p1var} = #{val1};\n"
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{p0var}, #{p1var});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
       end
@@ -1229,7 +1229,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
       gen_gc_table(ccgen, inst, node, infer, history, tup)
-      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       ccgen.pcode << "v#{oreg.id} = mrb_fixnum_value(mrb_str_index(mrb, #{str}, #{para},strlen(#{para}), 0));\n"
     end
 
@@ -1294,7 +1294,7 @@ module CodeGenC
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           src = "mrb_ary_new_capa(mrb, #{clsssa.iv.size})"
           regt = get_ctype(ccgen, oreg, tup, infer)
           src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)

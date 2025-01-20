@@ -694,7 +694,7 @@ module CodeGenC
       if oreg.is_escape?(tup) then
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0) {|code| ccgen.pcode << code}
-        ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+        ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
         ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});\n"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
@@ -715,11 +715,11 @@ module CodeGenC
       val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
       if val0t == :mrb_value then
         if val1t == :mrb_value then
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
       else
@@ -733,11 +733,11 @@ module CodeGenC
             ccgen.dcode << "mrb_value #{p1var};\n"
             ccgen.pcode << "#{p1var} = #{val1};\n"
           end
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{p0var}, #{p1var});\n"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
-          ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+          ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
       end

@@ -109,7 +109,7 @@ mrb_data_type mutex_data_header = {"Mutex Data", mrb_mutex_free};
 
 void mrb_mark_local(mrb_state *mrb)
 {
-  struct gctab *curtab = (struct gctab *)mrb->ud;
+  struct gctab *curtab = (struct gctab *)mrb->allocf_ud;
   while (curtab) {
     for (int i = curtab->size; i--;) {
       if (!mrb_immediate_p(*curtab->single[i])) {

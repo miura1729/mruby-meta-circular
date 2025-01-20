@@ -103,7 +103,7 @@ module CodeGenC
         ccgen.pcode << "gctab->size = 0;\n"
         ccgen.gcsingle_size = 1 # for making gctab
       end
-      ccgen.pcode << "mrb->ud = (void *)gctab;\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       if oreg and
           ccgen.is_live_reg?(node, oreg) then
         name = "v#{oreg.id}"
