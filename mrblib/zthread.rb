@@ -197,7 +197,7 @@ module CodeGenC
       ccgen.dcode << ";\n"
       ccgen.pcode << "{\n"
       ccgen.pcode << "void *ret;\n"
-      ccgen.pcode << "pthread_join(val, &#{val}->thread);\n"
+      ccgen.pcode << "pthread_join(#{val}, &#{val}->thread);\n"
       ccgen.pcode << "}\n"
     end
   end
