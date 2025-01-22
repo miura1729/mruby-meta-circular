@@ -32,12 +32,19 @@ module CodeGenC
           end
         end
       end
-      oreg = inst.outreg[argc + 1]
-      if oreg.type[tup] and oreg.type[tup][0].class_object != NilClass then
+
+      if argc >= 0 then
+        oreg = inst.outreg[argc + 1]
         ireg = inst.inreg[argc + 1]
-        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
-        ccgen.pcode << "v#{oreg.id} = v#{ireg.id};\n"
+        if ireg and
+            ireg.type[tup] and
+            ireg.type[tup][0].class_object != NilClass then
+
+          ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+          ccgen.pcode << "v#{oreg.id} = v#{ireg.id};\n"
+        end
       end
+      ccgen.pcode << "/* START END */\n"
       nil
     end
 
@@ -839,9 +846,9 @@ module CodeGenC
       otype = get_ctype(ccgen, inst.outreg[0], tup, infer)
 
       ccgen.pcode << "#{otype} #{fname}(){\n"
-      ccgen.pcode << gen_declare_core(ccgen, inst.inreg[0], tup, infer, false, "self")
+      ccgen.pcode << gen_declare_core(ccgen, inst.inreg[0], tup, infer, false,
+"self")
       ccgen.pcode << ";\n"
-
       ccgen.code_gen_node(irepssa.nodes[0], infer, nil, history, ntup)
 
       ccgen.pcode << "}\n"

@@ -265,12 +265,21 @@ module MTypeInf
     end
 
     def update_effects(thread, tblk)
+      update_effects_aux(thread, tblk, {})
+    end
+
+    def update_effects_aux(thread, tblk, history)
       if tblk.thread_top and thread.proc.irep != tblk then
         return
       end
 
+      if history[tblk] then
+        return
+      end
+
       tblk.call_blocks.each do |prc, dmy|
-        update_effects(thread, prc)
+        history[prc] = true
+        update_effects_aux(thread, prc, history)
       end
 
       tblk.effects.each do |event, value|

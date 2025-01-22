@@ -298,7 +298,10 @@ module CodeGenC
         if rectypes.all? {|ty| ty.class_object == ty0.class_object} then
           rectypes = [ty0]
         end
-        if rectypes.size == 1 then
+        if rectypes.size == 1 or
+            rectypes.all? {|ty|
+            ty.class_object == TrueClass or ty.class_object == FalseClass
+          } then
           # Not polymorphism
           rectype = ty0
           fname, utup, proc = op_send_selmet(ccgen, inst, node, infer, history, tup, name, rectype, intype)
@@ -310,11 +313,11 @@ module CodeGenC
           base = 0
           rectype = ty0
           condval = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)[0]
-          condsrc, nice = gen_type_checker(ccgen, condval, rectype)
+          condsrc, nice = gen_type_checker(ccgen, condval, rectype, tup)
           if !nice then
             base = 1
             rectype = rectypes[1]
-            condsrc, nice = gen_type_checker(ccgen, condval, rectype)
+            condsrc, nice = gen_type_checker(ccgen, condval, rectype, tup)
           end
           ccgen.pcode << "if (#{condsrc}) {\n"
 
@@ -665,7 +668,7 @@ module CodeGenC
             src = "(#{arg0} #{op} #{arg1})"
           end
         else
-          op_send_lock(ccgen, gins, gins.inreg, gins.outreg, node, ti, history, tup, :==)
+          op_send_aux(ccgen, gins, gins.inreg, gins.outreg, node, ti, history, tup, :==)
           needdecl = false
           src = "v#{gins.outreg[0].id}"
         end
@@ -1324,33 +1327,35 @@ EOS
       nil
     end
 
-    def self.gen_type_checker(ccgen, srcval, tgtype)
+    def self.gen_type_checker(ccgen, srcval, tgtype, tup)
       tgcls = tgtype.class_object
 
-      case tgcls.to_s.to_sym
-      when :NilClass
-        ["mrb_nil_p(#{srcval})", false]
+      if tgtype.is_escape?(tup) then
+        case tgcls.to_s.to_sym
+        when :NilClass
+          ["mrb_nil_p(#{srcval})", false]
 
-      when :Fixnum
-        ["mrb_fixnum_p(#{srcval})", true]
+        when :Fixnum
+          ["mrb_fixnum_p(#{srcval})", true]
 
-      when :Float
-        ["mrb_float_p(#{srcval})", true]
+        when :Float
+          ["mrb_float_p(#{srcval})", true]
 
-      when :String
-        ["mrb_string_p(#{srcval})", true]
+        when :String
+          ["mrb_string_p(#{srcval})", true]
 
-      when :Symbol
-        ["mrb_symbol_p(#{srcval})", true]
+        when :Symbol
+          ["mrb_symbol_p(#{srcval})", true]
 
-      when :Array
-        ["mrb_array_p(#{srcval})", true]
+        when :Array
+          ["mrb_array_p(#{srcval})", true]
 
-      when :Hash
-        ["mrb_hash_p(#{srcval})", true]
+        when :Hash
+          ["mrb_hash_p(#{srcval})", true]
 
-      else
-        ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))", true]
+        else
+          ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))", true]
+        end
       end
     end
 
@@ -1482,7 +1487,7 @@ EOS
               end
 
             when :mrb_int
-              "(mrb_ary_new_from_values(mrb, #{srct[2]}, mrb_fixnum_value(#{src})))"
+              "(mrb_ary_new_from_values(mrb, #{srct[2]}, &mrb_fixnum_value(#{src})))"
 
             else
               raise "Not support yet #{dstt} #{srct}"
