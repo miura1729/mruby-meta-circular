@@ -608,9 +608,14 @@ module MTypeInf
     end
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|
-      inst.inreg[0].get_type(tup) do |type|
-        inst.outreg[0].add_type type, tup
+      dmyreg = RiteSSA::Reg.new(inst)
+      types = inst.inreg[0].get_type(tup)
+      if types then
+        types.each do |ty|
+          dmyreg.add_type ty, tup
+        end
       end
+      inst.outreg[0].add_same(dmyreg)
       otup = nil
       if inst.para[0] == 2 then
         frame = inst.para[1]
@@ -769,19 +774,21 @@ module MTypeInf
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = LiteralType.new(Fixnum, inst.para[1])
 
-      arg0cls = arg0type[0].class_object
-      if !(arg0cls == Fixnum or arg0cls == Float) then
-        @@ruletab[:METHOD][:+][arg0cls].call(infer, inst, node, tup)
+      if arg0type then
+        arg0cls = arg0type[0].class_object
+        if !(arg0cls == Fixnum or arg0cls == Float) then
+          @@ruletab[:METHOD][:+][arg0cls].call(infer, inst, node, tup)
 
-      else
-        if arg0type then
-          arg0type.each do |ty|
-            if ty.is_a?(LiteralType) then
-              postive = ty.val >= 0 && inst.para[1] >= 0
-              ty = NumericType.new(ty.class_object, postive)
+        else
+          if arg0type then
+            arg0type.each do |ty|
+              if ty.is_a?(LiteralType) then
+                postive = ty.val >= 0 && inst.para[1] >= 0
+                ty = NumericType.new(ty.class_object, postive)
+              end
+              #ty = PrimitiveType.new(ty.class_object)
+              inst.outreg[0].add_type ty, tup
             end
-            #ty = PrimitiveType.new(ty.class_object)
-            inst.outreg[0].add_type ty, tup
           end
         end
       end
@@ -791,24 +798,27 @@ module MTypeInf
     define_inf_rule_op :SUBI do |infer, inst, node, tup, history|
       arg0type = inst.inreg[0].flush_type(tup)[tup]
       arg1type = LiteralType.new(Fixnum, inst.para[1])
-      arg0cls = arg0type[0].class_object
 
-      if !(arg0cls == Fixnum or arg0cls == Float) then
-        if @@ruletab[:METHOD][:-] then
-          @@ruletab[:METHOD][:-][arg0cls].call(infer, inst, node, tup)
+      if arg0type then
+        arg0cls = arg0type[0].class_object
+
+        if !(arg0cls == Fixnum or arg0cls == Float) then
+          if @@ruletab[:METHOD][:-] then
+            @@ruletab[:METHOD][:-][arg0cls].call(infer, inst, node, tup)
+          else
+            @@ruletab[:METHOD][:method_missing][arg0cls].call(infer, inst, node, tup)
+          end
+
         else
-          @@ruletab[:METHOD][:method_missing][arg0cls].call(infer, inst, node, tup)
-        end
-
-      else
-        if arg0type then
-          arg0type.each do |ty|
-            if ty.is_a?(LiteralType) and ty.val >= inst.para[1] then
-              ty = NumericType.new(ty.class_object, true)
-            else
-              ty = NumericType.new(ty.class_object, false)
+          if arg0type then
+            arg0type.each do |ty|
+              if ty.is_a?(LiteralType) and ty.val >= inst.para[1] then
+                ty = NumericType.new(ty.class_object, true)
+              else
+                ty = NumericType.new(ty.class_object, false)
+              end
+              inst.outreg[0].add_type ty, tup
             end
-            inst.outreg[0].add_type ty, tup
           end
         end
       end

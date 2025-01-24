@@ -145,56 +145,58 @@ module MTypeInf
       inst.inreg[1].flush_type(tup)
       arrtypes = inst.inreg[0].get_type(tup)
       idxtypes = inst.inreg[1].get_type(tup)
-      nilobj = PrimitiveType.new(NilClass)
+      if arrtypes and idxtypes then
+        nilobj = PrimitiveType.new(NilClass)
 
-      arrtypes.each do |arrt|
-        if arrt.class_object. == Array then
-          arrele = arrt.element
-          altele = arrele[ContainerType::UNDEF_VALUE]
-          if idxtypes.size == 1 then
-            idxtype = idxtypes[0]
-            if idxtype.class_object == Fixnum then
-              case idxtype
-              when MTypeInf::LiteralType
-                no = idxtype.val
-                if arrele[no].nil? then
-                  arrt.immidiate_only = false
-                  if no != 0 then
-                    inst.outreg[0].add_type nilobj, tup
-                    altele.add_type nilobj, tup
+        arrtypes.each do |arrt|
+          if arrt.class_object. == Array then
+            arrele = arrt.element
+            altele = arrele[ContainerType::UNDEF_VALUE]
+            if idxtypes.size == 1 then
+              idxtype = idxtypes[0]
+              if idxtype.class_object == Fixnum then
+                case idxtype
+                when MTypeInf::LiteralType
+                  no = idxtype.val
+                  if arrele[no].nil? then
+                    arrt.immidiate_only = false
+                    if no != 0 then
+                      inst.outreg[0].add_type nilobj, tup
+                      altele.add_type nilobj, tup
+                    end
+                    inst.outreg[0].add_same altele
+                    altele.flush_type_alltup(tup)
+                  else
+                    arrele[no].flush_type_alltup(tup)
+                    inst.outreg[0].add_same arrele[no]
                   end
-                  inst.outreg[0].add_same altele
-                  altele.flush_type_alltup(tup)
-                else
-                  arrele[no].flush_type_alltup(tup)
-                  inst.outreg[0].add_same arrele[no]
-                end
-                inst.outreg[0].flush_type_alltup(tup, false)
+                  inst.outreg[0].flush_type_alltup(tup, false)
 
-              when MTypeInf::PrimitiveType
-                if inst.outreg[0].use_value then
-                  arrele.each do |idx, typ|
-                    typ.flush_type(tup)
-                    inst.outreg[0].add_same typ
+                when MTypeInf::PrimitiveType
+                  if inst.outreg[0].use_value then
+                    arrele.each do |idx, typ|
+                      typ.flush_type(tup)
+                      inst.outreg[0].add_same typ
+                    end
+                  else
+                    inst.outreg[0].add_same altele
+                    altele.flush_type_alltup(tup)
                   end
-                else
-                  inst.outreg[0].add_same altele
-                  altele.flush_type_alltup(tup)
-                end
-                inst.outreg[0].flush_type_alltup(tup, false)
+                  inst.outreg[0].flush_type_alltup(tup, false)
 
-              else
-                raise "Not supported in Array::[]"
+                else
+                  raise "Not supported in Array::[]"
+                end
+
+              elsif idxtype.class_object == Range then
+                inst.outreg[0].add_same inst.inreg[0]
               end
-
-            elsif idxtype.class_object == Range then
-              inst.outreg[0].add_same inst.inreg[0]
             end
           end
         end
-      end
 
-      inst.outreg[0].flush_type(tup)
+        inst.outreg[0].flush_type(tup)
+      end
       nil
     end
 

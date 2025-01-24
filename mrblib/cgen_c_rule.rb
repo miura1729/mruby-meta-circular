@@ -516,6 +516,9 @@ module CodeGenC
     end
 
     def self.gen_term_top(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
+      if reg0.type[tup].nil? then
+        tup = reg0.type.keys[0]
+      end
       src, srct, needdecl = gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
       if needdecl then
         outr = gins.outreg[0]
@@ -1662,7 +1665,8 @@ EOS
         ccgen.pcode << "#{ivt} val;\n"
         ccgen.pcode << "val = #{val};\n"
     # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
+        val = gen_type_conversion(ccgen, :mrb_value, valt, "val", tup, node, infer, history, dst)
+        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
         if valr.type[tup].any? {|t| t.is_gcobject?} then
           ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
         end

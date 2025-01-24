@@ -1,4 +1,7 @@
 module MTypeInf
+  class GlobalExit<Exception
+  end
+
   class TypeInferencer
     @@ruby_methodtab ||= {}
 
@@ -29,6 +32,9 @@ module MTypeInf
         when :[]
           rectype = inst.inreg[0].get_type(tup)
           idxtype = inst.inreg[1].get_type(tup)
+          unless rectype and idxtype
+#            raise GlobalExit.new
+          end
           if rectype and rectype.size == 1 then
             if rectype[0].class_object == Array or rectype[0].class_object == Hash then
               if idxtype.size == 1 and
@@ -74,299 +80,308 @@ module MTypeInf
     end
 
     def self.rule_jmpif_common(infer, inst, node, tup, history, bidx)
-      notp = false
-      typemethodp = false
+      begin
+        notp = false
+        typemethodp = false
 
-      genp = inst.inreg[0].genpoint
-      if genp.is_a?(Fixnum) then
-        genp = history[nil][-1].exit_reg[genp].genpoint
-      end
-
-      if genp.is_a?(RiteSSA::Inst) then
-        while genp.op == :SEND and genp.para[0] == :!
-          notp = !notp
-          genp = genp.inreg[0].genpoint
+        genp = inst.inreg[0].genpoint
+        if genp.is_a?(Fixnum) then
+          genp = history[nil][-1].exit_reg[genp].genpoint
         end
 
-        case(genp.op)
-        when :SEND
-          addtional_type_spec = nil
-          atype_spec_pos = nil
-          atype_spec_neg = nil
-          case genp.para[0]
-          when :kind_of?, :is_a?
-            typemethodp = true
-            atype_reg = get_original_reg(infer, genp, tup)
-            tcls = genp.inreg[1].flush_type(tup)[tup]
-            cls = nil
-            if tcls.size == 1 and tcls[0].val.class == Class then
-              cls = tcls[0].val
-            end
-            type = PrimitiveType.new(cls)
-
-            addtional_type_spec = [type]
-            atype_spec_pos = addtional_type_spec
-            atype_spec_neg = addtional_type_spec
-            genp = genp.inreg[0].genpoint
-
-          when :nil?
-            typemethodp = true
-            atype_reg = get_original_reg(infer, genp, tup)
-            type = PrimitiveType.new(NilClass)
-
-            addtional_type_spec = [type]
-            atype_spec_pos = addtional_type_spec
-            atype_spec_neg = addtional_type_spec
-            genp = genp.inreg[0].genpoint
-
-          else
-            typemethodp = true
-            atype_reg = get_original_reg(infer, genp, tup)
+        if genp.is_a?(RiteSSA::Inst) then
+          while genp.op == :SEND and genp.para[0] == :!
             notp = !notp
-            type0 = PrimitiveType.new(NilClass)
-            type1 = PrimitiveType.new(FalseClass)
-
-            addtional_type_spec = [type0, type1]
-            atype_spec_pos = addtional_type_spec
-            atype_spec_neg = addtional_type_spec
+            genp = genp.inreg[0].genpoint
           end
 
-        when :EQ
-          type = genp.inreg[0].get_type(tup)[0]
-          if type.is_a?(MTypeInf::LiteralType) then
-            genp = genp.inreg[1].genpoint
-            typemethodp = true
-            pt = PrimitiveType.new(type.class_object)
-            if type.class_object == NilClass then
-              addtional_type_spec = [pt]
-              atype_spec_neg = addtional_type_spec
-              atype_spec_pos = addtional_type_spec
-            else
-              atype_spec_pos = [pt]
-              atype_spec_neg = [type]
-            end
-          end
-
-          if genp.inreg[1] then
-            type = genp.inreg[1].get_type(tup)[0]
-            if type.is_a?(MTypeInf::LiteralType) then
+          case(genp.op)
+          when :SEND
+            addtional_type_spec = nil
+            atype_spec_pos = nil
+            atype_spec_neg = nil
+            case genp.para[0]
+            when :kind_of?, :is_a?
+              typemethodp = true
               genp = genp.inreg[0].genpoint
+              atype_reg = get_original_reg(infer, genp, tup)
+              tcls = genp.inreg[1].flush_type(tup)[tup]
+              cls = nil
+              if tcls.size == 1 and tcls[0].val.class == Class then
+                cls = tcls[0].val
+              end
+              type = PrimitiveType.new(cls)
+
+              addtional_type_spec = [type]
+              atype_spec_pos = addtional_type_spec
+              atype_spec_neg = addtional_type_spec
+              #            genp = genp.inreg[0].genpoint
+
+            when :nil?
+              typemethodp = true
+              genp = genp.inreg[0].genpoint
+              atype_reg = get_original_reg(infer, genp, tup)
+              type = PrimitiveType.new(NilClass)
+
+              addtional_type_spec = [type]
+              atype_spec_pos = addtional_type_spec
+              atype_spec_neg = addtional_type_spec
+              #            genp = genp.inreg[0].genpoint
+
+            else
+              typemethodp = true
+              genp = genp.inreg[0].genpoint
+              atype_reg = get_original_reg(infer, genp, tup)
+              notp = !notp
+              type0 = PrimitiveType.new(NilClass)
+              type1 = PrimitiveType.new(FalseClass)
+
+              addtional_type_spec = [type0, type1]
+              atype_spec_pos = addtional_type_spec
+              atype_spec_neg = addtional_type_spec
+            end
+
+          when :EQ
+            type = genp.inreg[0].get_type(tup)[0]
+            if type.is_a?(MTypeInf::LiteralType) then
+              genp = genp.inreg[1].genpoint
               typemethodp = true
               pt = PrimitiveType.new(type.class_object)
               if type.class_object == NilClass then
                 addtional_type_spec = [pt]
-                atype_spec_pos = addtional_type_spec
                 atype_spec_neg = addtional_type_spec
+                atype_spec_pos = addtional_type_spec
               else
                 atype_spec_pos = [pt]
                 atype_spec_neg = [type]
               end
             end
-          end
-          atype_reg = get_original_reg(infer, genp, tup)
 
-        when :GE
-          type0 = genp.inreg[0].get_type(tup)[0]
-          type1 = genp.inreg[1].get_type(tup)[0]
-
-          if type1.is_a?(MTypeInf::LiteralType) and
-              type1.val >= 0 then
-            typemethodp = true
-            type = NumericType.new(type0.class_object, true)
-            atype_spec_pos = [type]
-            atype_spec_neg = []
-            atype_reg = genp.inreg[0].genpoint.inreg[0]
-          end
-
-        when :LT
-          type0 = genp.inreg[0].get_type(tup)[0]
-          type1 = genp.inreg[1].get_type(tup)[0]
-          genp1 = genp.inreg[1].genpoint
-
-          if type0.is_a?(MTypeInf::LiteralType) and
-              type0.val >= 0 then
-            typemethodp = true
-            type = NumericType.new(type1.class_object, true)
-
-            atype_spec_pos = [type]
-            atype_spec_neg = []
-            atype_reg = genp.inreg[1].genpoint.inreg[0]
-
-          elsif genp1.is_a?(RiteSSA::Inst) and
-              genp1.op == :SEND and
-              (genp1.para[0] == :size or genp1.para[0] == :length) and
-              (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
-            typemethodp = true
-            type = IndexOfArrayType.new(type0.class_object, atype, true)
-            atype_spec_pos = [type]
-            atype_spec_neg = []
-            atype_reg = genp.inreg[0].genpoint.inreg[0]
-          end
-
-        when :ENTER
-          typemethodp = true
-          type0 = PrimitiveType.new(NilClass)
-          type1 = PrimitiveType.new(false.class)
-
-          addtional_type_spec = [type0, type1]
-          atype_spec_pos = addtional_type_spec
-          atype_spec_neg = addtional_type_spec
-          notp = !notp
-          atype_reg = get_original_reg(infer, genp, tup)
-
-        else
-          typemethodp = true
-          type0 = PrimitiveType.new(NilClass)
-          type1 = PrimitiveType.new(false.class)
-
-          addtional_type_spec = [type0, type1]
-          atype_spec_pos = addtional_type_spec
-          atype_spec_neg = addtional_type_spec
-          notp = !notp
-          atype_reg = get_original_reg(infer, genp, tup)
-        end
-      end
-
-      type = inst.inreg[0].flush_type(tup)[tup]
-      atype = nil
-      if genp.is_a?(RiteSSA::Inst) and genp.op != :ENTER then
-        atype = genp.outreg[0].flush_type(tup)[tup]
-      end
-
-      if type && type.size == 1 then
-        condtype = type[0].class_object
-
-      elsif atype and addtional_type_spec and
-          atscl = addtional_type_spec.map {|e| e.class_object} and
-          (atype.all? {|e| atscl.include?(e.class_object)} or
-          atype.all? {|e| !atscl.include?(e.class_object)}) then
-        condtype = (notp ^ addtional_type_spec.include?(atype[0].class_object)).class
-      else
-        condtype = nil
-      end
-
-      #p "#{inst.filename}:#{inst.line}"
-      #p type.map {|e| e.class_object} if type
-      #p atype.map {|e| e.class_object} if atype
-      #p condtype
-      #p typemethodp
-      #p notp
-
-      idx = inst.op == :JMPIF ? 1 - bidx : bidx
-      if condtype == NilClass or condtype == FalseClass then
-        enode = get_jmp_target(node, idx, inst)
-        history[node] ||= []
-        history[nil] ||= []
-        history[nil].push node
-        if history[node].index(enode) == nil then
-          history[node].push enode
-          infer.inference_node(enode, tup, node.exit_reg, history)
-        end
-        history[nil].pop
-        return true
-      end
-
-      if type and type.size == 1 then
-        enode = get_jmp_target(node, 1 - idx, inst)
-        ninst= enode.ext_iseq[0]
-        history[node] ||= []
-        history[nil] ||= []
-        history[nil].push node
-        if history[node].index(enode) == nil then
-          history[node].push enode
-          infer.inference_node(enode, tup, node.exit_reg, history)
-        end
-        history[nil].pop
-        return true
-      end
-
-      if typemethodp then
-        idx = notp ? idx : 1 - idx
-        nd = get_jmp_target(node, idx, inst)
-
-        if atype_reg == true then
-          atype_reg = inst.inreg[0]
-        end
-        if atype_reg then
-          atype_reg.positive_list.push atype_spec_pos
-          atype_reg.refpoint.each do |ginst|
-            if ginst.outreg[0] then
-              ginst.outreg[0].positive_list.push atype_spec_pos
+            if genp.inreg[1] then
+              type = genp.inreg[1].get_type(tup)[0]
+              if type.is_a?(MTypeInf::LiteralType) then
+                genp = genp.inreg[0].genpoint
+                typemethodp = true
+                pt = PrimitiveType.new(type.class_object)
+                if type.class_object == NilClass then
+                  addtional_type_spec = [pt]
+                  atype_spec_pos = addtional_type_spec
+                  atype_spec_neg = addtional_type_spec
+                else
+                  atype_spec_pos = [pt]
+                  atype_spec_neg = [type]
+                end
+              end
             end
+            atype_reg = get_original_reg(infer, genp, tup)
+
+          when :GE
+            type0 = genp.inreg[0].get_type(tup)[0]
+            type1 = genp.inreg[1].get_type(tup)[0]
+
+            if type1.is_a?(MTypeInf::LiteralType) and
+                type1.val >= 0 then
+              typemethodp = true
+              type = NumericType.new(type0.class_object, true)
+              atype_spec_pos = [type]
+              atype_spec_neg = []
+              atype_reg = genp.inreg[0].genpoint.inreg[0]
+            end
+
+          when :LT
+            unless  genp.inreg[0].get_type(tup) and genp.inreg[1].get_type(tup)
+              return nil
+            end
+            type0 = genp.inreg[0].get_type(tup)[0]
+            type1 = genp.inreg[1].get_type(tup)[0]
+            genp1 = genp.inreg[1].genpoint
+
+            if type0.is_a?(MTypeInf::LiteralType) and
+                type0.val >= 0 then
+              typemethodp = true
+              type = NumericType.new(type1.class_object, true)
+
+              atype_spec_pos = [type]
+              atype_spec_neg = []
+              atype_reg = genp.inreg[1].genpoint.inreg[0]
+
+            elsif genp1.is_a?(RiteSSA::Inst) and
+                genp1.op == :SEND and
+                (genp1.para[0] == :size or genp1.para[0] == :length) and
+                (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
+              typemethodp = true
+              type = IndexOfArrayType.new(type0.class_object, atype, true)
+              atype_spec_pos = [type]
+              atype_spec_neg = []
+              atype_reg = genp.inreg[0].genpoint.inreg[0]
+            end
+
+          when :ENTER
+            typemethodp = true
+            type0 = PrimitiveType.new(NilClass)
+            type1 = PrimitiveType.new(false.class)
+
+            addtional_type_spec = [type0, type1]
+            atype_spec_pos = addtional_type_spec
+            atype_spec_neg = addtional_type_spec
+            notp = !notp
+            atype_reg = get_original_reg(infer, genp, tup)
+
+          else
+            typemethodp = true
+            type0 = PrimitiveType.new(NilClass)
+            type1 = PrimitiveType.new(false.class)
+
+            addtional_type_spec = [type0, type1]
+            atype_spec_pos = addtional_type_spec
+            atype_spec_neg = addtional_type_spec
+            notp = !notp
+            atype_reg = get_original_reg(infer, genp, tup)
           end
+        end
+
+        type = inst.inreg[0].flush_type(tup)[tup]
+        atype = nil
+        if genp.is_a?(RiteSSA::Inst) and genp.op != :ENTER then
+          atype = genp.outreg[0].flush_type(tup)[tup]
+        end
+
+        if type && type.size == 1 then
+          condtype = type[0].class_object
+
+        elsif atype and addtional_type_spec and
+            atscl = addtional_type_spec.map {|e| e.class_object} and
+            (atype.all? {|e| atscl.include?(e.class_object)} or
+            atype.all? {|e| !atscl.include?(e.class_object)}) then
+          condtype = (notp ^ addtional_type_spec.include?(atype[0].class_object)).class
+        else
+          condtype = nil
+        end
+
+        #p "#{inst.filename}:#{inst.line}"
+        #p type.map {|e| e.class_object} if type
+        #p atype.map {|e| e.class_object} if atype
+        #p condtype
+        #p typemethodp
+        #p notp
+
+        idx = inst.op == :JMPIF ? 1 - bidx : bidx
+        if condtype == NilClass or condtype == FalseClass then
+          enode = get_jmp_target(node, idx, inst)
           history[node] ||= []
           history[nil] ||= []
           history[nil].push node
-          rcthen = nil
-          if history[node].index(nd) == nil then
-            history[node].push nd
-            rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
+          if history[node].index(enode) == nil then
+            history[node].push enode
+            infer.inference_node(enode, tup, node.exit_reg, history)
           end
           history[nil].pop
-          atype_reg.positive_list.pop
-          atype_reg.refpoint.each do |ginst|
-            if ginst.outreg[0] then
-              ginst.outreg[0].positive_list.pop
-            end
-          end
-
-          idx = 1 - idx
-          nd = get_jmp_target(node, idx, inst)
-          atype_reg.negative_list.push atype_spec_neg
-          atype_reg.refpoint.each do |ginst|
-            if ginst.outreg[0] then
-              ginst.outreg[0].negative_list.push atype_spec_neg
-            end
-          end
-
-          history[nil].push node
-          rcelse = nil
-          if history[node].index(nd) == nil then
-            history[node].push nd
-            rcelse = infer.inference_node(nd, tup, node.exit_reg, history)
-          end
-          history[nil].pop
-
-          if rcthen == :return then
-            # then part is return from current method, so outer block of if is
-            # type limitation of else part.
-            history[nd] ||= []
-            nd.exit_link.each do |nd2|
-              history[nil].push nd2
-              if history[nd].index(nd2) == nil then
-                history[nd].push nd2
-                infer.inference_node(nd2, tup, nd.exit_reg, history)
-              end
-              history[nil].pop
-            end
-          end
-
-          atype_reg.negative_list.pop
-          atype_reg.refpoint.each do |ginst|
-            if ginst.outreg[0] then
-
-              ginst.outreg[0].negative_list.pop
-            end
-          end
           return true
         end
-      end
 
-      history[nil] ||= []
-      history[node] ||= []
-      nd = get_jmp_target(node, 0, inst)
-      history[nil].push nd
-      if history[node].index(nd) == nil then
-        history[node].push nd
-        infer.inference_node(nd, tup, node.exit_reg, history)
+        if type and type.size == 1 then
+          enode = get_jmp_target(node, 1 - idx, inst)
+          ninst= enode.ext_iseq[0]
+          history[node] ||= []
+          history[nil] ||= []
+          history[nil].push node
+          if history[node].index(enode) == nil then
+            history[node].push enode
+            infer.inference_node(enode, tup, node.exit_reg, history)
+          end
+          history[nil].pop
+          return true
+        end
+
+        if typemethodp then
+          idx = notp ? idx : 1 - idx
+          nd = get_jmp_target(node, idx, inst)
+
+          if atype_reg == true then
+            atype_reg = inst.inreg[0]
+          end
+          if atype_reg then
+            atype_reg.positive_list.push atype_spec_pos
+            atype_reg.refpoint.each do |ginst|
+              if ginst.outreg[0] then
+                ginst.outreg[0].positive_list.push atype_spec_pos
+              end
+            end
+            history[node] ||= []
+            history[nil] ||= []
+            history[nil].push node
+            rcthen = nil
+            if history[node].index(nd) == nil then
+              history[node].push nd
+              rcthen = infer.inference_node(nd, tup, node.exit_reg, history)
+            end
+            history[nil].pop
+            atype_reg.positive_list.pop
+            atype_reg.refpoint.each do |ginst|
+              if ginst.outreg[0] then
+                ginst.outreg[0].positive_list.pop
+              end
+            end
+
+            idx = 1 - idx
+            nd = get_jmp_target(node, idx, inst)
+            atype_reg.negative_list.push atype_spec_neg
+            atype_reg.refpoint.each do |ginst|
+              if ginst.outreg[0] then
+                ginst.outreg[0].negative_list.push atype_spec_neg
+              end
+            end
+
+            history[nil].push node
+            rcelse = nil
+            if history[node].index(nd) == nil then
+              history[node].push nd
+              rcelse = infer.inference_node(nd, tup, node.exit_reg, history)
+            end
+            history[nil].pop
+
+            if rcthen == :return then
+              # then part is return from current method, so outer block of if is
+              # type limitation of else part.
+              history[nd] ||= []
+              nd.exit_link.each do |nd2|
+                history[nil].push nd2
+                if history[nd].index(nd2) == nil then
+                  history[nd].push nd2
+                  infer.inference_node(nd2, tup, nd.exit_reg, history)
+                end
+                history[nil].pop
+              end
+            end
+
+            atype_reg.negative_list.pop
+            atype_reg.refpoint.each do |ginst|
+              if ginst.outreg[0] then
+                ginst.outreg[0].negative_list.pop
+              end
+            end
+            return true
+          end
+        end
+
+        history[nil] ||= []
+        history[node] ||= []
+        nd = get_jmp_target(node, 0, inst)
+        history[nil].push nd
+        if history[node].index(nd) == nil then
+          history[node].push nd
+          infer.inference_node(nd, tup, node.exit_reg, history)
+        end
+        nd = get_jmp_target(node, 1, inst)
+        history[nil][-1] = nd
+        if history[node].index(nd) == nil then
+          history[node].push nd
+          infer.inference_node(nd, tup, node.exit_reg, history)
+        end
+        history[nil].pop
+
+      rescue GlobalExit
       end
-      nd = get_jmp_target(node, 1, inst)
-      history[nil][-1] = nd
-      if history[node].index(nd) == nil then
-        history[node].push nd
-        infer.inference_node(nd, tup, node.exit_reg, history)
-      end
-      history[nil].pop
 
       true
     end
@@ -699,24 +714,26 @@ module MTypeInf
 
     def self.rule_compare_common(infer, inst, node, tup)
       arg0types = inst.inreg[0].flush_type(tup)[tup]
-      arg0type = arg0types[0]
       arg1types = inst.inreg[1].flush_type(tup)[tup]
-      arg1type = arg1types[0]
-      if arg0types.size == 1 and arg1types.size == 1 and
-          arg0type.is_a?(LiteralType) and arg1type.is_a?(LiteralType) then
-        res = yield(arg0type.val, arg1type.val)
-        if res then
-          type = LiteralType.new(TrueClass, true)
-        else
-          type = LiteralType.new(FalseClass, false)
-        end
-        inst.outreg[0].add_type(type, tup)
+      if arg0types and arg1types then
+        arg0type = arg0types[0]
+        arg1type = arg1types[0]
+        if arg0types.size == 1 and arg1types.size == 1 and
+            arg0type.is_a?(LiteralType) and arg1type.is_a?(LiteralType) then
+          res = yield(arg0type.val, arg1type.val)
+          if res then
+            type = LiteralType.new(TrueClass, true)
+          else
+            type = LiteralType.new(FalseClass, false)
+          end
+          inst.outreg[0].add_type(type, tup)
 
-      else
-        type = LiteralType.new(TrueClass, true)
-        inst.outreg[0].add_type(type, tup)
-        type = LiteralType.new(FalseClass, false)
-        inst.outreg[0].add_type(type, tup)
+        else
+          type = LiteralType.new(TrueClass, true)
+          inst.outreg[0].add_type(type, tup)
+          type = LiteralType.new(FalseClass, false)
+          inst.outreg[0].add_type(type, tup)
+        end
       end
 
       nil
