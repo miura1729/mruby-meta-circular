@@ -1615,7 +1615,7 @@ EOS
           gen_gc_table2(ccgen, node, oreg)
           <<"EOS"
 ({ struct mutex_wrapper *mutex = malloc(sizeof(struct mutex_wrapper));
-  mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, pthread_class, mutex, &mutex_data_header));
+  mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
   mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), #{src});
   mutexobj;

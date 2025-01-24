@@ -367,9 +367,11 @@ module CodeGenC
       src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg)
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
+      ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       ccgen.pcode << "mrb_p(mrb, #{src2});\n"
 
+      ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       dstt = get_ctype(ccgen, nreg, tup, infer)

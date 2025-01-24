@@ -15,7 +15,7 @@ module MTypeInf
 
     def self.get_original_reg(infer, inst, tup)
       case inst.op
-      when :MOVE, :GETUPVAR
+      when :MOVE, :GETUPVAR, :START
         return inst.inreg[0]
 
       when :GETIV

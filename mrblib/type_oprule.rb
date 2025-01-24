@@ -534,6 +534,8 @@ module MTypeInf
           inst.outreg[m1 + o + 1].flush_type(tup)
         else
           inst.outreg[m1 + o].add_same argv[m1 + o]
+          inst.outreg[m1 + o].type[tup].inspect # for mruby bug
+          inst.outreg[m1 + o].same.inspect # for mruby bug
           inst.outreg[m1 + o].flush_type(tup)
         end
 
@@ -606,7 +608,9 @@ module MTypeInf
     end
 
     define_inf_rule_op :RETURN do |infer, inst, node, tup, history|
-      inst.outreg[0].add_same(inst.inreg[0])
+      inst.inreg[0].get_type(tup) do |type|
+        inst.outreg[0].add_type type, tup
+      end
       otup = nil
       if inst.para[0] == 2 then
         frame = inst.para[1]

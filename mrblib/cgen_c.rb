@@ -135,7 +135,18 @@ void mrb_mark_local(mrb_state *mrb)
   }
 }
 
-struct RClass *pthread_class;
+struct thread_list {
+  struct pthead_t *thread;
+  struct thread_list *next;
+  struct thread_list *prev;
+};
+
+struct mmc_system {
+  struct RClass *pthread_class;
+  struct thread_list *thread_list;
+  pthread_mutex_t *io_mutex;
+  pthread_mutex_t *gc_mutex;
+};
 EOS
     end
 
@@ -383,14 +394,34 @@ int main(int argc, char **argv)
   mrb_state *mrb = mrb_open();
   struct mrb_jmpbuf c_jmp;
   struct gctab *gctab = (struct gctab *)alloca(sizeof(struct gctab));
+  struct RClass *pthread_class;
+  struct thread_list *thread_list;
+  pthread_mutex_t *io_mutex;
+  pthread_mutex_t *gc_mutex;
+  struct mmc_system *mmc_system;
   gctab->prev = NULL;
   gctab->size = 0;
   gctab->csize = 0;
   gctab->osize = 0;
   gctab->ret_status = 0;
 
+  mmc_system = malloc(sizeof(struct mmc_system));
   pthread_class = mrb_define_class(mrb, "Pthread", mrb->object_class);
-  MRB_SET_INSTANCE_TT(pthread_class, MRB_TT_DATA);
+  mmc_system->pthread_class = pthread_class;
+  thread_list = malloc(sizeof(struct thread_list));
+  thread_list->thread = pthread_self();
+  thread_list->next = NULL;
+  thread_list->prev = NULL;
+  mmc_system->thread_list = thread_list;
+  io_mutex = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(io_mutex, NULL);
+  mmc_system->io_mutex = io_mutex;
+  gc_mutex = malloc(sizeof(pthread_mutex_t));
+  pthread_mutex_init(gc_mutex, NULL);
+  mmc_system->gc_mutex = gc_mutex;
+  mrb->ud = (void *)mmc_system;
+
+  MRB_SET_INSTANCE_TT(((struct mmc_system *)mrb->ud)->pthread_class, MRB_TT_DATA);
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;

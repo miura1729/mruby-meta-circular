@@ -269,16 +269,20 @@ module MTypeInf
     end
 
     def update_effects_aux(thread, tblk, history)
+      if history[thread] == nil then
+        history[thread] = {}
+      end
+
       if tblk.thread_top and thread.proc.irep != tblk then
         return
       end
 
-      if history[tblk] then
+      if history[thread][tblk] then
         return
       end
 
+      history[thread][tblk] = true
       tblk.call_blocks.each do |prc, dmy|
-        history[prc] = true
         update_effects_aux(thread, prc, history)
       end
 
@@ -466,7 +470,7 @@ module MTypeInf
       node.ext_iseq.each do |ins|
         #p ins.line
         #p ins.filename
-        #p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
+        p "#{ins.line} #{ins.op} #{ins.para[0]}" #for debug
         begin
           rc = @@ruletab[:OP][ins.op].call(self, ins, node, tup, history)
         rescue Object => e

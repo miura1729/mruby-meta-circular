@@ -37,7 +37,7 @@ module MTypeInf
       proc[0].irep.thread_top = true
       thtype = ThreadType.new(MMC_EXT::Thread, proc[0])
       # proc[0].slf = [thtype]
-      inst.inreg[1..-1].each do |ele|
+      inst.inreg[1..-2].each do |ele|
         ele.type[tup].each do |type|
           if !type.is_a?(ThreadType) then
             type.place[:thread] = thtype
@@ -108,8 +108,13 @@ module CodeGenC
             procreg = inst.inreg[-1]
             args = []
             args << ["mrb", "mrb"]
-            args << ["cgproc",
-              "(gproc)&#{(reg_real_value_noconv(ccgen, procreg, node, tup, infer, history))[0]}"]
+            if procreg.is_escape?(tup) then
+              args << ["mrbproc",
+              reg_real_value_noconv(ccgen, procreg, node, tup, infer, history)[0]]
+            else
+              args << ["cgproc",
+                "#{(reg_real_value_noconv(ccgen, procreg, node, tup, infer, history))[0]}"]
+            end
             inst.inreg[1..-2].each {|reg|
               args << ["v#{reg.id}",
                 (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]]
@@ -125,7 +130,11 @@ module CodeGenC
           outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
           outtype = get_ctype(ccgen, oreg, tup, infer)
           argt = "mrb_state *mrb, "
-          argt << "gproc cgproc"
+          if procreg.is_escape?(tup) then
+            argt << "mrb_value mrbproc"
+          else
+            argt << "gproc cgproc"
+          end
           argt << ", "
           argt << inst.inreg[1..-1].map {|reg|
             gen_declare(ccgen, reg, tup, infer, false, true)
@@ -134,7 +143,11 @@ module CodeGenC
 
           argst = "struct thprocarg#{inst.outreg[0].id} {\n"
           argst << "mrb_state *mrb;\n"
-          argst << "gproc cgproc;\n"
+          if procreg.is_escape?(tup) then
+            argst << "mrb_value mrbproc;\n"
+          else
+            argst << "gproc cgproc;\n"
+          end
           argst << inst.inreg[1..-1].map {|reg|
             gen_declare(ccgen, reg, tup, infer, false, true)
           }.join(";\n")
@@ -197,7 +210,7 @@ module CodeGenC
       ccgen.dcode << ";\n"
       ccgen.pcode << "{\n"
       ccgen.pcode << "void *ret;\n"
-      ccgen.pcode << "pthread_join(#{val}, &#{val}->thread);\n"
+      ccgen.pcode << "pthread_join(#{val}->thread, &ret);\n"
       ccgen.pcode << "}\n"
     end
   end
