@@ -7,7 +7,9 @@ class Count
     while res[@c]
       @c += 1
     end
-    @c
+    n = @c
+    @c += 1
+    n
   end
 
   def c
@@ -18,13 +20,14 @@ end
 def kakutani(n, res)
   re = res[n]
   if re.nil? then
-    if n & 1 == 0 then
-      n = n >> 1
+    nn = n
+    if nn & 1 == 0 then
+      nn = nn >> 1
     else
-      n = n * 3 + 1
+      nn = nn * 3 + 1
     end
 
-    r = kakutani(n, res) + 1
+    r = kakutani(nn, res) + 1
     res[n] = r
     return r
   else
@@ -38,12 +41,14 @@ def foo
 
   th = MMC_EXT::Thread.new(c, r) {|cnt, res|
     n = cnt.c
-    while n < 100
+    while n < 1000
       n = cnt.skip_cnt(res)
+    p n
       kakutani(n, res)
     end
   }
 
+  th.join
   p r
 end
 

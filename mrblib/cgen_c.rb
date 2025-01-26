@@ -693,8 +693,12 @@ EOS
         #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
-          if (oreg = @unlock_instruction[ins]) then
-            @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(DATA_PTR(v#{oreg.id})))->mp);\n"
+          if (ireg = @unlock_instruction[ins]) then
+            if ireg.is_a?(RiteSSA::ParmReg) and ireg.genpoint == 0 then
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(DATA_PTR(mutexself)))->mp);\n"
+            else
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(DATA_PTR(v#{ireg.id})))->mp);\n"
+            end
             @unlock_instruction.delete(ins)
           end
 #        rescue NoMethodError => e
@@ -729,6 +733,7 @@ EOS
                     @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
                   end
                 end
+
                 if node.root.export_regs.include?(nreg) then
                   @pcode << "env.v#{nreg.id} = v#{nreg.id};\n"
                 end

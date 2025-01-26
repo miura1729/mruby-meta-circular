@@ -14,15 +14,21 @@ module CodeGenC
       argc = infer.typetupletab.rev_table[tup].size - 4;
       ireg = inst.inreg[0]
       oreg = inst.outreg[0]
+
       if !oreg.type[tup] then
         tup = oreg.type.keys[0]
       end
+
       oreg.type[tup].each do |type|
         type.threads = []
       end
-      src, srct = reg_real_value(ccgen, ireg, oreg, node, tup, infer, history)
-      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
-      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+
+      src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
+      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, ireg)
+      ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "self")};\n"
+      ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "mutexself")};\n"
+      ccgen.pcode << "mutexself = v#{ireg.id};\n"
+      ccgen.pcode << "self = #{src};\n"
       if argc >= 1 then
         inst.outreg[1..argc].each_with_index do |oreg, i|
           if oreg.type[tup] then

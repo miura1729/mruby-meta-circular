@@ -670,13 +670,13 @@ module CodeGenC
       nreg = inst.outreg[0]
       loreg = inst.para[5]
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, inst.inreg[0])
+      srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, inst.inreg[0])
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
       ccgen.dcode << ";\n"
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, inst.inreg[1])
+      val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, nil, inst.inreg[1])
       ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
       ccgen.pcode <<  "mrb_ary_push(mrb, v#{loreg.id}, #{val});\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -688,7 +688,7 @@ module CodeGenC
 
     define_ccgen_rule_method :pop, Array do |ccgen, inst, node, infer, history, tup|
       slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
-      slflo = gen_type_conversion(ccgen, :mrb_value, slft, slf, tup, node, infer, history, inst.inreg[0])
+      slflo = gen_type_conversion(ccgen, :mrb_value, slft, slf, tup, node, infer, history, nil, inst.inreg[0])
       src = "mrb_ary_pop(mrb, #{slflo})"
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)

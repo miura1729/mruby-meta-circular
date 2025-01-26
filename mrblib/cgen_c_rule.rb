@@ -750,11 +750,7 @@ module CodeGenC
           end
         end
 
-        if reg.genpoint == 0 then
-          return ["self", srct]
-        else
-          return ["v#{reg.id}", srct]
-        end
+        return ["v#{reg.id}", srct]
       end
 
       gins = reg.genpoint
@@ -1224,11 +1220,11 @@ EOS
         end
         ccgen.decl_tab[reg][tup] = true
       end
-      if reg.is_a?(RiteSSA::ParmReg) and reg.genpoint == 0 then
-        regnm = "self"
-      else
+#      if (!reg.is_a?(RiteSSA::ParmReg)) and reg.genpoint == 0 then
+#        regnm = "self"
+#      else
         regnm = "v#{reg.id}"
-      end
+#      end
       gen_declare_core(ccgen, reg, tup, infer, initp, regnm)
     end
 
@@ -1362,7 +1358,7 @@ EOS
       end
     end
 
-    def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history, oreg)
+    def self.gen_type_conversion(ccgen, dstt, srct, src, tup, node, ti, history, oreg, ireg = nil)
       if dstt == srct then
         return src
       end
@@ -1527,11 +1523,13 @@ EOS
 
             when :mrb_value_mutex
               # gen_gc_table2(ccgen, node, oreg)
-              uins = oreg.refpoint[-1]
-              if uins.op == :NOP then
-                uins = oreg.refpoint[-2]
+              if ireg then
+                uins = ireg.refpoint[-1]
+                if uins.op == :NOP then
+                  uins = ireg.refpoint[-2]
+                end
               end
-              ccgen.unlock_instruction[uins] = oreg
+              ccgen.unlock_instruction[uins] = ireg
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
@@ -1637,16 +1635,17 @@ EOS
 
     def self.gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
       ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
-      ivt = get_ctype(ccgen, ivreg, tup, infer)
       dstt = get_ctype(ccgen, dst, tup, infer)
-      slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
+      slfsrc = "self" #reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
 
       if slf.is_escape?(tup) then
         idx = ivreg.genpoint
         src = "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
-        src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
+        #src = "mrb_ary_ref(mrb, #{slfsrc}, #{idx})"
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
         ccgen.pcode << "v#{dst.id} = #{src};\n"
       else
+        ivt = get_ctype(ccgen, ivreg, tup, infer)
         src = "#{slfsrc}->v#{ivreg.id}"
         src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
         ccgen.pcode << " v#{dst.id} = #{src};\n"
@@ -1655,23 +1654,22 @@ EOS
     end
 
     def self.gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
-      ivt = get_ctype(ccgen, ivreg, tup, infer)
       valt = get_ctype(ccgen, valr, tup, infer)
       val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
-      slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
+      slfsrc = "self" #reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       if slf.is_escape?(tup) then
-        val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
+        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "{"
-        ccgen.pcode << "#{ivt} val;\n"
+        ccgen.pcode << "mrb_value val;\n"
         ccgen.pcode << "val = #{val};\n"
-    # ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
-        val = gen_type_conversion(ccgen, :mrb_value, valt, "val", tup, node, infer, history, dst)
+        #ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
         if valr.type[tup].any? {|t| t.is_gcobject?} then
           ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
         end
         ccgen.pcode << "}\n"
       else
+        ivt = get_ctype(ccgen, ivreg, tup, infer)
         val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "#{slfsrc}->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
       end
@@ -1694,7 +1692,7 @@ EOS
         idxtype = idx.get_type(tup)[0]
         if arytypes[0].immidiate_only or
           (idxtype.is_a?(MTypeInf::IndexOfArrayType) and
-            idxtype.base_array == arytypes[0]) then
+            idxtype.base_array == arytypes[0]) and false then
           src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}]"
         elsif idxtype.is_a?(MTypeInf::NumericType) and idxtype.positive then
           src = "((#{idxc}) < ARY_LEN(mrb_ary_ptr(#{src}))) ? ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}] : mrb_nil_value()"
