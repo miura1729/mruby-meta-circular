@@ -345,6 +345,18 @@ EOS
             }
             intype = ti.typetupletab.rev_table[utup]
             attr = @method_attribute[[namesym, intype[0][0].class_object]]
+
+            if !block.retreg.type[utup] then
+              utup2 = block.retreg.type.keys[0]
+              if block.retreg.type[utup2] then
+                block.retreg.flush_type(utup2, utup)
+              else
+                # not traverse yet. Maybe escape analysis
+                ti.callstack.push [proc.irep, nil, nil, pproc, nil]
+                ti.inference_block(block, intype[0..-3], utup, intype.size, proc)
+              end
+            end
+
             code_gen_method(block, ti, name, proc, utup, intype, pproc, attr, usereturn)
             @defined_method[name] = true
             fin = false
@@ -548,12 +560,6 @@ EOS
         ereg.type[tup] = tys.dup
       end
       recvr = topnode.enter_reg[0]
-      if !block.retreg.type[tup] then
-        # not traverse yet. Maybe escape analysis
-
-        ti.callstack.push [proc.irep, nil, nil, pproc, nil]
-        ti.inference_block(block, intype[0..-3], tup, intype.size, proc)
-      end
       args = ""
       pos = 0
       intype[0...-3].each_with_index do |tys, i|

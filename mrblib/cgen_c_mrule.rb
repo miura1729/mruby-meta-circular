@@ -364,7 +364,7 @@ module CodeGenC
     define_ccgen_rule_method :p, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg)
+      src2 = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg, inst.inreg[1])
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
@@ -375,8 +375,8 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       dstt = get_ctype(ccgen, nreg, tup, infer)
-      src2 = gen_type_conversion(ccgen, dstt, :mrb_value, src2, tup, node, infer, history, nreg)
-      ccgen.pcode << "v#{nreg.id} = #{src2};\n"
+      src2 = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
 
       nil
     end

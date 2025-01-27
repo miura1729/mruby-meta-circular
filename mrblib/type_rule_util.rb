@@ -456,6 +456,19 @@ module MTypeInf
     end
 
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
+      if inst.para[5] == nil then
+        lock_recreg = RiteSSA::Reg.new(nil)
+        lock_recreg.setpoint.push inst
+        inst.para[5] = lock_recreg
+        lock_recreg.refpoint.push inst
+      end
+
+      inst.inreg[0].type.each do |tup, types|
+        types.each do |type|
+          inst.para[5].add_type type.clone, tup
+        end
+      end
+
       ntup = 0
       recvtypes = recreg.get_type(tup)
 
@@ -469,19 +482,6 @@ module MTypeInf
         existf = false
         missprocssa = nil
         slf = ty.class_object
-
-        if inst.para[5] == nil then
-          lock_recreg = RiteSSA::Reg.new(nil)
-          lock_recreg.setpoint.push inst
-          inst.para[5] = lock_recreg
-          lock_recreg.refpoint.push inst
-        end
-
-        inst.para[5].type.each do |tup, types|
-          types.each do |type|
-            inst.inreg[0].add_type type.clone, tup
-          end
-        end
 
         if !slf.is_a?(Module) then
           next
@@ -691,7 +691,7 @@ module MTypeInf
 
       arrtypes.each do |arrt|
         arrt.place[true] = true
-        if arrt.class_object.== Array then
+        if arrt.class_object == Array then
           arrele = arrt.element
 
           arrele[1] ||= RiteSSA::Reg.new(nil)

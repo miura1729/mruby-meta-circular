@@ -19,12 +19,15 @@ module CodeGenC
         tup = oreg.type.keys[0]
       end
 
-      oreg.type[tup].each do |type|
-        type.threads = []
+      if node.root.effects[:iv_write] #or node.root.effects[:iv_read] then
+        oreg.type[tup].each_with_index do |type|
+          type.threads = []
+        end
       end
 
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, ireg)
+      dstt = get_ctype(ccgen, oreg, tup, infer)
+      src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nil, ireg)
       ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "self")};\n"
       ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "mutexself")};\n"
       ccgen.pcode << "mutexself = v#{ireg.id};\n"

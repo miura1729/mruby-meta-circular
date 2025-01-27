@@ -53,7 +53,7 @@ module CodeGenC
 
       ty = nr.get_type_or_nil(tup)
       if ty then
-        ty = ty[0].class_object
+        ty = ty[0].class_object_core
         if ty == HAL::Regs or ty == HAL::Reg or ty == HAL::CPU or
             ty == HAL::BinExp or ty == HAL::Mem then
           return true
@@ -165,6 +165,7 @@ module CodeGenC
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
       op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      #op_send_lock(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
       set_closure_env(ccgen, inst, node, infer, history, tup)
     end
 
@@ -179,12 +180,12 @@ module CodeGenC
 #          orgrec = inst.inreg[0].get_type(tup)
           inst.inreg[0].positive_list.push [rectype]
           if mproc == :writer then
-            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
+            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_objec_core)
             ivreg = clsobj.get_iv("@#{name.to_s.chop}".to_sym)
             gen_set_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.inreg[1], inst.outreg[0])
 
           elsif mproc == :reader then
-            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object)
+            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object_core)
             ivreg = clsobj.get_iv("@#{name.to_s}".to_sym)
             gen_get_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.outreg[0])
 
@@ -267,7 +268,7 @@ module CodeGenC
 
       reg = inreg[-1]
       tys = reg.get_type_or_nil(tup)
-      if tys and (tys.size == 1 and tys[0].class_object != NilClass) then
+      if tys and (tys.size == 1 and tys[0].class_object_core != NilClass) then
         args << ", "
         rs, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)
         if srct.is_a?(Array) and srct[0] == :gproc then
@@ -295,12 +296,12 @@ module CodeGenC
 
         rectypes = intype[0]
         ty0 = rectypes[0]
-        if rectypes.all? {|ty| ty.class_object == ty0.class_object} then
+        if rectypes.all? {|ty| ty.class_object_core == ty0.class_object_core} then
           rectypes = [ty0]
         end
         if rectypes.size == 1 or
             rectypes.all? {|ty|
-            ty.class_object == TrueClass or ty.class_object == FalseClass
+            ty.class_object_core == TrueClass or ty.class_object_core == FalseClass
           } then
           # Not polymorphism
           rectype = ty0
@@ -459,7 +460,10 @@ module CodeGenC
       unlock_recreg.type[tup][0].threads = []
       ccgen.dcode << gen_declare(ccgen, unlock_recreg, tup, infer)
       ccgen.dcode << ";\n"
-      src = reg_real_value(ccgen, lock_recreg, unlock_recreg, node, tup, infer, history)
+      src, srct = reg_real_value_noconv(ccgen, lock_recreg, node, tup, infer, history)
+      dstt = get_ctype(ccgen, unlock_recreg, tup, infer)
+      src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer,
+                       history, unlock_recreg, lock_recreg)
 #      p unlock_recreg.get_type(tup)[0].threads
 #      p unlock_recreg.get_type(tup)[0]
 #      p lock_recreg.get_type(tup)[0]
@@ -471,7 +475,7 @@ module CodeGenC
     def self.op_send_initialize(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
       intype = inreg.map {|reg| reg.flush_type(tup)[tup] || []}
       intype[0] = [intype[0][0]]
-      rectype = intype[0][0].class_object
+      rectype = intype[0][0].class_object_core
       mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
       rectype.ancestors.each do |rt|
         if @@ruletab[:CCGEN_METHOD][name] and mproc = @@ruletab[:CCGEN_METHOD][name][rt] then
@@ -979,18 +983,18 @@ module CodeGenC
       end
 
       # not escape and pointer type is nullable.
-      if rtype.all? {|ty| ty.class_object == cls0} and !rtype[0].is_gcobject? then
+      if rtype.all? {|ty| ty.class_object_core == cls0} and !rtype[0].is_gcobject? then
 #        return rtype[0]
 
       elsif rtypesize == 2 then
         if cls0 == NilClass then
-          cls0 = rtype[1].class_object
+          cls0 = rtype[1].class_object_core
           rtypesize = 1
-        elsif rtype[1].class_object == NilClass then
+        elsif rtype[1].class_object_core == NilClass then
           rtypesize = 1
-        elsif rtype[1].class_object == Fixnum and cls0 == Float then
+        elsif rtype[1].class_object_core == Fixnum and cls0 == Float then
           rtypesize = 0
-        elsif rtype[1].class_object == Float and cls0 == Fixnum then
+        elsif rtype[1].class_object_core == Float and cls0 == Fixnum then
           rtypesize = 0
           cls0 = Float
         end
@@ -1009,7 +1013,7 @@ module CodeGenC
         end
       end
 
-      if rtype.all? {|e| e.class_object == cls0} then
+      if rtype.all? {|e| e.class_object_core == cls0} then
         res = TTABLE[cls0]
         rtypesize = 1
         if res then
@@ -1024,7 +1028,7 @@ module CodeGenC
       end
 
       if rtype.all? {|e|
-          cls = e.class_object
+          cls = e.class_object_core
           cls == TrueClass || cls == FalseClass
         } and rtype.size > 0 then
         return :mrb_bool
@@ -1058,14 +1062,14 @@ module CodeGenC
         end
       else
         rtype.each do |ety|
-          clsssa =  RiteSSA::ClassSSA.get_instance(ety.class_object)
+          clsssa =  RiteSSA::ClassSSA.get_instance(ety.class_object_core)
           ivtypes = [nilobj]
           clsssa.iv.each do |nm, reg|
             ivtypes.push reg.flush_type(tup)[tup]
           end
           ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
           rtype.each do |e|
-            cls = e.class_object
+            cls = e.class_object_core
             clsssa =  RiteSSA::ClassSSA.get_instance(cls)
             ccgen.using_class[clsssa] ||= {}
             ccgen.using_class[clsssa][ivtup] ||= ["cls#{clsssa.id}_#{ivtup}", ety.hometown]
@@ -1327,7 +1331,7 @@ EOS
     end
 
     def self.gen_type_checker(ccgen, srcval, tgtype, tup)
-      tgcls = tgtype.class_object
+      tgcls = tgtype.class_object_core
 
       if tgtype.is_escape?(tup) then
         case tgcls.to_s.to_sym
@@ -1355,6 +1359,8 @@ EOS
         else
           ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))", true]
         end
+      else
+        ["1", false]
       end
     end
 
@@ -1628,7 +1634,7 @@ EOS
           p dstt
           p srct
           p "Not support yet #{dstt} #{srct} bar"
-#          raise "Not support yet #{dstt} #{srct}"
+          raise "Not support yet #{dstt} #{srct}"
         end
       end
     end
@@ -1639,6 +1645,9 @@ EOS
       slfsrc = "self" #reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
 
       if slf.is_escape?(tup) then
+        if slf.type[tup][0].class_object == MMC_EXT::Mutex then
+          slfsrc = "mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, \"@object\"))"
+        end
         idx = ivreg.genpoint
         src = "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
         #src = "mrb_ary_ref(mrb, #{slfsrc}, #{idx})"
@@ -1664,7 +1673,7 @@ EOS
         ccgen.pcode << "val = #{val};\n"
         #ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
         ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
-        if valr.type[tup].any? {|t| t.is_gcobject?} then
+        if valr.type[tup] and valr.type[tup].any? {|t| t.is_gcobject?} then
           ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
         end
         ccgen.pcode << "}\n"
@@ -1686,6 +1695,15 @@ EOS
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
+
+      if srct == :mrb_value_mutex then
+        loreg = inst.para[5]
+        src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, inst.inreg[0])
+        ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
+        ccgen.dcode << ";\n"
+        srct = :mrb_value
+      end
+
       if srct == :mrb_value then
         idxc, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
         idxc = gen_type_conversion(ccgen, :mrb_int, idxt, idxc, tup, node, infer, history, nreg)

@@ -15,6 +15,8 @@ module MTypeInf
       ti.update_effects(th, th.proc.irep)
     end
 
+    #bproc = ti.inference_top(b)
+
     ti.messages.each do |message, cnt|
       print message
     end

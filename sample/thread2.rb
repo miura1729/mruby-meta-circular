@@ -47,8 +47,16 @@ def foo
       kakutani(n, res)
     end
   }
+  th2 = MMC_EXT::Thread.new(c, r) {|cnt, res|
+    n = cnt.c
+    while n < 1000
+      n = cnt.skip_cnt(res)
+      kakutani(n, res)
+    end
+  }
 
   th.join
+  th2.join
   p r
 end
 

@@ -504,6 +504,10 @@ module MTypeInf
 
     define_inf_rule_method :nil?, Object do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]
+#      if slf.nil? then
+#        tup = inst.inreg[0].type.keys[0]
+#        slf = inst.inreg[0].flush_type(tup)[tup]
+#      end
 
       if slf.size != 1 || slf[0].class_object == NilClass then
         type = LiteralType.new(TrueClass, true)

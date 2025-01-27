@@ -329,7 +329,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         is_escape? == other.is_escape?
     end
 
@@ -345,7 +345,7 @@ module MTypeInf
     def ==(other)
 #      other.class == LiteralType &&
       other.class == self.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         @val == other.val &&
         is_escape? == other.is_escape?
     end
@@ -375,14 +375,14 @@ module MTypeInf
     def ==(other)
 #      other.class == LiteralType &&
       other.class == self.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         @val == other.val &&
         is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)
       self.class == other.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         @val == other.val &&
         is_escape? == other.is_escape?
     end
@@ -429,7 +429,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
 #        @element.size == other.element.size &&
         @hometown == other.hometown &&
 #        @element == other.element &&
@@ -438,7 +438,7 @@ module MTypeInf
     end
 
     def type_equal(other, tup)
-      @class_object == other.class_object &&
+      @class_object == other.class_object_core &&
         is_escape? == other.is_escape?
     end
 
@@ -502,7 +502,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         @irep == other.irep &&
         @env == other.env &&
         ((!@tups[0] && !other.tups[0]) || @tups[0][1] == other.tups[0][1]) &&
@@ -601,7 +601,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         @hometown == other.hometown &&
         @version == other.version &&
         is_escape? == other.is_escape?
@@ -624,7 +624,7 @@ module MTypeInf
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
+        @class_object == other.class_object_core &&
         @base_array == other.base_array
     end
 
