@@ -131,19 +131,28 @@ module CodeGenC
       (pos + num).times do |i|
         r = regs[i]
         if r == nil or
-            (r.get_type_or_nil(tup) and r.get_type(tup)[0].is_gcobject? and
-            !r.is_escape?(tup)) then
+              (r.get_type(tup) and
+                r.get_type(tup)[0] and
+                r.get_type(tup)[0].is_gcobject? and
+                !r.is_escape?(tup)) then
 
-        elsif !(r.get_type_or_nil(tup) and r.get_type(tup).any? {|ty| ty.is_gcobject?} and
+        elsif !(r.get_type(tup) and
+            r.get_type(tup).any? {|ty| ty.is_gcobject?} and
             r.is_escape?(tup)) or
-            (r.genpoint.is_a?(Fixnum) and
+            (r.genpoint.is_a?(RiteSSA::Inst) and
+            r.genpoint.op == :START and
             !ccgen.is_live_reg?(node, r) and
             i != 0) then
 
-          # Do nothing
+              # Do nothing
 
         else
-          name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
+          if r.is_a?(RiteSSA::ParmReg2) and r.genpoint == 0 then
+            name = "mutexself"
+          else
+            name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
+          end
+
           if ccgen.prev_gcsingle[tabpos] != name then
             ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};/* normal */\n"
             ccgen.prev_gcsingle[tabpos] = name
@@ -1224,8 +1233,10 @@ EOS
         end
         ccgen.decl_tab[reg][tup] = true
       end
-#      if (!reg.is_a?(RiteSSA::ParmReg)) and reg.genpoint == 0 then
+#      if (!reg.is_a?(RiteSSA::ParmReg2)) and reg.genpoint == 0 then
 #        regnm = "self"
+#      elsif (!reg.is_a?(RiteSSA::ParmReg)) and reg.genpoint == 0 then
+#        regnm = "mutexself"
 #      else
         regnm = "v#{reg.id}"
 #      end
@@ -1695,12 +1706,15 @@ EOS
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
+      ccgen.pcode << "{\n"
 
       if srct == :mrb_value_mutex then
         loreg = inst.para[5]
         src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, inst.inreg[0])
         ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
         ccgen.dcode << ";\n"
+        ccgen.pcode << "mrb_value val = #{src};\n"
+        src = "val"
         srct = :mrb_value
       end
 
@@ -1733,6 +1747,7 @@ EOS
       end
 
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      ccgen.pcode << "}\n"
       nil
     end
 

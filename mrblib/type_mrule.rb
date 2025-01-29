@@ -916,6 +916,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :pp, Kernel do |infer, inst, node, tup|
+      node.root.effects[:io] ||= {}
+      node.root.effects[:io][inst] = inst.inreg[0].type
+      inst.outreg[0].add_same inst.inreg[1]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :raise, Kernel do |infer, inst, node, tup|
       argc = inst.para[1]
       reg = RiteSSA::Reg.new(nil)

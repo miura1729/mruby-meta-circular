@@ -481,7 +481,7 @@ module MTypeInf
       recvtypes.each do |ty|
         existf = false
         missprocssa = nil
-        slf = ty.class_object
+        slf = ty.class_object_core
 
         if !slf.is_a?(Module) then
           next

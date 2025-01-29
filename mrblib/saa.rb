@@ -294,6 +294,9 @@ module RiteSSA
     end
   end
 
+  class ParmReg2<ParmReg
+  end
+
   class InstanceVariable<Storable
     def initialize(name, pos)
       super(pos)
@@ -422,7 +425,7 @@ module RiteSSA
         regtab[0..(@irep.nlocals)].each_with_index do |reg, i|
           reg.refpoint.push inst
           inst.inreg.push reg
-          dstreg = Reg.new(inst)
+          dstreg = ParmReg2.new(i, self)
           regtab[i] = dstreg
           inst.outreg.push dstreg
         end

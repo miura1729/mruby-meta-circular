@@ -4,10 +4,13 @@ class Count
   end
 
   def skip_cnt(res)
+    pp "skip"
     while res[@c]
       @c += 1
     end
+    pp @c
     n = @c
+    pp n
     @c += 1
     n
   end
@@ -43,7 +46,7 @@ def foo
     n = cnt.c
     while n < 1000
       n = cnt.skip_cnt(res)
-    p n
+      pp "thread 1 out #{n}"
       kakutani(n, res)
     end
   }
@@ -51,13 +54,14 @@ def foo
     n = cnt.c
     while n < 1000
       n = cnt.skip_cnt(res)
+      pp "thread 2 out #{n}"
       kakutani(n, res)
     end
   }
 
   th.join
   th2.join
-  p r
+  pp r
 end
 
 MTypeInf::inference_main {
