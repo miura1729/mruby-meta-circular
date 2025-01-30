@@ -96,6 +96,7 @@ struct gctab {
 typedef mrb_value mrb_value_mutex;
 struct mutex_wrapper {
   pthread_mutex_t mp;
+  mrb_value obj;
 };
 
 void mrb_mutex_free(mrb_state *mrb, void *data)

@@ -6,11 +6,10 @@ class Count
   def skip_cnt(res)
     pp "skip"
     while res[@c]
+      pp @c
       @c += 1
     end
-    pp @c
     n = @c
-    pp n
     @c += 1
     n
   end

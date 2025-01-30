@@ -149,6 +149,8 @@ module CodeGenC
         else
           if r.is_a?(RiteSSA::ParmReg2) and r.genpoint == 0 then
             name = "mutexself"
+          elsif r.is_a?(RiteSSA::ParmReg) and r.genpoint == 0 then
+            name = "mutexself"
           else
             name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
           end
@@ -1551,7 +1553,7 @@ EOS
 ({
   struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
   pthread_mutex_lock(&mutex->mp);
-  mrb_iv_get(mrb, #{src}, mrb_intern_cstr(mrb, "@object"));
+  mutex->obj;
 })
 EOS
             else
@@ -1635,7 +1637,8 @@ EOS
 ({ struct mutex_wrapper *mutex = malloc(sizeof(struct mutex_wrapper));
   mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
-  mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), #{src});
+  mutex->obj = #{src};
+  mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), mutex->obj);
   mutexobj;
 })
 EOS
@@ -1657,7 +1660,7 @@ EOS
 
       if slf.is_escape?(tup) then
         if slf.type[tup][0].class_object == MMC_EXT::Mutex then
-          slfsrc = "mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, \"@object\"))"
+          slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
         end
         idx = ivreg.genpoint
         src = "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{idx}]"

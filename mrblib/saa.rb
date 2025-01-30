@@ -552,6 +552,9 @@ module RiteSSA
           dstreg.refpoint.push inst
           inst.outreg.push dstreg
 
+          # for unlock
+          @root.nodes[0].enter_reg[0].refpoint.push @ext_iseq[-2]
+
         when :ENTER
           arg = getarg_ax(code)
           o = (arg >> 13) & 0x1f
