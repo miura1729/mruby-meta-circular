@@ -32,12 +32,12 @@ def foo
     a = chan.a.pop
     bar(chan)
     chan.foo
-    p a
+    pp a
   }
   c.foo
-  p c.b.pop
+  pp c.b.pop
   th.join
-  p "end"
+  pp "end"
   nil
 end
 

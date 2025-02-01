@@ -457,7 +457,7 @@ module MTypeInf
 
     def self.rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, outreg, argc, history)
       if inst.para[5] == nil then
-        lock_recreg = RiteSSA::Reg.new(nil)
+        lock_recreg = RiteSSA::Reg.new(inst)
         lock_recreg.setpoint.push inst
         inst.para[5] = lock_recreg
         lock_recreg.refpoint.push inst

@@ -251,7 +251,7 @@ module MTypeInf
                 "#{key} #{ins[0]} #{ins[1].op} #{ins[2].read_threads.size} #{ins[2].write_threads.size}"
               }
 
-            when :modify
+            when :modify, :canempty
               effarr.map {|ins, ty|
                 "#{key} #{ins.para[0]} #{ty.values}"
               }
@@ -309,6 +309,39 @@ module MTypeInf
             typetups.values.each do |types|
               types.each do |type|
                 type.threads[thread] = :modify
+              end
+            end
+          end
+
+        when :arrayset
+          value.each do |inst, typetups|
+            # array self
+            typetups[0].values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :modify
+              end
+            end
+
+            # array value
+            typetups[1].values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :arrayset
+              end
+            end
+          end
+
+        when :canempty
+          value.each do |inst, typetups|
+            typetups.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :canempty
+              end
+            end
+
+            # output
+            inst.outreg[0].type.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :arrayset
               end
             end
           end

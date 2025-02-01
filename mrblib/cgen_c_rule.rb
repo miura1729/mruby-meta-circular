@@ -988,6 +988,8 @@ module CodeGenC
       if rtype.any? {|ty| ty.is_escape?} then
         if cls0 == MMC_EXT::Mutex then
           return :mrb_value_mutex
+        elsif cls0 == MMC_EXT::MutexEmptyLock then
+          return :mrb_value_mutex_emptylock
         else
           return :mrb_value
         end
@@ -1548,7 +1550,7 @@ EOS
                   uins = ireg.refpoint[-2]
                 end
               end
-              ccgen.unlock_instruction[uins] = ireg
+              ccgen.unlock_instruction[uins] = [ireg, ""]
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
@@ -1556,6 +1558,45 @@ EOS
   mutex->obj;
 })
 EOS
+
+            when :mrb_value_mutex_emptylock
+              # gen_gc_table2(ccgen, node, oreg)
+              if ireg then
+                uins = ireg.refpoint[-1]
+                if uins.op == :NOP then
+                  uins = ireg.refpoint[-2]
+                end
+              end
+
+              if oreg and
+                  node.root.effects[:canempty] and
+                  node.root.effects[:canempty][oreg.genpoint] then
+                empty_lock = "pthread_mutex_lock(&mutex->empty_lock);"
+
+                if node.root.effects[:iv_write] then
+                  selfunlock = "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp);"
+                  selflock = "pthread_mutex_lock(&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp);"
+                  empty_lock = "#{selfunlock}\n#{empty_lock}\n#{selflock}\n"
+                end
+                empty_unlock = :pop
+              else
+                empty_lock = ""
+                empty_unlock = :push
+              end
+              ccgen.unlock_instruction[uins] = [ireg, empty_unlock]
+
+
+              <<"EOS"
+({
+  struct mutex_wrapper_emptylock *mutex = (struct mutex_wrapper_emptylock *)DATA_PTR(#{src});
+  pthread_mutex_lock(&mutex->mp);
+  #{empty_lock}
+  mutex->obj;
+})
+EOS
+            when :thread
+              "(mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, #{src}, &thread_data_header)))"
+
             else
               p node.root.irep.disasm
               p srct
@@ -1643,6 +1684,31 @@ EOS
 })
 EOS
 
+        when :mrb_value_mutex_emptylock
+          gen_gc_table2(ccgen, node, oreg)
+          case srct
+          when :mrb_int
+            src = "mrb_fixnum_value(#{src})"
+
+          when :mrb_sym
+            src = "mrb_symbol_value(#{src})"
+
+          when :mrb_float
+            src = "mrb_float_value2(#{src})"
+          end
+
+          <<"EOS"
+({ struct mutex_wrapper_emptylock *mutex = malloc(sizeof(struct mutex_wrapper_emptylock));
+  mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
+  pthread_mutex_init(&mutex->mp, NULL);
+  pthread_mutex_init(&mutex->empty_lock, NULL);
+  pthread_mutex_lock(&mutex->empty_lock);
+  mutex->obj = #{src};
+  mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), mutex->obj);
+  mutexobj;
+})
+EOS
+
         else
           p src
           p dstt
@@ -1686,7 +1752,7 @@ EOS
         ccgen.pcode << "mrb_value val;\n"
         ccgen.pcode << "val = #{val};\n"
         #ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = #{val};\n"
+        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
         if valr.type[tup] and valr.type[tup].any? {|t| t.is_gcobject?} then
           ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
         end

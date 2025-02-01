@@ -94,8 +94,15 @@ struct gctab {
 };
 
 typedef mrb_value mrb_value_mutex;
+typedef mrb_value mrb_value_mutex_emptylock;
 struct mutex_wrapper {
   pthread_mutex_t mp;
+  mrb_value obj;
+};
+
+struct mutex_wrapper_emptylock {
+  pthread_mutex_t mp;
+  pthread_mutex_t empty_lock;
   mrb_value obj;
 };
 
@@ -107,6 +114,7 @@ void mrb_mutex_free(mrb_state *mrb, void *data)
 }
 
 mrb_data_type mutex_data_header = {"Mutex Data", mrb_mutex_free};
+mrb_data_type thread_data_header = {"Thread Data", mrb_free};
 
 void mrb_mark_local(mrb_state *mrb)
 {
@@ -700,11 +708,23 @@ EOS
         #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
-          if (ireg = @unlock_instruction[ins]) then
+          if (ireg, eunlock = @unlock_instruction[ins]) then
             if ireg.is_a?(RiteSSA::ParmReg) and ireg.genpoint == 0 then
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(DATA_PTR(mutexself)))->mp);\n"
+              reg = "mutexself"
             else
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(DATA_PTR(v#{ireg.id})))->mp);\n"
+              reg = "v#{ireg.id}"
+            end
+            wrapper = "DATA_PTR(#{reg})"
+            if eunlock == :push then
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+            elsif eunlock == :pop then
+              @pcode << "if (ARY_LEN(mrb_ary_ptr(((struct mutex_wrapper_emptylock *)(#{wrapper}))->obj)) > 0) {\n"
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
+              @pcode << "}\n"
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+            else
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(#{wrapper}))->mp);\n"
             end
             @unlock_instruction.delete(ins)
           end

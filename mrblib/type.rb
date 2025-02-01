@@ -24,9 +24,13 @@ module MTypeInf
     end
 
     def class_object
-      if @threads.size > 1 then
+      if is_gcobject? and @threads.size > 1 then
         # racing object. lock need when access
-        MMC_EXT::Mutex
+        if @threads.values.include?(:canempty) then
+          MMC_EXT::MutexEmptyLock
+        else
+          MMC_EXT::Mutex
+        end
       else
         @class_object
       end
@@ -178,7 +182,11 @@ module MTypeInf
     def inspect(level = 0)
       core = inspect_aux({}, level)
       if @threads.size > 1 then
-        "Mutex<#{core}>"
+        if @threads.values[0] == :canempty
+          "MutexEmptyLock<#{core}>"
+        else
+          "Mutex<#{core}>"
+        end
       else
         core
       end
@@ -189,9 +197,9 @@ module MTypeInf
         return false
       end
 
-     if @escape_cache then
-       return @escape_cache
-     end
+      if @escape_cache then
+        return @escape_cache
+      end
 
       if hist[self] then
         return false
@@ -444,7 +452,7 @@ module MTypeInf
 
     def inspect_aux(hist, level)
       if hist[self] then
-        return "<#{@class_object} ...> e=#{is_escape?} l=#{@level}"
+        return "<#{@class_object} ...> e=#{is_escape?} l=#{@level} thread=#{@threads}"
       end
       hist[self] = true
 

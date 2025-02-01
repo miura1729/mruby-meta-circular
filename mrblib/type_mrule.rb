@@ -262,8 +262,8 @@ module MTypeInf
         raise "multiple argument not support yet in Array::[]="
       end
 
-      node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0].type
+      node.root.effects[:arrayset] ||= {}
+      node.root.effects[:arrayset][inst] = [inst.inreg[0].type, inst.inreg[2].type]
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
@@ -329,8 +329,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :push, Array do |infer, inst, node, tup|
-      node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0].type
+      node.root.effects[:arrayset] ||= {}
+      node.root.effects[:arrayset][inst] = [inst.inreg[0].type, inst.inreg[1].type]
       rule_ary_push_common(infer, inst, node, tup)
     end
 
@@ -341,8 +341,8 @@ module MTypeInf
     end
 
     define_inf_rule_method :pop, Array do |infer, inst, node, tup|
-      node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0].type
+      node.root.effects[:canempty] ||= {}
+      node.root.effects[:canempty][inst] = inst.inreg[0].type
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
@@ -748,6 +748,10 @@ module MTypeInf
 
         infer.callstack[-1][4] = [nil, inst]
 
+        curirep = infer.callstack[-1][0]
+        curirep.call_blocks[irepssa] ||= {}
+        curirep.call_blocks[irepssa][nil] = true
+
         infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg
         inst.outreg[0].flush_type(tup, ntup)
@@ -990,6 +994,12 @@ module MTypeInf
     define_inf_rule_method :rand, Kernel do |infer, inst, node, tup|
       type = NumericType.new(Float, true)
       inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :sleep, Kernel do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 

@@ -4,6 +4,9 @@ module MMC_EXT
 
   class Mutex<BasicObject
   end
+
+  class MutexEmptyLock<BasicObject
+  end
 end
 
 module MTypeInf
@@ -141,7 +144,7 @@ module CodeGenC
           }.join(", ")
           argt << ", struct gctab *prevgctab"
 
-          argst = "struct thprocarg#{inst.outreg[0].id} {\n"
+          argst = "struct thprocarg#{oreg.id} {\n"
           argst << "mrb_state *mrb;\n"
           if procreg.is_escape?(tup) then
             argst << "mrb_value mrbproc;\n"
@@ -173,13 +176,13 @@ module CodeGenC
 
           ccgen.pcode << "{\n"
           ccgen.pcode << argst
-          ccgen.pcode << "struct thprocarg#{inst.outreg[0].id} *tpargv = malloc(sizeof(struct thprocarg#{inst.outreg[0].id}));\n"
+          ccgen.pcode << "struct thprocarg#{oreg.id} *tpargv = malloc(sizeof(struct thprocarg#{oreg.id}));\n"
           ccgen.pcode << args.map {|mem, val|
             "tpargv->#{mem} = #{val}"
           }.join(";\n")
           ccgen.pcode << ";\n"
           ccgen.pcode << "void *apply_thproc(void *arg) {\n"
-          ccgen.pcode << "struct thprocarg#{inst.outreg[0].id} *tpargv = (struct thprocarg#{inst.outreg[0].id} *)arg;\n"
+          ccgen.pcode << "struct thprocarg#{oreg.id} *tpargv = (struct thprocarg#{oreg.id} *)arg;\n"
           ccgen.pcode << "#{fname}("
           ccgen.pcode << args.map {|mem, val|
             "tpargv->#{mem}"
@@ -188,12 +191,24 @@ module CodeGenC
           ccgen.pcode << "return NULL;\n"
           ccgen.pcode << "}\n"
 
+          oreg_nb = oreg.clone
+          oreg_nb.type = {}
+          ntypes = []
+          oreg.type[tup].each do |ty|
+            nty = MTypeInf::ThreadType.new(MMC_EXT::Thread, ty.proc)
+            ntypes.push nty
+          end
+          oreg_nb.type[tup] = ntypes
+
+          ccgen.dcode << CodeGen::gen_declare_core(ccgen, oreg_nb, tup, infer, false, "ubv#{oreg.id}")
+          ccgen.dcode << ";\n"
+          ccgen.pcode << "ubv#{oreg.id} = malloc(sizeof(*ubv#{oreg.id}));\n"
+          ccgen.pcode << "ubv#{oreg.id}->argv = tpargv;\n"
+          ccgen.pcode << "pthread_create(&ubv#{oreg.id}->thread, NULL, apply_thproc, tpargv);\n"
+          src2 = gen_type_conversion(ccgen, outtype, :thread, "ubv#{oreg.id}", tup, node, infer, history, oreg, oreg_nb)
           ccgen.dcode << CodeGen::gen_declare(ccgen, oreg, tup, infer)
           ccgen.dcode << ";\n"
-
-          ccgen.pcode << "v#{oreg.id} = malloc(sizeof(*v#{oreg.id}));\n"
-          ccgen.pcode << "v#{oreg.id}->argv = tpargv;\n"
-          ccgen.pcode << "pthread_create(&v#{oreg.id}->thread, NULL, apply_thproc, tpargv);\n"
+          ccgen.pcode << "v#{oreg.id} = #{src2};\n"
           ccgen.pcode << "}\n"
         end
       end
