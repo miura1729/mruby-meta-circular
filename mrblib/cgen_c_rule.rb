@@ -1684,11 +1684,14 @@ EOS
         when :mrb_value_mutex
           gen_gc_table2(ccgen, node, oreg)
           <<"EOS"
-({ struct mutex_wrapper *mutex = malloc(sizeof(struct mutex_wrapper));
+({
+  pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);
+  struct mutex_wrapper *mutex = malloc(sizeof(struct mutex_wrapper));
   mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
   mutex->obj = #{src};
   mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), mutex->obj);
+  pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);
   mutexobj;
 })
 EOS
@@ -1707,13 +1710,16 @@ EOS
           end
 
           <<"EOS"
-({ struct mutex_wrapper_emptylock *mutex = malloc(sizeof(struct mutex_wrapper_emptylock));
+({
+  pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);
+  struct mutex_wrapper_emptylock *mutex = malloc(sizeof(struct mutex_wrapper_emptylock));
   mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
   pthread_mutex_init(&mutex->empty_lock, NULL);
   pthread_mutex_lock(&mutex->empty_lock);
   mutex->obj = #{src};
   mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), mutex->obj);
+  pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);
   mutexobj;
 })
 EOS

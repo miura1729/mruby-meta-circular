@@ -175,22 +175,22 @@ module CodeGenC
             raise "Unnown proc"
           end
 
+          ccgen.scode << argst
           ccgen.pcode << "{\n"
-          ccgen.pcode << argst
           ccgen.pcode << "struct thprocarg#{oreg.id} *tpargv = malloc(sizeof(struct thprocarg#{oreg.id}));\n"
           ccgen.pcode << args.map {|mem, val|
             "tpargv->#{mem} = #{val}"
           }.join(";\n")
           ccgen.pcode << ";\n"
-          ccgen.pcode << "void *apply_thproc(void *arg) {\n"
-          ccgen.pcode << "struct thprocarg#{oreg.id} *tpargv = (struct thprocarg#{oreg.id} *)arg;\n"
-          ccgen.pcode << "#{fname}("
-          ccgen.pcode << args.map {|mem, val|
+          ccgen.lfcode << "void *apply_thproc_#{oreg.id}(void *arg) {\n"
+          ccgen.lfcode << "struct thprocarg#{oreg.id} *tpargv = (struct thprocarg#{oreg.id} *)arg;\n"
+          ccgen.lfcode << "#{fname}("
+          ccgen.lfcode << args.map {|mem, val|
             "tpargv->#{mem}"
           }.join(", ")
-          ccgen.pcode << ");\n"
-          ccgen.pcode << "return NULL;\n"
-          ccgen.pcode << "}\n"
+          ccgen.lfcode << ");\n"
+          ccgen.lfcode << "return NULL;\n"
+          ccgen.lfcode << "}\n"
 
           oreg_nb = oreg.clone
           oreg_nb.type = {}
@@ -205,7 +205,7 @@ module CodeGenC
           ccgen.dcode << ";\n"
           ccgen.pcode << "ubv#{oreg.id} = malloc(sizeof(*ubv#{oreg.id}));\n"
           ccgen.pcode << "ubv#{oreg.id}->argv = tpargv;\n"
-          ccgen.pcode << "pthread_create(&ubv#{oreg.id}->thread, NULL, apply_thproc, tpargv);\n"
+          ccgen.pcode << "pthread_create(&ubv#{oreg.id}->thread, NULL, apply_thproc_#{oreg.id}, tpargv);\n"
           src2 = gen_type_conversion(ccgen, outtype, :thread, "ubv#{oreg.id}", tup, node, infer, history, oreg, oreg_nb)
           ccgen.dcode << CodeGen::gen_declare(ccgen, oreg, tup, infer)
           ccgen.dcode << ";\n"

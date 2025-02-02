@@ -30,6 +30,8 @@ def main
   tonakailist.each do |th|
    th.join
   end
+  pp "OK"
+  nil
 end
 
 

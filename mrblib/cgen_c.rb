@@ -14,6 +14,7 @@ module CodeGenC
       @gccode = ""              # GC function definition
       @scode = ""               # structure definition
       @hcode = ""               # prototype, variable
+      @lfcode = ""              # local function defnition
       @dcode = ""               # local declaration
       @pcode = ""               # program code
       @ccode = ""               # whole program
@@ -162,6 +163,7 @@ EOS
     attr :gccode
     attr :scode
     attr :hcode
+    attr :lfcode
     attr :ccode
     attr :dcode
     attr :pcode
@@ -459,7 +461,7 @@ int main(int argc, char **argv)
 EOS
 
 
-      @ccode = @scode + @hcode + main + @ccode
+      @ccode = @scode + @hcode + @lfcode + main + @ccode
     end
 
     def code_gen_method_aux(block, ti, name, proc, tup, pproc, attr)
