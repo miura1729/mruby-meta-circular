@@ -1164,12 +1164,12 @@ module CodeGenC
         "Mutex"
 
       else
-#        if reg.get_type(tup)
-#          p reg.get_type(tup)[0].class_object
-#        else
-#          p "Unnown #{type}"
-#        end
-        type
+        if type != :mrb_value and
+            reg.get_type(tup)[0].class_object == MMC_EXT::Thread then
+          [:thread, type]
+        else
+          type
+        end
       end
     end
 
@@ -1431,6 +1431,15 @@ EOS
             raise "Not support yet #{dstt} #{srct}"
           end
 
+        when :thread
+          case srct
+          when :mrb_value
+            "((struct cls5_17 *)DATA_PTR(#{src}))"
+
+          else
+            raise "Not support yet #{dstt} #{srct}"
+          end
+
         else
           p src
           p dstt
@@ -1589,8 +1598,8 @@ EOS
               <<"EOS"
 ({
   struct mutex_wrapper_emptylock *mutex = (struct mutex_wrapper_emptylock *)DATA_PTR(#{src});
-  pthread_mutex_lock(&mutex->mp);
   #{empty_lock}
+  pthread_mutex_lock(&mutex->mp);
   mutex->obj;
 })
 EOS

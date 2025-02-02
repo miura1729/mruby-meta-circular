@@ -589,6 +589,9 @@ EOS
         when :gproc
           rettype = :gproc
 
+        when :thread
+          rettype = rettype[1]
+
         else
           rettype = rettype[0..1].join(' ')
         end
@@ -671,6 +674,9 @@ EOS
         when :gproc
           rettype = :gproc
 
+        when :thread
+          rettype = rettype[1]
+
         else
           rettype = rettype[0..1].join(' ')
         end
@@ -716,13 +722,16 @@ EOS
             end
             wrapper = "DATA_PTR(#{reg})"
             if eunlock == :push then
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
               @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
             elsif eunlock == :pop then
               @pcode << "if (ARY_LEN(mrb_ary_ptr(((struct mutex_wrapper_emptylock *)(#{wrapper}))->obj)) > 0) {\n"
+              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
               @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
               @pcode << "}\n"
+              @pcode << "else {\n"
               @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+              @pcode << "}\n"
             else
               @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(#{wrapper}))->mp);\n"
             end

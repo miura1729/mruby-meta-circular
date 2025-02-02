@@ -57,8 +57,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :join, MMC_EXT::Thread do |infer, inst, node, tup|
-      inst.outreg[0].add_same inst.inreg[0]
-      inst.outreg[0].flush_type(tup)
+      type = inst.inreg[0].get_type(tup)[0]
+      proc = type.proc
+      inst.outreg[0].add_type ThreadType.new(MMC_EXT::Thread, proc), tup
       nil
     end
   end

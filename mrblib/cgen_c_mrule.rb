@@ -714,7 +714,8 @@ module CodeGenC
       src = "mrb_ary_pop(mrb, #{slflo})"
       dstt = get_ctype(ccgen, nreg, tup, infer)
 
-      src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg, inst.inreg[0])
+      # if array is Mutex or MutexEmptyLock, element of array is also Mutex or MutexEmptyLock
+      src = gen_type_conversion(ccgen, dstt, slft, src, tup, node, infer, history, nreg, inst.inreg[0])
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"

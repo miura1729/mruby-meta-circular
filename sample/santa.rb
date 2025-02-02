@@ -3,8 +3,8 @@ def main
   tonakailist = []
   27.times do |i|
     tonakailist.push MMC_EXT::Thread.new(tonakaimail, i) {|mail, id|
-#      sleep((rand*10).to_i)
-#      pp "wake up #{id}"
+      #leep((rand*10).to_i)
+      pp "wake up #{id}"
       reply = []
       mail.push reply
       reply.pop
@@ -21,12 +21,14 @@ def main
     end
     pp "HoHo Let's send present"
 
-    pp reps
     reps.each do |ele|
       ele.push 1
-      pp "done"
       nil
     end
+  end
+
+  tonakailist.each do |th|
+   th.join
   end
 end
 
