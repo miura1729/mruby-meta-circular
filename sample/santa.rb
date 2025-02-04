@@ -1,35 +1,75 @@
 def main
-  tonakaimail = []
-  tonakailist = []
-  27.times do |i|
-    tonakailist.push MMC_EXT::Thread.new(tonakaimail, i) {|mail, id|
-      #leep((rand*10).to_i)
-      pp "wake up #{id}"
-      reply = []
-      mail.push reply
-      reply.pop
-      pp "Tonakai Work done #{id}"
-    }
+  # Santa hobbit dev.
+  hobbit = MMC_EXT::Thread.new do
+    hobbitmail = []
+    hobbitlist = Array.new
+    9.times do |i|
+      hobbitlist.push MMC_EXT::Thread.new(hobbitmail, i) {|mail, id|
+        sleep((rand*10).to_i)
+        pp "hobbit wake up #{id}"
+        reply = []
+        mail.push reply
+        reply.pop
+        pp "Hobbit Work done #{id}"
+      }
+    end
+
+    3.times do
+      reps = []
+      3.times do |i|
+        a = hobbitmail.pop
+        reps.push a
+      end
+      pp "HoHo Let's make present"
+      pp reps
+
+      reps.each do |ele|
+        ele.push 1
+        nil
+      end
+    end
+
+    hobbitlist.each do |th|
+      th.join
+    end
   end
 
   # Santa tonakai dev.
-  3.times do
-    reps = []
-    9.times do |i|
-      a = tonakaimail.pop
-      reps.push a
+  tonakai = MMC_EXT::Thread.new do
+    tonakaimail = []
+    tonakailist = []
+    27.times do |i|
+      tonakailist.push MMC_EXT::Thread.new(tonakaimail, i) {|mail, id|
+        sleep((rand*10).to_i)
+        pp "tonakai wake up #{id}"
+        reply = []
+        mail.push reply
+        reply.pop
+        pp "Tonakai Work done #{id}"
+      }
     end
-    pp "HoHo Let's send present"
 
-    reps.each do |ele|
-      ele.push 1
-      nil
+    3.times do
+      reps = []
+      9.times do |i|
+        a = tonakaimail.pop
+        reps.push a
+      end
+      pp "HoHo Let's send present"
+
+      reps.each do |ele|
+        ele.push 1
+        nil
+      end
+    end
+
+    tonakailist.each do |th|
+      th.join
     end
   end
 
-  tonakailist.each do |th|
-   th.join
-  end
+  hobbit.join
+  tonakai.join
   pp "OK"
   nil
 end

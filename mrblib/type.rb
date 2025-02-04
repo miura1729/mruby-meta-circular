@@ -466,10 +466,10 @@ module MTypeInf
       end
       hist.delete(self)
       if level < 3 then
-        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?} l=#{@level}"
+        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?} l=#{@level} th=#{@threads}"
 #        "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
       else
-        "#{@class_object.inspect}<> e=#{is_escape?} l=#{@level}"
+        "#{@class_object.inspect}<> e=#{is_escape?} l=#{@level} th=#{@threads}"
 #        "#{@class_object.inspect}<>"
       end
     end
@@ -494,7 +494,7 @@ module MTypeInf
       @@tab
     end
 
-    def initialize(co, irep, slf, slfreg, env, tups, pproc,  *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, pproc, *rest)
       super(co, *rest)
       @id = @@tab.size
       @@tab.push self

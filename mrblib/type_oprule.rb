@@ -962,6 +962,8 @@ module MTypeInf
       inst.outreg[0].type[tup].each do |ty|
         ty.place[true] = [:STRCAT, inst.line]
       end
+      node.root.effects[:modify] ||= {}
+      node.root.effects[:modify][inst] = inst.inreg[0].type
       nil
     end
 
@@ -992,6 +994,8 @@ module MTypeInf
       if cproc then
         cproc.place[pty] = [:LAMBDA, "#{inst.filename}##{inst.line}"]
       end
+      node.root.effects[:lambda] ||= []
+      node.root.effects[:lambda].push [inst, inst.para[0]]
 
       nil
     end

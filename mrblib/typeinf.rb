@@ -181,7 +181,7 @@ module MTypeInf
         types.each do |arg, types|
           # mess << "(#{arg}) " #Raw tup for debug
           args = @typetupletab.rev_table[arg]
-          args =  args[0..-3]
+          args = args[0..-3]
           if args.size == 1 then
             next
           end
@@ -266,10 +266,10 @@ module MTypeInf
     end
 
     def update_effects(thread, tblk)
-      update_effects_aux(thread, tblk, {})
+      update_effects_aux(thread, tblk, {}, {})
     end
 
-    def update_effects_aux(thread, tblk, history)
+    def update_effects_aux(thread, tblk, history, procs)
       if history[thread] == nil then
         history[thread] = {}
       end
@@ -280,11 +280,6 @@ module MTypeInf
 
       if history[thread][tblk] then
         return
-      end
-
-      history[thread][tblk] = true
-      tblk.call_blocks.each do |prc, dmy|
-        update_effects_aux(thread, prc, history)
       end
 
       tblk.effects.each do |event, value|
@@ -304,6 +299,11 @@ module MTypeInf
             end
           end
 
+        when :lambda
+          value.each do |inst, nproc|
+            procs[nproc] = inst.irep
+          end
+
         when :modify
           value.each do |inst, typetups|
             typetups.values.each do |types|
@@ -318,7 +318,7 @@ module MTypeInf
             # array self
             typetups[0].values.each do |types|
               types.each do |type|
-                type.threads[thread] = :modify
+                type.threads[thread] = [:modify, inst.line, inst.para[0]]
               end
             end
 
@@ -347,6 +347,18 @@ module MTypeInf
           end
         end
       end
+
+      history[thread][tblk] = true
+      tblk.call_blocks.each do |nblk, val|
+        if val[nil] then
+          if procs[nblk] then
+            update_effects_aux(thread, nblk, history, procs)
+          end
+        else
+          update_effects_aux(thread, nblk, history, procs)
+        end
+      end
+
     end
 
     def inference_top(saairep)

@@ -551,7 +551,7 @@ module MTypeInf
 
             curirep.call_blocks[irepssa] ||= {}
             recvtypes.each do |ty|
-              curirep.call_blocks[irepssa][ty] = true
+              curirep.call_blocks[irepssa][ty] = nil
             end
             rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if rc then

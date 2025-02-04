@@ -1432,12 +1432,16 @@ EOS
           end
 
         when :thread
-          case srct
-          when :mrb_value
-            "((struct cls5_17 *)DATA_PTR(#{src}))"
-
+          if srct.is_a?(Array) and srct[0] == :thread then
+            src
           else
-            raise "Not support yet #{dstt} #{srct}"
+            case srct
+            when :mrb_value
+              "((#{dstt[1]} #{dstt[2]})DATA_PTR(#{src}))"
+
+            else
+              raise "Not support yet #{dstt} #{srct}"
+            end
           end
 
         else
@@ -1517,6 +1521,9 @@ EOS
 
             when :mrb_int
               "(mrb_ary_new_from_values(mrb, #{srct[2]}, &mrb_fixnum_value(#{src})))"
+
+            when :thread
+              "(mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, #{src}, &thread_data_header)))"
 
             else
               raise "Not support yet #{dstt} #{srct}"
@@ -1603,8 +1610,6 @@ EOS
   mutex->obj;
 })
 EOS
-            when :thread
-              "(mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, #{src}, &thread_data_header)))"
 
             else
               p node.root.irep.disasm

@@ -206,7 +206,7 @@ module CodeGenC
           ccgen.pcode << "ubv#{oreg.id} = malloc(sizeof(*ubv#{oreg.id}));\n"
           ccgen.pcode << "ubv#{oreg.id}->argv = tpargv;\n"
           ccgen.pcode << "pthread_create(&ubv#{oreg.id}->thread, NULL, apply_thproc_#{oreg.id}, tpargv);\n"
-          src2 = gen_type_conversion(ccgen, outtype, :thread, "ubv#{oreg.id}", tup, node, infer, history, oreg, oreg_nb)
+          src2 = gen_type_conversion(ccgen, outtype, [:thread, nil, nil], "ubv#{oreg.id}", tup, node, infer, history, oreg, oreg_nb)
           ccgen.dcode << CodeGen::gen_declare(ccgen, oreg, tup, infer)
           ccgen.dcode << ";\n"
           ccgen.pcode << "v#{oreg.id} = #{src2};\n"
