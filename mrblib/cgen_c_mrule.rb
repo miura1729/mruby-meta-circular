@@ -696,7 +696,18 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
       ccgen.dcode << ";\n"
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      dstt = get_ctype(ccgen, nreg, tup, infer)
+      nregtype = nreg.type[tup][0]
+      srctype = inst.inreg[1].type[tup][0]
+      if srctype.is_gcobject? and nregtype.threads.size > 1 then
+        if nregtype.threads.values.include?(:canempty) then
+          dstt = :mrb_value_mutex_emptylock
+        else
+          dstt = :mrb_value_mutex
+        end
+      else
+        dstt = :mrb_value
+      end
+
       val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history, nil, inst.inreg[1])
       ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
       ccgen.pcode <<  "mrb_ary_push(mrb, v#{loreg.id}, #{val});\n"
