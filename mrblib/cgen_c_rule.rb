@@ -1793,6 +1793,23 @@ EOS
       aryreg = inst.inreg[0]
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
+      dsttype = inst.outreg[0].type[tup][0]
+      valtypes = elereg.type[tup]
+      valt = get_ctype(ccgen, elereg, tup, infer)
+
+      if valt == :mrb_value_mutex_emptylock then
+        dstt = :mrb_value_mutex_emptylock
+
+      elsif (valtypes.size != 1 or valtypes[0].is_gcobject?) and dsttype.threads.size > 1 then
+        if dsttype.threads.values.include?(:canempty) then
+          dstt = :mrb_value_mutex_emptylock
+        else
+          dstt = :mrb_value_mutex
+        end
+      else
+        dstt = :mrb_value
+      end
+
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "{\n"
@@ -1820,18 +1837,17 @@ EOS
         else
           src = "mrb_ary_ref(mrb, #{src}, #{idxc})"
         end
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
+        src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg)
       else
         etup = tup
         if elereg.type[etup] == nil then
           etup = elereg.type.keys[0]
         end
-        srct = get_ctype(ccgen, elereg, etup, infer)
-        if srct == :nil then
+        if valt == :nil then
           src = "mrb_nil_value()"
         else
           src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)}]"
-          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
+          src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg)
         end
       end
 

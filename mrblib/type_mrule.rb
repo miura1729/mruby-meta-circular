@@ -346,10 +346,13 @@ module MTypeInf
       arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
 
       arrtypes.each do |arrt|
-        if arrt.class_object. == Array then
+        if arrt.class_object_core == Array then
           arrele = arrt.element
           inst.outreg[0].add_same arrele[ContainerType::UNDEF_VALUE]
+          inst.outreg[0].add_same arrele[1]
+          arrele[ContainerType::UNDEF_VALUE]. add_same  inst.outreg[0]
           arrele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
+          inst.outreg[0].flush_type_alltup(tup)
         end
       end
 

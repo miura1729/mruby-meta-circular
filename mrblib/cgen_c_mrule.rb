@@ -698,7 +698,11 @@ module CodeGenC
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       nregtype = nreg.type[tup][0]
       srctype = inst.inreg[1].type[tup][0]
-      if srctype.is_gcobject? and nregtype.threads.size > 1 then
+      if valt == :mrb_value_mutex_emptylock then
+        dstt = :mrb_value_mutex_emptylock
+
+      elsif (srctype.is_gcobject? and nregtype.threads.size > 1) or
+          valt == :mrb_value_mutex then
         if nregtype.threads.values.include?(:canempty) then
           dstt = :mrb_value_mutex_emptylock
         else
@@ -723,10 +727,29 @@ module CodeGenC
       slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       slflo = gen_type_conversion(ccgen, :mrb_value, slft, slf, tup, node, infer, history, inst.para[5], inst.inreg[0])
       src = "mrb_ary_pop(mrb, #{slflo})"
-      dstt = get_ctype(ccgen, nreg, tup, infer)
+
+      valreg = inst.inreg[0].type[tup][0].element[1]
+      valtypes = valreg.type.values[0]
+      valt = get_ctype(ccgen, valreg, tup, infer)
+      if valt != :mrb_value_mutex_emptylock and valt != :mrb_value_mutex then
+        valt = :mrb_value
+      end
+      arytype = inst.inreg[0].type[tup][0]
+      if valt == :mrb_value_mutex_emptylock then
+        dstt = :mrb_value_mutex_emptylock
+
+      elsif (valtypes.size != 1 or valtypes[0].is_gcobject?) and arytype.threads.size > 1 then
+        if arytype.threads.values.include?(:canempty) then
+          dstt = :mrb_value_mutex_emptylock
+        else
+          dstt = :mrb_value_mutex
+        end
+      else
+        dstt = :mrb_value
+      end
 
       # if array is Mutex or MutexEmptyLock, element of array is also Mutex or MutexEmptyLock
-      src = gen_type_conversion(ccgen, dstt, slft, src, tup, node, infer, history, nreg, inst.inreg[0])
+      src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg, inst.inreg[0])
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
