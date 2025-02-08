@@ -809,7 +809,7 @@ module CodeGenC
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
 
         if initsize == "mrb_nil_value()" then
-          initsize = inst.outreg[0].get_type(tup)[0].element.size
+          initsize = inst.outreg[0].get_type(tup)[0].element.size - 1
         end
 
         if oreg.is_escape?(tup) then
@@ -819,8 +819,7 @@ module CodeGenC
           ccgen.pcode << "{\n"
           ccgen.pcode << "mrb_value ary = mrb_ary_new_capa(mrb, #{initsize});\n"
           src = "ary"
-          ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) ARY_PTR(mrb_ary_ptr(ary))[i] = mrb_nil_value();\n"
-          ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(ary), #{initsize});\n"
+          ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(ary), 0);\n"
           src2 = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
           ccgen.pcode << "v#{oreg.id} = #{src2};\n"
           ccgen.pcode << "}\n"
