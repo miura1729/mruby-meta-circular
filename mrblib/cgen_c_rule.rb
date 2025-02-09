@@ -191,7 +191,7 @@ module CodeGenC
 #          orgrec = inst.inreg[0].get_type(tup)
           inst.inreg[0].positive_list.push [rectype]
           if mproc == :writer then
-            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_objec_core)
+            clsobj = RiteSSA::ClassSSA.get_instance(rectype.class_object_core)
             ivreg = clsobj.get_iv("@#{name.to_s.chop}".to_sym)
             gen_set_iv(ccgen, inst, node, infer, history, tup, inst.inreg[0], ivreg, inst.inreg[1], inst.outreg[0])
 
@@ -1304,6 +1304,9 @@ EOS
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           eele = reg.get_type(tup)[0].element
           ereg = eele[uv]
+          if ereg == nil then
+            ereg = eele.values[0]
+          end
           etup = tup
           if ereg.get_type_or_nil(tup) == nil then
             etup = ereg.type.keys[0]
@@ -1742,7 +1745,11 @@ EOS
     def self.gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
       ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
       dstt = get_ctype(ccgen, dst, tup, infer)
-      slfsrc = "self" #reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
+      if inst.op == :GETIV then
+        slfsrc = "self"
+      else
+        slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
+      end
 
       if slf.is_escape?(tup) then
         if slf.type[tup][0].class_object == MMC_EXT::Mutex then
@@ -1765,7 +1772,11 @@ EOS
     def self.gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
       valt = get_ctype(ccgen, valr, tup, infer)
       val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
-      slfsrc = "self" #reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
+      if inst.op == :SETIV then
+        slfsrc = "self"
+      else
+        slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
+      end
       if slf.is_escape?(tup) then
         val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
         ccgen.pcode << "{"
@@ -1786,12 +1797,22 @@ EOS
 
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
+      index = uv
+      if idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
+        index = idx.type[tup][0].val
+      end
       arytypes = inst.inreg[0].get_type(tup)
       eele = arytypes[0].element
-      elereg = eele[uv]
+      elereg = eele[index]
+      if elereg == nil then
+        elereg = eele[uv]
+        if elereg == nil then
+          elereg = eele.values[0]
+        end
+      end
       nreg = inst.outreg[0]
       aryreg = inst.inreg[0]
-      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
       dsttype = inst.outreg[0].type[tup][0]
       valtypes = elereg.type[tup]
@@ -1806,15 +1827,13 @@ EOS
         else
           dstt = :mrb_value_mutex
         end
-      else
-        dstt = :mrb_value
       end
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "{\n"
 
-      if srct == :mrb_value_mutex then
+      if srct == :mrb_value_mutex or srct == :mrb_value_mutex_emptylock then
         loreg = inst.para[5]
         src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, inst.inreg[0])
         ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
@@ -1822,6 +1841,14 @@ EOS
         ccgen.pcode << "mrb_value val = #{src};\n"
         src = "val"
         srct = :mrb_value
+      end
+
+      if valt != :mrb_value_mutex and valt != :mrb_value_mutex_emptylock then
+        if srct.is_a?(Array) and valt.is_a?(String) then
+          valt = srct[0]
+        else
+          valt = srct
+        end
       end
 
       if srct == :mrb_value then

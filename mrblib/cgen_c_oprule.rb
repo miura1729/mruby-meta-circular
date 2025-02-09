@@ -145,11 +145,12 @@ module CodeGenC
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      if oreg.type[tup] and
-          oreg.type[tup][0].is_a?(MTypeInf::LiteralType) then
-        val = oreg.type[tup][0].val
+      if oreg.type.values and
+          oreg.type.values[0][0].is_a?(MTypeInf::LiteralType) then
+        val = oreg.type.values[0][0].val
       else
         p "Unknown Constant value"
+        p inst
         p inst.para[0]
         p oreg.type
       end
@@ -261,10 +262,25 @@ module CodeGenC
           if oreg.is_escape?(tup) then
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
           else
+            dstt = get_ctype(ccgen, oreg, tup, infer)
+            dstt2 = dstt
+            case dstt[1]
+            when "**"
+              dstt = [dstt[0], "*", dstt[2]]
+              dstt2 = "#{dstt[0]} *"
+
+            when "*"
+              dstt = dstt[0]
+              dstt2 = dstt
+
+            else
+              raise "Not support yet #{dstt}"
+            end
+
             val, srct = reg_real_value_noconv(ccgen, inst.inreg[m1], node, tup, infer, history)
-            val = gen_type_conversion(ccgen, :mrb_value, srct, val, tup, node, infer, history, nil)
+            val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, nil)
             #ccgen.pcode << "v#{oreg.id} = &v#{inst.inreg[m1].id}; // xxx\n"
-            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(mrb_value)); // xxx\n"
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt2})); // xxx\n"
             ccgen.pcode << "*v#{oreg.id} = #{val};\n"
           end
           inst.para[2][m1] = "v#{oreg.id}"
@@ -442,7 +458,9 @@ module CodeGenC
       # Skip unnessery boxing
       otype = get_ctype(ccgen, inst.outreg[0], tup, infer)
       itype = get_ctype(ccgen, inst.inreg[0], tup, infer)
-      if ccgen.callstack[-1][3] or
+      if inst.para[-1] == 0 then
+        retval = "self"
+      elsif ccgen.callstack[-1][3] or
           otype != :mrb_value or
           itype == :mrb_value then
         retval = reg_real_value(ccgen, inst.inreg[0], node.root.retreg, node, tup, infer, history)
@@ -845,7 +863,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :EXEC do |ccgen, inst, node, infer, history, tup|
-      tclass = inst.inreg[0].flush_type(tup)[tup]
+      tclass = inst.inreg[0].flush_type_alltup(tup)[tup]
       root = node.root
       co = tclass[0].val
       irepssa = inst.objcache[co]

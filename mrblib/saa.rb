@@ -552,6 +552,8 @@ module RiteSSA
           dstreg.refpoint.push inst
           inst.outreg.push dstreg
 
+          inst.para.push getarg_a(code)
+
           # for unlock
           @root.nodes[0].enter_reg[0].refpoint.push @ext_iseq[-2]
 
@@ -1040,7 +1042,8 @@ module RiteSSA
           a = getarg_a(code)
           bx = getarg_bx(code)
           inst.inreg.push regtab[a]
-          inst.para.push @irep.reps[bx]
+          blk = @irep.reps[bx]
+          inst.para.push blk
           dstreg = Reg.new(inst)
           regtab[a] = dstreg
           inst.outreg.push dstreg

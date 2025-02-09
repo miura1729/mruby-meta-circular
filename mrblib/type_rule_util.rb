@@ -103,9 +103,9 @@ module MTypeInf
             case genp.para[0]
             when :kind_of?, :is_a?
               typemethodp = true
+              tcls = genp.inreg[1].flush_type(tup)[tup]
               genp = genp.inreg[0].genpoint
               atype_reg = get_original_reg(infer, genp, tup)
-              tcls = genp.inreg[1].flush_type(tup)[tup]
               cls = nil
               if tcls.size == 1 and tcls[0].val.class == Class then
                 cls = tcls[0].val

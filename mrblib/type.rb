@@ -365,11 +365,11 @@ module MTypeInf
 
       else
         if level < 1 then
-          "#{@class_object.inspect} val=#{@val.inspect} e=#{is_escape?}"
-#          "Literal #{@class_object.inspect} val=#{@val.inspect}"
+#          "#{@class_object.inspect} val=#{@val.inspect} e=#{is_escape?}"
+          "Literal #{@class_object.inspect} val=#{@val.inspect}"
         else
-          "#{@class_object.inspect} e=#{is_escape?}"
-#          "Literal #{@class_object.inspect}"
+#          "#{@class_object.inspect} e=#{is_escape?}"
+          "Literal #{@class_object.inspect}"
         end
       end
     end

@@ -472,12 +472,16 @@ module MTypeInf
 
             (anum - m1 - o).times do |i|
               nreg = type.element[i] || RiteSSA::Reg.new(inst)
+              unreg = type.element[uv]
               if ele[m1 + o +  i] then
                 nreg.add_same ele[m1 + o +  i]
+                unreg.add_same ele[m1 + o +  i]
               else
                 nreg.add_same ele[uv]
+                unreg.add_same ele[uv]
               end
               nreg.flush_type_alltup(tup)
+              unreg.flush_type_alltup(tup)
               type.element[i] = nreg
             end
 
@@ -524,8 +528,11 @@ module MTypeInf
 
           (argc - m1 - o).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(inst)
+            unreg = type.element[uv]
             nreg.add_same argv[m1 + o +  i]
+            unreg.add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
+            unreg.flush_type(tup)
             type.element[i] = nreg
           end
 
@@ -1112,6 +1119,13 @@ module MTypeInf
       irepssa = inst.objcache[co]
       if !irepssa then
         irepssa = RiteSSA::Block.new(irep, root, co, true)
+        # START instruction is disable
+        orginst = irepssa.nodes[0].ext_iseq[0]
+        orginst.outreg[0].add_same orginst.inreg[0]
+        ninst = RiteSSA::Inst.new(0, irep, 0, self, 0)
+        ninst.inreg[0] = orginst.inreg[0]
+        ninst.outreg[0] = orginst.outreg[0]
+        irepssa.nodes[0].ext_iseq[0] = ninst
         inst.objcache[co] = irepssa
       end
       intype = [tclass]
