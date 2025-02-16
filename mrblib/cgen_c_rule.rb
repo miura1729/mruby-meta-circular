@@ -60,7 +60,7 @@ module CodeGenC
         end
         if ty != Fixnum and ty != Float and
             ty != TrueClass and ty != FalseClass then
-          return false
+          # return false
         end
       end
 
@@ -108,7 +108,7 @@ module CodeGenC
           ccgen.is_live_reg?(node, oreg) then
         name = "v#{oreg.id}"
         ccgen.pcode << "#{name} = mrb_nil_value();\n"
-        ccgen.pcode << "gctab->single[#{cpsize}] = &#{name}; /* conversion */\n"
+        ccgen.pcode << "gctab->single[gctab->size] = &#{name}; /* conversion */\n"
         ccgen.pcode << "gctab->size++;\n"
         ccgen.prev_gcsingle[cpsize] = name
         ccgen.gcsingle_psize += 1
@@ -1523,7 +1523,13 @@ EOS
               end
 
             when :mrb_int
-              "(mrb_ary_new_from_values(mrb, #{srct[2]}, &mrb_fixnum_value(#{src})))"
+              <<"EOS"
+({
+  mrb_value val = mrb_fixnum_value(#{src});
+  mrb_ary_new_from_values(mrb, #{srct[2]}, &val);
+})
+EOS
+
 
             when :thread
               "(mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, #{src}, &thread_data_header)))"
@@ -1603,7 +1609,6 @@ EOS
                 empty_unlock = :push
               end
               ccgen.unlock_instruction[uins] = [ireg, empty_unlock]
-
 
               <<"EOS"
 ({
@@ -1798,10 +1803,14 @@ EOS
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       index = uv
-      if idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
+      if inst.outreg[0].type[tup] == nil then
+        tup = inst.outreg[0].type.keys[0]
+      end
+      if idx.type[tup] and idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
         index = idx.type[tup][0].val
       end
-      arytypes = inst.inreg[0].get_type(tup)
+      aryreg = inst.inreg[0]
+      arytypes = aryreg.get_type(tup)
       eele = arytypes[0].element
       elereg = eele[index]
       if elereg == nil then
@@ -1811,31 +1820,20 @@ EOS
         end
       end
       nreg = inst.outreg[0]
-      aryreg = inst.inreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
       dsttype = inst.outreg[0].type[tup][0]
       valtypes = elereg.type[tup]
       valt = get_ctype(ccgen, elereg, tup, infer)
 
-      if valt == :mrb_value_mutex_emptylock then
-        dstt = :mrb_value_mutex_emptylock
-
-      elsif (valtypes.size != 1 or valtypes[0].is_gcobject?) and dsttype.threads.size > 1 then
-        if dsttype.threads.values.include?(:canempty) then
-          dstt = :mrb_value_mutex_emptylock
-        else
-          dstt = :mrb_value_mutex
-        end
-      end
-
+      dstt = get_mutex_dst(valt, valtypes, dstt, dsttype)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "{\n"
 
       if srct == :mrb_value_mutex or srct == :mrb_value_mutex_emptylock then
         loreg = inst.para[5]
-        src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, inst.inreg[0])
+        src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, aryreg)
         ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
         ccgen.dcode << ";\n"
         ccgen.pcode << "mrb_value val = #{src};\n"
@@ -1891,6 +1889,29 @@ EOS
 
       slft = get_ctype(ccgen, inst.inreg[0], tup, infer)
       slf = gen_type_conversion(ccgen, :mrb_value, slft, inst.inreg[0], tup, node, infer, history, inst.outreg[0])
+    end
+
+    def self.get_mutex_dst(valt, valtypes, aryt, arytype)
+      if valt == :mrb_value_mutex_emptylock then
+        :mrb_value_mutex_emptylock
+
+      elsif (valtypes.size != 1 or valtypes[0].is_gcobject?) and arytype.threads.size > 1 then
+        if valtypes[0].threads.values.include?(:canempty) then
+          :mrb_value_mutex_emptylock
+        else
+          :mrb_value_mutex
+        end
+
+      elsif valt == :mrb_value_mutex then
+        :mrb_value_mutex
+
+      else
+        if aryt == :mrb_value_mutex or aryt == :mrb_value_mutex_emptylock then
+          :mrb_value
+        else
+          aryt
+        end
+      end
     end
 
     def self.gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)

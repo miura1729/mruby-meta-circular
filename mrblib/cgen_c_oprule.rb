@@ -618,9 +618,9 @@ module CodeGenC
     define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
       reg = inst.outreg[0]
       uv = MTypeInf::ContainerType::UNDEF_VALUE
-      aryt = reg.get_type(tup)[0]
-      eareg = aryt.element
-      aescape = reg.is_escape?(tup) #or (!aryt.immidiate_only)
+      arytype = reg.get_type(tup)[0]
+      eareg = arytype.element
+      aescape = reg.is_escape?(tup) #or (!arytype.immidiate_only)
       etype = get_ctype(ccgen, eareg[uv], tup, infer)
       if etype.is_a?(Array) then
         etype = etype[0..1].join(' ')
@@ -629,7 +629,9 @@ module CodeGenC
       if aescape then
         vals = inst.inreg.map {|ireg|
           val, convp = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-          gen_type_conversion(ccgen, :mrb_value, convp, val, tup, node, infer, history, reg)
+          aryt = get_ctype(ccgen, reg, tup, infer)
+          dst = get_mutex_dst(convp, ireg.type.values[0], aryt, arytype)
+          gen_type_conversion(ccgen, dst, convp, val, tup, node, infer, history, reg)
         }
 
         ccgen.dcode << "mrb_value v#{reg.id};\n"

@@ -717,11 +717,7 @@ EOS
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
           if (ireg, eunlock = @unlock_instruction[ins]) then
-            if ireg.is_a?(RiteSSA::ParmReg) and ireg.genpoint == 0 then
-              reg = "mutexself"
-            else
-              reg = "v#{ireg.id}"
-            end
+            reg, treg = CodeGen::reg_real_value_noconv(self, ireg, node, tup, ti, history)
             wrapper = "DATA_PTR(#{reg})"
             if eunlock == :push then
               @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"

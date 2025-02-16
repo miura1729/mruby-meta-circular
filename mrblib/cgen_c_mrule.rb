@@ -698,20 +698,11 @@ module CodeGenC
       val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       nregtype = nreg.type[tup][0]
       srctype = inst.inreg[1].type[tup][0]
-      if valt == :mrb_value_mutex_emptylock then
-        dstt = :mrb_value_mutex_emptylock
 
-      elsif (srctype.is_gcobject? and nregtype.threads.size > 1) or
-          valt == :mrb_value_mutex then
-        if nregtype.threads.values.include?(:canempty) then
-          dstt = :mrb_value_mutex_emptylock
-        else
-          dstt = :mrb_value_mutex
-        end
-      else
-        dstt = :mrb_value
-      end
-
+      valtypes = inst.inreg[1].type.values[0]
+      arytype = inst.inreg[0].type[tup][0]
+      aryt = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      dstt = get_mutex_dst(valt, valtypes, aryt, arytype)
       val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history, nil, inst.inreg[1])
       ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
       ccgen.pcode <<  "mrb_ary_push(mrb, v#{loreg.id}, #{val});\n"
@@ -735,18 +726,8 @@ module CodeGenC
         valt = :mrb_value
       end
       arytype = inst.inreg[0].type[tup][0]
-      if valt == :mrb_value_mutex_emptylock then
-        dstt = :mrb_value_mutex_emptylock
-
-      elsif (valtypes.size != 1 or valtypes[0].is_gcobject?) and arytype.threads.size > 1 then
-        if arytype.threads.values.include?(:canempty) then
-          dstt = :mrb_value_mutex_emptylock
-        else
-          dstt = :mrb_value_mutex
-        end
-      else
-        dstt = :mrb_value
-      end
+      aryt = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      dstt = get_mutex_dst(valt, valtypes, aryt, arytype)
 
       # if array is Mutex or MutexEmptyLock, element of array is also Mutex or MutexEmptyLock
       src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg, inst.inreg[0])
