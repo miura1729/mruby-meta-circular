@@ -34,7 +34,7 @@
 */
 
 #include <mruby.h>
-#include "mt19937ar.h"
+#include "mrbgems/mruby-random/src/mt19937ar.h"
 
 /* Period parameters */
 /* #define N 624 */

@@ -650,6 +650,14 @@ MRBJitCode::mrbjit_prim_ary_aset_impl(mrb_state *mrb, mrb_value proc,
   inLocalLabel();
   gen_type_guard(mrb, idxno, status, pc, coi);
   gen_flush_regs(mrb, pc, status, coi, 1);
+
+  emit_cfunc_start(mrb, coi);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp0, aryno);
+  emit_arg_push(mrb, coi, 1, reg_tmp0);
+  emit_arg_push(mrb, coi, 0, reg_mrb);
+  emit_call(mrb, coi, (void *)mrb_ary_modify);
+  emit_cfunc_end(mrb, coi, 2 * sizeof(void *));
+
 #if 1
   emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, aryno);
   gen_ary_size(mrb, status, coi);
@@ -1026,6 +1034,14 @@ MRBJitCode::mrbjit_prim_instance_new_impl(mrb_state *mrb, mrb_value proc,
 
   // regs[a] = obj;
   emit_local_var_write_from_cfunc(mrb, coi, a);
+
+  // mrb_write_barrier(mrb, (struct RBasic*)regs[a]);
+  emit_cfunc_start(mrb, coi);
+  emit_local_var_ptr_value_read(mrb, coi, reg_tmp1, a);
+  emit_arg_push(mrb, coi, 1, reg_tmp1);
+  emit_arg_push(mrb, coi, 0, reg_mrb);
+  emit_call(mrb, coi, (void *)mrb_write_barrier);
+  emit_cfunc_end(mrb, coi, sizeof(mrb_state *) + sizeof(struct RBasic *));
 
   gen_call_initialize(mrb, proc, status, coi);
 

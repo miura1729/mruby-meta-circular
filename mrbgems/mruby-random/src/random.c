@@ -9,7 +9,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/array.h>
-#include "mt19937ar.h"
+#include "mrbgems/mruby-random/src/mt19937ar.h"
 
 #include <time.h>
 

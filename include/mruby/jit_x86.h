@@ -205,7 +205,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     mov(dword [reg_vars + regno], src);
   }
 
-  void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, cpu_word_t src) {
+  void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int src) {
     switch(src) {
     case -1:
       xor(dst, dst);
@@ -231,7 +231,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     mov(dst, src);
   }
 
-  void emit_load_literal_noopt(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, cpu_word_t src) {
+  void emit_load_literal_noopt(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int src) {
     mov(dst, src);
   }
 

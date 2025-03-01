@@ -110,7 +110,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_value *regs = mrb->c->stack;
   mrb_irep *irep = *status->irep;
   mrb_sym *syms = irep->syms;
-  int ai = *status->ai;
+  int ai = mrb_gc_arena_save(mrb);
   mrb_code i = *pc;
 
   int a = GETARG_A(i);
@@ -239,7 +239,7 @@ mrbjit_exec_send_c_void(mrb_state *mrb, mrbjit_vmstatus *status,
   mrb_value *regs = mrb->c->stack;
   mrb_irep *irep = *status->irep;
   mrb_sym *syms = irep->syms;
-  int ai = *status->ai;
+  int ai = mrb_gc_arena_save(mrb);
   mrb_code i = *pc;
 
   int a = GETARG_A(i);

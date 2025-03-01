@@ -225,7 +225,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     mov(qword [reg_vars + regno], reg_itmp);
   }
 
-  void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, cpu_word_t src) {
+  void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, int src) {
     switch(src) {
     case -2:
       xor(dst, dst);
@@ -259,7 +259,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     }
   }
 
-  void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, uint32_t src) {
+  void emit_load_literal(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg32 dst, int src) {
     switch(src) {
     case -2:
       xor(dst, dst);
@@ -297,7 +297,7 @@ class MRBGenericCodeGenerator: public Xbyak::CodeGenerator {
     mov(dst, src);
   }
 
-  void emit_load_literal_noopt(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, cpu_word_t src) {
+  void emit_load_literal_noopt(mrb_state *mrb, mrbjit_code_info *coi, Xbyak::Reg64 dst, int src) {
     const int idx = dst.getIdx();
     int code = 176 | 1 << 3;
     db(dst.getRex());
