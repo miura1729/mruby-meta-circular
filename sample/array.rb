@@ -1,4 +1,6 @@
 def foo
+  bbb = [1, 2, 3]
+  bbb.push 4
   a = []
   a[0] = "ab"
   a[1] = 3.0

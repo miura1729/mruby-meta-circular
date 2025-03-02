@@ -1,3 +1,9 @@
+class String
+  def start_with?(foo)
+    true
+  end
+end
+
 MTypeInf::inference_main({
     :dump_level => 0
   }) {
@@ -7,16 +13,17 @@ MTypeInf::inference_main({
         :alu => [:ind_x, :zpg, :imm, :abs, :ind_y, :zpg_x, :abs_y, :abs_x],
         :uno => [:ind_x, :zpg, :imm, :abs, :ind_y, :zpg_y, :abs_y, :abs_y],
       }
+#  $bar = ADDRESSING_MODES[:alu][0]
 
       def op(opcodes, args)
-        #$foo = opcodes
+#        #$foo = args[2]
         opcodes.each do |opcode|
           if args.kind_of?(Array) && [:r_op, :w_op, :rw_op].include?(args[0])
             kind, op0, mode = args
-            #$foo = op0
+#            $foo = mode
+#            $foo = ADDRESSING_MODES
             mode = ADDRESSING_MODES[mode][opcode >> 2 & 7]
             send_args = [kind, op0, mode]
-            #$foo = mode
             send_args << (mode.to_s.start_with?("zpg") ? :store_zpg : :store_mem) if kind != :r_op
             DISPATCH[opcode] = send_args
           else
@@ -71,13 +78,13 @@ def foo
       op([0xc0, 0xc4, 0xcc],                                     [:r_op, :_cpy, :rmw])
 
       # shift operations
-      op([0x0a],                                                 [:a_op, :_asl])
+      op([0x0a],                                                 [:a_op, :_asl, :alu])
       op([0x06, 0x16, 0x0e, 0x1e],                               [:rw_op, :_asl, :alu])
-      op([0x4a],                                                 [:a_op, :_lsr])
+      op([0x4a],                                                 [:a_op, :_lsr, :alu])
       op([0x46, 0x56, 0x4e, 0x5e],                               [:rw_op, :_lsr, :alu])
-      op([0x2a],                                                 [:a_op, :_rol])
+      op([0x2a],                                                 [:a_op, :_rol, :alu])
       op([0x26, 0x36, 0x2e, 0x3e],                               [:rw_op, :_rol, :alu])
-      op([0x6a],                                                 [:a_op, :_ror])
+      op([0x6a],                                                 [:a_op, :_ror, :alu])
       op([0x66, 0x76, 0x6e, 0x7e],                               [:rw_op, :_ror, :alu])
 
       # increment and decrement operations
@@ -145,6 +152,5 @@ end
 DISPATCH = []
 
       foo
-
-$foo = DISPATCH[0xab]
+DISPATCH[0xab]
 }
