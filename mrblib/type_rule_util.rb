@@ -773,8 +773,16 @@ module MTypeInf
 
     def self.realvalue_from_container_type(type, tup)
       result = nil
-      if type.class_object == Hash
+      if type.class_object == Hash then
         result = {}
+        type.element.each do |key, value|
+          if key != ContainerType::UNDEF_VALUE then
+            result[key] = value
+          end
+        end
+
+      elsif type.class_object == Array then
+        result = []
         type.element.each do |key, value|
           if key != ContainerType::UNDEF_VALUE then
             result[key] = value

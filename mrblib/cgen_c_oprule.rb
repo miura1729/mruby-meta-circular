@@ -617,6 +617,9 @@ module CodeGenC
 
     define_ccgen_rule_op :ARRAY do |ccgen, inst, node, infer, history, tup|
       reg = inst.outreg[0]
+      if reg.get_type_or_nil(tup) == nil then
+        tup = reg.type.keys[0]
+      end
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       arytype = reg.get_type(tup)[0]
       eareg = arytype.element
@@ -821,6 +824,7 @@ module CodeGenC
 #        ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"
         pproc = ccgen.callstack[-1][0]
         minf = [bfunc, proc, tp, dstt, pproc]
+#        @foo = minf.inspect # for gc bug
         ccgen.proctab[proc.irep] ||= []
         ccgen.proctab[proc.irep][i] = minf
       end

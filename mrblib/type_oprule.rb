@@ -243,7 +243,7 @@ module MTypeInf
             const.each do |key, value|
               keyt = LiteralType.new(key.class, key)
               type.element[key] ||= RiteSSA::Reg.new(inst)
-              type.element[key].add_type(keyt, tup)
+              #type.element[key].add_type(keyt, tup)
               if key != ContainerType::UNDEF_VALUE then
                 type.key.add_type keyt, 0
               end
@@ -906,8 +906,10 @@ module MTypeInf
 
       arrtype.each do |at|
         if at.class_object == Array then
-          inst.outreg[0].add_same at.element[idx]
-          inst.outreg[0].flush_type_alltup(tup)
+          types = at.element[idx].get_type(tup)
+          types.each do |ty|
+            inst.outreg[0].add_type ty, tup
+          end
 
         else
           if idx == 0 then
@@ -1022,8 +1024,9 @@ module MTypeInf
         nreg.add_same inst.inreg[i * 2 + 1]
         idxtypes = inst.inreg[i * 2].flush_type(tup)[tup]
         if idxtypes then
-          idx = idxtypes[0].class_object
-          type.element[idx] = nreg
+          if idxtypes[0] and idx = idxtypes[0].val then
+            type.element[idx] = nreg
+          end
           idxtypes.each do |idxt|
             type.key.add_type idxt, 0
           end

@@ -880,10 +880,16 @@ module CodeGenC
           if inst.para[1] == 127 then
             i = 0
             inreg = inst.inreg[1]
+            baset = get_ctype(ccgen, inreg, tup, infer)
             base = "v#{inreg.id}"
+            if baset == :mrb_value_mutex or baset == :mrb_value_mutex_emptylock then
+              base = gen_type_conversion(ccgen, :mrb_value, baset, base, tup, node, infer, history, inreg)
+            end
             argsv = []
             while argr = inreg.type[tup][0].element[i]
-              argsv.push "#{base}[#{i}]"
+              srct = get_ctype(ccgen, argr, tup, infer)
+              src = "#{base}[#{i}]"
+              argsv.push src
               i = i + 1
             end
             args = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]

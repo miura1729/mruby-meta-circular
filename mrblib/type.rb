@@ -117,7 +117,7 @@ module MTypeInf
                 end
 
               when MTypeInf::ContainerType
-                if @level == ele.level then
+                if @level == ele.level and @place != ele.place then
                   @place.merge! ele.place
                   ele.place = @place
                 end
@@ -126,7 +126,7 @@ module MTypeInf
                 end
 
               when MTypeInf::UserDefinedType, MTypeInf::StringType
-                if @level == ele.level then
+                if @level == ele.level and @place != ele.place then
                   @place.merge! ele.place
                   ele.place = @place
                 end
@@ -438,11 +438,32 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object_core &&
-#        @element.size == other.element.size &&
-        @hometown == other.hometown &&
-#        @element == other.element &&
+        #        @element.size == other.element.size &&
+        (@hometown == other.hometown ||
+           (other.element[UNDEF_VALUE].type.all? {|key, types|
+             types.all? {|type|
+               tys2 = @element[UNDEF_VALUE].type[key]
+               if tys2 then
+                 tys2.include?(type)
+               else
+                 nil
+               end
+             }
+          } &&
+          @element[UNDEF_VALUE].type.all? {|key, types|
+            types.all? {|type|
+              tys2 = other.element[UNDEF_VALUE].type[key]
+              if tys2 then
+                tys2.include?(type)
+              else
+                true
+              end
+            }
+          })) &&
+
+        #        @element == other.element &&
         is_escape? == other.is_escape?
-#      equal?(other)# && is_escape? == other.is_escape?
+           #      equal?(other)# && is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)

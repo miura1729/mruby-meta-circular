@@ -1104,11 +1104,7 @@ module CodeGenC
       end
     end
 
-    def self.get_ctype(ccgen, reg, tup, infer, strobj = true)
-      if reg.get_type_or_nil(tup) == nil then
-        tup = reg.type.keys[0]
-      end
-      type = get_ctype_aux(ccgen, reg, tup, infer)
+    def self.get_ctype_to_c(ccgen, reg, tup, infer, type, strobj = true)
       case type
       when :array
         if strobj and !reg.is_escape?(tup) then
@@ -1171,6 +1167,14 @@ module CodeGenC
           type
         end
       end
+    end
+
+    def self.get_ctype(ccgen, reg, tup, infer, strobj = true)
+      if reg.get_type_or_nil(tup) == nil then
+        tup = reg.type.keys[0]
+      end
+      type = get_ctype_aux(ccgen, reg, tup, infer)
+      get_ctype_to_c(ccgen, reg, tup, infer, type, strobj)
     end
 
 
@@ -1803,9 +1807,6 @@ EOS
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       index = uv
-      if inst.outreg[0].type[tup] == nil then
-        tup = inst.outreg[0].type.keys[0]
-      end
       if idx.type[tup] and idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
         index = idx.type[tup][0].val
       end
@@ -1822,7 +1823,11 @@ EOS
       nreg = inst.outreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
-      dsttype = inst.outreg[0].type[tup][0]
+      if inst.outreg[0].type[tup] then
+        dsttype = inst.outreg[0].type[tup][0]
+      else
+        dsttype = inst.outreg[0].type.values[0][0]
+      end
       valtypes = elereg.type[tup]
       valt = get_ctype(ccgen, elereg, tup, infer)
 
@@ -1842,8 +1847,11 @@ EOS
       end
 
       if valt != :mrb_value_mutex and valt != :mrb_value_mutex_emptylock then
-        if srct.is_a?(Array) and valt.is_a?(String) then
+        if srct.is_a?(Array) and
+            (valt.is_a?(String) or valt.is_a?(Symbol)) and
+            valt != :mrb_value then
           valt = srct[0]
+          valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
         else
           valt = srct
         end
@@ -1895,7 +1903,8 @@ EOS
       if valt == :mrb_value_mutex_emptylock then
         :mrb_value_mutex_emptylock
 
-      elsif (valtypes.size != 1 or valtypes[0].is_gcobject?) and arytype.threads.size > 1 then
+      elsif (valtypes and (valtypes.size != 1 or valtypes[0].is_gcobject?)) and
+          arytype.threads.size > 1 then
         if valtypes[0].threads.values.include?(:canempty) then
           :mrb_value_mutex_emptylock
         else
