@@ -716,8 +716,8 @@ EOS
         #p "#{ins.op} #{ins.filename}##{ins.line}"  # for debug
         begin
           rc = @@ruletab[:CCGEN][ins.op].call(self, ins, node, ti, history, tup)
-          if (ireg, eunlock = @unlock_instruction[ins]) then
-            reg, treg = CodeGen::reg_real_value_noconv(self, ireg, node, tup, ti, history)
+          if (ireg, eunlock, inode = @unlock_instruction[ins]) then
+            reg, treg = CodeGen::reg_real_value_noconv(self, ireg, inode, tup, ti, history)
             wrapper = "DATA_PTR(#{reg})"
             if eunlock == :push then
               @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"

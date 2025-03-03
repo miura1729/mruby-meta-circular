@@ -21,8 +21,8 @@ def main
         reps.push a
       end
       pp "HoHo Let's make present"
-      pp reps.map {|i, r| i}
-#      pp reps.map {|n| n[0]}
+#      pp reps.map {|i, r| i}
+      pp reps.map {|n| n[0]}
 
       reps.each do |ele|
         ele[1].push 1

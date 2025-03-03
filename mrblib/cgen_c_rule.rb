@@ -740,12 +740,6 @@ module CodeGenC
         return ["v#{reg.id}", srct]
       end
       if reg.is_a?(RiteSSA::ParmReg) then
-        if node.enter_link.size == 1 then
-          pnode = node.enter_link[0]
-          preg = pnode.exit_reg[reg.genpoint]
-          return reg_real_value_noconv(ccgen, preg, pnode, tup, ti, history)
-        end
-
         if node.enter_link.size == 0 then # TOP of block
           ptype = ti.typetupletab.rev_table[tup][reg.genpoint]
           if ptype.is_a?(Array) and ptype.size == 1 and
@@ -763,6 +757,13 @@ module CodeGenC
               end
             end
           end
+          preg = node.enter_reg[reg.genpoint]
+          return ["v#{preg.id}", srct]
+
+        elsif node.enter_link.size == 1 then
+          pnode = node.enter_link[0]
+          preg = pnode.exit_reg[reg.genpoint]
+          return reg_real_value_noconv(ccgen, preg, pnode, tup, ti, history)
         end
 
         return ["v#{reg.id}", srct]
@@ -1579,7 +1580,7 @@ EOS
                   uins = ireg.refpoint[-2]
                 end
               end
-              ccgen.unlock_instruction[uins] = [ireg, ""]
+              ccgen.unlock_instruction[uins] = [ireg, "", node]
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
@@ -1612,7 +1613,7 @@ EOS
                 empty_lock = ""
                 empty_unlock = :push
               end
-              ccgen.unlock_instruction[uins] = [ireg, empty_unlock]
+              ccgen.unlock_instruction[uins] = [ireg, empty_unlock, node]
 
               <<"EOS"
 ({

@@ -29,7 +29,7 @@ module CodeGenC
       dstt = get_ctype(ccgen, oreg, tup, infer)
       src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nil, ireg)
       ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "self")};\n"
-      ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "mutexself")};\n"
+      ccgen.dcode << "#{gen_declare_core(ccgen, ireg, tup, infer, false, "mutexself")};\n"
       ccgen.pcode << "mutexself = v#{ireg.id};\n"
       ccgen.pcode << "self = #{src};\n"
       if argc >= 1 then
