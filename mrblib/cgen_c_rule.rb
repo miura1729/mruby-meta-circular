@@ -1392,6 +1392,12 @@ EOS
         return src
       end
 
+      if (srct == :mrb_value_mutex or srct == :mrb_value_mutex_emptylock) and dstt != :mrb_value then
+        # 2step type conversion
+        src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, ti, history, oreg, ireg)
+        srct = :mrb_value
+      end
+
       if dstt.is_a?(Array) and srct.is_a?(Array) and
           dstt[0] == srct[0] and dstt[0] == :char then
         return src

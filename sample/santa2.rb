@@ -1,3 +1,13 @@
+module Enumerable
+  def map(&block)
+    return to_enum :collect unless block
+
+    ary = []
+    self.each{|*val| ary.push(block.call(*val))}
+    ary
+  end
+end
+
 def main
   # Santa hobbit dev.
   hobbit = MMC_EXT::Thread.new do
@@ -21,8 +31,10 @@ def main
         reps.push a
       end
       pp "HoHo Let's make present"
-#      pp reps.map {|i, r| i}
-      pp reps.map {|n| n[0]}
+      pp reps.map {|i, r|
+        i
+      }
+#      pp reps.map {|n| n[0]}
 
       reps.each do |ele|
         ele[1].push 1

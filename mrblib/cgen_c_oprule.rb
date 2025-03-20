@@ -702,20 +702,59 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :ARYCAT do |ccgen, inst, node, infer, history, tup|
-      pos = inst.para[0]
+      posbase = inst.para[0]
       basereg = inst.inreg[0]
-      valreg = inst.inreg[1]
-      valereg = valreg.type[tup][0].element[pos]
       oreg = inst.outreg[0]
-      elereg = oreg.type[tup][0].element[MTypeInf::ContainerType::UNDEF_VALUE]
-      if valereg then
-        valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
-      else
-        valsrc = "mrb_nil_value()"
-      end
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{basereg.id}[#{pos}] = #{valsrc};\n"
+      valreg = inst.inreg[1]
+      valtype = valreg.type[tup][0]
+      valereg = valtype.element[posbase]
+      valetype = valereg.type[tup][0]
+      if valetype.is_a?(MTypeInf::ContainerType) then
+        ccgen.pcode << "{\n"
+        ary = "v#{valreg.id}[0]"
+        valety = get_ctype(ccgen, valereg, tup, infer)
+        if valetype.is_escape? then
+          ary = gen_type_conversion(ccgen, :mrb_value, valety, ary, tup,
+                         node, infer, history, inst.outreg[0], oreg)
+          ccgen.pcode << "mrb_value *array = ARY_PTR(mrb_ary_ptr(#{ary}));\n"
+        else
+          valetype = valety
+          if valetyp.is_a?(Array) then
+            valetyp = valetyp[0..1].join(' ')
+          end
+          ccgen.pcode << "#{valetyp} array = #{ary};\n"
+        end
+        valetype.element.each do |key, reg|
+          if key.is_a?(Fixnum) then
+            elereg = oreg.type[tup][0].element[key]
+            if elereg == nil then
+              elereg = oreg.type[tup][0].element[MTypeInf::ContainerType::UNDEF_VALUE]
+            end
+            eletype = elereg.type[tup][0]
+            elety = get_ctype(ccgen, elereg, tup, infer)
+            valeereg = valetype.element[posbase + key]
+            valsrc = "array[#{key}]"
+            valsrc = gen_type_conversion(ccgen, elety, valety, valsrc, tup, node, infer, history, oreg)
+            ccgen.pcode << "v#{basereg.id}[#{posbase + key}] = #{valsrc};\n"
+          end
+        end
+        ccgen.pcode << "}\n"
+      else
+        elereg = oreg.type[tup][0].element[0]
+        eletype = elereg.type[tup][0]
+        if valereg then
+          elety = get_ctype(ccgen, elereg, tup, infer)
+          valsrc, valety = reg_real_value_noconv(ccgen, valereg, node, tup, infer, history)
+          valsrc = gen_type_conversion(ccgen, elety, valety, valsrc, tup,
+                            node, infer, history, oreg, oreg)
+          # valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
+        else
+          valsrc = "mrb_nil_value()"
+        end
+        ccgen.pcode << "v#{basereg.id}[#{posbase}] = #{valsrc};\n"
+      end
       ccgen.pcode << "v#{oreg.id} = v#{basereg.id};\n"
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
