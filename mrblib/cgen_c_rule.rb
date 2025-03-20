@@ -1862,12 +1862,13 @@ EOS
         idxc, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
         idxc = gen_type_conversion(ccgen, :mrb_int, idxt, idxc, tup, node, infer, history, nreg)
         idxtype = idx.get_type(tup)[0]
-        if arytypes[0].immidiate_only or
-          (idxtype.is_a?(MTypeInf::IndexOfArrayType) and
-            idxtype.base_array == arytypes[0]) and false then
+        idxtyp = idxtype.is_a?(MTypeInf::IndexOfArrayType) and idxtype.base_array == arytypes[0]
+        if arytypes[0].immidiate_only or idxtyp then
           src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}]"
+
         elsif idxtype.is_a?(MTypeInf::NumericType) and idxtype.positive then
           src = "((#{idxc}) < ARY_LEN(mrb_ary_ptr(#{src}))) ? ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}] : mrb_nil_value()"
+
         else
           src = "mrb_ary_ref(mrb, #{src}, #{idxc})"
         end
