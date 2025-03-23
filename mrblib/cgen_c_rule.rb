@@ -1582,7 +1582,7 @@ EOS
               # gen_gc_table2(ccgen, node, oreg)
               if ireg then
                 uins = ireg.refpoint[-1]
-                if uins.op == :NOP then
+                if uins and uins.op == :NOP then
                   uins = ireg.refpoint[-2]
                 end
               end

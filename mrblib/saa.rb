@@ -573,6 +573,7 @@ module RiteSSA
           end
           regtab[1..-1].each_with_index do |reg, i|
             inst.inreg.push reg
+            reg.refpoint.push inst
             dstreg = Reg.new(inst)
             regtab[i + 1] = dstreg
             inst.outreg.push dstreg

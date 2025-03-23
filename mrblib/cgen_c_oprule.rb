@@ -253,76 +253,114 @@ module CodeGenC
       r = (ax >> 12) & 0x1
       m2 = (ax >> 7) & 0x1f
       argc = infer.typetupletab.rev_table[tup].size - 4
+      len = m1 + o + r + m2
+      argreg = inst.inreg[0]
+      argtype = argreg.get_type(tup)
+      if len > 1 and argc == 1 and
+          argtype and argtype[0].class_object_core == Array then
 
-      if r == 1 then
-        if argc - m1 == 1 then
-          oreg = inst.outreg[m1]
-          # argument num is 1
-          ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
-          if oreg.is_escape?(tup) then
-            ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
-          else
-            dstt = get_ctype(ccgen, oreg, tup, infer)
-            dstt2 = dstt
-            case dstt[1]
-            when "**"
-              dstt = [dstt[0], "*", dstt[2]]
-              dstt2 = "#{dstt[0]} *"
-
-            when "*"
-              dstt = dstt[0]
-              dstt2 = dstt
-
-            else
-              raise "Not support yet #{dstt}"
-            end
-
-            val, srct = reg_real_value_noconv(ccgen, inst.inreg[m1], node, tup, infer, history)
-            val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, nil)
-            #ccgen.pcode << "v#{oreg.id} = &v#{inst.inreg[m1].id}; // xxx\n"
-            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt2})); // xxx\n"
-            ccgen.pcode << "*v#{oreg.id} = #{val};\n"
-          end
-          inst.para[2][m1] = "v#{oreg.id}"
+        argty = get_ctype(ccgen, argreg, tup, infer)
+        ccgen.pcode << "{\n"
+        ary = "v#{argreg.id}"
+        if argtype[0].is_escape? then
+          ary = gen_type_conversion(ccgen, :mrb_value, argty, ary, tup, node, infer, history, nil, argreg)
+          ccgen.pcode << "mrb_value *array = ARY_PTR(mrb_ary_ptr(#{ary}));\n"
         else
-          # TODO multiple variale argument
-          (argc - m1).times do |i|
-            if inst.outreg[m1].is_escape?(tup) then
-              inst.para[2][m1 + i] = "(ARY_PTR(mrb_ary_ptr(v#{inst.outreg[m1].id}))[#{i}])"
+          ccgen.pcode << "{\n"
+          ccgen.pcode << "#{aryty} *array = #{ary};\n"
+        end
+        m1.times do |i|
+          oreg = inst.outreg[i]
+          oregtype = oreg.get_type(tup)[0]
+          oregty = get_ctype(ccgen, oreg, tup, infer)
+
+          argelereg = argtype[0].element[i]
+          argelety = get_ctype(ccgen, argelereg, tup, infer)
+
+          ccgen.dcode << "#{CodeGen::gen_declare(ccgen, oreg, tup, infer)};\n"
+          oregstr = "v#{oreg.id}"
+          valsrc = "array[#{i}]"
+          if argelety != :mrb_value_mutex and argelety != :mrb_value_mutex_emptylock and
+              argelety != :mrb_value then
+            valsrc = gen_type_conversion(ccgen, oregty, :mrb_value, valsrc, tup, node, infer, history, nil)
+          end
+          ccgen.pcode << "#{oregstr} = #{valsrc};\n"
+          inst.para[2][i] = oregstr
+        end
+        ccgen.pcode << "}\n"
+      else
+        if r == 1 then
+          if argc - m1 == 1 then
+            oreg = inst.outreg[m1]
+            # argument num is 1
+            ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+            if oreg.is_escape?(tup) then
+              ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
+              ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, 1, &v#{inst.inreg[m1].id});\n"
+              ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
             else
-              inst.para[2][m1 + i] = "v#{inst.outreg[m1].id}[#{i}]"
+              dstt = get_ctype(ccgen, oreg, tup, infer)
+              dstt2 = dstt
+              case dstt[1]
+              when "**"
+                dstt = [dstt[0], "*", dstt[2]]
+                dstt2 = "#{dstt[0]} *"
+
+              when "*"
+                dstt = dstt[0]
+                dstt2 = dstt
+
+              else
+                raise "Not support yet #{dstt}"
+              end
+
+              val, srct = reg_real_value_noconv(ccgen, inst.inreg[m1], node, tup, infer, history)
+              val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, nil)
+              #ccgen.pcode << "v#{oreg.id} = &v#{inst.inreg[m1].id}; // xxx\n"
+              ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt2})); // xxx\n"
+              ccgen.pcode << "*v#{oreg.id} = #{val};\n"
+            end
+            inst.para[2][m1] = "v#{oreg.id}"
+          else
+            # TODO multiple variale argument
+            (argc - m1).times do |i|
+              if inst.outreg[m1].is_escape?(tup) then
+                inst.para[2][m1 + i] = "(ARY_PTR(mrb_ary_ptr(v#{inst.outreg[m1].id}))[#{i}])"
+              else
+                inst.para[2][m1 + i] = "v#{inst.outreg[m1].id}[#{i}]"
+              end
             end
           end
         end
-      end
 
-      inst.inreg.each_with_index do |ireg, i|
-        oreg = inst.outreg[i]
+        inst.inreg.each_with_index do |ireg, i|
+          oreg = inst.outreg[i]
 
-        if node.root.export_regs.include?(oreg) then
-          cirep = node.root.irep
-          reggen =  oreg.genpoint
-          if (!oreg.is_a?(RiteSSA::ParmReg) or oreg.gen_declare > argc) and
-              (!oreg.is_a?(RiteSSA::ParmReg) and
-              (oreg.refpoint.any? {|ins| ins.node.root.irep == cirep} or
-                (reggen.op == :ENTER and
-                  reggen.outreg.index(oreg) > argc))) then
-            ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
-          end
+          if node.root.export_regs.include?(oreg) then
+            cirep = node.root.irep
+            reggen =  oreg.genpoint
+            if (!oreg.is_a?(RiteSSA::ParmReg) or oreg.gen_declare > argc) and
+                (!oreg.is_a?(RiteSSA::ParmReg) and
+                (oreg.refpoint.any? {|ins| ins.node.root.irep == cirep} or
+                  (reggen.op == :ENTER and
+                    reggen.outreg.index(oreg) > argc))) then
+              ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer, true)};\n"
+            end
 
-          if ireg.refpoint.size == 0 and
-              (!ireg.is_a?(RiteSSA::ParmReg) or ireg.genpoint > argc) then
-            ccgen.dcode << "#{gen_declare(ccgen, ireg, tup, infer, true)};\n"
-          end
+            if ireg.refpoint.size == 0 and
+                (!ireg.is_a?(RiteSSA::ParmReg) or ireg.genpoint > argc) then
+              ccgen.dcode << "#{gen_declare(ccgen, ireg, tup, infer, true)};\n"
+            end
 
-          if ireg.type[tup] == nil and
-              get_ctype(ccgen, oreg, tup, infer) != :mrb_value then
-            ccgen.pcode << "env.v#{oreg.id} = 0;/*enter */\n"
-          else
-            src = reg_real_value(ccgen, ireg, oreg,
-                           node, tup, infer, history)
-            if src then
-              ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
+            if ireg.type[tup] == nil and
+                get_ctype(ccgen, oreg, tup, infer) != :mrb_value then
+              ccgen.pcode << "env.v#{oreg.id} = 0;/*enter */\n"
+            else
+              src = reg_real_value(ccgen, ireg, oreg,
+                             node, tup, infer, history)
+              if src then
+                ccgen.pcode << "env.v#{oreg.id} = #{src};/*enter */\n"
+              end
             end
           end
         end
@@ -643,7 +681,9 @@ module CodeGenC
         ccgen.pcode << vals.join(', ')
         ccgen.pcode << "\n};\n"
         gen_gc_table2(ccgen, node, reg)
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         ccgen.pcode << "mrb_value array = mrb_ary_new_from_values(mrb, #{vals.size}, tmpele);\n"
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         src = "array"
         regt = get_ctype(ccgen, reg, tup, infer)
         src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, reg)
@@ -709,24 +749,23 @@ module CodeGenC
       ccgen.dcode << ";\n"
       valreg = inst.inreg[1]
       valtype = valreg.type[tup][0]
-      valereg = valtype.element[posbase]
-      valetype = valereg.type[tup][0]
-      if valetype.is_a?(MTypeInf::ContainerType) then
+
+      if valtype.is_a?(MTypeInf::ContainerType) then
         ccgen.pcode << "{\n"
-        ary = "v#{valreg.id}[0]"
-        valety = get_ctype(ccgen, valereg, tup, infer)
-        if valetype.is_escape? then
-          ary = gen_type_conversion(ccgen, :mrb_value, valety, ary, tup,
-                         node, infer, history, inst.outreg[0], oreg)
+        ary = "v#{valreg.id}"
+        valty = get_ctype(ccgen, valreg, tup, infer)
+        if valtype.is_escape? then
+          ary = gen_type_conversion(ccgen, :mrb_value, valty, ary, tup,
+                         node, infer, history, inst.outreg[0], valreg)
           ccgen.pcode << "mrb_value *array = ARY_PTR(mrb_ary_ptr(#{ary}));\n"
         else
-          valetype = valety
-          if valetyp.is_a?(Array) then
-            valetyp = valetyp[0..1].join(' ')
+          valtyp = valty
+          if valtyp.is_a?(Array) then
+            valtyp = valtyp[0..1].join(' ')
           end
-          ccgen.pcode << "#{valetyp} array = #{ary};\n"
+          ccgen.pcode << "#{valtyp} array = #{ary};\n"
         end
-        valetype.element.each do |key, reg|
+        valtype.element.each do |key, reg|
           if key.is_a?(Fixnum) then
             elereg = oreg.type[tup][0].element[key]
             if elereg == nil then
@@ -734,7 +773,8 @@ module CodeGenC
             end
             eletype = elereg.type[tup][0]
             elety = get_ctype(ccgen, elereg, tup, infer)
-            valeereg = valetype.element[posbase + key]
+            valereg = valtype.element[key]
+            valety = get_ctype(ccgen, valereg, tup, infer)
             valsrc = "array[#{key}]"
             valsrc = gen_type_conversion(ccgen, elety, valety, valsrc, tup, node, infer, history, oreg)
             ccgen.pcode << "v#{basereg.id}[#{posbase + key}] = #{valsrc};\n"
@@ -744,12 +784,11 @@ module CodeGenC
       else
         elereg = oreg.type[tup][0].element[0]
         eletype = elereg.type[tup][0]
-        if valereg then
+        if valreg then
           elety = get_ctype(ccgen, elereg, tup, infer)
-          valsrc, valety = reg_real_value_noconv(ccgen, valereg, node, tup, infer, history)
+          valsrc, valety = reg_real_value_noconv(ccgen, valreg, node, tup, infer, history)
           valsrc = gen_type_conversion(ccgen, elety, valety, valsrc, tup,
                             node, infer, history, oreg, oreg)
-          # valsrc = reg_real_value(ccgen, valereg, elereg, node, tup, infer, history)
         else
           valsrc = "mrb_nil_value()"
         end
@@ -772,8 +811,10 @@ module CodeGenC
       if oreg.is_escape?(tup) then
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0) {|code| ccgen.pcode << code}
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
         ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});\n"
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
       end
@@ -886,7 +927,9 @@ module CodeGenC
       if oreg.is_escape?(tup) or true then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
         gen_gc_table2(ccgen, node, oreg)
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         ccgen.pcode << "v#{oreg.id} = mrb_hash_new(mrb);\n"
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       else
         ccgen.dcode << "struct hash_#{etype} *v#{oreg.id};\n"
         ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct hash_#{etype}));\n"
@@ -955,7 +998,9 @@ module CodeGenC
         eval = gen_type_conversion(ccgen, :mrb_value, et, eval, tup, node, infer, history, oreg)
         # TODO BOXING Range
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         ccgen.pcode << "v#{oreg.id} = mrb_range_new(mrb, #{bval}, #{eval}, #{inst.para[0]});\n"
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       else
         ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct range_#{etype}));\n"
