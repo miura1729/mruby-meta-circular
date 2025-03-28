@@ -668,7 +668,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) then
-        src = "(ARY_PTR(mrb_ary_ptr(#{src}))[0])"
+        src = "(ARY_PTR2(mrb_ary_ptr(#{src}))[0])"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nreg)
       else
         etup = tup
@@ -747,7 +747,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) then
-        src = "ARY_LEN(mrb_ary_ptr(#{src}))"
+        src = "ARY_LEN2(mrb_ary_ptr(#{src}))"
         src = gen_type_conversion(ccgen, dstt, :mrb_int, src, tup, node, infer, history, nreg)
       else
         src = gen_type_conversion(ccgen, dstt, :mrb_int, inst.inreg[0].get_type(tup)[0].element.keys.size - 1, tup, node, infer, history, nreg)
@@ -766,7 +766,7 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) then
-        src = "(ARY_LEN(mrb_ary_ptr(#{src})) == 0)"
+        src = "(ARY_LEN2(mrb_ary_ptr(#{src})) == 0)"
         src = gen_type_conversion(ccgen, dstt, :mrb_bool, src, tup, node, infer, history, nreg)
       else
         src = gen_type_conversion(ccgen, dstt, :mrb_bool, (inst.inreg[0].get_type(tup)[0].element.keys.size - 1 == 0) ? 1 : 0, tup, node, infer, history, nreg)
@@ -797,12 +797,14 @@ module CodeGenC
 
         if oreg.is_escape?(tup) then
           gen_gc_table(ccgen, inst, node, infer, history, tup)
+          ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           regt = get_ctype(ccgen, oreg, tup, infer)
           ccgen.pcode << "{\n"
           ccgen.pcode << "mrb_value ary = mrb_ary_new_capa(mrb, #{initsize});\n"
           src = "ary"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(ary), 0);\n"
+          ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
           src2 = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
           ccgen.pcode << "v#{oreg.id} = #{src2};\n"
           ccgen.pcode << "}\n"
@@ -1085,6 +1087,7 @@ module CodeGenC
 #      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
 
       if val0t == :mrb_value then
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         if val1t == :mrb_value then
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{val0}, #{val1});\n"
@@ -1093,10 +1096,12 @@ module CodeGenC
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{val0}, #{val1});\n"
         end
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       else
         val0 = gen_type_conversion(ccgen, :mrb_value, val0t, val0, node, tup, infer, history, oreg)
         p0var = "v#{oreg.id}"
         ccgen.pcode << "#{p0var} = #{val0};\n"
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         if val1t == :mrb_value then
 #          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
           p1var = "v#{ireg1.id}"
@@ -1109,6 +1114,7 @@ module CodeGenC
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       end
 
       nil
@@ -1245,7 +1251,9 @@ module CodeGenC
 
           src = "mrb_str_new(mrb, #{src}, 1)"
           src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nil)
+          ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
           ccgen.pcode << "v#{oreg.id} = #{src};\n"
+          ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
         end
       end
       nil
@@ -1263,7 +1271,9 @@ module CodeGenC
 
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
+      ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       ccgen.pcode << "v#{oreg.id} = (mrb_str_index(mrb, #{str}, #{para}, strlen(#{para}), 0) >= 0);\n"
+      ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
     end
 
     define_ccgen_rule_method :index, String do |ccgen, inst, node, infer, history, tup|
@@ -1349,7 +1359,7 @@ module CodeGenC
           ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
           ccgen.pcode << "mrb_value obj = mrb_ary_new_capa(mrb, #{clsssa.iv.size});"
           regt = get_ctype(ccgen, oreg, tup, infer)
-          ccgen.pcode << "for (int i = 0;i < #{clsssa.iv.size}; i++) ARY_PTR(mrb_ary_ptr(obj))[i] = mrb_nil_value();\n"
+          ccgen.pcode << "for (int i = 0;i < #{clsssa.iv.size}; i++) ARY_PTR2(mrb_ary_ptr(obj))[i] = mrb_nil_value();\n"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(obj), #{clsssa.iv.size});\n"
           src = gen_type_conversion(ccgen, regt, :mrb_value, "obj", tup, node, infer, history, oreg)
           ccgen.pcode << "v#{oreg.id} = #{src};\n"

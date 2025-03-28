@@ -257,7 +257,7 @@ module CodeGenC
         bs = inreg[1].type[tup][0]
         while argr = bs.element[i]
           if bs.is_escape? then
-            argsv.push "(ARY_PTR(mrb_ary_ptr(#{base}))[#{i}])"
+            argsv.push "(ARY_PTR2(mrb_ary_ptr(#{base}))[#{i}])"
           else
             argsv.push "#{base}[#{i}]"
           end
@@ -1772,7 +1772,7 @@ EOS
           slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
         end
         idx = ivreg.genpoint
-        src = "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
+        src = "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
         #src = "mrb_ary_ref(mrb, #{slfsrc}, #{idx})"
         src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
         ccgen.pcode << "v#{dst.id} = #{src};\n"
@@ -1799,7 +1799,7 @@ EOS
         ccgen.pcode << "mrb_value val;\n"
         ccgen.pcode << "val = #{val};\n"
         #ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
+        ccgen.pcode << "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
         if valr.type[tup] and valr.type[tup].any? {|t| t.is_gcobject?} then
           ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
         end
@@ -1870,10 +1870,10 @@ EOS
         idxtype = idx.get_type(tup)[0]
         idxtyp = idxtype.is_a?(MTypeInf::IndexOfArrayType) and idxtype.base_array == arytypes[0]
         if arytypes[0].immidiate_only or idxtyp then
-          src = "ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}]"
+          src = "ARY_PTR2(mrb_ary_ptr(#{src}))[#{idxc}]"
 
         elsif idxtype.is_a?(MTypeInf::NumericType) and idxtype.positive then
-          src = "((#{idxc}) < ARY_LEN(mrb_ary_ptr(#{src}))) ? ARY_PTR(mrb_ary_ptr(#{src}))[#{idxc}] : mrb_nil_value()"
+          src = "((#{idxc}) < ARY_LEN2(mrb_ary_ptr(#{src}))) ? ARY_PTR2(mrb_ary_ptr(#{src}))[#{idxc}] : mrb_nil_value()"
 
         else
           src = "mrb_ary_ref(mrb, #{src}, #{idxc})"

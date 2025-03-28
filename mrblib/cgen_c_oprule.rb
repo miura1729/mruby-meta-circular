@@ -264,14 +264,14 @@ module CodeGenC
         ary = "v#{argreg.id}"
         if argtype[0].is_escape? then
           ary = gen_type_conversion(ccgen, :mrb_value, argty, ary, tup, node, infer, history, nil, argreg)
-          ccgen.pcode << "mrb_value *array = ARY_PTR(mrb_ary_ptr(#{ary}));\n"
+          ccgen.pcode << "mrb_value *array = ARY_PTR2(mrb_ary_ptr(#{ary}));\n"
         else
           ccgen.pcode << "#{aryty} *array = #{ary};\n"
         end
         m1.times do |i|
           oreg = inst.outreg[i]
           oregtype = oreg.get_type(tup)[0]
-          oregstr, oregty = reg_real_value_noconv(ccgen, oreg, node, tup, infer, history)
+          oregty = get_ctype(ccgen, oreg, tup, infer)
 
           argelereg = argtype[0].element[i]
           argelety = get_ctype(ccgen, argelereg, tup, infer)
@@ -282,8 +282,8 @@ module CodeGenC
               argelety != :mrb_value then
             valsrc = gen_type_conversion(ccgen, oregty, :mrb_value, valsrc, tup, node, infer, history, nil)
           end
-          ccgen.pcode << "#{oregstr} = #{valsrc};\n"
-          inst.para[2][i] = oregstr
+          ccgen.pcode << "v#{oreg.id} = #{valsrc};\n"
+          inst.para[2][i] = "v#{oreg.id}"
         end
         ccgen.pcode << "}\n"
       else
@@ -744,7 +744,7 @@ module CodeGenC
         if valtype.is_escape? then
           ary = gen_type_conversion(ccgen, :mrb_value, valty, ary, tup,
                          node, infer, history, inst.outreg[0], valreg)
-          ccgen.pcode << "mrb_value *array = ARY_PTR(mrb_ary_ptr(#{ary}));\n"
+          ccgen.pcode << "mrb_value *array = ARY_PTR2(mrb_ary_ptr(#{ary}));\n"
         else
           valtyp = valty
           if valtyp.is_a?(Array) then
@@ -819,6 +819,7 @@ module CodeGenC
       ccgen.dcode << "mrb_value v#{oreg.id};\n"
       val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
       val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+      ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       if val0t == :mrb_value then
         if val1t == :mrb_value then
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
@@ -847,6 +848,7 @@ module CodeGenC
           ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
         end
       end
+      ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);\n"
       set_closure_env(ccgen, inst, node, infer, history, tup)
 
       nil

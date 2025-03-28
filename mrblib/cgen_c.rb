@@ -81,6 +81,9 @@ typedef mrb_float mrb_float2;
   ary;                                                    \
 })
 
+#define ARY_PTR2(a) ({struct RArray* ary=(a);ARY_PTR(ary);})
+#define ARY_LEN2(a) ({struct RArray* ary=(a);ARY_LEN(ary);})
+
 typedef void *gproc;
 struct gctab {
   int size;
