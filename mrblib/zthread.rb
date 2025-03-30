@@ -36,8 +36,10 @@ end
 module MTypeInf
   class TypeInferencer
     define_inf_rule_class_method :new, MMC_EXT::Thread do |infer, inst, node, tup|
+      node.root.rasing = true
       proc = inst.inreg[-1].flush_type(tup)[tup]
       proc[0].irep.thread_top = true
+      proc[0].irep.rasing = true
       thtype = ThreadType.new(MMC_EXT::Thread, proc[0])
       # proc[0].slf = [thtype]
       inst.inreg[1..-2].each do |ele|
@@ -163,7 +165,7 @@ module CodeGenC
               fname = minf[0]
             else
               minf = ccgen.proctab[ptype.irep][0]
-              fname = ccgen.proctab[ptype.irep][0][0]
+              fname = minf[0]
             end
             ccgen.using_block.push minf
           else

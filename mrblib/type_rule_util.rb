@@ -553,6 +553,7 @@ module MTypeInf
             recvtypes.each do |ty|
               curirep.call_blocks[irepssa][ty] = nil
             end
+            irepssa.rasing = node.root.rasing
             rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
             if rc then
               # Retry AI

@@ -745,6 +745,7 @@ module MTypeInf
         end
 
         irepssa = ptype.irep
+        irepssa.rasing = node.root.rasing
         if irepssa.have_return then
           infer.callstack[-1][0].have_return = true
         end

@@ -1931,6 +1931,18 @@ EOS
       end
     end
 
+    def self.gen_global_lock(ccgen, node, kind = :io_mutex)
+      if node.root.rasing then
+        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->#{kind});\n"
+      end
+    end
+
+    def self.gen_global_unlock(ccgen, node, kind = :io_mutex)
+      if node.root.rasing then
+        ccgen.pcode << "pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->#{kind});\n"
+      end
+    end
+
     def self.gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)
       idx, idxty = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
       if inst.inreg[1] then

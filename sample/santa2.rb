@@ -9,6 +9,7 @@ module Enumerable
 end
 
 def main
+  pp "START"
   # Santa hobbit dev.
   hobbit = MMC_EXT::Thread.new do
     hobbitmail = []

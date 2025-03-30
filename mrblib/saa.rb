@@ -1152,6 +1152,7 @@ module RiteSSA
       @have_break = false
       @have_return = false
       @thread_top = false
+      @rasing = false
 
       @regtab = nil
 
@@ -1226,6 +1227,7 @@ module RiteSSA
     attr_accessor :have_break
     attr_accessor :have_return
     attr_accessor :thread_top
+    attr_accessor :rasing
 
     def collect_block_head(iseq)
       res = [0]
