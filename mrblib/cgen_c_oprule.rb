@@ -915,10 +915,16 @@ module CodeGenC
       etype = get_ctype(ccgen, eareg[uv], tup, infer)
       if oreg.is_escape?(tup) or true then
         ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        ccgen.pcode << "{\n"
         gen_gc_table2(ccgen, node, oreg)
         gen_global_lock(ccgen, node)
-        ccgen.pcode << "v#{oreg.id} = mrb_hash_new(mrb);\n"
+        ccgen.pcode << "mrb_value hash = mrb_hash_new(mrb);\n"
         gen_global_unlock(ccgen, node)
+        src = "hash"
+        regt = get_ctype(ccgen, oreg, tup, infer)
+        src = gen_type_conversion(ccgen, regt, :mrb_value, src, tup, node, infer, history, oreg)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
+        ccgen.pcode << "}\n"
       else
         ccgen.dcode << "struct hash_#{etype} *v#{oreg.id};\n"
         ccgen.pcode << "v#{oreg.id} = alloca(sizeof(struct hash_#{etype}));\n"

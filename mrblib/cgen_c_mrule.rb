@@ -207,7 +207,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       dstt = get_ctype(ccgen, oreg, tup, infer)
       hashsrc, srct = reg_real_value_noconv(ccgen, hreg, node, tup, infer, history)
-      hashsrc = gen_type_conversion(ccgen, :mrb_value, srct, hashsrc, tup, node, infer, history, nil)
+      hashsrc = gen_type_conversion(ccgen, :mrb_value, srct, hashsrc, tup, node, infer, history, nil, hreg)
 
       keysrc, srct = reg_real_value_noconv(ccgen, kreg, node, tup, infer, history)
       keysrc = gen_type_conversion(ccgen, :mrb_value, srct, keysrc, tup, node, infer, history, nil)
@@ -219,7 +219,9 @@ module CodeGenC
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
+      gen_global_lock(ccgen, node)
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      gen_global_unlock(ccgen, node)
       nil
     end
 
@@ -230,7 +232,7 @@ module CodeGenC
       oreg = inst.outreg[0]
       dstt = get_ctype(ccgen, oreg, tup, infer)
       hashsrc, srct = reg_real_value_noconv(ccgen, hreg, node, tup, infer, history)
-      hashsrc = gen_type_conversion(ccgen, :mrb_value, srct, hashsrc, tup, node, infer, history, nil)
+      hashsrc = gen_type_conversion(ccgen, :mrb_value, srct, hashsrc, tup, node, infer, history, nil, hreg)
 
       keysrc, srct = reg_real_value_noconv(ccgen, kreg, node, tup, infer, history)
       keysrc = gen_type_conversion(ccgen, :mrb_value, srct, keysrc, tup, node, infer, history, nil)
@@ -240,9 +242,11 @@ module CodeGenC
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-      src = "mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc})"
+      src = "({mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc});#{valsrc};})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
+      gen_global_lock(ccgen, node)
       ccgen.pcode << "#{src};\n"
+      gen_global_unlock(ccgen, node)
       nil
     end
 

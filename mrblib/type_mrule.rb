@@ -1152,11 +1152,13 @@ module MTypeInf
         raise "multiple argument not support yet in Hash::[]="
       end
 
-      node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0].type
+      hashreg = inst.inreg[0]
+
+      node.root.effects[:arrayset] ||= {}
+      node.root.effects[:arrayset][inst] = [hashreg.type, inst.inreg[1].type]
 
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
-      hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      hashtypes = hashreg.flush_type(tup)[tup] || []
       valreg = inst.inreg[2]
 
       hashtypes.each do |hasht|
