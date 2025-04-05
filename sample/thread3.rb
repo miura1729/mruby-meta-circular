@@ -42,35 +42,22 @@ def foo
   r = {}
   r[0] = 0
   r[1] = 0
+  ths = []
 
-  th = MMC_EXT::Thread.new(c, r) {|cnt, res|
-    n = cnt.c
-    while n < 1000
-      n = cnt.skip_cnt(res)
-      pp "thread 1 out #{n}"
-      kakutani(n, res)
-    end
-  }
-  th2 = MMC_EXT::Thread.new(c, r) {|cnt, res|
-    n = cnt.c
-    while n < 1000
-      n = cnt.skip_cnt(res)
-      pp "thread 2 out #{n}"
-      kakutani(n, res)
-    end
-  }
-  th3 = MMC_EXT::Thread.new(c, r) {|cnt, res|
-    n = cnt.c
-    while n < 1000
-      n = cnt.skip_cnt(res)
-      pp "thread 3 out #{n}"
-      kakutani(n, res)
-    end
-  }
+  2.times do |tn|
+    ths.push  MMC_EXT::Thread.new(c, r, tn) {|cnt, res, tn|
+      n = cnt.c
+      while n < 1000
+        n = cnt.skip_cnt(res)
+        pp "thread #{tn} out #{n}"
+        kakutani(n, res)
+      end
+    }
+  end
 
-  th.join
-  th2.join
-  th3.join
+  ths.each do |th|
+    th.join
+  end
   pp r
 end
 
