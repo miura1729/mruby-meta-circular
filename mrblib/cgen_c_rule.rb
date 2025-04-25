@@ -1590,7 +1590,7 @@ EOS
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
-  pthread_mutex_lock(&mutex->mp);
+  #{gen_local_lock(ccgen, "&mutex->mp")}
   mutex->obj;
 })
 EOS
@@ -1607,11 +1607,12 @@ EOS
               if oreg and
                   node.root.effects[:canempty] and
                   node.root.effects[:canempty][oreg.genpoint] then
-                empty_lock = "pthread_mutex_lock(&mutex->empty_lock);"
+                empty_lock = gen_empty_lock(ccgen, "&mutex->empty_lock")
 
                 if node.root.effects[:iv_write] then
                   selfunlock = "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp);"
-                  selflock = "pthread_mutex_lock(&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp);"
+                  selflock = gen_local_lock(ccgen,
+                                       "&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp")
                   empty_lock = "#{selfunlock}\n#{empty_lock}\n#{selflock}\n"
                 end
                 empty_unlock = :pop
@@ -1625,7 +1626,7 @@ EOS
 ({
   struct mutex_wrapper_emptylock *mutex = (struct mutex_wrapper_emptylock *)DATA_PTR(#{src});
   #{empty_lock}
-  pthread_mutex_lock(&mutex->mp);
+  #{gen_local_lock(ccgen, "&mutex->mp")}
   mutex->obj;
 })
 EOS
@@ -1709,7 +1710,7 @@ EOS
           gen_gc_table2(ccgen, node, oreg)
           <<"EOS"
 ({
-  pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);
+  #{gen_local_lock(ccgen, "((struct mmc_system *)mrb->ud)->io_mutex")}
   struct mutex_wrapper *mutex = malloc(sizeof(struct mutex_wrapper));
   mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
@@ -1735,12 +1736,12 @@ EOS
 
           <<"EOS"
 ({
-  pthread_mutex_lock(((struct mmc_system *)mrb->ud)->io_mutex);
+  #{gen_local_lock(ccgen, "((struct mmc_system *)mrb->ud)->io_mutex")}
   struct mutex_wrapper_emptylock *mutex = malloc(sizeof(struct mutex_wrapper_emptylock));
   mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
   pthread_mutex_init(&mutex->empty_lock, NULL);
-  pthread_mutex_lock(&mutex->empty_lock);
+  #{gen_empty_lock(ccgen, "&mutex->empty_lock")}
   mutex->obj = #{src};
   mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), mutex->obj);
   pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);
@@ -1933,8 +1934,25 @@ EOS
 
     def self.gen_global_lock(ccgen, node, kind = :io_mutex)
       if node.root.rasing then
-        ccgen.pcode << "pthread_mutex_lock(((struct mmc_system *)mrb->ud)->#{kind});\n"
+        ccgen.pcode << gen_lock(ccgen, "((struct mmc_system *)mrb->ud)->#{kind}")
       end
+    end
+
+    def self.gen_local_lock(ccgen, lobj)
+      gen_lock(ccgen, lobj)
+    end
+
+    def self.gen_empty_lock(ccgen, lobj)
+      gen_lock(ccgen, lobj)
+    end
+
+    def self.gen_lock(ccgen, lobj)
+      out = ""
+      out << "{\n"
+      out << "pthread_mutex_t *mut = (#{lobj});\n"
+      out << "pthread_mutex_lock(mut);\n"
+      out << "}\n"
+      out
     end
 
     def self.gen_global_unlock(ccgen, node, kind = :io_mutex)
