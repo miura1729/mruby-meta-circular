@@ -215,13 +215,17 @@ module CodeGenC
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-      src = "mrb_hash_get(mrb, #{hashsrc}, #{keysrc})"
+      src = "mrb_hash_get(mrb, hash, key)"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "mrb_value hash = #{hashsrc};\n"
+      ccgen.pcode << "mrb_value key = #{keysrc};\n"
       gen_global_lock(ccgen, node)
       ccgen.pcode << "v#{oreg.id} = #{src};\n"
       gen_global_unlock(ccgen, node)
+      ccgen.pcode << "}\n"
       nil
     end
 
@@ -242,11 +246,16 @@ module CodeGenC
 
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-      src = "({mrb_hash_set(mrb, #{hashsrc}, #{keysrc}, #{valsrc});#{valsrc};})"
+      src = "({mrb_hash_set(mrb, hash, key, val);val;})"
       src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, oreg)
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "mrb_value hash = #{hashsrc};\n"
+      ccgen.pcode << "mrb_value key = #{keysrc};\n"
+      ccgen.pcode << "mrb_value val = #{valsrc};\n"
       gen_global_lock(ccgen, node)
       ccgen.pcode << "#{src};\n"
       gen_global_unlock(ccgen, node)
+      ccgen.pcode << "}\n"
       nil
     end
 
@@ -1083,12 +1092,12 @@ module CodeGenC
       ireg1.flush_type(tup)
       oreg = inst.outreg[0]
       ccgen.dcode << "mrb_value v#{oreg.id};\n"
-      val0t = get_ctype(ccgen, ireg0, tup, infer)
-      val0 = "v#{ireg0.id}"
-      val1t = get_ctype(ccgen, ireg1, tup, infer)
+#      val0t = get_ctype(ccgen, ireg0, tup, infer)
+#      val0 = "v#{ireg0.id}"
+#      val1t = get_ctype(ccgen, ireg1, tup, infer)
+      val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
       val1 = "v#{ireg1.id}"
-#      val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
-#      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
+      val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
 
       if val0t == :mrb_value then
         gen_global_lock(ccgen, node)

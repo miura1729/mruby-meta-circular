@@ -5,11 +5,13 @@ class Count
 
   def skip_cnt(res)
     pp "skip"
-    while res[@c]
-      pp @c
+    cc = @c
+    while res[cc]
+      pp cc
       @c += 1
+      cc = @c
     end
-    n = @c
+    n = cc
     @c += 1
     n
   end

@@ -184,8 +184,20 @@ module MTypeInf
         end
       end
 
-      node.root.effects[:iv_write] ||= []
-      node.root.effects[:iv_write].push [inst.para[0], inst, slfiv, slf]
+      genp = valreg.genpoint
+      if ([:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
+          (genpa = genp.inreg[0].genpoint) and
+          genpa.is_a?(RiteSSA::Inst) and
+          genpa.op == :GETIV) and
+          genpa.para[0] == inst.para[0] or
+
+          [:LOADI].include?(genp.op) then
+        node.root.effects[:iv_write_lockfree] ||= []
+        node.root.effects[:iv_write_lockfree].push [inst.para[0], inst, slfiv, slf]
+      else
+        node.root.effects[:iv_write] ||= []
+        node.root.effects[:iv_write].push [inst.para[0], inst, slfiv, slf]
+      end
 
       nil
     end

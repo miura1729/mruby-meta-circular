@@ -24,7 +24,7 @@ module MTypeInf
     end
 
     def class_object
-      if is_gcobject? and @threads.size > 1 then
+      if is_gcobject? and (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 then
         # racing object. lock need when access
         if @threads.values.include?(:canempty) then
           MMC_EXT::MutexEmptyLock

@@ -1787,28 +1787,55 @@ EOS
     end
 
     def self.gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
-      valt = get_ctype(ccgen, valr, tup, infer)
-      val = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)[0]
+      thnum = ivreg.get_type(tup)[0].threads.size
+      wrthnum = ivreg.write_threads.size
+
       if inst.op == :SETIV then
         slfsrc = "self"
       else
         slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       end
-      if slf.is_escape?(tup) then
-        val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
-        ccgen.pcode << "{"
-        ccgen.pcode << "mrb_value val;\n"
-        ccgen.pcode << "val = #{val};\n"
-        #ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
-        ccgen.pcode << "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
-        if valr.type[tup] and valr.type[tup].any? {|t| t.is_gcobject?} then
-          ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
+      if thnum > 1 and wrthnum == 0 then
+        #special lock free instruction
+        genp = valr.genpoint
+        case genp.op
+        when :ADD
+          val, valt = reg_real_value_noconv(ccgen, genp.inreg[1], node, tup, infer, history)
+          val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, ti, history, nil)
+          ccgen.pcode << "__atomic_fetch_add(ARY_PTR2(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}), #{val}, __ATOMIC_RELAXED);\n"
+
+        when :ADDI
+          val = genp.para[1]
+          if slf.is_escape?(tup) then
+            ccgen.pcode << "__atomic_fetch_add(&(ARY_PTR(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}))->value.i, #{val}, __ATOMIC_RELAXED);\n"
+          else
+            ccgen.pcode << "__atomic_fetch_add(&(#{slfsrc}->v#{ivreg.id}), #{val}, __ATOMIC_RELAXED);\n"
+          end
+
+        when :SUB, :SUBI
+        when :LOADI
+        else
+          raise "Not support #{genp}"
         end
-        ccgen.pcode << "}\n"
       else
-        ivt = get_ctype(ccgen, ivreg, tup, infer)
-        val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
-        ccgen.pcode << "#{slfsrc}->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
+        #valt = get_ctype(ccgen, valr, tup, infer)
+        val, valt = reg_real_value_noconv(ccgen, valr, node, tup, infer, history)
+        if slf.is_escape?(tup) then
+          val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, infer, history, dst)
+          ccgen.pcode << "{"
+          ccgen.pcode << "mrb_value val;\n"
+          ccgen.pcode << "val = #{val};\n"
+          #ccgen.pcode << "mrb_ary_set(mrb, #{slfsrc}, #{ivreg.genpoint}, #{val});\n"
+          ccgen.pcode << "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{ivreg.genpoint}] = val;\n"
+          if valr.type[tup] and valr.type[tup].any? {|t| t.is_gcobject?} then
+            ccgen.pcode << "mrb_field_write_barrier_value(mrb, (struct RBasic*)mrb_ary_ptr(#{slfsrc}), val);\n"
+          end
+          ccgen.pcode << "}\n"
+        else
+          ivt = get_ctype(ccgen, ivreg, tup, infer)
+          val = gen_type_conversion(ccgen, ivt, valt, val, tup, node, infer, history, dst)
+          ccgen.pcode << "#{slfsrc}->v#{ivreg.id} = #{val}; /* #{valt} -> #{ivt} */\n"
+        end
       end
     end
 

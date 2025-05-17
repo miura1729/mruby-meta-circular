@@ -4,9 +4,9 @@ class Count
   end
 
   def skip_cnt(res)
-    pp "skip"
+#    pp "skip"
     while res[@c]
-      pp @c
+#      pp @c
       @c += 1
     end
     n = @c
@@ -47,9 +47,9 @@ def foo
   2.times do |tn|
     ths.push  MMC_EXT::Thread.new(c, r, tn) {|cnt, res, tn|
       n = cnt.c
-      while n < 1000
+      while n < 8000
         n = cnt.skip_cnt(res)
-        pp "thread #{tn} out #{n}"
+#       pp "thread #{tn} out #{n}"
         kakutani(n, res)
       end
     }
@@ -58,10 +58,16 @@ def foo
   ths.each do |th|
     th.join
   end
-  pp r
+#  pp r
+end
+
+def kkk
+  100.times do |i|
+    foo
+  end
 end
 
 MTypeInf::inference_main {
-  foo
+  kkk
 }
 

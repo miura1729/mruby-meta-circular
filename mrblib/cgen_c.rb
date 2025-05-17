@@ -722,26 +722,28 @@ EOS
           if (ireg, eunlock, inode = @unlock_instruction[ins]) then
             reg, treg = CodeGen::reg_real_value_noconv(self, ireg, inode, tup, ti, history)
             wrapper = "DATA_PTR(#{reg})"
-            if eunlock == :push then
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
-            elsif eunlock == :pop then
-              @pcode << "if (ARY_LEN(mrb_ary_ptr(((struct mutex_wrapper_emptylock *)(#{wrapper}))->obj)) > 0) {\n"
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
-              @pcode << "}\n"
-              @pcode << "else {\n"
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
-              @pcode << "}\n"
-            else
-              @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(#{wrapper}))->mp);\n"
+            if treg == :mrb_value_mutex or treg == :mrb_value_mutex_emptylock then
+              if eunlock == :push then
+                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
+              elsif eunlock == :pop then
+                @pcode << "if (ARY_LEN(mrb_ary_ptr(((struct mutex_wrapper_emptylock *)(#{wrapper}))->obj)) > 0) {\n"
+                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
+                @pcode << "}\n"
+                @pcode << "else {\n"
+                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
+                @pcode << "}\n"
+              else
+                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(#{wrapper}))->mp);\n"
+              end
+              @unlock_instruction.delete(ins)
             end
-            @unlock_instruction.delete(ins)
           end
 #        rescue NoMethodError => e
         rescue  Object => e
           p "#{ins.op} #{ins.filename}##{ins.line} #{ins.para}"
-#          p "#{ti.typetupletab.rev_table[tup]} (#{tup})"
+          #          p "#{ti.typetupletab.rev_table[tup]} (#{tup})"
           raise e
         end
       end

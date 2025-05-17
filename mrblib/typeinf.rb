@@ -287,14 +287,38 @@ module MTypeInf
         when :iv_read
           value.each do |ele|
             ele[2].read_threads[thread] = true
+            ele[2].type.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :iv_read
+              end
+            end
           end
 
         when :iv_write
           value.each do |ele|
             ele[2].write_threads[thread] = true
+            ele[2].type.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :iv_write
+              end
+            end
             ele[3].type.values.each do |types|
               types.each do |type|
                 type.threads[thread] = :iv_write
+              end
+            end
+          end
+
+        when :iv_write_lockfree
+          value.each do |ele|
+            ele[2].type.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :iv_write_lockfree
+              end
+            end
+            ele[3].type.values.each do |types|
+              types.each do |type|
+                type.threads[thread] = :iv_write_lockfree
               end
             end
           end
