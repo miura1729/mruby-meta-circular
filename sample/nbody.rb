@@ -124,7 +124,8 @@ def energy(bodies)
   for i in 0 ... nbodies
     b = bodies[i]
     e += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy + b.vz * b.vz)
-    for j in (i + 1) ... nbodies
+    rng = (i + 1) ... nbodies
+    for j in rng
       b2 = bodies[j]
       dx = b.x - b2.x
       dy = b.y - b2.y

@@ -11,6 +11,10 @@ module MTypeInf
     end
 
     define_inf_rule_op :START do |infer, inst, node, tup, history|
+      selfty = inst.inreg[0].get_type(tup)[0]
+      node.root.call_blocks.each do |blk, tys|
+#        p tys[selfty]
+      end
       inst.inreg.each_with_index do |dmy, idx|
         inst.inreg[idx].type.each do |tp, types|
           types.each do |type|
@@ -450,7 +454,8 @@ module MTypeInf
       o = (ax >> 13) & 0x1f
       r = (ax >> 12) & 0x1
       m2 = (ax >> 7) & 0x1f
-      inreg = inst.inreg.clone
+      #      inreg = inst.inreg.clone
+      inreg = node.enter_reg[1..-1]
       uv = ContainerType::UNDEF_VALUE
       argc = infer.callstack[-1][2]
       len = m1 + o + r + m2
@@ -1177,7 +1182,7 @@ module MTypeInf
       if !type then
         level = infer.callstack.size
         previrep = infer.callstack.map {|e|  [e[0], e[4]]}
-        inst.objcache[nil] = type = ContainerType.new(Range, inst, previrep, level)
+        inst.objcache[nil] = type = RangeType.new(Range, inst, previrep, level)
       end
       nreg = type.element[0] || RiteSSA::Reg.new(nil)
       nreg.add_same inst.inreg[0]

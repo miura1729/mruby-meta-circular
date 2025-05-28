@@ -794,7 +794,7 @@ module CodeGenC
         [0, :mrb_bool]
 
       when :LOADSYM
-        ["mrb_intern_lit(mrb, \"#{gins.para[0]}\")", "mrb_sym"]
+        ["mrb_intern_lit(mrb, \"#{gins.para[0]}\")", :mrb_sym]
 
       when :LOADNIL
         ["mrb_nil_value()", :mrb_value]
@@ -961,7 +961,7 @@ module CodeGenC
       Proc => :gproc,
       NilClass => :mrb_value,
       String => :string,
-      Symbol => :symbol,
+      Symbol => :mrb_sym,
       TrueClass => :mrb_bool,
       FalseClass => :mrb_bool,
     }
@@ -1138,8 +1138,8 @@ module CodeGenC
           :mrb_value
         end
 
-      when :symbol
-        "mrb_sym"
+#      when :mrb_sym
+#        "mrb_sym"
 
       when :range
         ereg = reg.get_type(tup)[0].element[0]
@@ -1222,7 +1222,7 @@ EOS
       when :string
         "char *#{regnm}"
 
-      when :symbol
+      when :mrb_sym
         "mrb_sym #{regnm}"
 
       else
@@ -1370,7 +1370,7 @@ EOS
         when :String
           ["mrb_string_p(#{srcval})", true]
 
-        when :Symbol
+        when :mrb_sym
           ["mrb_symbol_p(#{srcval})", true]
 
         when :Array
@@ -1429,7 +1429,7 @@ EOS
           when :mrb_value
             "RSTRING_PTR(#{src})"
 
-          when "mrb_sym"
+          when :mrb_sym
             "mrb_sym2name(mrb, #{src})"
 
           else
@@ -1551,7 +1551,7 @@ EOS
 
           elsif srct.is_a?(String)
             case srct
-            when "mrb_sym"
+            when :mrb_sym
               "(mrb_symbol_value(#{src}))"
 
             else

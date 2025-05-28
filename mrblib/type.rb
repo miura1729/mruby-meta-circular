@@ -508,6 +508,31 @@ module MTypeInf
     attr_accessor :immidiate_only
   end
 
+  class RangeType<ContainerType
+    def initialize(co, ht, pht, level, *rest)
+      super
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object_core &&
+        @element == other.element &&
+        is_escape? == other.is_escape?
+    end
+
+    def type_equal(other, tup)
+      if other.is_a?(RangeType)
+        p "----"
+        p @element
+        p other.element
+      end
+
+      @class_object == other.class_object_core &&
+        @element == other.element &&
+        is_escape? == other.is_escape?
+    end
+  end
+
   class ProcType<BasicType
     @@tab = []
 
@@ -679,11 +704,13 @@ module MTypeInf
 
     Array => ContainerType,
     Hash => ContainerType,
-    Range => ContainerType,
+    Range => RangeType,
   }
   TypeTable = {}
   TypeSource.each do |ty, cl|
-    if cl == ContainerType or cl == StringType then
+    if cl == ContainerType or
+        cl == StringType or
+        cl == RangeType then
       TypeTable[ty] = cl.new(ty, nil, nil, 0)
     else
       TypeTable[ty] = cl.new(ty)

@@ -266,7 +266,7 @@ module CodeGenC
           ary = gen_type_conversion(ccgen, :mrb_value, argty, ary, tup, node, infer, history, nil, argreg)
           ccgen.pcode << "mrb_value *array = ARY_PTR2(mrb_ary_ptr(#{ary}));\n"
         else
-          ccgen.pcode << "#{aryty} *array = #{ary};\n"
+          ccgen.pcode << "#{argty} *array = #{ary};\n"
         end
         m1.times do |i|
           oreg = inst.outreg[i]
@@ -276,7 +276,7 @@ module CodeGenC
           argelereg = argtype[0].element[i]
           argelety = get_ctype(ccgen, argelereg, tup, infer)
 
-          ccgen.dcode << "#{CodeGen::gen_declare(ccgen, oreg, tup, infer)};\n"
+          ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
           valsrc = "array[#{i}]"
           if argelety != :mrb_value_mutex and argelety != :mrb_value_mutex_emptylock and
               argelety != :mrb_value then
@@ -300,20 +300,20 @@ module CodeGenC
             dstt2 = dstt
             case dstt[1]
             when "**"
+              dstt2 = "#{get_ctype_to_c(ccgen, oreg, tup, infer, dstt[0])} *"
               dstt = [dstt[0], "*", dstt[2]]
-              dstt2 = "#{dstt[0]} *"
 
             when "*"
-              dstt = dstt[0]
-              dstt2 = dstt
+              dstt2 = get_ctype_to_c(ccgen, oreg, tup, infer, dstt[0])
+              dstt = get_ctype_to_c(ccgen, oreg, tup, infer, dstt[0])
 
             else
               raise "Not support yet #{dstt}"
             end
-
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt2}) * #{asize}); // xxx\n"
             asize.times do |i|
-              val, srct = reg_real_value_noconv(ccgen, inst.inreg[m1 + i], node, tup, infer, history)
+              iregs = node.enter_reg[1..-1]
+              val, srct = reg_real_value_noconv(ccgen, iregs[m1 + i], node, tup, infer, history)
               val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, nil)
               ccgen.pcode << "v#{oreg.id}[#{i}] = #{val};\n"
             end
@@ -748,6 +748,7 @@ module CodeGenC
         else
           valtyp = valty
           if valtyp.is_a?(Array) then
+            valtyp[0] = get_ctype_to_c(ccgen, valreg, tup, infer, valtyp[0])
             valtyp = valtyp[0..1].join(' ')
           end
           ccgen.pcode << "#{valtyp} array = #{ary};\n"
