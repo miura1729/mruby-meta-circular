@@ -208,7 +208,7 @@ module MTypeInf
             elsif genp1.is_a?(RiteSSA::Inst) and
                 genp1.op == :SEND and
                 (genp1.para[0] == :size or genp1.para[0] == :length) and
-                (atype = genp1.inreg[0].get_type(tup)[0]).class_object == Array then
+                (atype = genp1.inreg[0].type.values[0][0]).class_object == Array then
               typemethodp = true
               type = IndexOfArrayType.new(type0.class_object, atype, true)
               atype_spec_pos = [type]

@@ -301,6 +301,7 @@ module CodeGenC
           p name
           p tup
           p inreg[0].type
+          p inst.inreg[0].type
           p intype
           p inst.line
         end
@@ -1759,6 +1760,24 @@ EOS
       end
     end
 
+    def self.gen_get_iv_start(ccgen, inst, node, infer, history, tup, slf, ivreg)
+      slfsrc = "self"
+
+      if slf.is_escape?(tup) then
+        if slf.type[tup][0].class_object == MMC_EXT::Mutex then
+          slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
+        end
+        idx = ivreg.genpoint
+        src = "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
+        dstt = get_ctype(ccgen, ivreg, tup, infer)
+        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, nil)
+        ccgen.pcode << "iv_#{ivreg.id} = #{src};\n"
+      else
+        src = "#{slfsrc}->v#{ivreg.id}"
+        ccgen.pcode << " iv_#{ivreg.id} = #{src};\n"
+      end
+    end
+
     def self.gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
       ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
       dstt = get_ctype(ccgen, dst, tup, infer)
@@ -1768,20 +1787,26 @@ EOS
         slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       end
 
-      if slf.is_escape?(tup) then
-        if slf.type[tup][0].class_object == MMC_EXT::Mutex then
-          slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
-        end
-        idx = ivreg.genpoint
-        src = "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
-        #src = "mrb_ary_ref(mrb, #{slfsrc}, #{idx})"
-        src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
-        ccgen.pcode << "v#{dst.id} = #{src};\n"
+      irep = node.root
+      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and false then
+          ccgen.pcode << "v#{dst.id} = iv_#{ivreg.id};\n"
+
       else
-        ivt = get_ctype(ccgen, ivreg, tup, infer)
-        src = "#{slfsrc}->v#{ivreg.id}"
-        src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
-        ccgen.pcode << " v#{dst.id} = #{src};\n"
+        if slf.is_escape?(tup) then
+          if slf.type[tup][0].class_object == MMC_EXT::Mutex then
+            slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
+          end
+          idx = ivreg.genpoint
+          src = "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
+          #src = "mrb_ary_ref(mrb, #{slfsrc}, #{idx})"
+          src = gen_type_conversion(ccgen, dstt, :mrb_value, src, tup, node, infer, history, dst)
+          ccgen.pcode << "v#{dst.id} = #{src};\n"
+        else
+          ivt = get_ctype(ccgen, ivreg, tup, infer)
+          src = "#{slfsrc}->v#{ivreg.id}"
+          src = gen_type_conversion(ccgen, dstt, ivt, src, tup, node, infer, history, dst)
+          ccgen.pcode << " v#{dst.id} = #{src};\n"
+        end
       end
       set_closure_env(ccgen, inst, node, infer, history, tup)
     end
@@ -1795,27 +1820,46 @@ EOS
       else
         slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       end
-      if thnum > 1 and wrthnum == 0 then
+      if thnum > 1 and wrthnum == 0 and false then
         #special lock free instruction
         genp = valr.genpoint
+        valsrc = nil
         case genp.op
         when :ADD
           val, valt = reg_real_value_noconv(ccgen, genp.inreg[1], node, tup, infer, history)
-          val = gen_type_conversion(ccgen, :mrb_value, valt, val, tup, node, ti, history, nil)
-          ccgen.pcode << "__atomic_fetch_add(ARY_PTR2(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}), #{val}, __ATOMIC_RELAXED);\n"
+          val = gen_type_conversion(ccgen, :mrb_fixnum, valt, val, tup, node, ti, history, nil)
+          if slf.is_escape?(tup) then
+            valsrc = "__atomic_add_fetch(ARY_PTR2(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}), #{val}, __ATOMIC_RELAXED);\n"
+          else
+            valsrc = "__atomic_add_fetch(&(#{slfsrc}->v#{ivreg.id}), #{val}, __ATOMIC_RELAXED);\n"
+          end
 
         when :ADDI
           val = genp.para[1]
           if slf.is_escape?(tup) then
-            ccgen.pcode << "__atomic_fetch_add(&(ARY_PTR(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}))->value.i, #{val}, __ATOMIC_RELAXED);\n"
+            valsrc = "__atomic_add_fetch(&(ARY_PTR(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}))->value.i, #{val}, __ATOMIC_RELAXED);\n"
           else
-            ccgen.pcode << "__atomic_fetch_add(&(#{slfsrc}->v#{ivreg.id}), #{val}, __ATOMIC_RELAXED);\n"
+            valsrc = "__atomic_add_fetch(&(#{slfsrc}->v#{ivreg.id}), #{val}, __ATOMIC_RELAXED);\n"
           end
 
-        when :SUB, :SUBI
+          #when :SUB, :SUBI
         when :LOADI
+          val = genp.para[0]
+          if slf.is_escape?(tup) then
+            valsrc = "(ARY_PTR(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}))->value.i = #{val};"
+          else
+            valsrc = "&(#{slfsrc}->v#{ivreg.id}) = #{val};"
+          end
+
         else
           raise "Not support #{genp}"
+        end
+        irep = node.root
+        if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and
+            irep.effects[:iv_read] then
+          ccgen.pcode << "iv_#{ivreg.id} = " +  valsrc
+        else
+          ccgen.pcode << valsrc
         end
       else
         #valt = get_ctype(ccgen, valr, tup, infer)

@@ -14,17 +14,33 @@ module CodeGenC
       argc = infer.typetupletab.rev_table[tup].size - 4;
       ireg = inst.inreg[0]
       oreg = inst.outreg[0]
+      irep = node.root
 
       if !oreg.type[tup] then
         tup = oreg.type.keys[0]
       end
 
-      if node.root.effects[:iv_write] #or node.root.effects[:iv_read] then
+      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and false then
+        # not export self
+        if irep.effects[:iv_read] then
+          ivs = {}
+          irep.effects[:iv_read].each do |name, inst, ivreg|
+            if ivs[ivreg] == nil then
+              ivs[ivreg] = true
+              ivname = "iv_#{ivreg.id}"
+              ccgen.dcode << "#{gen_declare_core(ccgen, ivreg, tup, infer, false, ivname)};"
+              ccgen.dcode << "/* #{name} */\n"
+              gen_get_iv_start(ccgen, inst, node, infer, history, tup, ireg, ivreg)
+            end
+          end
+        end
+      end
+
+      if irep.effects[:iv_write] #or node.root.effects[:iv_read] then
         oreg.type[tup].each_with_index do |type|
           type.threads = []
         end
       end
-
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
       dstt = get_ctype(ccgen, oreg, tup, infer)
       src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nil, ireg)
@@ -32,6 +48,7 @@ module CodeGenC
       ccgen.dcode << "#{gen_declare_core(ccgen, ireg, tup, infer, false, "mutexself")};\n"
       ccgen.pcode << "mutexself = v#{ireg.id};\n"
       ccgen.pcode << "self = #{src};\n"
+
       if argc >= 1 then
         inst.outreg[1..argc].each_with_index do |oreg, i|
           if oreg.type[tup] then
@@ -470,6 +487,10 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :SEND do |ccgen, inst, node, infer, history, tup|
+      # for debug
+      #     p "send"
+      #     p inst.inreg
+      #     p inst.inreg[0].genpoint
       op_send(ccgen, inst, node, infer, history, tup)
       nil
     end

@@ -13,8 +13,19 @@ module MTypeInf
     define_inf_rule_op :START do |infer, inst, node, tup, history|
       selfty = inst.inreg[0].get_type(tup)[0]
       node.root.call_blocks.each do |blk, tys|
-#        p tys[selfty]
+        if tys.keys[0] and selfty and tys.keys[0].class_object_core == selfty.class_object_core then
+          if blk.effects[:call_iv_read] or blk.effects[:iv_read] then
+            node.root.effects[:call_iv_read] = true
+          end
+
+          if blk.effects[:call_iv_write] or
+              blk.effects[:iv_write] or
+              blk.effects[:iv_write_lockfree] then
+            node.root.effects[:call_iv_write] = true
+          end
+        end
       end
+
       inst.inreg.each_with_index do |dmy, idx|
         inst.inreg[idx].type.each do |tp, types|
           types.each do |type|
@@ -189,7 +200,7 @@ module MTypeInf
       end
 
       genp = valreg.genpoint
-      if ([:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
+      if (false and [:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
           (genpa = genp.inreg[0].genpoint) and
           genpa.is_a?(RiteSSA::Inst) and
           genpa.op == :GETIV) and

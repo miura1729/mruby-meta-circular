@@ -5,13 +5,12 @@ class Count
 
   def skip_cnt(res)
     pp "skip"
-    cc = @c
-    while res[cc]
-      pp cc
+    while res[@c]
+      pp @c
       @c += 1
-      cc = @c
     end
-    n = cc
+    n = @c
+    pp n
     @c += 1
     n
   end
@@ -40,6 +39,7 @@ def kakutani(n, res)
 end
 
 def foo
+  i = 0
   c = Count.new
   r = [0, 0]
 
@@ -63,6 +63,14 @@ def foo
   th.join
   th2.join
   pp r
+  r.each do |e|
+    if e == nil then
+      pp e
+      pp i
+      break
+    end
+    i += 1
+  end
 end
 
 MTypeInf::inference_main {
