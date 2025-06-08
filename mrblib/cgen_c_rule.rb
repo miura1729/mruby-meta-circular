@@ -1788,7 +1788,7 @@ EOS
       end
 
       irep = node.root
-      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and false then
+      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil then
           ccgen.pcode << "v#{dst.id} = iv_#{ivreg.id};\n"
 
       else
@@ -1820,7 +1820,7 @@ EOS
       else
         slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       end
-      if thnum > 1 and wrthnum == 0 and false then
+      if thnum > 1 and wrthnum == 0 then
         #special lock free instruction
         genp = valr.genpoint
         valsrc = nil
@@ -1846,9 +1846,9 @@ EOS
         when :LOADI
           val = genp.para[0]
           if slf.is_escape?(tup) then
-            valsrc = "(ARY_PTR(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}))->value.i = #{val};"
+            valsrc = "(ARY_PTR(mrb_ary_ptr(#{slfsrc})) + (#{ivreg.genpoint}))->value.i = #{val};\n"
           else
-            valsrc = "&(#{slfsrc}->v#{ivreg.id}) = #{val};"
+            valsrc = "(&#{slfsrc})->v#{ivreg.id} = #{val};\n"
           end
 
         else

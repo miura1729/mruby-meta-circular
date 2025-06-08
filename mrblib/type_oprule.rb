@@ -200,7 +200,7 @@ module MTypeInf
       end
 
       genp = valreg.genpoint
-      if (false and [:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
+      if ([:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
           (genpa = genp.inreg[0].genpoint) and
           genpa.is_a?(RiteSSA::Inst) and
           genpa.op == :GETIV) and

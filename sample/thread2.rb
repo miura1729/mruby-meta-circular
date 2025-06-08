@@ -1,18 +1,16 @@
 class Count
   def initialize
-    @c = 2
+    @c = 1
   end
 
   def skip_cnt(res)
+    @c += 1
     pp "skip"
     while res[@c]
-      pp @c
       @c += 1
+      pp @c
     end
-    n = @c
-    pp n
-    @c += 1
-    n
+    @c
   end
 
   def c
@@ -41,7 +39,7 @@ end
 def foo
   i = 0
   c = Count.new
-  r = [0, 0]
+  r = [0, 0, nil]
 
   th = MMC_EXT::Thread.new(c, r) {|cnt, res|
     n = cnt.c

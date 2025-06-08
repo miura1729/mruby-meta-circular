@@ -20,7 +20,20 @@ module CodeGenC
         tup = oreg.type.keys[0]
       end
 
-      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and false then
+      if irep.effects[:iv_write] #or node.root.effects[:iv_read] then
+        oreg.type[tup].each_with_index do |type|
+          type.threads = []
+        end
+      end
+      src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
+      dstt = get_ctype(ccgen, oreg, tup, infer)
+      src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nil, ireg)
+      ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "self")};\n"
+      ccgen.dcode << "#{gen_declare_core(ccgen, ireg, tup, infer, false, "mutexself")};\n"
+      ccgen.pcode << "mutexself = v#{ireg.id};\n"
+      ccgen.pcode << "self = #{src};\n"
+
+      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil then
         # not export self
         if irep.effects[:iv_read] then
           ivs = {}
@@ -35,19 +48,6 @@ module CodeGenC
           end
         end
       end
-
-      if irep.effects[:iv_write] #or node.root.effects[:iv_read] then
-        oreg.type[tup].each_with_index do |type|
-          type.threads = []
-        end
-      end
-      src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      dstt = get_ctype(ccgen, oreg, tup, infer)
-      src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nil, ireg)
-      ccgen.dcode << "#{gen_declare_core(ccgen, oreg, tup, infer, false, "self")};\n"
-      ccgen.dcode << "#{gen_declare_core(ccgen, ireg, tup, infer, false, "mutexself")};\n"
-      ccgen.pcode << "mutexself = v#{ireg.id};\n"
-      ccgen.pcode << "self = #{src};\n"
 
       if argc >= 1 then
         inst.outreg[1..argc].each_with_index do |oreg, i|
