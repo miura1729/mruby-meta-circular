@@ -1761,12 +1761,9 @@ EOS
     end
 
     def self.gen_get_iv_start(ccgen, inst, node, infer, history, tup, slf, ivreg)
-      slfsrc = "self"
+      slfsrc = "mutexself"
 
       if slf.is_escape?(tup) then
-        if slf.type[tup][0].class_object == MMC_EXT::Mutex then
-          slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
-        end
         idx = ivreg.genpoint
         src = "ARY_PTR2(mrb_ary_ptr(#{slfsrc}))[#{idx}]"
         dstt = get_ctype(ccgen, ivreg, tup, infer)
@@ -1788,7 +1785,10 @@ EOS
       end
 
       irep = node.root
-      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil then
+      thnum = ivreg.get_type(tup)[0].threads.size
+      wrthnum = ivreg.write_threads.size
+      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and
+          thnum > 1 and wrthnum == 0 then
           ccgen.pcode << "v#{dst.id} = iv_#{ivreg.id};\n"
 
       else

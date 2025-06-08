@@ -284,16 +284,6 @@ module MTypeInf
 
       tblk.effects.each do |event, value|
         case event
-        when :iv_read
-          value.each do |ele|
-            ele[2].read_threads[thread] = true
-            ele[2].type.values.each do |types|
-              types.each do |type|
-                type.threads[thread] = :iv_read
-              end
-            end
-          end
-
         when :iv_write
           value.each do |ele|
             ele[2].write_threads[thread] = true
@@ -309,16 +299,32 @@ module MTypeInf
             end
           end
 
+        when :iv_read
+          value.each do |ele|
+            ele[2].read_threads[thread] = true
+            ele[2].type.values.each do |types|
+              types.each do |type|
+                if type.threads[thread] != :iv_write then
+                  type.threads[thread] = :iv_read
+                end
+              end
+            end
+          end
+
         when :iv_write_lockfree
           value.each do |ele|
             ele[2].type.values.each do |types|
               types.each do |type|
-                type.threads[thread] = :iv_write_lockfree
+                if type.threads[thread] == nil then
+                  type.threads[thread] = :iv_write_lockfree
+                end
               end
             end
             ele[3].type.values.each do |types|
               types.each do |type|
-                type.threads[thread] = :iv_write_lockfree
+                if type.threads[thread] == nil then
+                  type.threads[thread] = :iv_write_lockfree
+                end
               end
             end
           end

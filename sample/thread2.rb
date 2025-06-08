@@ -7,13 +7,15 @@ class Count
     @c += 1
     pp "skip"
     while res[@c]
-      @c += 1
       pp @c
+      @c += 1
     end
+    pp @c
     @c
   end
 
   def c
+    @c = @c * 1
     @c
   end
 end
