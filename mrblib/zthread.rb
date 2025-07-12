@@ -7,6 +7,14 @@ module MMC_EXT
 
   class MutexEmptyLock<BasicObject
   end
+
+  module LockPolicy
+    module MutexLock
+    end
+
+    module LockFree
+    end
+  end
 end
 
 module MTypeInf

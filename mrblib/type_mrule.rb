@@ -172,6 +172,13 @@ module MTypeInf
                   end
                   inst.outreg[0].flush_type_alltup(tup, false)
 
+                when MTypeInf::IndexOfArrayType
+                  arrele.each do |idx, typ|
+                    typ.flush_type(tup)
+                    inst.outreg[0].add_same typ
+                  end
+                  inst.outreg[0].flush_type_alltup(tup, false)
+
                 when MTypeInf::PrimitiveType
                   if inst.outreg[0].use_value then
                     arrele.each do |idx, typ|
@@ -317,8 +324,32 @@ module MTypeInf
     end
 
     define_inf_rule_method :reverse, Array do |infer, inst, node, tup|
-      inst.outreg[0].add_same inst.inreg[0]
-      inst.outreg[0].flush_type(tup)
+      otypes = inst.inreg[0].get_type(tup)
+
+      if otypes.size == 1 and otypes[0].element[ContainerType::UNDEF_VALUE].type.size == 0 then
+        otype = otypes[0].clone
+        orgele = otype.element
+        nelement = {}
+        elenum = orgele.size - 2
+        nelement[ContainerType::UNDEF_VALUE] = otype.element[ContainerType::UNDEF_VALUE]
+        orgele.each do |idx, val|
+          if idx.is_a?(Fixnum) then
+            nelement[elenum - idx] = val
+          end
+        end
+        otype.element = nelement
+        inst.outreg[0].add_type otype, tup
+
+      else
+        inst.outreg[0].add_same inst.inreg[0]
+        inst.outreg[0].flush_type(tup)
+      end
+
+      node.root.allocate_reg[tup] ||= []
+      regs = node.root.allocate_reg[tup]
+      reg = inst.outreg[0]
+      regs.push reg #if !regs.include?(reg)
+
       nil
     end
 
@@ -616,11 +647,29 @@ module MTypeInf
     end
 
     define_inf_rule_method :append_features, Module do |infer, inst, node, tup|
+      if inst.inreg[1].use_value == nil then
+      infer.continue = true
+#      inst.inreg[1].set_use_value
+      end
+
       make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         slf = intype[1][0].val
-        mod = intype[0][0].val
-        slf.include mod
+        intype[0].each do |ele|
+          mod = ele.val
+          # slf.include mod
+          slf.class_eval {
+            include mod
+          }
+        end
       end
+      inst.outreg[0].add_same inst.inreg[0]
+
+      nil
+    end
+
+    define_inf_rule_method :included, Module do |infer, inst, node, tup|
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
 

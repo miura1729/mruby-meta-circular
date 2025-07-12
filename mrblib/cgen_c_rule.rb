@@ -803,7 +803,7 @@ module CodeGenC
       when :LOADSELF
         ["self", srct]
 
-      when :GETCONST
+      when :GETCONST, :GETMCNST
         begin
           val = gins.outreg[0].get_type(tup)[0].val
         rescue NoMethodError
@@ -1033,6 +1033,10 @@ module CodeGenC
         rtypesize = 1
         if res then
           return res
+
+        elsif cls0.singleton_class? then
+          return :mrb_value
+
         elsif rtype[0].is_a?(MTypeInf::CPointerType)
           cent = get_type(ccgen, rtype[0].basetype, tup, infer)
           return [cent, "*"]
@@ -1357,7 +1361,7 @@ EOS
     def self.gen_type_checker(ccgen, srcval, tgtype, tup)
       tgcls = tgtype.class_object_core
 
-      if tgtype.is_escape?(tup) then
+      if tgtype.is_escape? then
         case tgcls.to_s.to_sym
         when :NilClass
           ["mrb_nil_p(#{srcval})", false]
@@ -1528,7 +1532,7 @@ EOS
 
             when :mrb_value
               gen_gc_table2(ccgen, node, oreg)
-              if srct[1] == "*" then
+              if srct[1] == "**" then
                 "(mrb_ary_new_from_values(mrb, #{srct[2]}, #{src}))"
               else
                 "(mrb_ary_new_from_values(mrb, #{srct[2]}, &#{src}))"
@@ -1542,7 +1546,6 @@ EOS
 })
 EOS
 
-
             when :thread
               "(mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, #{src}, &thread_data_header)))"
 
@@ -1552,8 +1555,8 @@ EOS
 
           elsif srct.is_a?(String)
             case srct
-            when :mrb_sym
-              "(mrb_symbol_value(#{src}))"
+
+            when "foo"
 
             else
               raise "Not support yet #{dstt} #{srct}"
@@ -1561,6 +1564,9 @@ EOS
 
           else
             case srct
+            when :mrb_sym
+              "(mrb_symbol_value(#{src}))"
+
             when :mrb_int
               "(mrb_fixnum_value(#{src}))"
 
@@ -1572,12 +1578,6 @@ EOS
 
             when :nil
               src.to_s
-
-            when String
-              p src
-              p srct
-              p caller
-              "conv_to_rvalue(#{src})"
 
             when :mrb_value_mutex
               # gen_gc_table2(ccgen, node, oreg)
@@ -1940,7 +1940,9 @@ EOS
         idxc, idxt = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
         idxc = gen_type_conversion(ccgen, :mrb_int, idxt, idxc, tup, node, infer, history, nreg)
         idxtype = idx.get_type(tup)[0]
-        idxtyp = idxtype.is_a?(MTypeInf::IndexOfArrayType) and idxtype.base_array == arytypes[0]
+        idxtyp = idxtype.is_a?(MTypeInf::IndexOfArrayType) and
+          idxtype.base_array == arytypes[0] and
+          idxtype.positive
         if arytypes[0].immidiate_only or idxtyp then
           src = "ARY_PTR2(mrb_ary_ptr(#{src}))[#{idxc}]"
 

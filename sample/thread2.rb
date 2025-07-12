@@ -1,4 +1,8 @@
+MTypeInf::inference_main {
 class Count
+#  include MMC_EXT::LockPolicy::MutexLock
+#  include MMC_EXT::LockPolicy::LockFree
+
   def initialize
     @c = 1
   end
@@ -15,7 +19,6 @@ class Count
   end
 
   def c
-    @c = @c * 1
     @c
   end
 end
@@ -73,7 +76,7 @@ def foo
   end
 end
 
-MTypeInf::inference_main {
+
   foo
 }
 

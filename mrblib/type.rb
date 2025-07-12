@@ -503,7 +503,7 @@ module MTypeInf
       true
     end
 
-    attr :element
+    attr_accessor :element
     attr :key
     attr_accessor :immidiate_only
   end

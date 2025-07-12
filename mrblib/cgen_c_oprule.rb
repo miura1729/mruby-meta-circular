@@ -20,7 +20,10 @@ module CodeGenC
         tup = oreg.type.keys[0]
       end
 
-      if irep.effects[:iv_write] #or node.root.effects[:iv_read] then
+      slftype = ireg.type[tup][0]
+      slfobj = slftype.class_object_core
+      if slfobj.ancestors.include?(MMC_EXT::LockPolicy::MutexLock) and
+          irep.effects[:iv_write] then
         oreg.type[tup].each_with_index do |type|
           type.threads = []
         end
@@ -172,12 +175,17 @@ module CodeGenC
         p oreg.type
       end
 
+      cno = ccgen.clstab.size
       if !(val.is_a?(Fixnum) or val.is_a?(Float) or ccgen.clstab[val]) then
-        cno = ccgen.clstab.size
         ccgen.hcode << gen_declare_core(ccgen, oreg, tup, infer, false, "const#{cno}")
         ccgen.hcode << ";\n"
         ccgen.clstab[val] = [inst.para[0], "const#{cno}"]
       end
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        outr = inst.outreg[0]
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};/*const*/\n"
+        ccgen.pcode << "v#{outr.id} = const#{cno};\n"
+      }
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
@@ -187,6 +195,27 @@ module CodeGenC
     end
 
     define_ccgen_rule_op :GETMCNST do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      if oreg.type.values and
+          oreg.type.values[0][0].is_a?(MTypeInf::LiteralType) then
+        val = oreg.type.values[0][0].val
+      else
+        p "Unknown MConstant value"
+        p inst
+        p inst.para[0]
+        p oreg.type
+      end
+      if !(val.is_a?(Fixnum) or val.is_a?(Float) or ccgen.clstab[val]) then
+        cno = ccgen.clstab.size
+        ccgen.hcode << gen_declare_core(ccgen, oreg, tup, infer, false, "const#{cno}")
+        ccgen.hcode << ";\n"
+        ccgen.clstab[val] = [inst.para[0], "const#{cno}"]
+      end
+      do_if_multi_use(ccgen, inst, node, infer, history, tup) {
+        outr = inst.outreg[0]
+        ccgen.dcode << "#{gen_declare(ccgen, outr, tup, infer)};/*const*/\n"
+        ccgen.pcode << "v#{outr.id} = const#{cno};\n"
+      }
       set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end

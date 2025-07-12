@@ -179,6 +179,7 @@ module MTypeInf
 
       # self is immutable so type is defined statically
       slftype = slf.flush_type(tup)[tup][0]
+      slfobj = slftype.class_object_core
       slfiv = inst.outreg[0]
       oty = slfiv.type[-1]
       if oty then
@@ -200,13 +201,14 @@ module MTypeInf
       end
 
       genp = valreg.genpoint
-      if ([:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
+      if slfobj.ancestors.include?(MMC_EXT::LockPolicy::LockFree) and
+          (([:ADD, :ADDI, :SUB, :SUBI].include?(genp.op) and
           (genpa = genp.inreg[0].genpoint) and
           genpa.is_a?(RiteSSA::Inst) and
           genpa.op == :GETIV) and
           genpa.para[0] == inst.para[0] or
 
-          [:LOADI].include?(genp.op) then
+          [:LOADI].include?(genp.op)) then
         node.root.effects[:iv_write_lockfree] ||= []
         node.root.effects[:iv_write_lockfree].push [inst.para[0], inst, slfiv, slf]
       else
@@ -325,12 +327,29 @@ module MTypeInf
 
     define_inf_rule_op :GETMCNST do |infer, inst, node, tup, history|
       name = inst.para[0]
+      proc = node.root
       srccls = inst.inreg[0].flush_type(tup)[tup][0].class_object
 
       const = RiteSSA::ClassSSA.get_instance(srccls).const_get(name)
       cls = TypeSource[const.class]
       type = nil
-      if cls then
+
+      if cls == ContainerType then
+        level = infer.callstack.size
+        previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+        type = cls.new(const.class, inst, previrep, level)
+        if const.class == Hash
+          const.each do |key, value|
+            keyt = LiteralType.new(key.class, key)
+            type.element[key] ||= RiteSSA::Reg.new(inst)
+            #type.element[key].add_type(keyt, tup)
+            if key != ContainerType::UNDEF_VALUE then
+              type.key.add_type keyt, 0
+            end
+          end
+        end
+
+      elsif cls then
         type = cls.new(const.class, const)
 
       elsif const.is_a?(Class) and const.ancestors.index(Exception) then
@@ -500,16 +519,16 @@ module MTypeInf
 
             (anum - m1 - o).times do |i|
               nreg = type.element[i] || RiteSSA::Reg.new(inst)
-              unreg = type.element[uv]
+              #type.element.delete uv
               if ele[m1 + o +  i] then
                 nreg.add_same ele[m1 + o +  i]
-                unreg.add_same ele[m1 + o +  i]
+                # unreg.add_same ele[m1 + o +  i]
               else
                 nreg.add_same ele[uv]
-                unreg.add_same ele[uv]
+                # unreg.add_same ele[uv]
               end
               nreg.flush_type_alltup(tup)
-              unreg.flush_type_alltup(tup)
+              # unreg.flush_type_alltup(tup)
               type.element[i] = nreg
             end
 
@@ -556,11 +575,11 @@ module MTypeInf
 
           (argc - m1 - o).times do |i|
             nreg = type.element[i] || RiteSSA::Reg.new(inst)
-            unreg = type.element[uv]
+            #type.element.delete uv
             nreg.add_same argv[m1 + o +  i]
-            unreg.add_same argv[m1 + o +  i]
+            #unreg.add_same argv[m1 + o +  i]
             nreg.flush_type(tup)
-            unreg.flush_type(tup)
+            #unreg.flush_type(tup)
             type.element[i] = nreg
           end
 

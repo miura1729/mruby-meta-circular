@@ -789,6 +789,54 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :reverse, Array do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      if dstt.is_a?(Array) then
+        if dstt[1] == "*" then
+          dstt = dstt[0].to_s
+        else
+          dstt = "#{dstt[0]} *"
+        end
+      end
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      uv = MTypeInf::ContainerType::UNDEF_VALUE
+
+      if inst.inreg[0].is_escape?(tup) then
+        len = "(ARY_LEN2(mrb_ary_ptr(#{src})"
+        asptr = "(ARY_PTR2(mrb_ary_ptr(#{src})"
+
+        gen_gc_table(ccgen, inst, node, infer, history, tup)
+        ccgen.pcode << "{\n"
+        gen_global_lock(ccgen, node)
+        ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
+        regt = get_ctype(ccgen, oreg, tup, infer)
+        ccgen.pcode << "mrb_value ary = mrb_ary_new_capa(mrb, #{initsize});\n"
+        ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(ary), 0);\n"
+        gen_global_unlock(ccgen, node)
+        adptr = "(ARY_PTR2(mrb_ary_ptr(ary)"
+
+      else
+        eles = (inst.inreg[0].get_type(tup))[0].element
+        len = eles.size
+        if eles[uv] then
+          len -= 1
+        end
+        asptr = src
+        ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt}) * #{len});\n"
+        adptr = "v#{oreg.id}"
+        csize = ccgen.gccomplex_size
+        ccgen.gccomplex_size += 1
+        ccgen.pcode << "gctab->complex[#{csize}] = v#{oreg.id};\n"
+        ccgen.pcode << "gctab->csize = #{ccgen.gccomplex_size};\n"
+      end
+
+      nil
+    end
+
     define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
       #recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       recvtypes = inst.inreg[0].flush_type(tup)[tup]
@@ -1304,6 +1352,18 @@ module CodeGenC
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       ccgen.pcode << "v#{oreg.id} = mrb_fixnum_value(mrb_str_index(mrb, #{str}, #{para},strlen(#{para}), 0));\n"
+    end
+
+    define_ccgen_rule_method :append_features, Module do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
+    define_ccgen_rule_method :included, Module do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{oreg.id} = mrb_nil_value();\n"
+      nil
     end
 
     define_ccgen_rule_method :attr_reader, Module do |ccgen, inst, node, infer, history, tup|
