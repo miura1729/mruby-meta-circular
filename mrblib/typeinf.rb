@@ -329,6 +329,8 @@ module MTypeInf
             end
           end
 
+        when :iv_write_nolock
+
         when :lambda
           value.each do |inst, nproc|
             procs[nproc] = inst.irep

@@ -36,17 +36,20 @@ module CodeGenC
       ccgen.pcode << "mutexself = v#{ireg.id};\n"
       ccgen.pcode << "self = #{src};\n"
 
-      if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil then
-        # not export self
-        if irep.effects[:iv_read] then
-          ivs = {}
-          irep.effects[:iv_read].each do |name, inst, ivreg|
-            if ivs[ivreg] == nil then
-              ivs[ivreg] = true
-              ivname = "iv_#{ivreg.id}"
-              ccgen.dcode << "#{gen_declare_core(ccgen, ivreg, tup, infer, false, ivname)};"
-              ccgen.dcode << "/* #{name} */\n"
-              gen_get_iv_start(ccgen, inst, node, infer, history, tup, ireg, ivreg)
+      if slfobj.ancestors.include?(MMC_EXT::LockPolicy::MutexLock) or
+          slfobj.ancestors.include?(MMC_EXT::LockPolicy::LockFree) then
+        if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil then
+          # not export self
+          if irep.effects[:iv_read] then
+            ivs = {}
+            irep.effects[:iv_read].each do |name, inst, ivreg|
+              if ivs[ivreg] == nil then
+                ivs[ivreg] = true
+                ivname = "iv_#{ivreg.id}"
+                ccgen.dcode << "#{gen_declare_core(ccgen, ivreg, tup, infer, false, ivname)};"
+                ccgen.dcode << "/* #{name} */\n"
+                gen_get_iv_start(ccgen, inst, node, infer, history, tup, ireg, ivreg)
+              end
             end
           end
         end

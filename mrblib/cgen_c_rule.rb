@@ -1778,6 +1778,7 @@ EOS
     def self.gen_get_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, dst)
       ccgen.dcode << "#{gen_declare(ccgen, dst, tup, infer)};\n"
       dstt = get_ctype(ccgen, dst, tup, infer)
+      slfobj = slf.get_type(tup)[0].class_object_core
       if inst.op == :GETIV then
         slfsrc = "self"
       else
@@ -1788,7 +1789,8 @@ EOS
       thnum = ivreg.get_type(tup)[0].threads.size
       wrthnum = ivreg.write_threads.size
       if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil and
-          thnum > 1 and wrthnum == 0 then
+          thnum > 1 and wrthnum == 0 and
+          slfobj.ancestors.include?(MMC_EXT::LockPolicy::LockFree) then
           ccgen.pcode << "v#{dst.id} = iv_#{ivreg.id};\n"
 
       else
@@ -1814,13 +1816,15 @@ EOS
     def self.gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
       thnum = ivreg.get_type(tup)[0].threads.size
       wrthnum = ivreg.write_threads.size
+      slfobj = slf.get_type(tup)[0].class_object_core
 
       if inst.op == :SETIV then
         slfsrc = "self"
       else
         slfsrc = reg_real_value_noconv(ccgen, slf, node, tup, infer, history)[0]
       end
-      if thnum > 1 and wrthnum == 0 then
+      if thnum > 1 and wrthnum == 0 and
+          slfobj.ancestors.include?(MMC_EXT::LockPolicy::LockFree) then
         #special lock free instruction
         genp = valr.genpoint
         valsrc = nil
