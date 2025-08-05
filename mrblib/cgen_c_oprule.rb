@@ -22,7 +22,7 @@ module CodeGenC
 
       slftype = ireg.type[tup][0]
       slfobj = slftype.class_object_core
-      if slfobj.ancestors.include?(MMC_EXT::LockPolicy::MutexLock) and
+      if !slfobj.ancestors.include?(MMC_EXT::LockPolicy::NoLock) and
           irep.effects[:iv_write] then
         oreg.type[tup].each_with_index do |type|
           type.threads = []
@@ -36,8 +36,7 @@ module CodeGenC
       ccgen.pcode << "mutexself = v#{ireg.id};\n"
       ccgen.pcode << "self = #{src};\n"
 
-      if slfobj.ancestors.include?(MMC_EXT::LockPolicy::MutexLock) or
-          slfobj.ancestors.include?(MMC_EXT::LockPolicy::LockFree) then
+      if !slfobj.ancestors.include?(MMC_EXT::LockPolicy::NoLock) then
         if irep.effects[:call_iv_read] == nil and irep.effects[:call_iv_write] == nil then
           # not export self
           if irep.effects[:iv_read] then
@@ -362,8 +361,10 @@ module CodeGenC
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt2}) * #{asize}); // xxx\n"
             asize.times do |i|
               iregs = node.enter_reg[1..-1]
+              valtypes = iregs[m1 + i].get_type(tup)
               val, srct = reg_real_value_noconv(ccgen, iregs[m1 + i], node, tup, infer, history)
-              val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, nil)
+              dsttm = get_mutex_dst(srct, valtypes, dstt, oreg.get_type(tup)[0])
+              val = gen_type_conversion(ccgen, dsttm, srct, val, tup, node, infer, history, nil)
               ccgen.pcode << "v#{oreg.id}[#{i}] = #{val};\n"
             end
             inst.para[2][m1] = "v#{oreg.id}"

@@ -212,13 +212,13 @@ module MTypeInf
         node.root.effects[:iv_write_lockfree] ||= []
         node.root.effects[:iv_write_lockfree].push [inst.para[0], inst, slfiv, slf]
 
-      elsif slfobj.ancestors.include?(MMC_EXT::LockPolicy::MutexLock) then
-        node.root.effects[:iv_write] ||= []
-        node.root.effects[:iv_write].push [inst.para[0], inst, slfiv, slf]
-
-      else
+      elsif slfobj.ancestors.include?(MMC_EXT::LockPolicy::NoLock) then
         node.root.effects[:iv_write_nolock] ||= []
         node.root.effects[:iv_write_nolock].push [inst.para[0], inst, slfiv, slf]
+
+      else
+        node.root.effects[:iv_write] ||= []
+        node.root.effects[:iv_write].push [inst.para[0], inst, slfiv, slf]
       end
 
       nil

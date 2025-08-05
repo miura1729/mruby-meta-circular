@@ -9,7 +9,7 @@ module MMC_EXT
   end
 
   module LockPolicy
-    module MutexLock
+    module NoLock
     end
 
     module LockFree
