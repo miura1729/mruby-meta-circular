@@ -40,6 +40,8 @@ module CodeGenC
       @compiled_method = {}
 
       @unlock_instruction = {}
+      @lock_stack = []
+      @lock_tuple = {}
       init_code
     end
 
@@ -203,6 +205,9 @@ EOS
 
     attr :unlock_instruction
 
+    attr :lock_stack
+    attr :lock_tuple
+
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then
         reg.genpoint
@@ -235,8 +240,10 @@ EOS
       if reg.refpoint.size > 1 then
 #        p reg.refpoint.map {|r| r.op}
         return true
+
       elsif reg.refpoint.size == 0 then
         return nil
+
       elsif reg.refpoint[0].op == :NOP then
         rc = node.exit_link.any? {|n|
           is_live_reg_aux(n, n.enter_reg[pos], pos, hash)
@@ -377,13 +384,18 @@ EOS
           end
         end
 
-        @using_block.each do |name, proc, utup, procty, pproc|
+        @using_block.each do |name, proc, utup, procty, pproc, is_self_locked|
           if !@defined_block[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
               CodeGen::get_ctype(self, reg, utup, ti) == :mrb_value
             }
             intype = ti.typetupletab.rev_table[utup]
+            if is_self_locked then
+              intype[0].each do |ty|
+                ty.threads = []
+              end
+            end
             code_gen_block(block, ti, name, proc, utup, intype, procty, pproc)
             @defined_block[name] = true
             fin = false

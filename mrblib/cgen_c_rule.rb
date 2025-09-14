@@ -2038,6 +2038,23 @@ EOS
       end
     end
 
+    def self.add_lock_object(ccgen, newobj, prevobj)
+      ccgen.lock_tuple[newobj] ||= []
+      ccgen.lock_tuple[prevobj] ||= []
+      if ccgen.lock_tuple[prevobj] and
+          ccgen.lock_tuple[prevobj].include?(newobj) then
+        return nil
+      end
+      if !ccgen.lock_tuple[newobj].include?(prevobj)
+        ccgen.lock_tuple[newobj].push prevobj
+        ccgen.lock_tuple[prevobj].each do |obj|
+          add_lock_object(ccgen, newobj, obj)
+        end
+      end
+
+      true
+    end
+
     def self.gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)
       idx, idxty = reg_real_value_noconv(ccgen, idx, node, tup, infer, history)
       if inst.inreg[1] then
