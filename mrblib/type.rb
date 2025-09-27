@@ -10,21 +10,26 @@ module MTypeInf
       @escape_cache = nil
       @version = 0
       @threads = {}
+      @locked = false
     end
 
     def ==(other)
       self.class == other.class &&
-        @class_object == other.class_object &&
-        is_escape? == other.is_escape?
+        @class_object == other.class_object_core &&
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def type_equal(other, tup)
-      @class_object == other.class_object &&
-        is_escape? == other.is_escape?
+      @class_object == other.class_object_core &&
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def class_object
-      if is_gcobject? and (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 then
+      if is_gcobject? and
+          (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 and
+          !@locked then
         # racing object. lock need when access
         if @threads.values.include?(:canempty) then
           MMC_EXT::MutexEmptyLock
@@ -46,6 +51,7 @@ module MTypeInf
     attr_accessor :place
     attr_accessor :version
     attr_accessor :threads
+    attr_accessor :locked
 
     def merge(arr, usevalue)
       clsobj = @class_object
@@ -181,14 +187,18 @@ module MTypeInf
 
     def inspect(level = 0)
       core = inspect_aux({}, level)
-      if @threads.size > 1 then
+      if !@locked and @threads.size > 1 then
         if @threads.values[0] == :canempty
           "MutexEmptyLock<#{core}>"
         else
           "Mutex<#{core}>"
         end
       else
-        core
+        if @locked then
+          "#{core} locked"
+        else
+          core
+        end
       end
     end
 
@@ -338,7 +348,8 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object_core &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     attr :size
@@ -355,7 +366,8 @@ module MTypeInf
       other.class == self.class &&
         @class_object == other.class_object_core &&
         @val == other.val &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def inspect_aux(hist, level)
@@ -385,14 +397,16 @@ module MTypeInf
       other.class == self.class &&
         @class_object == other.class_object_core &&
         @val == other.val &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def type_equal(other, tup)
       self.class == other.class &&
         @class_object == other.class_object_core &&
         @val == other.val &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def self.instance(klass, val)
@@ -462,13 +476,15 @@ module MTypeInf
           })) &&
 
         #        @element == other.element &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
            #      equal?(other)# && is_escape? == other.is_escape?
     end
 
     def type_equal(other, tup)
       @class_object == other.class_object_core &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def inspect_aux(hist, level)
@@ -517,7 +533,8 @@ module MTypeInf
       self.class == other.class &&
         @class_object == other.class_object_core &&
         @element == other.element &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def type_equal(other, tup)
@@ -529,7 +546,8 @@ module MTypeInf
 
       @class_object == other.class_object_core &&
         @element == other.element &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
   end
 
@@ -560,7 +578,8 @@ module MTypeInf
         @irep == other.irep &&
         @env == other.env &&
         ((!@tups[0] && !other.tups[0]) || @tups[0][1] == other.tups[0][1]) &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def inspect(level = 0)
@@ -619,7 +638,8 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @proc == other.proc &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
 
     def inspect(level = 0)
@@ -658,7 +678,8 @@ module MTypeInf
         @class_object == other.class_object_core &&
         @hometown == other.hometown &&
         @version == other.version &&
-        is_escape? == other.is_escape?
+        is_escape? == other.is_escape? &&
+        locked == other.locked
     end
   end
 
@@ -679,7 +700,8 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object_core &&
-        @base_array == other.base_array
+        @base_array == other.base_array &&
+        locked == other.locked
     end
 
     def is_gcobject?

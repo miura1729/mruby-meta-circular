@@ -78,8 +78,13 @@ module MTypeInf
       inreg = []
       inreg[0] = inst.inreg[0]
       inreg[1] = RiteSSA::Reg.new(nil)
-      inreg[1].add_same inst.inreg[0]
-      inreg[1].flush_type(tup)
+      inreg[1].type[tup] = []
+      tys = inreg[1].type[tup]
+      inst.inreg[0].type[tup].each do |typ|
+        ntyp = typ.clone
+        ntyp.locked = true
+        tys.push ntyp
+      end
       rule_yield_passed_block(infer, inst, node, tup, proc, nil, inreg)
       type = LiteralType.new(NilClass, nil)
       inst.outreg[0].add_type(type, tup)
@@ -255,14 +260,21 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :lock, BasicObject do |ccgen, inst, node, infer, history, tup|
+              ccgen.pcode << "/* lockfoo */\n"
       procty = get_ctype(ccgen, inst.inreg[0], tup, infer)
       nreg = inst.outreg[0]
       MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         ptype = intype[-1][0]
         proc = inst.inreg[-1]
-        if intype[0].size == 1 then
+        intype = [ptype.slf] + intype[0..-2]
+        if intype[1].size == 1 then
           # store proc object only 1 kind.
+
+          # pass locked object to block
+          intype[1][0] = intype[1][0].clone
+          intype[1][0].locked = true
           utup = infer.typetupletab.get_tupple_id(intype, ptype, tup)
+
           procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
 
           regs =  ptype.irep.allocate_reg[utup]
@@ -303,17 +315,14 @@ module CodeGenC
 
           val, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
           ireg = inst.inreg[0]
-          oreg = inst.inreg[0].clone
-          otypes = oreg.type[tup]
-          if otypes == nil then
-            otypes = oreg.type.values[0]
-          end
-          otypes.each_with_index do |type, i|
+          oreg = RiteSSA::Reg.new(nil)
+          otypes = []
+          ireg.type[tup].each_with_index do |type, i|
             if i > 0 then
               raise "Multiple types lock"
             end
             ntype = type.clone
-            ntype.threads = []
+            ntype.locked = true
             otypes[i] = ntype
             prevobj = ccgen.lock_stack[-1]
             ccgen.lock_stack.push type
@@ -321,6 +330,7 @@ module CodeGenC
               p "Possible dead lock #{node.ext_iseq[0].line} in #{node.ext_iseq[0].filename}"
             end
           end
+          oreg.type[tup] = otypes
           dstt = get_ctype(ccgen, oreg, tup, infer)
           args << gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, oreg, ireg)
 

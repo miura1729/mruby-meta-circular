@@ -381,6 +381,7 @@ module MTypeInf
       end
 
       history[thread][tblk] = true
+
       tblk.call_blocks.each do |nblk, val|
         if val[nil] then
           if procs[nblk] then
@@ -390,7 +391,6 @@ module MTypeInf
           update_effects_aux(thread, nblk, history, procs)
         end
       end
-
     end
 
     def inference_top(saairep)
