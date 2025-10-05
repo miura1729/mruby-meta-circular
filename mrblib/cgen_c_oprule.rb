@@ -157,11 +157,15 @@ module CodeGenC
       p "FOO"
       p tup
       p infer.typetupletab.rev_table[tup]
+      p inst.inreg[0].type
+      p inst.inreg[0].type[tup]
       p inst.inreg[0].id
-     p inst.inreg[0].get_type(tup).map {|ty| ty} if inst.inreg[0].type[tup]
+      p inst.inreg[0].get_type(tup).map {|ty| ty} if inst.inreg[0].type[tup]
       inst.inreg[0].type.each do |tp, tys|
         p "#{tp} #{tys.map {|ty| ty.place}}"
       end
+      p inst.inreg[0].negative_list
+      p inst.inreg[0].positive_list
       nil
     end
 
@@ -344,16 +348,17 @@ module CodeGenC
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, #{asize}, &v#{inst.inreg[m1].id});\n"
             gen_global_unlock(ccgen, node)
           else
-            dstt = get_ctype(ccgen, oreg, tup, infer)
+            ereg = oreg.type[tup][0].element[0]
+            dstt = get_ctype(ccgen, ereg, tup, infer)
             dstt2 = dstt
             case dstt[1]
-            when "**"
-              dstt2 = "#{get_ctype_to_c(ccgen, oreg, tup, infer, dstt[0])} *"
+            when "*"
+              dstt2 = "#{get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])} *"
               dstt = [dstt[0], "*", dstt[2]]
 
-            when "*"
-              dstt2 = get_ctype_to_c(ccgen, oreg, tup, infer, dstt[0])
-              dstt = get_ctype_to_c(ccgen, oreg, tup, infer, dstt[0])
+            when nil
+              dstt2 = get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])
+              dstt = get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])
 
             else
               raise "Not support yet #{dstt}"

@@ -564,8 +564,8 @@ module MTypeInf
         (m1 + o).times do |i|
           if argv[i] then
             inst.outreg[i].add_same argv[i]
-          elsif argv[ContainerType::UNDEF_VALUE] then
-            inst.outreg[i].add_same argv[ContainerType::UNDEF_VALUE]
+          elsif argv[uv] then
+            inst.outreg[i].add_same argv[uv]
           end
           inst.outreg[i].flush_type(tup)
         end
@@ -576,6 +576,7 @@ module MTypeInf
             level = infer.callstack.size
             previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             inst.objcache[nil] = type = ContainerType.new(Array, inst, previrep, level)
+            type.element[uv] = RiteSSA::Reg.new(inst)
           end
 
           (argc - m1 - o).times do |i|
@@ -586,7 +587,9 @@ module MTypeInf
             nreg.flush_type(tup)
             #unreg.flush_type(tup)
             type.element[i] = nreg
+            type.element[uv].add_same nreg
           end
+          type.element[uv].flush_type(tup)
 
           inst.outreg[m1 + o].type[tup] = [type]
           inst.outreg[m1 + o + 1].add_same inreg[argc]

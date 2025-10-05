@@ -1069,7 +1069,8 @@ module CodeGenC
 
       ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "sscanf(#{src}, \"%d\", &v#{oreg.id});\n"
+#      ccgen.pcode << "sscanf(#{src}, \"%d\", &v#{oreg.id});\n"
+      ccgen.pcode << "v#{oreg.id} = (#{src});\n"
       nil
     end
 

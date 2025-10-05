@@ -129,16 +129,16 @@ module MTypeInf
               #            genp = genp.inreg[0].genpoint
 
             else
-              typemethodp = true
-              genp = genp.inreg[0].genpoint
-              atype_reg = get_original_reg(infer, genp, tup)
-              notp = !notp
-              type0 = PrimitiveType.new(NilClass)
-              type1 = PrimitiveType.new(FalseClass)
+             # typemethodp = true
+             # genp = genp.inreg[0].genpoint
+             # atype_reg = get_original_reg(infer, genp, tup)
+             # notp = !notp
+             # type0 = PrimitiveType.new(NilClass)
+             # type1 = PrimitiveType.new(FalseClass)
 
-              addtional_type_spec = [type0, type1]
-              atype_spec_pos = addtional_type_spec
-              atype_spec_neg = addtional_type_spec
+             #\ addtional_type_spec = [type0, type1]
+             # atype_spec_pos = addtional_type_spec
+             # atype_spec_neg = addtional_type_spec
             end
 
           when :EQ
@@ -263,11 +263,17 @@ module MTypeInf
         #p atype.map {|e| e.class_object} if atype
         #p condtype
         #p typemethodp
-        #p notp
 
         idx = inst.op == :JMPIF ? 1 - bidx : bidx
         if condtype == NilClass or condtype == FalseClass then
+#        p type
+#        p inst.line
+#        p condtype
+#        p bidx
+#        p notp
+#        p "foobar"
           enode = get_jmp_target(node, idx, inst)
+#          p enode.ext_iseq[0].line
           history[node] ||= []
           history[nil] ||= []
           history[nil].push node

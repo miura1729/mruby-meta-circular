@@ -571,6 +571,7 @@ module RiteSSA
             end
             inst.para.push jmps
           end
+#          inst.inreg.push regtab[0]
           regtab[1..-1].each_with_index do |reg, i|
             inst.inreg.push reg
             reg.refpoint.push inst

@@ -1,8 +1,21 @@
+module Integral
+  def times &block
+    return to_enum :times unless block
+
+    i = 0
+    while i < self
+      block.call i
+      i += 1
+    end
+    self
+  end
+end
+
 class Array
    def each(&block)
-    return to_enum :each unless block
+     return to_enum :each unless block
 
-    idx = 0
+     idx = 0
     while idx < length
       block.call(self[idx])
       idx += 1
@@ -24,7 +37,6 @@ end
       while [" ", "\t", "\r", "\n"].include? @buf[@index] do
         @index += 1
       end
-      $foo = @index
     end
     def has_next?
       @index < @length
@@ -73,6 +85,7 @@ end
       if s.include? '.'
         return s.to_f
       end
+
       return s.to_i
     end
     def parse_string
@@ -235,12 +248,12 @@ end
 
 def top
   10000.times do
-    p parse('{"foo": "bar"}')
-#    p parse('{"foo": "baz", "abc": "abaz"}')
-#    p parse('[true, "foo"]')
-#    p parse('{"label":[true, "foo"]}')
-#    p parse('[true, {"foo" : "bar"}]')
-#    p parse('[1, {"2.0" : 3.0}]')
+    pp  parse('{"foo": "bar"}')
+    pp parse('{"foo": "baz", "abc": "abaz"}')
+    pp parse('[true, "foo"]')
+    pp parse('{"label":[true, "foo"]}')
+    pp parse('[true, {"foo" : "bar"}]')
+    pp parse('[1, {"2.0" : 3.0}]')
   end
 end
 

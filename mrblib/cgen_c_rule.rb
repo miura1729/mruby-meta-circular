@@ -52,7 +52,7 @@ module CodeGenC
       end
 
       ty = nr.get_type_or_nil(tup)
-      if ty then
+      if ty and ty[0] then
         ty = ty[0].class_object_core
         if ty == HAL::Regs or ty == HAL::Reg or ty == HAL::CPU or
             ty == HAL::BinExp or ty == HAL::Mem then
@@ -147,19 +147,22 @@ module CodeGenC
               # Do nothing
 
         else
+          name = nil
           if r.is_a?(RiteSSA::ParmReg2) and r.genpoint == 0 then
             name = "mutexself"
           elsif r.is_a?(RiteSSA::ParmReg) and r.genpoint == 0 then
             name = "mutexself"
-          else
+          elsif ccgen.is_live_reg?(node, r) then
             name = reg_real_value_noconv(ccgen, r, node, tup, infer, history)[0]
           end
 
-          if ccgen.prev_gcsingle[tabpos] != name then
-            ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};/* normal */\n"
-            ccgen.prev_gcsingle[tabpos] = name
+          if name then
+            if ccgen.prev_gcsingle[tabpos] != name then
+              ccgen.pcode << "gctab->single[#{tabpos}] = &#{name};/* normal */\n"
+              ccgen.prev_gcsingle[tabpos] = name
+            end
+            tabpos += 1
           end
-          tabpos += 1
         end
       end
 
@@ -392,6 +395,7 @@ module CodeGenC
 
         else
           p "Poly"
+          p rectypes
           # polymorphism
           ccgen.pcode << "mrb_no_method_error2(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
         end
@@ -819,11 +823,12 @@ module CodeGenC
       when :ENTER
         i = gins.outreg.index(reg)
         if i then
+          #i = i + 1
           src = gins.para[2][i]
           if src then
             [src, srct]
           else
-            [reg_real_value(ccgen, gins.inreg[i], gins.outreg[i], node, tup, ti, history), srct]
+            reg_real_value_noconv(ccgen, gins.inreg[i], node, tup, ti, history)
           end
         else
           pos = 0
@@ -1127,7 +1132,7 @@ module CodeGenC
           rc = get_ctype_aux(ccgen, ereg, etup, infer)
           if rc == :array or rc == :mrb_value then
             [:mrb_value, "*", size]
-          elsif rc == :string
+          elsif rc == :string then
             [:char, "**", size]
           else
             [rc, "*", size]
@@ -1678,7 +1683,7 @@ EOS
             case srct[0]
             when :char
               if srct[1] == "*" then
-                "({mrb_float2 res; sscanf(#{src}, \"%g\", &res); res;})"
+                "({mrb_float2 res; sscanf(#{src}, \"%lg\", &res); res;})"
 
               else
                 raise "Unknown type #{srct}"
