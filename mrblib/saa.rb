@@ -26,7 +26,7 @@ module RiteSSA
     end
 
     def inspect
-      "<#{self.class} type: #{@type} same: #{@same} pos: #{@positive_list} neg: #{@negative_list}>"
+      "<#{self.class} type: #{@type} same: #{@same} pos: #{@positive_list} neg: #{@negative_list} id: #{id}>"
     end
 
     def rearrange_type(tup)
@@ -571,7 +571,7 @@ module RiteSSA
             end
             inst.para.push jmps
           end
-#          inst.inreg.push regtab[0]
+          #inst.inreg.push regtab[0]
           regtab[1..-1].each_with_index do |reg, i|
             inst.inreg.push reg
             reg.refpoint.push inst

@@ -238,7 +238,6 @@ EOS
       end
       hash[node] = true
       if reg.refpoint.size > 1 then
-#        p reg.refpoint.map {|r| r.op}
         return true
 
       elsif reg.refpoint.size == 0 then
@@ -781,6 +780,9 @@ EOS
                   argt = ti.typetupletab.rev_table[tup]
                   if !is_virgin_reg?(node, sreg, argt) then
                     src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
+#                    p sreg.genpoint
+#                    p sreg.refpoint
+#                    p src
                     @pcode << "v#{nreg.id} = #{src}; /* #{nd.enter_link.count {|n| history[n]}}*/ \n"
                   end
                 end

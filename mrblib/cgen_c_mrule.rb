@@ -305,6 +305,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :>>)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -312,6 +313,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :<<)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -319,6 +321,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :&)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -326,6 +329,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :|)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -333,6 +337,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :^)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -340,6 +345,7 @@ module CodeGenC
       do_if_multi_use(ccgen, inst, node, infer, history, tup) {
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.para[1], :%)
       }
+      set_closure_env(ccgen, inst, node, infer, history, tup)
       nil
     end
 
@@ -1352,7 +1358,7 @@ module CodeGenC
       ccgen.dcode << ";\n"
       gen_gc_table(ccgen, inst, node, infer, history, tup)
       ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-      ccgen.pcode << "v#{oreg.id} = mrb_fixnum_value(mrb_str_index(mrb, #{str}, #{para},strlen(#{para}), 0));\n"
+      ccgen.pcode << "v#{oreg.id} = ({int rc = mrb_str_index(mrb, #{str}, #{para},strlen(#{para}), 0); (rc == -1) ? mrb_nil_value() : mrb_fixnum_value(rc);});\n"
     end
 
     define_ccgen_rule_method :append_features, Module do |ccgen, inst, node, infer, history, tup|

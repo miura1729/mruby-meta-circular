@@ -976,7 +976,7 @@ module CodeGenC
       if reg.get_type_or_nil(tup) == nil then
         tup = reg.type.keys[0]
       end
-      rtype = reg.type[tup]
+      rtype = reg.get_type(tup)
       if !rtype then
 #        p caller
 #        p "#{tup} #{infer.typetupletab.rev_table[tup]}"

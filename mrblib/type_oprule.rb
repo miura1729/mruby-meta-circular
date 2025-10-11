@@ -612,7 +612,7 @@ module MTypeInf
             pos = argc - m1 - m2
           end
           nnode = inst.para[3][pos]
-          ereg = [inst.inreg[0]] + inst.outreg
+          ereg = [node.enter_reg[0]] + inst.outreg
           infer.inference_node(nnode, tup, ereg, history)
 
           rc = true

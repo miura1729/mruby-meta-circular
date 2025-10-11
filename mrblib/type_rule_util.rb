@@ -129,16 +129,16 @@ module MTypeInf
               #            genp = genp.inreg[0].genpoint
 
             else
-             # typemethodp = true
-             # genp = genp.inreg[0].genpoint
-             # atype_reg = get_original_reg(infer, genp, tup)
-             # notp = !notp
-             # type0 = PrimitiveType.new(NilClass)
-             # type1 = PrimitiveType.new(FalseClass)
+              #typemethodp = true
+              #genp = genp.inreg[0].genpoint
+              #atype_reg = get_original_reg(infer, genp, tup)
+              #notp = !notp
+              #type0 = PrimitiveType.new(NilClass)
+              #type1 = PrimitiveType.new(FalseClass)
 
-             #\ addtional_type_spec = [type0, type1]
-             # atype_spec_pos = addtional_type_spec
-             # atype_spec_neg = addtional_type_spec
+              #addtional_type_spec = [type0, type1]
+              #atype_spec_pos = addtional_type_spec
+              #atype_spec_neg = addtional_type_spec
             end
 
           when :EQ
@@ -346,7 +346,7 @@ module MTypeInf
             end
             history[nil].pop
 
-            if rcthen == :return then
+            if rcthen == :return and false then
               # then part is return from current method, so outer block of if is
               # type limitation of else part.
               history[nd] ||= []
