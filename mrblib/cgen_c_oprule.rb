@@ -171,7 +171,7 @@ module CodeGenC
 
     define_ccgen_rule_op :GETCONST do |ccgen, inst, node, infer, history, tup|
       oreg = inst.outreg[0]
-      if oreg.type.values and
+      if oreg.type.values and oreg.type.values[0] and
           oreg.type.values[0][0].is_a?(MTypeInf::LiteralType) then
         val = oreg.type.values[0][0].val
       else
@@ -348,20 +348,26 @@ module CodeGenC
             ccgen.pcode << "v#{oreg.id} = mrb_ary_new_from_values(mrb, #{asize}, &v#{inst.inreg[m1].id});\n"
             gen_global_unlock(ccgen, node)
           else
-            ereg = oreg.type[tup][0].element[0]
-            dstt = get_ctype(ccgen, ereg, tup, infer)
+            dstt = get_ctype(ccgen, oreg, tup, infer)
             dstt2 = dstt
-            case dstt[1]
-            when "*"
-              dstt2 = "#{get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])} *"
-              dstt = [dstt[0], "*", dstt[2]]
+            if dstt.is_a?(Array) then
+              case dstt[1]
+              when "*"
+                dstt2 = dstt[0]
+                dstt = dstt[0]
 
-            when nil
-              dstt2 = get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])
-              dstt = get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])
+              when "**"
+                dstt2 = "#{dstt[0]} *"
+                dstt = [dstt[0], "*", dstt[2]]
 
-            else
-              raise "Not support yet #{dstt}"
+              when nil
+                p dstt
+#                dstt2 = get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])
+#                dstt = get_ctype_to_c(ccgen, ereg, tup, infer, dstt[0])
+
+              else
+                raise "Not support yet #{dstt}"
+              end
             end
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{dstt2}) * #{asize}); // xxx\n"
             asize.times do |i|

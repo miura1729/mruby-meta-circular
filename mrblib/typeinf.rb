@@ -45,6 +45,17 @@ module MTypeInf
         return t1 == t2
       end
 
+      # [type] [type, type] pattern
+      if t1.size  * t2.size == 2 then
+        # all boolean?
+        if (t1 + t2).all? {|ty|
+            ty.class_object_core == TrueClass or
+            ty.class_object_core == FalseClass
+          } then
+          return true
+        end
+      end
+
       if t1.size != t2.size then
         return false
       end

@@ -1,30 +1,30 @@
 #!/usr/local/bin/ruby
 # This program is contributed by Shin Nishiyama
 
-class Array
-  NONE=Object.new
-  def index(val=NONE, &block)
-    return to_enum(:find_index, val) if !block && val == NONE
+#class Array
+#  NONE=Object.new
+#  def index(val=NONE, &block)
+#    return to_enum(:find_index, val) if !block && val == NONE
 #    if !block 
 #      if val == NONE then
 #        $gpp = (val == NONE)
 #        return to_enum(:find_index, val)
 #      end
 #    end
-    if block
-      idx = 0
-      len = size
-      while idx < len
-        return idx if block.call self[idx]
-        idx += 1
-      end
-    else
+#    if block
+#      idx = 0
+#      len = size
+#      while idx < len
+#        return idx if block.call self[idx]
+#        idx += 1
+#      end
+#    else
 #      $kkkk = val
-      return self.__ary_index(val)
-    end
-    nil
-  end
-end
+#      return self.__ary_index(val)
+#    end
+#    nil
+#  end
+#end
 
 # modified by K.Sasada
 

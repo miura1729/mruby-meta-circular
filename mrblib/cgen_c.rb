@@ -349,7 +349,7 @@ EOS
       ty = MTypeInf::LiteralType.new(topobj.class, topobj)
       nilty = MTypeInf::PrimitiveType.new(NilClass)
       intype = [[ty], [nilty]]
-      tup = ti.typetupletab.get_tupple_id(intype, nilty, 0, true)
+      tup = ti.typetupletab.get_tupple_id(intype, nilty, 0)
       intype.push nil
       intype.push nil
       code_gen_method(block, ti, :main_Object_0, proc, tup, intype, nil, nil, true)

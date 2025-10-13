@@ -365,9 +365,10 @@ module MTypeInf
 #      other.class == LiteralType &&
       other.class == self.class &&
         @class_object == other.class_object_core &&
-        @val == other.val &&
         is_escape? == other.is_escape? &&
-        locked == other.locked
+        locked == other.locked &&
+#        (!other.class.is_a?(LiteralType) || @val == other.val)
+        @val == other.val
     end
 
     def inspect_aux(hist, level)
@@ -570,6 +571,10 @@ module MTypeInf
       @using_tup = {}
       @parent = pproc
       @inspect_stack = []
+    end
+
+    def type_equal(other, tup)
+      self == other
     end
 
     def ==(other)

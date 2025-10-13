@@ -1071,6 +1071,7 @@ module CodeGenC
           ivtypes.push val
         end
         ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
+#        p "#{ivtup} #{ivtypes} #{tup}"
         if !ccgen.using_class[clsssa][ivtup] then
           clsssa.iv.each do |nm, reg|
             if reg.get_type_or_nil(tup) then
@@ -1092,6 +1093,7 @@ module CodeGenC
             ivtypes.push reg.flush_type(tup)[tup]
           end
           ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
+#          p "#{ivtup} 2"
           rtype.each do |e|
             cls = e.class_object_core
             clsssa =  RiteSSA::ClassSSA.get_instance(cls)
@@ -1800,7 +1802,7 @@ EOS
 
       else
         if slf.is_escape?(tup) then
-          if slf.type[tup][0].class_object == MMC_EXT::Mutex then
+          if slf.get_type(tup)[0].class_object == MMC_EXT::Mutex then
             slfsrc = "(((struct mutex_wrapper *)DATA_PTR(self))->obj)"
           end
           idx = ivreg.genpoint
@@ -1892,7 +1894,17 @@ EOS
       end
     end
 
+    def self.gen_array_aref_range(ccgen, inst, node, infer, history, tup, idx)
+      p "range"
+      nil
+    end
+
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
+      if idx.type[tup][0].class == MTypeInf::RangeType then
+        gen_array_aref_range(ccgen, inst, node, infer, history, tup, idx)
+        return nil
+      end
+
       uv = MTypeInf::ContainerType::UNDEF_VALUE
       index = uv
       if idx.type[tup] and idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
