@@ -1953,7 +1953,7 @@ EOS
           valt = srct[0]
           valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
         else
-          valt = srct
+          valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
         end
       end
 
