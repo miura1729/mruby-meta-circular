@@ -316,6 +316,9 @@ module MTypeInf
       when ContainerType
         value = realvalue_from_container_type(types[0], tup)
 
+      when ContainerType
+        value = realvalue_from_container_type(types[0], tup)
+
       else
         raise "Not support yet #{types[0]}"
       end

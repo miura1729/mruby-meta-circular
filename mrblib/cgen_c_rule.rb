@@ -1394,8 +1394,15 @@ EOS
         else
           ["mrb_obj_is_kind_of(mrb, #{srcval}, mrb_const_get(mrb, self, mrb_intern_lit(mrb, \"#{tgcls}\")))", true]
         end
+
       else
-        ["1", false]
+        case tgcls.to_s.to_sym
+        when :NilClass
+          ["mrb_nil_p(#{srcval})", true]
+
+        else
+          ["(!mrb_nil_p(#{srcval}))", true]
+        end
       end
     end
 
@@ -1540,6 +1547,8 @@ EOS
             when :mrb_value
               gen_gc_table2(ccgen, node, oreg)
               if srct[1] == "**" then
+                "(mrb_ary_new_from_values(mrb, #{srct[2]}, *#{src}))"
+              elsif srct[1] == "*" then
                 "(mrb_ary_new_from_values(mrb, #{srct[2]}, #{src}))"
               else
                 "(mrb_ary_new_from_values(mrb, #{srct[2]}, &#{src}))"
@@ -1821,9 +1830,12 @@ EOS
     end
 
     def self.gen_set_iv(ccgen, inst, node, infer, history, tup, slf, ivreg, valr, dst)
+      if slf.type[tup] == nil then
+        tup = slf.type.keys[0]
+      end
       thnum = ivreg.get_type(tup)[0].threads.size
       wrthnum = ivreg.write_threads.size
-      slfobj = slf.get_type(tup)[0].class_object_core
+      slfobj = slf.type[tup][0].class_object_core
 
       if inst.op == :SETIV then
         slfsrc = "self"
@@ -1900,6 +1912,10 @@ EOS
     end
 
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
+      if idx.type[tup] == nil then
+        tup = idx.type.keys[0]
+      end
+
       if idx.type[tup][0].class == MTypeInf::RangeType then
         gen_array_aref_range(ccgen, inst, node, infer, history, tup, idx)
         return nil
@@ -1913,7 +1929,8 @@ EOS
       aryreg = inst.inreg[0]
       arytypes = aryreg.get_type(tup)
       eele = arytypes[0].element
-      elereg = eele[index]
+#      elereg = eele[index]
+      elereg = eele[uv]
       if elereg == nil then
         elereg = eele[uv]
         if elereg == nil then

@@ -447,17 +447,24 @@ module CodeGenC
       ccgen.dcode << ";\n"
       src0, srct0 = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       src1, srct1 = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-     if srct0 == srct1 then
-       if srct0 != :mrb_value then
-         ccgen.pcode << "v#{nreg.id} = ((#{src0}) == (#{src1}));\n"
-       else
-         src0 = gen_type_conversion(ccgen, :mrb_value, srct0, src0, tup, node, infer, history, nil)
-         src1 = gen_type_conversion(ccgen, :mrb_value, srct1, src1, tup, node, infer, history, nil)
-         ccgen.pcode << "v#{nreg.id} = mrb_obj_eq(mrb, (#{src0}), (#{src1}));\n"
-       end
-     else
-       ccgen.pcode << "v#{nreg.id} = 0;"
-     end
+      type1 = inst.inreg[1].type[tup]
+      if type1.size == 1 then
+        cls1 = inst.inreg[1].type[tup][0].class_object_core
+      else
+        cls1 == nil
+      end
+
+      if srct0 == srct1 then
+        if srct0 != :mrb_value then
+          ccgen.pcode << "v#{nreg.id} = ((#{src0}) == (#{src1}));\n"
+        else
+          src0 = gen_type_conversion(ccgen, :mrb_value, srct0, src0, tup, node, infer, history, nil)
+          src1 = gen_type_conversion(ccgen, :mrb_value, srct1, src1, tup, node, infer, history, nil)
+          ccgen.pcode << "v#{nreg.id} = mrb_obj_eq(mrb, (#{src0}), (#{src1}));\n"
+        end
+      else
+        ccgen.pcode << "v#{nreg.id} = 0;"
+      end
       nil
     end
 
@@ -1422,6 +1429,10 @@ module CodeGenC
     define_ccgen_rule_method :new, Class do |ccgen, inst, node, infer, history, tup|
 #      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       recvtypes = inst.inreg[0].flush_type(tup)[tup]
+      if recvtypes == nil then
+        tup = inst.inreg[0].type.keys[0]
+        recvtypes = inst.inreg[0].flush_type(tup)[tup]
+      end
       argc = inst.para[1]
       inreg = inst.inreg.clone
       oreg = inst.outreg[0]
