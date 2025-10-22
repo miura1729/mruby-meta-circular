@@ -1929,8 +1929,8 @@ EOS
       aryreg = inst.inreg[0]
       arytypes = aryreg.get_type(tup)
       eele = arytypes[0].element
-#      elereg = eele[index]
-      elereg = eele[uv]
+      elereg = eele[index]
+#      elereg = eele[uv]
       if elereg == nil then
         elereg = eele[uv]
         if elereg == nil then
@@ -1947,6 +1947,10 @@ EOS
       end
       valtypes = elereg.type[tup]
       valt = get_ctype(ccgen, elereg, tup, infer)
+#      if valtypes.size > 1 then
+#        p "#{valtypes.size} #{valt} #{valtypes[1].inspect}"
+#        p nreg.type[tup]
+#      end
 
       dstt = get_mutex_dst(valt, valtypes, dstt, dsttype)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
@@ -1964,11 +1968,16 @@ EOS
       end
 
       if valt != :mrb_value_mutex and valt != :mrb_value_mutex_emptylock then
-        if srct.is_a?(Array) and
-            (valt.is_a?(String) or valt.is_a?(Symbol)) and
-            valt != :mrb_value then
-          valt = srct[0]
-          valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
+        if srct.is_a?(Array) then
+          if (valt.is_a?(String) or valt.is_a?(Symbol)) and
+              valt != :mrb_value then
+            valt = srct[0]
+            valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
+          else
+            valt = :mrb_value
+          end
+        elsif srct == :mrb_value then
+          valt = :mrb_value
         else
           valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
         end
