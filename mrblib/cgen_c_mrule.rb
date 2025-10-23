@@ -768,8 +768,9 @@ module CodeGenC
 
     define_ccgen_rule_method :length, Array do |ccgen, inst, node, infer, history, tup|
       dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
-      src = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
+      src = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nil, inst.inreg[0])
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       if inst.inreg[0].is_escape?(tup) then

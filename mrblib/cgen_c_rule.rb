@@ -1528,9 +1528,9 @@ EOS
               res
 
             when :char
-              gen_gc_table2(ccgen, node, oreg)
               if srct[1] == "*" then
-               "(mrb_str_new_cstr(mrb, #{src}))"
+                gen_gc_table2(ccgen, node, oreg)
+                "(mrb_str_new_cstr(mrb, #{src}))"
 
               elsif srct[1] == "**" then
                 #gen_gc_table_core(ccgen, node, ti, history, tup, [], 0, 0)
