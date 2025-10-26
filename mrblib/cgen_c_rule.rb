@@ -1973,6 +1973,10 @@ EOS
               valt != :mrb_value then
             valt = srct[0]
             valt = get_ctype_to_c(ccgen, elereg, tup, infer, valt)
+          elsif (srct[1] == "*"and srct[0] == valt) or
+              (valt.is_a?(Array) and srct[0] == valt[0] and
+              srct[1] == valt[1] + "*") then
+            # do nothing
           else
             valt = :mrb_value
           end

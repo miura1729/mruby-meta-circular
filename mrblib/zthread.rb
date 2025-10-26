@@ -261,7 +261,7 @@ module CodeGenC
 
     define_ccgen_rule_method :lock, BasicObject do |ccgen, inst, node, infer, history, tup|
               ccgen.pcode << "/* lockfoo */\n"
-      procty = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      procty = get_ctype(ccgen, inst.inreg[-1], tup, infer)
       nreg = inst.outreg[0]
       MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
         ptype = intype[-1][0]
@@ -310,7 +310,7 @@ module CodeGenC
             mtab[codeno] = nminf
           end
 
-          args = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup,
+          args = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup,
                                  infer, history))[0] + ", "
 
           val, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
@@ -334,16 +334,6 @@ module CodeGenC
           dstt = get_ctype(ccgen, oreg, tup, infer)
           args << gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, oreg, ireg)
 
-          args << inst.inreg[2..-2].map {|reg|
-            (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
-          }.join(", ")
-
-          reg = inst.inreg[-1]
-          tys = reg.get_type(tup)
-          if tys and tys.size == 1 and tys[0].class_object != NilClass then
-            args << ", "
-            args << (reg_real_value_noconv(ccgen, reg, node, tup, infer, history))[0]
-          end
           args << ", gctab"
 
           outtype0 = get_ctype(ccgen, ptype.irep.retreg, utup, infer)
