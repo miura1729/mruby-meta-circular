@@ -1428,7 +1428,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :new, Class do |ccgen, inst, node, infer, history, tup|
-#      recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
+#      recvtypes = inst.inreg[0].flush_typealltup(tup)[tup]
       recvtypes = inst.inreg[0].flush_type(tup)[tup]
       if recvtypes == nil then
         tup = inst.inreg[0].type.keys[0]
@@ -1513,7 +1513,7 @@ module CodeGenC
 
         inreg[0] = oreg
         #op_send_initialize(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
-        op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize)
+        op_send_aux(ccgen, inst, inreg, nil, node, infer, history, tup, :initialize, inreg[0])
       end
       nil
     end

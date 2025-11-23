@@ -257,9 +257,9 @@ module RiteSSA
     attr_accessor :positive_list
     attr_accessor :negative_list
     attr_accessor :use_value
-    attr :genpoint
-    attr :refpoint
-    attr :setpoint
+    attr_accessor  :genpoint
+    attr_accessor  :refpoint
+    attr_accessor :setpoint
     attr :type
     attr :same
     attr :id
@@ -1146,6 +1146,7 @@ module RiteSSA
       @rescuetab = []
       @ensuretab = []
       @call_blocks = {}
+      @objregtab = {}
       @effects = {}
       @export_regs = []
       @import_regs = []
@@ -1219,6 +1220,7 @@ module RiteSSA
     attr :rescuetab
     attr :ensuretab
     attr :call_blocks
+    attr :objregtab
     attr :effects
     attr_accessor :strict
     attr_accessor :export_regs

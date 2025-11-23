@@ -555,12 +555,36 @@ module MTypeInf
             ntup = infer.typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), tup)
             infer.callstack[-1][4] = [name, inst]
 
+            irepssa.rasing = node.root.rasing
+            rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
             curirep.call_blocks[irepssa] ||= {}
             recvtypes.each do |ty|
               curirep.call_blocks[irepssa][ty] = nil
             end
-            irepssa.rasing = node.root.rasing
-            rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
+            if irepssa.effects[:iv_read] or irepssa.effects[:iv_write] then
+              orgrecreg = inst.inreg[0]
+              if orgrecreg.genpoint.is_a?(RiteSSA::Inst) then
+                orgrecreg = get_original_reg(infer, orgrecreg.genpoint, tup)
+              end
+              curirep.objregtab[orgrecreg] ||= {}
+              if irepssa.effects[:iv_read] and !irepssa.effects[:iv_write] then
+                ivevent = [:iv_read, irepssa.effects[:iv_read][0]]
+                curirep.objregtab[orgrecreg][inst] = ivevent
+              end
+              if irepssa.effects[:iv_write] and !irepssa.effects[:iv_read] then
+                ivevent = [:iv_write, irepssa.effects[:iv_write][0]]
+                curirep.objregtab[orgrecreg][inst] = ivevent
+              end
+
+              if curirep.objregtab[orgrecreg].size > 1 then
+                slfreg = orgrecreg.clone
+                slfreg.refpoint.push inst
+                slfreg.setpoint = orgrecreg.setpoint.clone
+                # for simple code
+                slfreg.setpoint.push inst
+                curirep.objregtab[orgrecreg][nil] = slfreg
+              end
+            end
             if rc then
               # Retry AI
               have_evar = false

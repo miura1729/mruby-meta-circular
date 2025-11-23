@@ -1,5 +1,32 @@
 module CodeGenC
   class CodeGen
+
+    # lock call iv_read, iv_write methods
+    def self.lock_variable(ccgen, reg, node, infer, history, tup)
+      if reg then
+        curent = node.root.objregtab[reg]
+        if curent and curent[nil] then
+          nreg = curent[nil]
+          nreg.type = {}
+          reg.type.each do |tp, types|
+            types.each do |type|
+              ntype = type.clone
+              ntype.locked = true
+              nreg.add_type ntype, tp
+            end
+          end
+
+          src, srct = reg_real_value_noconv(ccgen, reg, node, tup, infer,
+                                     history)
+          dstt = get_ctype(ccgen, nreg, tup, infer)
+          src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer,
+                         history, nreg, reg)
+          ccgen.dcode << "#{gen_declare(ccgen, nreg, tup, infer)}; /* lock */\n"
+          ccgen.pcode << "v#{nreg.id} = (#{src});"
+        end
+      end
+    end
+
     def self.set_closure_env(ccgen, inst, node, infer, history, tup)
       clsreg = inst.outreg[0]
       proc = ccgen.callstack[-1][0]
@@ -8,6 +35,8 @@ module CodeGenC
         ccgen.dcode << "#{gen_declare(ccgen, clsreg, tup, infer)}; /* fst */\n"
         ccgen.pcode << "v#{clsreg.id} = #{src};\n"
       end
+
+      lock_variable(ccgen, clsreg, node, infer, history, tup)
 
       while clsreg.is_a?(RiteSSA::Reg) do
         if node.root.export_regs.include?(clsreg) then
@@ -178,8 +207,8 @@ module CodeGenC
 
     def self.op_send(ccgen, inst, node, infer, history, tup)
       name = inst.para[0]
-      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
-      #op_send_lock(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      recreg = op_send_lock(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name, recreg)
       set_closure_env(ccgen, inst, node, infer, history, tup)
     end
 
@@ -296,7 +325,10 @@ module CodeGenC
       [args, procexport]
     end
 
-    def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
+    def self.op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, name, recreg)
+      inreg = inreg.clone
+      inreg[0] = recreg
+      rectypes = recreg.get_type(tup)
       MTypeInf::TypeInferencer::make_intype(infer, inreg, node, tup, inst.para[1]) do |intype, argc|
         #      intype[0] = [intype[0][0]]
         if !intype[0][0]
@@ -309,7 +341,7 @@ module CodeGenC
           p inst.line
         end
 
-        rectypes = intype[0]
+        # rectypes = intype[0]
         ty0 = rectypes[0]
         if rectypes.all? {|ty| ty.class_object_core == ty0.class_object_core} then
           rectypes = [ty0]
@@ -328,7 +360,7 @@ module CodeGenC
 
           base = 0
           rectype = ty0
-          condval = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)[0]
+          condval = reg_real_value_noconv(ccgen, recreg, node, tup, infer, history)[0]
           condsrc, nice = gen_type_checker(ccgen, condval, rectype, tup)
           if !nice then
             base = 1
@@ -468,24 +500,20 @@ module CodeGenC
     end
 
     def self.op_send_lock(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
-      lock_recreg = inst.para[5]
-      unlock_recreg = inst.inreg[0]
-      if !unlock_recreg.type[tup] then
-        tup = unlock_recreg.type.keys[0]
+      slfreg = inst.inreg[0]
+      slfinst = slfreg.genpoint
+      if slfinst.is_a?(RiteSSA::Inst) then
+        unlock_recreg = MTypeInf::TypeInferencer::get_original_reg(infer, slfinst, tup)
+      else
+        unlock_recreg = slfreg
       end
-      unlock_recreg.type[tup][0].threads = []
-      ccgen.dcode << gen_declare(ccgen, unlock_recreg, tup, infer)
-      ccgen.dcode << ";\n"
-      src, srct = reg_real_value_noconv(ccgen, lock_recreg, node, tup, infer, history)
-      dstt = get_ctype(ccgen, unlock_recreg, tup, infer)
-      src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer,
-                       history, unlock_recreg, lock_recreg)
-#      p unlock_recreg.get_type(tup)[0].threads
-#      p unlock_recreg.get_type(tup)[0]
-#      p lock_recreg.get_type(tup)[0]
-      ccgen.pcode << "v#{unlock_recreg.id} = #{src};\n"
 
-      op_send_aux(ccgen, inst, inst.inreg, inst.outreg, node, infer, history, tup, name)
+      curent = inst.node.root.objregtab[unlock_recreg]
+      if curent and (nreg = curent[nil]) then
+        return nreg
+      else
+        return inst.inreg[0]
+      end
     end
 
     def self.op_send_initialize(ccgen, inst, inreg, outreg, node, infer, history, tup, name)
@@ -691,7 +719,7 @@ module CodeGenC
             src = "(#{arg0} #{op} #{arg1})"
           end
         else
-          op_send_aux(ccgen, gins, gins.inreg, gins.outreg, node, ti, history, tup, :==)
+          op_send_aux(ccgen, gins, gins.inreg, gins.outreg, node, ti, history, tup, :==, gins.inreg[0])
           needdecl = false
           src = "v#{gins.outreg[0].id}"
         end
@@ -775,6 +803,11 @@ module CodeGenC
       end
 
       gins = reg.genpoint
+      # reg from othrer method
+      if gins.node.root != node.root then
+        return ["proc->env->v#{reg.id}", srct]
+      end
+
       if !gins then
         return ["mrb_nil_value()", :mrb_value]
       end

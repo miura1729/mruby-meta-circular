@@ -5,7 +5,7 @@ class Count
 #  include MMC_EXT::LockPolicy::LockFree
 
   def initialize
-    @c = 1
+    @c = 0
   end
 
   def cnt=(v)
@@ -28,28 +28,32 @@ def foo
     n = 0
     cnt.lock do |c|
       res.lock do |r|
-        c.cnt = c.cnt + 1
+       c.cnt = c.cnt + 1
+        pp c.cnt
       end
     end
   }
   th2 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
-    res.lock do |r|
-      cnt.lock do |c|
+    cnt.lock do |c|
+      res.lock do |r|
         c.cnt = c.cnt + 1
+        pp c.cnt
       end
     end
   }
 
   th3 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
-    c.cnt = c.cnt + 1
+    cnt.cnt = cnt.cnt + 1
+    pp c.cnt
   }
 
   th4 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
-    c.cnt = c.cnt + 1
-  }
+    aaa(cnt)
+    pp c.cnt
+ }
 
   th.join
   th2.join
@@ -57,6 +61,8 @@ def foo
   th4.join
 end
 
-
+def aaa(cnt)
+  cnt.cnt = cnt.cnt + 1
+end
   foo
 }

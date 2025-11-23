@@ -70,7 +70,7 @@ module MTypeInf
         ed = arr.size
         while i < ed
           ele = arr[i]
-          if ele.class_object == clsobj then
+          if ele.class_object_core == clsobj then
             if ele.is_a?(primobj) then
               return false
 
@@ -104,16 +104,16 @@ module MTypeInf
 
               when MTypeInf::LiteralType
                 if ele.val != @val then
-                  if ele.class_object != Class and !usevalue then
+                  if ele.class_object_core != Class and !usevalue then
                     if @val.is_a?(Numeric) then
                       positive = ele.val >= 0 && @val >= 0
-                      arr[i] = NumericType.new(ele.class_object, positive)
+                      arr[i] = NumericType.new(ele.class_object_core, positive)
 
                     elsif @val.is_a?(String) then
-                      arr[i] = StringType.new(ele.class_object, nil, nil, 0)
+                      arr[i] = StringType.new(ele.class_object_core, nil, nil, 0)
 
                     else
-                      arr[i] = primobj.new(ele.class_object)
+                      arr[i] = primobj.new(ele.class_object_core)
                     end
                     return false
                   end
@@ -672,6 +672,10 @@ module MTypeInf
       @hometown = ht
       @phometowns = pht
       @level = level
+    end
+
+    def inspect_aux(hist, level)
+      "#{@class_object.inspect} e=#{is_escape?} l=#{@level} var=#{@version} home=#{@hometown}"
     end
 
     def is_gcobject?

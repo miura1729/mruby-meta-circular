@@ -75,6 +75,11 @@ module CodeGenC
           ccgen.pcode << "v#{oreg.id} = v#{ireg.id};\n"
         end
       end
+
+      inst.outreg.each do |reg|
+        lock_variable(ccgen, reg, node, infer, history, tup)
+      end
+
       ccgen.pcode << "/* START END */\n"
       nil
     end
@@ -266,6 +271,7 @@ module CodeGenC
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, oreg)
         ccgen.pcode << "v#{oreg.id} = #{val};\n"
       end
+      lock_variable(ccgen, ireg, node, infer, history, tup)
       nil
     end
 
@@ -335,6 +341,7 @@ module CodeGenC
             valsrc = gen_type_conversion(ccgen, oregty, :mrb_value, valsrc, tup, node, infer, history, nil)
           end
           ccgen.pcode << "v#{oreg.id} = #{valsrc};\n"
+
           inst.para[2][i] = "v#{oreg.id}"
         end
         ccgen.pcode << "}\n"
@@ -378,6 +385,7 @@ module CodeGenC
               val = gen_type_conversion(ccgen, dsttm, srct, val, tup, node, infer, history, nil)
               ccgen.pcode << "v#{oreg.id}[#{i}] = #{val};\n"
             end
+
             inst.para[2][m1] = "v#{oreg.id}"
           end
         end
@@ -413,6 +421,10 @@ module CodeGenC
             end
           end
         end
+      end
+
+      inst.outreg.each do |reg|
+        lock_variable(ccgen, reg, node, infer, history, tup)
       end
 
       if o != 0 and argc > m1 + m2 then
