@@ -804,8 +804,16 @@ module CodeGenC
 
       gins = reg.genpoint
       # reg from othrer method
-      if gins.node.root != node.root then
-        return ["proc->env->v#{reg.id}", srct]
+      if gins.is_a?(RiteSSA::Inst) and gins.node.root != node.root then
+        block = ccgen.callstack[-1][0].irep
+        regroot = reg.genpoint.node.root
+        block = block.parent
+        prevref = ""
+        while block != regroot
+          prevref = prevref + "->prev"
+          block = block.parent
+        end
+        return ["proc#{prevref}->env->v#{reg.id}", srct]
       end
 
       if !gins then
