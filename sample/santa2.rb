@@ -11,7 +11,8 @@ end
 def main
   pp "START"
   # Santa hobbit dev.
-  hobbit = MMC_EXT::Thread.new do
+  m = []
+  hobbit = MMC_EXT::Thread.new(m) do |main|
     hobbitmail = []
     hobbitlist = Array.new
     9.times do |i|
@@ -31,17 +32,20 @@ def main
         a = hobbitmail.pop
         reps.push a
       end
-      pp "HoHo Let's make present"
-      pp reps.map {|i, r|
-        i
+      mess =  "HoHo Let's make present\n"
+      reps.map {|i, r|
+#        mess = mess + "#{i.to_s}\n"
       }
-#      pp reps.map {|n| n[0]}
+      pp reps.map {|n| n[0]}
+
+      main.unshift mess
 
       reps.each do |ele|
         ele[1].push 1
         nil
       end
     end
+    main.unshift nil
 
     hobbitlist.each do |th|
       th.join
@@ -49,7 +53,7 @@ def main
   end
 
   # Santa tonakai dev.
-  tonakai = MMC_EXT::Thread.new do
+  tonakai = MMC_EXT::Thread.new(m) do |main|
     tonakaimail = []
     tonakailist = []
     27.times do |i|
@@ -69,16 +73,30 @@ def main
         a = tonakaimail.pop
         reps.push a
       end
-      pp "HoHo Let's send present"
+      mess = "HoHo Let's send present\n"
+      main.push mess
 
       reps.each do |ele|
         ele.push 1
         nil
       end
     end
+    main.push nil
 
     tonakailist.each do |th|
       th.join
+    end
+  end
+
+  cnt = 2
+  sleep(1)
+  while cnt > 0
+    mess = m.pop
+      pp mess
+    pp "foo"
+    if mess then
+    else
+      cnt = cnt - 1
     end
   end
 

@@ -1643,13 +1643,19 @@ EOS
                 if uins and uins.op == :NOP then
                   uins = ireg.refpoint[-2]
                 end
+                ccgen.unlock_instruction[uins] = [ireg, "", node]
+                unlock = ""
+              else
+                unlock = "pthread_mutex_unlock(&mutex->mp);"
               end
-              ccgen.unlock_instruction[uins] = [ireg, "", node]
+
               <<"EOS"
 ({
   struct mutex_wrapper *mutex = (struct mutex_wrapper *)DATA_PTR(#{src});
   #{gen_local_lock(ccgen, "&mutex->mp")}
-  mutex->obj;
+  mrb_value tmp = mutex->obj;
+  #{unlock}
+  tmp;
 })
 EOS
 
@@ -1678,17 +1684,24 @@ EOS
                 empty_lock = ""
                 empty_unlock = :push
               end
-              ccgen.unlock_instruction[uins] = [ireg, empty_unlock, node]
+              if ireg then
+                unlock = ""
+                ccgen.unlock_instruction[uins] = [ireg, empty_unlock, node]
+              else
+                unlock = "pthread_mutex_unlock(&mutex->mp);"
+              end
+
 
               <<"EOS"
 ({
   struct mutex_wrapper_emptylock *mutex = (struct mutex_wrapper_emptylock *)DATA_PTR(#{src});
   #{empty_lock}
   #{gen_local_lock(ccgen, "&mutex->mp")}
-  mutex->obj;
+  mrb_value tmp = mutex->obj;
+  #{unlock}
+  tmp;
 })
 EOS
-
             else
               p node.root.irep.disasm
               p srct

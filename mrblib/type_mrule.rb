@@ -365,6 +365,12 @@ module MTypeInf
       rule_ary_push_common(infer, inst, node, tup)
     end
 
+    define_inf_rule_method :unshift, Array do |infer, inst, node, tup|
+      node.root.effects[:arrayset] ||= {}
+      node.root.effects[:arrayset][inst] = [inst.inreg[0].type, inst.inreg[1].type]
+      rule_ary_push_common(infer, inst, node, tup)
+    end
+
     define_inf_rule_method :append, Array do |infer, inst, node, tup|
       node.root.effects[:modify] ||= {}
       node.root.effects[:modify][inst] = inst.inreg[0].type

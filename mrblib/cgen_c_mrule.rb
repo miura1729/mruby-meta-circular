@@ -741,6 +741,30 @@ module CodeGenC
     alias_ccgen_rule_method :<<, :push, Array
     alias_ccgen_rule_method :append, :push, Array
 
+    define_ccgen_rule_method :unshift, Array do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      loreg = inst.para[5]
+      src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg, inst.inreg[0])
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.dcode << gen_declare(ccgen, loreg, tup, infer)
+      ccgen.dcode << ";\n"
+      val, valt = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+      nregtype = nreg.type[tup][0]
+      srctype = inst.inreg[1].type[tup][0]
+
+      valtypes = inst.inreg[1].type.values[0]
+      arytype = inst.inreg[0].type[tup][0]
+      aryt = get_ctype(ccgen, inst.inreg[0], tup, infer)
+      dstt = get_mutex_dst(valt, valtypes, aryt, arytype)
+      val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history, nil, inst.inreg[1])
+      ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
+      ccgen.pcode <<  "mrb_ary_unshift(mrb, v#{loreg.id}, #{val});\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :pop, Array do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       slf, slft = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
@@ -755,10 +779,11 @@ module CodeGenC
       end
       arytype = inst.inreg[0].type[tup][0]
       aryt = get_ctype(ccgen, inst.inreg[0], tup, infer)
-      dstt = get_mutex_dst(valt, valtypes, aryt, arytype)
+      dstt, valt = get_mutex_dst(valt, valtypes, aryt, arytype)
 
       # if array is Mutex or MutexEmptyLock, element of array is also Mutex or MutexEmptyLock
-      src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg, inst.inreg[0])
+      # so don't need conversion
+#     src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg, inst.inreg[0])
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"

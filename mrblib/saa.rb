@@ -1154,7 +1154,7 @@ module RiteSSA
       @have_break = false
       @have_return = false
       @thread_top = false
-      @rasing = false
+      @rasing = true #false
 
       @regtab = nil
 
