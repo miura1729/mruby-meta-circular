@@ -878,8 +878,11 @@ module CodeGenC
         gen_gc_table_core(ccgen, node, infer, history, tup, inst.para[1], inst.para[2], 0) {|code| ccgen.pcode << code}
         gen_global_lock(ccgen, node)
         ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-        ccgen.pcode << "v#{oreg.id} = mrb_str_new(mrb, #{strlit}, #{inst.para[0].size});\n"
         gen_global_unlock(ccgen, node)
+        outt = get_ctype(ccgen, oreg, tup, infer)
+        src = "mrb_str_new(mrb, #{strlit}, #{inst.para[0].size})"
+        src = gen_type_conversion(ccgen, outt, :mrb_value, src, node, tup, infer, history, nil, oreg)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
       else
         ccgen.dcode << "char *v#{oreg.id} = #{strlit};\n"
       end
