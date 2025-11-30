@@ -33,10 +33,10 @@ def main
         reps.push a
       end
       mess =  "HoHo Let's make present\n"
-      reps.map {|i, r|
-#        mess = mess + "#{i.to_s}\n"
+      reps.each {|i, r|
+        mess = mess + "#{i}\n"
       }
-      pp reps.map {|n| n[0]}
+#      pp reps.map {|n| n[0]}
 
       main.unshift mess
 
@@ -92,9 +92,9 @@ def main
   sleep(1)
   while cnt > 0
     mess = m.pop
-      pp mess
     pp "foo"
     if mess then
+      pp mess
     else
       cnt = cnt - 1
     end

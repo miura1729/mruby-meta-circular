@@ -740,7 +740,7 @@ module CodeGenC
           gen_type_conversion(ccgen, dst, convp, val, tup, node, infer, history, reg)
         }
 
-        ccgen.dcode << "mrb_value v#{reg.id};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, reg, tup, infer)};\n"
         ccgen.pcode << "{\n"
         ccgen.pcode << "mrb_value tmpele[] = {\n"
         ccgen.pcode << vals.join(', ')
@@ -894,7 +894,7 @@ module CodeGenC
       ireg1 = inst.inreg[1]
       ireg1.flush_type(tup)
       oreg = inst.outreg[0]
-      ccgen.dcode << "mrb_value v#{oreg.id};\n"
+      ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)}; /* cat */\n"
       val0, val0t = reg_real_value_noconv(ccgen, ireg0, node, tup, infer, history)
       val1, val1t = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
       gen_global_lock(ccgen, node)
@@ -915,7 +915,7 @@ module CodeGenC
 #          val1, dmy = reg_real_value_noconv(ccgen, ireg1, node, tup, infer, history)
           p1var = "v#{ireg1.id}"
           if p1var != val1 then
-            ccgen.dcode << "mrb_value #{p1var};\n"
+            ccgen.dcode << "#{gen_declare(ccgen, ireg1, tup, infer)};\n"
             ccgen.pcode << "#{p1var} = #{val1};\n"
           end
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
@@ -992,7 +992,7 @@ module CodeGenC
       eareg = hasht.element
       etype = get_ctype(ccgen, eareg[uv], tup, infer)
       if oreg.is_escape?(tup) or true then
-        ccgen.dcode << "mrb_value v#{oreg.id};\n"
+        ccgen.dcode << "#{gen_declare(ccgen, oreg, tup, infer)};\n"
         ccgen.pcode << "{\n"
         gen_gc_table2(ccgen, node, oreg)
         gen_global_lock(ccgen, node)

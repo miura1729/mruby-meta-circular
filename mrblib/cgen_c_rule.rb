@@ -1370,7 +1370,7 @@ EOS
             etup = ereg.type.keys[0]
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
-          if etype != :rvalue then
+          if etype != :mrb_value then
             return "(sizeof(#{etype}) * #{eele.size + 1})"
           else
             return nil
@@ -1703,7 +1703,7 @@ EOS
 })
 EOS
             else
-              p node.root.irep.disasm
+              #p node.root.irep.disasm
               p srct
               p src
               p "Not support yet #{dstt} #{srct}"

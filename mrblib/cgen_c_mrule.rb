@@ -732,6 +732,7 @@ module CodeGenC
       aryt = get_ctype(ccgen, inst.inreg[0], tup, infer)
       dstt = get_mutex_dst(valt, valtypes, aryt, arytype)
       val = gen_type_conversion(ccgen, dstt, valt, val, tup, node, infer, history, nil, inst.inreg[1])
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       ccgen.pcode <<  "v#{loreg.id} = #{srclo};\n"
       ccgen.pcode <<  "mrb_ary_push(mrb, v#{loreg.id}, #{val});\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -787,6 +788,7 @@ module CodeGenC
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
+      ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
       ccgen.pcode <<  "v#{nreg.id} = #{src};\n"
       nil
     end
@@ -855,8 +857,8 @@ module CodeGenC
         regt = get_ctype(ccgen, oreg, tup, infer)
         ccgen.pcode << "mrb_value ary = mrb_ary_new_capa(mrb, #{initsize});\n"
         ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(ary), 0);\n"
-        gen_global_unlock(ccgen, node)
         adptr = "(ARY_PTR2(mrb_ary_ptr(ary)"
+        gen_global_unlock(ccgen, node)
 
       else
         eles = (inst.inreg[0].get_type(tup))[0].element
@@ -1478,9 +1480,9 @@ module CodeGenC
           regt = get_ctype(ccgen, oreg, tup, infer)
           ccgen.pcode << "for (int i = 0;i < #{clsssa.iv.size}; i++) ARY_PTR2(mrb_ary_ptr(obj))[i] = mrb_nil_value();\n"
           ccgen.pcode << "ARY_SET_LEN(mrb_ary_ptr(obj), #{clsssa.iv.size});\n"
+          gen_global_unlock(ccgen, node)
           src = gen_type_conversion(ccgen, regt, :mrb_value, "obj", tup, node, infer, history, oreg)
           ccgen.pcode << "v#{oreg.id} = #{src};\n"
-          gen_global_unlock(ccgen, node)
           ccgen.pcode << "}\n"
           ccgen.callstack[-1][1] = true
         else
