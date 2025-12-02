@@ -780,11 +780,11 @@ module CodeGenC
       end
       arytype = inst.inreg[0].type[tup][0]
       aryt = get_ctype(ccgen, inst.inreg[0], tup, infer)
-      dstt, valt = get_mutex_dst(valt, valtypes, aryt, arytype)
+      dstt = get_mutex_dst(valt, valtypes, aryt, arytype)
 
       # if array is Mutex or MutexEmptyLock, element of array is also Mutex or MutexEmptyLock
-      # so don't need conversion
-#     src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg, inst.inreg[0])
+      # valt and dstt is reversed with usual is correct
+      src = gen_type_conversion(ccgen, valt, dstt, src, tup, node, infer, history, nreg, inst.inreg[0])
 
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"

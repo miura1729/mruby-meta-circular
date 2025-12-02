@@ -39,6 +39,7 @@ def main
 #      pp reps.map {|n| n[0]}
 
       main.unshift mess
+#      main.push mess
 
       reps.each do |ele|
         ele[1].push 1

@@ -1029,8 +1029,8 @@ module MTypeInf
       inst.outreg[0].type[tup].each do |ty|
         ty.place[true] = [:STRCAT, inst.line]
       end
-      node.root.effects[:modify] ||= {}
-      node.root.effects[:modify][inst] = inst.inreg[0].type
+#      node.root.effects[:modify] ||= {}
+#      node.root.effects[:modify][inst] = inst.outreg[0].type
       nil
     end
 

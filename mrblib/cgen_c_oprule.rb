@@ -922,12 +922,15 @@ module CodeGenC
             ccgen.pcode << "#{p1var} = #{val1};\n"
           end
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_str(mrb, #{p0var}, #{p1var});\n"
+          src = "mrb_str_cat_str(mrb, #{p0var}, #{p1var})"
         else
           val1 = gen_type_conversion(ccgen, [:char, "*"], val1t, val1, node, tup, infer, history, nil)
           ccgen.pcode << "mrb->allocf_ud = (void *)gctab;\n"
-          ccgen.pcode << "v#{oreg.id} = mrb_str_cat_cstr(mrb, #{p0var}, #{val1});\n"
+          src = "mrb_str_cat_cstr(mrb, #{p0var}, #{val1})"
         end
+        outt = get_ctype(ccgen, oreg, tup, infer)
+        src = gen_type_conversion(ccgen, outt, :mrb_value, src, node, tup, infer, history, nil, oreg)
+        ccgen.pcode << "v#{oreg.id} = #{src};\n"
       end
       gen_global_unlock(ccgen, node)
       set_closure_env(ccgen, inst, node, infer, history, tup)

@@ -366,11 +366,11 @@ module MTypeInf
             end
 
             # array value
-            typetups[1].values.each do |types|
-              types.each do |type|
-                type.threads[thread] = :arrayset
-              end
-            end
+#            typetups[1].values.each do |types|
+#              types.each do |type|
+#                type.threads[thread] = [:arrayset, inst.line, inst.para[0]]
+#              end
+#            end
           end
 
         when :canempty
