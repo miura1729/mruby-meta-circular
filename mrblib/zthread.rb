@@ -140,7 +140,7 @@ module CodeGenC
           else
             procreg = inst.inreg[-1]
             args = []
-            args << ["mrb", "mrb"]
+            args << ["mrb", "nmrb"]
             if procreg.is_escape?(tup) then
               args << ["mrbproc",
               reg_real_value_noconv(ccgen, procreg, node, tup, infer, history)[0]]
@@ -207,6 +207,8 @@ module CodeGenC
           ccgen.scode << argst
           ccgen.pcode << "{\n"
           ccgen.pcode << "struct thprocarg#{oreg.id} *tpargv = malloc(sizeof(struct thprocarg#{oreg.id}));\n"
+          ccgen.pcode << "mrb_state *nmrb = malloc(sizeof(mrb_state));\n"
+          ccgen.pcode << "*nmrb = *mrb;\n"
           ccgen.pcode << args.map {|mem, val|
             "tpargv->#{mem} = #{val}"
           }.join(";\n")
@@ -238,6 +240,14 @@ module CodeGenC
           src2 = gen_type_conversion(ccgen, outtype, [:thread, nil, nil], "ubv#{oreg.id}", tup, node, infer, history, oreg, oreg_nb)
           ccgen.dcode << CodeGen::gen_declare(ccgen, oreg, tup, infer)
           ccgen.dcode << ";\n"
+
+          oid = oreg.id
+          ccgen.dcode << "struct thread_list *thlist#{oid} = malloc(sizeof(struct thread_list));\n"
+          ccgen.pcode << "thlist#{oid}->thread = ubv#{oreg.id}->thread;\n"
+          ccgen.dcode << "struct thread_list *orgthlist#{oid} = ((struct mmc_system *)mrb->ud)->thread_list;\n"
+          ccgen.pcode << "thlist#{oid}->nmrb = mrb;\n"
+          ccgen.pcode << "thlist#{oid}->next = orgthlist#{oid};\n"
+          ccgen.pcode << "((struct mmc_system *)mrb->ud)->thread_list = thlist#{oid};\n"
           ccgen.pcode << "v#{oreg.id} = #{src2};\n"
           ccgen.pcode << "}\n"
         end

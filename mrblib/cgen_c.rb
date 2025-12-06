@@ -122,46 +122,55 @@ void mrb_mutex_free(mrb_state *mrb, void *data)
 mrb_data_type mutex_data_header = {"Mutex Data", mrb_mutex_free};
 mrb_data_type thread_data_header = {"Thread Data", mrb_free};
 
-void mrb_mark_local(mrb_state *mrb)
-{
-  struct gctab *curtab = (struct gctab *)mrb->allocf_ud;
-  while (curtab) {
-    for (int i = curtab->size; i--;) {
-      if (!mrb_immediate_p(*curtab->single[i])) {
-        mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->single[i]));
-      }
-    }
-
-    for (int i = curtab->osize; i--;) {
-      if (!mrb_immediate_p(*curtab->object[i])) {
-        mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->object[i]));
-      }
-    }
-
-    for (int i = curtab->csize; i--;) {
-      mrb_value *cptr = curtab->complex[i];
-      for (int j = 0; cptr[j].value.ttt != MRB_TT_FREE; j++) {
-        if (!mrb_immediate_p(cptr[i])) {
-          mrb_gc_mark(mrb, mrb_basic_ptr(cptr[j]));
-        }
-      }
-    }
-    curtab = curtab->prev;
-  }
-}
-
 struct thread_list {
   struct pthead_t *thread;
+  mrb_state *mrb;
   struct thread_list *next;
-  struct thread_list *prev;
 };
 
 struct mmc_system {
   struct RClass *pthread_class;
   struct thread_list *thread_list;
+  mrb_state *root_mrb;
   pthread_mutex_t *io_mutex;
   pthread_mutex_t *gc_mutex;
 };
+
+void mrb_mark_local(mrb_state *mrb)
+{
+  if (mrb->ud == NULL) {
+    return;
+  }
+  struct thread_list *thlist = ((struct mmc_system *)mrb->ud)->thread_list;
+  while (thlist) {
+    mrb_state *tmrb = thlist->mrb;
+    struct gctab *curtab = (struct gctab *)tmrb->allocf_ud;
+    thlist = thlist->next;
+      while (curtab) {
+	for (int i = curtab->size; i--;) {
+	  if (!mrb_immediate_p(*curtab->single[i])) {
+	    mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->single[i]));
+	  }
+	}
+
+	for (int i = curtab->osize; i--;) {
+	  if (!mrb_immediate_p(*curtab->object[i])) {
+	    mrb_gc_mark(mrb, mrb_basic_ptr(*curtab->object[i]));
+	  }
+	}
+
+	for (int i = curtab->csize; i--;) {
+	  mrb_value *cptr = curtab->complex[i];
+	  for (int j = 0; cptr[j].value.ttt != MRB_TT_FREE; j++) {
+	    if (!mrb_immediate_p(cptr[i])) {
+	      mrb_gc_mark(mrb, mrb_basic_ptr(cptr[j]));
+	    }
+	  }
+	}
+	curtab = curtab->prev;
+      }
+  }
+}
 EOS
     end
 
@@ -448,10 +457,10 @@ int main(int argc, char **argv)
   thread_list = malloc(sizeof(struct thread_list));
   thread_list->thread = pthread_self();
   thread_list->next = NULL;
-  thread_list->prev = NULL;
   mmc_system->thread_list = thread_list;
   io_mutex = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(io_mutex, NULL);
+  mmc_system->root_mrb = mrb;
   mmc_system->io_mutex = io_mutex;
   gc_mutex = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(gc_mutex, NULL);

@@ -122,6 +122,14 @@ typedef struct {
   } as;
 } RVALUE;
 
+struct mmc_system {
+  struct RClass *pthread_class;
+  struct thread_list *thread_list;
+  mrb_state *root_mrb;
+  pthread_mutex_t *io_mutex;
+  pthread_mutex_t *gc_mutex;
+};
+
 #ifdef GC_PROFILE
 #include <stdio.h>
 #include <sys/time.h>

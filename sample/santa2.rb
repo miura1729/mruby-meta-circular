@@ -34,7 +34,7 @@ def main
       end
       mess =  "HoHo Let's make present\n"
       reps.each {|i, r|
-        mess = mess + "#{i}\n"
+#        mess = mess + "#{i}\n"
       }
 #      pp reps.map {|n| n[0]}
 
@@ -82,7 +82,7 @@ def main
         nil
       end
     end
-    main.push nil
+    main.unshift nil
 
     tonakailist.each do |th|
       th.join
@@ -94,8 +94,8 @@ def main
   while cnt > 0
     mess = m.pop
     pp "foo"
-    if mess then
       pp mess
+    if mess then
     else
       cnt = cnt - 1
     end
