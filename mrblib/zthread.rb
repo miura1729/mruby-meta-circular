@@ -245,7 +245,7 @@ module CodeGenC
           ccgen.dcode << "struct thread_list *thlist#{oid} = malloc(sizeof(struct thread_list));\n"
           ccgen.pcode << "thlist#{oid}->thread = ubv#{oreg.id}->thread;\n"
           ccgen.dcode << "struct thread_list *orgthlist#{oid} = ((struct mmc_system *)mrb->ud)->thread_list;\n"
-          ccgen.pcode << "thlist#{oid}->nmrb = mrb;\n"
+          ccgen.pcode << "thlist#{oid}->mrb = nmrb;\n"
           ccgen.pcode << "thlist#{oid}->next = orgthlist#{oid};\n"
           ccgen.pcode << "((struct mmc_system *)mrb->ud)->thread_list = thlist#{oid};\n"
           ccgen.pcode << "v#{oreg.id} = #{src2};\n"
