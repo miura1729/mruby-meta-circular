@@ -1671,17 +1671,15 @@ EOS
               if oreg and
                   node.root.effects[:canempty] and
                   node.root.effects[:canempty][oreg.genpoint] then
-                empty_lock = gen_empty_lock(ccgen, "&mutex->empty_lock")
-
-                if node.root.effects[:iv_write] then
-                  selfunlock = "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp);"
-                  selflock = gen_local_lock(ccgen,
-                                       "&((struct mutex_wrapper_emptylock *)(DATA_PTR(mutexself)))->mp")
-                  empty_lock = "#{selfunlock}\n#{empty_lock}\n#{selflock}\n"
-                end
                 empty_unlock = :pop
+                fillwait = <<EOS
+  while (ARY_LEN2(mrb_ary_ptr(tmp)) == 0) {
+    pthread_cond_wait(&mutex->empty_cond, &mutex->mp);
+  }
+EOS
+
               else
-                empty_lock = ""
+                fillwait = ""
                 empty_unlock = :push
               end
               if ireg then
@@ -1695,9 +1693,9 @@ EOS
               <<"EOS"
 ({
   struct mutex_wrapper_emptylock *mutex = (struct mutex_wrapper_emptylock *)DATA_PTR(#{src});
-  #{empty_lock}
+  struct mrb_value tmp = mutex->obj;
   #{gen_local_lock(ccgen, "&mutex->mp")}
-  mrb_value tmp = mutex->obj;
+  #{fillwait}
   #{unlock}
   tmp;
 })
@@ -1811,8 +1809,7 @@ EOS
   struct mutex_wrapper_emptylock *mutex = malloc(sizeof(struct mutex_wrapper_emptylock));
   mrb_value  mutexobj = mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, mutex, &mutex_data_header));
   pthread_mutex_init(&mutex->mp, NULL);
-  pthread_mutex_init(&mutex->empty_lock, NULL);
-  #{gen_empty_lock(ccgen, "&mutex->empty_lock")}
+  pthread_cond_init(&mutex->empty_cond, NULL);
   mutex->obj = #{src};
   mrb_iv_set(mrb, mutexobj, mrb_intern_cstr(mrb, "@object"), mutex->obj);
   pthread_mutex_unlock(((struct mmc_system *)mrb->ud)->io_mutex);
@@ -2117,10 +2114,6 @@ EOS
     end
 
     def self.gen_local_lock(ccgen, lobj)
-      gen_lock(ccgen, lobj)
-    end
-
-    def self.gen_empty_lock(ccgen, lobj)
       gen_lock(ccgen, lobj)
     end
 

@@ -108,7 +108,7 @@ struct mutex_wrapper {
 
 struct mutex_wrapper_emptylock {
   pthread_mutex_t mp;
-  pthread_mutex_t empty_lock;
+  pthread_cond_t empty_cond;
   mrb_value obj;
 };
 
@@ -745,15 +745,11 @@ EOS
             if treg == :mrb_value_mutex or treg == :mrb_value_mutex_emptylock then
               if eunlock == :push then
                 @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
-                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
+                @pcode << "pthread_cond_signal(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_cond);\n"
+
               elsif eunlock == :pop then
-                @pcode << "if (ARY_LEN(mrb_ary_ptr(((struct mutex_wrapper_emptylock *)(#{wrapper}))->obj)) > 0) {\n"
                 @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
-                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->empty_lock);\n"
-                @pcode << "}\n"
-                @pcode << "else {\n"
-                @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper_emptylock *)(#{wrapper}))->mp);\n"
-                @pcode << "}\n"
+
               else
                 @pcode << "pthread_mutex_unlock(&((struct mutex_wrapper *)(#{wrapper}))->mp);\n"
               end
