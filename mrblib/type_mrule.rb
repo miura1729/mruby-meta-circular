@@ -753,6 +753,10 @@ module MTypeInf
           elsif cls == ContainerType then
             previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             type = cls.new(ntype, inst, previrep, level)
+            if ntype == Array and
+                intype[1][0] and intype[1][0].is_a?(LiteralType) and intype[1][0].class_object == Fixnum then
+              type.element_num = intype[1][0].val
+            end
 
           elsif cls then
             type = cls.new(ntype)
@@ -899,6 +903,13 @@ module MTypeInf
 
 #      type = PrimitiveType.new(NilClass)
 #     inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :_fetch, String do |infer, inst, node, tup|
+      type = ByteType.new
+      oreg = inst.outreg[0]
+      oreg.add_type(type, tup)
       nil
     end
 

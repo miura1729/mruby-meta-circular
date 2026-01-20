@@ -167,7 +167,7 @@ module CodeGenC
       p inst.inreg[0].id
       p inst.inreg[0].get_type(tup).map {|ty| ty} if inst.inreg[0].type[tup]
       inst.inreg[0].type.each do |tp, tys|
-        p "#{tp} #{tys.map {|ty| ty.place}}"
+        p "PLACE #{tp} #{tys.map {|ty| ty.place}}"
       end
       p inst.inreg[0].negative_list
       p inst.inreg[0].positive_list

@@ -880,7 +880,12 @@ module CodeGenC
 
     define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
       #recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
-      recvtypes = inst.inreg[0].flush_type(tup)[tup]
+      recvtypes = inst.inreg[0].flush_type(tup)
+      if recvtypes[tup] == nil then
+        recvtypes = recvtypes.values[0]
+      else
+        recvtypes = recvtypes[tup]
+      end
       argc = inst.para[1]
       oreg = inst.outreg[0]
       otype = oreg.get_type(tup)[0]
@@ -919,12 +924,17 @@ module CodeGenC
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
 
-          if can_use_caller_area(otype) then
+          rc = can_use_caller_area(otype)
+          if rc == 2 then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * #{initsize + 1};\n"
+          elsif rc == 3 then
+            ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
+            ccgen.pcode << "prevgctab->prev->caller_alloc += sizeof(#{etype}) * #{initsize + 1};\n"
           else
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
           end
+
           if etype == :mrb_value then
             ccgen.pcode << "for (int i = 0;i < #{initsize}; i++) v#{oreg.id}[i] = mrb_nil_value();\n"
             ccgen.pcode << "v#{oreg.id}[#{initsize}].value.ttt = MRB_TT_FREE;\n"
@@ -1359,6 +1369,76 @@ module CodeGenC
           gen_global_unlock(ccgen, node)
         end
       end
+      nil
+    end
+
+    define_ccgen_rule_method :_fetch, String do |ccgen, inst, node, infer, history, tup|
+      oreg = inst.outreg[0]
+      strreg = inst.inreg[0]
+      dstt = get_ctype(ccgen, inst.outreg[0], tup, infer)
+      src, srct = reg_real_value_noconv(ccgen, strreg, node, tup, infer, history)
+      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+      ccgen.dcode << ";\n"
+      idxtype = inst.inreg[1].get_type(tup)[0]
+      idx = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+      strtype = inst.inreg[0].get_type(tup)[0]
+      if strreg.get_type(tup).size == 1 and
+          strtype.is_a?(MTypeInf::LiteralType) and
+          idxtype.is_a?(MTypeInf::LiteralType) then
+        strval = strtype.val
+        #strval = src
+        if inst.inreg[1].get_type(tup).size == 1 and idxtype.is_a?(MTypeInf::LiteralType) then
+          src = "\'#{unescape_string(strval[idxtype.val])}\'"
+        else
+          src = "unescape_string(strval)}[#{idx}]"
+        end
+
+      elsif !strtype.is_escape? then
+        if idxtype.class_object == Fixnum then
+          if idxtype.is_a?(MTypeInf::LiteralType) then
+            ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
+            if idx < 0 then
+              src = "#{src}[strlen(#{src}) + #{idx}]"
+            else
+              src = "#{src}[#{idx}]"
+            end
+          else
+            if idxtype.positive then
+              src = "#{src}[#{idx}]"
+            else
+              src1 = "#{src}[#{idx}]"
+              src2 = "#{src}[strlen(#{src}) + #{idx}]"
+              src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+            end
+          end
+
+        elsif idxtype.class_object == Range then
+          raise "Not Support index #{idxtype}"
+        end
+      end
+    else
+      src = "(RSTRING_PTR(#{src}))"
+      if  idxtype.class_object == Fixnum then
+        if idxtype.is_a?(MTypeInf::LiteralType) then
+          ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
+          if idx < 0 then
+            src = "(#{src}+ strlen(#{src}) - #{idx})"
+          else
+            src = "(#{src} + #{idx})"
+          end
+        else
+          if idxtype.positive then
+            src = "(#{src} + #{idx})"
+          else
+            src1 = "(#{src} + #{idx})"
+            src2 = "(#{src} + strlen(#{src}) + #{idx})"
+            src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+          end
+        end
+      end
+      gen_global_lock(ccgen, node)
+      ccgen.pcode << "v#{oreg.id} = #{src};\n"
+      gen_global_unlock(ccgen, node)
       nil
     end
 

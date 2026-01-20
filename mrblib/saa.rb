@@ -214,7 +214,8 @@ module RiteSSA
 #          p tup
 #          p @genpoint
 #          p @refpoint[0].irep.disasm
-          return true
+#          return true
+          tup = @type.keys[0]
         end
 
         @type[tup].each do |ty|

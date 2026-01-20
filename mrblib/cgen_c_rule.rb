@@ -1,4 +1,7 @@
 module CodeGenC
+  class BYTE
+  end
+
   class CodeGen
 
     # lock call iv_read, iv_write methods
@@ -985,6 +988,8 @@ module CodeGenC
       name.gsub!("-", "_m")
       name.gsub!("*", "_A")
       name.gsub!("?", "_q")
+      name.gsub!("[", "_b")
+      name.gsub!("]", "_B")
       name
     end
 
@@ -1002,6 +1007,7 @@ module CodeGenC
 
     TTABLE = {
       Fixnum => :mrb_int,
+      CodeGenC::BYTE => :uint8_t,
       Float => :mrb_float2,
       Array => :array,
       Range => :range,
@@ -1360,6 +1366,7 @@ EOS
         case type
         when :array
           uv = MTypeInf::ContainerType::UNDEF_VALUE
+          elenum = otype.element_num
           eele = reg.get_type(tup)[0].element
           ereg = eele[uv]
           if ereg == nil then
@@ -1371,7 +1378,11 @@ EOS
           end
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
           if etype != :mrb_value then
-            return "(sizeof(#{etype}) * #{eele.size + 1})"
+            if elenum then
+              return "(sizeof(#{etype}) * (#{elenum} + 1))"
+            else
+              return "(sizeof(#{etype}) * #{eele.size + 1})"
+            end
           else
             return nil
           end

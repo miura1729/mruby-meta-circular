@@ -431,6 +431,7 @@ module MTypeInf
     def initialize(co, ht, pht, level, *rest)
       super(co, *rest)
       @element = {}
+      @element_num = nil
       @hometown = ht
       @phometowns = pht
       @level = level
@@ -443,7 +444,7 @@ module MTypeInf
     end
 
     def is_escape?(hist = {})
-      if !@immidiate_only then
+      if !@immidiate_only and false then
         true
       else
         super(hist)
@@ -521,6 +522,7 @@ module MTypeInf
     end
 
     attr_accessor :element
+    attr_accessor :element_num
     attr :key
     attr_accessor :immidiate_only
   end
@@ -722,6 +724,12 @@ module MTypeInf
     end
 
     attr :base_array
+  end
+
+  class ByteType<NumericType
+    def initialize(*rest)
+      super(CodeGenC::BYTE, true, *rest)
+    end
   end
 
   TypeSource = {
