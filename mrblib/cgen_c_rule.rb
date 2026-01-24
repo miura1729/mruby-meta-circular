@@ -488,6 +488,7 @@ module CodeGenC
 
         elsif name != :initialize then
           p "missing3"
+          p rectypes
           p inst.filename
           p inst.line
           p name
@@ -1636,6 +1637,9 @@ EOS
               "(mrb_symbol_value(#{src}))"
 
             when :mrb_int
+              "(mrb_fixnum_value(#{src}))"
+
+            when :uint8_t
               "(mrb_fixnum_value(#{src}))"
 
             when :mrb_float2

@@ -683,6 +683,7 @@ module CodeGenC
       ccgen.pcode << "v#{nreg.id} = #{val};\n"
       nil
     end
+    alias_ccgen_rule_method :_set, :[]=, Array
 
     define_ccgen_rule_method :__svalue, Array do |ccgen, inst, node, infer, history, tup|
       aryreg = inst.inreg[0]
@@ -1388,9 +1389,9 @@ module CodeGenC
         strval = strtype.val
         #strval = src
         if inst.inreg[1].get_type(tup).size == 1 and idxtype.is_a?(MTypeInf::LiteralType) then
-          src = "\'#{unescape_string(strval[idxtype.val])}\'"
+          src = "\'#{strval[idxtype.val]}\'"
         else
-          src = "unescape_string(strval)}[#{idx}]"
+          src = "#{unescape_string(strval)}[#{idx}]"
         end
 
       elsif !strtype.is_escape? then
@@ -1414,26 +1415,6 @@ module CodeGenC
 
         elsif idxtype.class_object == Range then
           raise "Not Support index #{idxtype}"
-        end
-      end
-    else
-      src = "(RSTRING_PTR(#{src}))"
-      if  idxtype.class_object == Fixnum then
-        if idxtype.is_a?(MTypeInf::LiteralType) then
-          ccgen.pcode << "{ #{gen_get_strbuf(oreg, 2, tup)}\n"
-          if idx < 0 then
-            src = "(#{src}+ strlen(#{src}) - #{idx})"
-          else
-            src = "(#{src} + #{idx})"
-          end
-        else
-          if idxtype.positive then
-            src = "(#{src} + #{idx})"
-          else
-            src1 = "(#{src} + #{idx})"
-            src2 = "(#{src} + strlen(#{src}) + #{idx})"
-            src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
-          end
         end
       end
       gen_global_lock(ccgen, node)

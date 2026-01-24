@@ -323,6 +323,64 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :_set, Array do |infer, inst, node, tup|
+      if inst.inreg.size != 4 then
+        raise "multiple argument not support yet in Array::[]="
+      end
+
+      node.root.effects[:arrayset] ||= {}
+      node.root.effects[:arrayset][inst] = [inst.inreg[0].type, inst.inreg[2].type]
+      idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
+      arrtypes = inst.inreg[0].flush_type(tup)[tup] || []
+      valreg = inst.inreg[2]
+
+      arrtypes.each do |arrt|
+        if arrt.class_object == Array then
+          arrele = arrt.element
+          idxtypes.each do |idxtype|
+            if idxtype.class_object == Fixnum then
+              case idxtype
+              when MTypeInf::LiteralType
+                no = idxtype.val
+                if arrele[no].nil? then
+                  arrele[no] = RiteSSA::Reg.new(nil)
+                end
+                arrele[no].add_same valreg
+                arrele[no].flush_type(tup)
+                arrele[ContainerType::UNDEF_VALUE].add_same valreg
+                arrele[ContainerType::UNDEF_VALUE].flush_type(tup)
+                inst.outreg[0].add_same valreg
+
+              when MTypeInf::PrimitiveType
+                arrele.each do |idx, reg|
+                  reg.add_same valreg
+#                  reg.flush_type_alltup(tup)
+                  reg.flush_type(tup)
+                end
+                inst.outreg[0].add_same valreg
+
+              else
+                raise "Not supported in Array::[]="
+              end
+            end
+          end
+        end
+      end
+
+      inst.outreg[0].flush_type(tup)
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      curirep = infer.callstack[-1][0].irep
+      if valreg.type[tup] then
+        valreg.type[tup].each do |ty|
+          arrtypes.each do |at|
+            ty.place[at] = [curirep, previrep, :_set, inst.line]
+          end
+        end
+      end
+
+      nil
+    end
+
     define_inf_rule_method :reverse, Array do |infer, inst, node, tup|
       otypes = inst.inreg[0].get_type(tup)
 

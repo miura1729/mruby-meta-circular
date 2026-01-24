@@ -444,7 +444,7 @@ module MTypeInf
     end
 
     def is_escape?(hist = {})
-      if !@immidiate_only and false then
+      if !@immidiate_only then
         true
       else
         super(hist)

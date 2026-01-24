@@ -10,7 +10,7 @@ class StringBuf
   end
 
   def []=(idx, val)
-    @strage[@st + idx] = val
+    @strage._set(@st + idx, val)
   end
 
   def [](idx, val)
@@ -24,6 +24,10 @@ class StringBuf
   def ed(val)
     @ed
   end
+
+  def find(target)
+    0
+  end
 end
 
 class String
@@ -36,7 +40,6 @@ class String
       i = i + 1
     end
     res.ed = i
-    $foo = res
 
     res
   end
@@ -44,6 +47,7 @@ end
 
 MTypeInf::inference_main {
   a = "foo".to_stringbuf
-  p a[2]
+  a.find("oo")
+  pp a[2]
   nil
 }

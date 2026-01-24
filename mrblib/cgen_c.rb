@@ -457,6 +457,7 @@ int main(int argc, char **argv)
   thread_list = malloc(sizeof(struct thread_list));
   thread_list->thread = pthread_self();
   thread_list->next = NULL;
+  thread_list->mrb = mrb;
   mmc_system->thread_list = thread_list;
   io_mutex = malloc(sizeof(pthread_mutex_t));
   pthread_mutex_init(io_mutex, NULL);

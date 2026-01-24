@@ -1,5 +1,4 @@
 TOP_SELF = Object.new
-
 module MTypeInf
   DEFAULT_OPTION = {
     :dump_level => 1

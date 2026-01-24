@@ -564,7 +564,10 @@ module MTypeInf
             if irepssa.effects[:iv_read] or irepssa.effects[:iv_write] then
               orgrecreg = inst.inreg[0]
               if orgrecreg.genpoint.is_a?(RiteSSA::Inst) then
-                orgrecreg = get_original_reg(infer, orgrecreg.genpoint, tup)
+                tmpreg = get_original_reg(infer, orgrecreg.genpoint, tup)
+                if tmpreg.is_a?(RiteSSA::Inst) then
+                  orgrecreg = tmpreg
+                end
               end
               curirep.objregtab[orgrecreg] ||= {}
               if irepssa.effects[:iv_read] and !irepssa.effects[:iv_write] then
