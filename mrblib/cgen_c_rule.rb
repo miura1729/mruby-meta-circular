@@ -1116,6 +1116,9 @@ module CodeGenC
           if !val then
             val = reg.flush_type_alltup(tup)[tup]
           end
+          if val == nil then
+            p "Using but not setting instance variable #{nm}"
+          end
           ivtypes.push val
         end
         ivtup = infer.typetupletab.get_tupple_id(ivtypes, nilobj, tup, false)
