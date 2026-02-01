@@ -128,6 +128,30 @@ module MTypeInf
               atype_spec_neg = addtional_type_spec
               #            genp = genp.inreg[0].genpoint
 
+            when :===
+              type = genp.inreg[1].get_type(tup)[0]
+              pt = nil
+              if type.is_a?(MTypeInf::LiteralType) then
+                genp = genp.inreg[1].genpoint
+                typemethodp = true
+                pt = PrimitiveType.new(type.class_object)
+              end
+
+              if genp.outreg[0] and pt then
+                type = genp.outreg[0].get_type(tup)[0]
+                if type.is_a?(MTypeInf::LiteralType) then
+                  genp = genp.inreg[0].genpoint
+                  typemethodp = true
+                  bool = (type.class_object == pt.class_object)
+                  pt = PrimitiveType.new(bool.class)
+                  addtional_type_spec = [pt]
+                  atype = [pt]
+                  atype_spec_pos = addtional_type_spec
+                  atype_spec_neg = addtional_type_spec
+                end
+              end
+              atype_reg = get_original_reg(infer, genp, tup)
+
             else
               #typemethodp = true
               #genp = genp.inreg[0].genpoint
@@ -250,10 +274,10 @@ module MTypeInf
           condtype = type[0].class_object
 
         elsif atype and addtional_type_spec and
-            atscl = addtional_type_spec.map {|e| e.class_object} and
+            (atscl = addtional_type_spec.map {|e| e.class_object}).size > 0 and
             (atype.all? {|e| atscl.include?(e.class_object)} or
             atype.all? {|e| !atscl.include?(e.class_object)}) then
-          condtype = (notp ^ addtional_type_spec.include?(atype[0].class_object)).class
+          condtype = atscl.include?(atype[0].class_object).class
         else
           condtype = nil
         end
@@ -274,6 +298,18 @@ module MTypeInf
 #        p "foobar"
           enode = get_jmp_target(node, idx, inst)
 #          p enode.ext_iseq[0].line
+          history[node] ||= []
+          history[nil] ||= []
+          history[nil].push node
+          if history[node].index(enode) == nil then
+            history[node].push enode
+            infer.inference_node(enode, tup, node.exit_reg, history)
+          end
+          history[nil].pop
+          return true
+
+        elsif condtype == TrueClass then
+          enode = get_jmp_target(node, 1- idx, inst)
           history[node] ||= []
           history[nil] ||= []
           history[nil].push node
