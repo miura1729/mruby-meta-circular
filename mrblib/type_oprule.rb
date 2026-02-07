@@ -694,6 +694,16 @@ module MTypeInf
         inst.outreg[2].add_same(inst.inreg[0])
         otup = infer.callstack[-1][1]
         inst.outreg[2].flush_type(otup, tup)
+        valreg = inst.inreg[0]
+        valinst = valreg.genpoint
+        slftype = nil
+        if valinst.is_a?(RiteSSA::Inst) and valinst.op == :SEND then
+          slfreg = valinst.inreg[0]
+          slftype = slfreg.positive_list[-1]
+        end
+        effectinfo = [valreg, slftype]
+        node.root.effects[:return] ||= {}
+        node.root.effects[:return][inst] = effectinfo
       else
         otup = infer.callstack[-1][1]
         inst.outreg[0].flush_type(otup, tup)

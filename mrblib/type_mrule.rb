@@ -662,6 +662,14 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :_not_execute, BasicObject do |infer, inst, node, tup|
+      inst.inreg[1].flush_type(tup)
+
+      type = LiteralType.new(TrueClass, true)
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
     define_inf_rule_method :kind_of?, Object do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]
       arg = inst.inreg[1].flush_type(tup)[tup]

@@ -732,6 +732,32 @@ module MTypeInf
     end
   end
 
+  class RefinementType<BasicType
+    def initialize(co, pred, args, *rest)
+      super(co, *rest)
+      @predicate = pred
+      @args = args
+      self  # for mruby JIT Bug
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @predicate == other.predicate &&
+        @args == other.args
+    end
+
+    def is_gcobject?
+      false
+    end
+
+    def inspect_aux(hist, level)
+      "Refinement<#{@class_object} #{@predicate} #{@args}>"
+    end
+
+    attr :predicate
+    attr :args
+  end
+
   TypeSource = {
     NilClass => PrimitiveType,
     Fixnum => NumericType,

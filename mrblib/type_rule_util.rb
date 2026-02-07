@@ -152,6 +152,18 @@ module MTypeInf
               end
               atype_reg = get_original_reg(infer, genp, tup)
 
+            when :start_with
+              if (atype = genp.inreg[0].type.values[0][0]).class_object ==  StringView then
+                typemethodp = true
+                arg0 = genp.inreg[0].get_type(tup)
+                arg1 = genp.inreg[1].get_type(tup)
+                args = [arg0, arg1]
+                atype = RefinementType.new(StringView, :start_with, args)
+                atype_spec_pos = [atype]
+                atype_spec_neg = []
+                atype_reg = genp.inreg[0].genpoint.inreg[0]
+              end
+
             else
               #typemethodp = true
               #genp = genp.inreg[0].genpoint
@@ -167,6 +179,8 @@ module MTypeInf
 
           when :EQ
             type = genp.inreg[0].get_type(tup)[0]
+            genp1 = genp.inreg[1].genpoint
+
             if type.is_a?(MTypeInf::LiteralType) then
               genp = genp.inreg[1].genpoint
               typemethodp = true

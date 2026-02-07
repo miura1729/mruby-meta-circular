@@ -1,9 +1,13 @@
-class StringBuf
+class StringView
   def initialize(buf, capa)
     @strage = buf
     @capa = capa
     @st = 0
     @ed = 0
+  end
+
+  def start_with(str)
+    @strage[st] == str[0]
   end
 
   def strage
@@ -37,19 +41,20 @@ class StringBuf
     @st
   end
 
-  def foo
-    true
-  end
+  def each(&block)
+    if _not_execute then
+      nv = StringView.new(@strage, @capa)
+      yield nv
+    end
 
-  def each
-    case foo
-    when true
+    case _simd_check(block)
+    when :foo
       pp "foooo"
 
     else
-      i = 0
-      while i < @ed
-        nv = StringBuf.new(@strage, @capa)
+      nv = StringView.new(@strage, @capa)
+      i = 1
+     while i < @ed
         nv.st = @st + i
         yield nv
         i = i + 1
@@ -58,13 +63,17 @@ class StringBuf
   end
 
   def find(target)
-    0
+    each do |sview|
+      if sview.start_with target then
+        return sview.st
+      end
+    end
   end
 end
 
 class String
   def to_stringbuf
-    res = StringBuf.new(Array.new(1024), 1024)
+    res = StringView.new(Array.new(1024), 1024)
     i = 0
     len = self.size
     while i < len
@@ -80,7 +89,7 @@ end
 MTypeInf::inference_main {
   a = "foo".to_stringbuf
   a.find("oo")
-  a.each {|sstr| if sstr then return sstr.st end}
+ a.each {|sstr| if sstr then return sstr.st end}
   pp a[2]
   nil
 }

@@ -410,6 +410,12 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :_not_execute, BasicObject do |ccgen, inst, node, infer, history, tup|
+      type = MTypeInf::LiteralType.new(FalseClass, true)
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
     define_ccgen_rule_method :kind_of?, Object do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       res = nreg.get_type(tup)
