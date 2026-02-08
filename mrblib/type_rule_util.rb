@@ -140,7 +140,9 @@ module MTypeInf
               if genp.outreg[0] and pt then
                 type = genp.outreg[0].get_type(tup)[0]
                 if type.is_a?(MTypeInf::LiteralType) then
-                  genp = genp.inreg[0].genpoint
+                  if !genp.inreg[0].is_a?(RiteSSA::ParmReg) then
+                    genp = genp.inreg[0].genpoint
+                  end
                   typemethodp = true
                   bool = (type.class_object == pt.class_object)
                   pt = PrimitiveType.new(bool.class)
@@ -161,7 +163,27 @@ module MTypeInf
                 atype = RefinementType.new(StringView, :start_with, args)
                 atype_spec_pos = [atype]
                 atype_spec_neg = []
-                atype_reg = genp.inreg[0].genpoint.inreg[0]
+                creg = genp.inreg[0]
+                while creg.genpoint.is_a?(RiteSSA::Inst)
+                  creg = creg.genpoint.inreg[0]
+                end
+                atype_reg = creg
+              end
+
+            when :include?
+              if (atype = genp.inreg[0].type.values[0][0]).class_object == Range then
+                typemethodp = true
+                arg0 = genp.inreg[0].get_type(tup)
+                arg1 = genp.inreg[1].get_type(tup)
+                args = [arg0, arg1]
+                atype = RefinementType.new(Range, :include?, args)
+                atype_spec_pos = [atype]
+                atype_spec_neg = []
+                creg = genp.inreg[1]
+                while creg.genpoint.is_a?(RiteSSA::Inst)
+                  creg = creg.genpoint.inreg[0]
+                end
+                atype_reg = creg
               end
 
             else

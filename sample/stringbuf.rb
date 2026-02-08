@@ -48,8 +48,11 @@ class StringView
     end
 
     case _simd_check(block)
-    when :foo
-      pp "foooo"
+    when :find
+      pp "for find"
+
+    when :select
+      pp "for select"
 
     else
       nv = StringView.new(@strage, @capa)
@@ -65,6 +68,19 @@ class StringView
   def find(target)
     each do |sview|
       if sview.start_with target then
+        return sview.st
+      end
+    end
+  end
+
+  def fff(target)
+    each do |sview|
+      ch = sview[@st]
+      if (0..0x20).include?(ch) then
+        return sview.st
+      end
+
+      if (0x30..0x30).include?(ch) then
         return sview.st
       end
     end
@@ -89,6 +105,7 @@ end
 MTypeInf::inference_main {
   a = "foo".to_stringbuf
   a.find("oo")
+  a.fff
  a.each {|sstr| if sstr then return sstr.st end}
   pp a[2]
   nil
