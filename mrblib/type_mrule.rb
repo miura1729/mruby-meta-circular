@@ -112,6 +112,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :**, Float do |infer, inst, node, tup|
+      type = NumericType.new(Float, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :to_f, Float do |infer, inst, node, tup|
       type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
@@ -126,6 +132,12 @@ module MTypeInf
 
     define_inf_rule_method :<=>, Object do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :block_given?, Object do |infer, inst, node, tup|
+      type = LiteralType.new(FalseClass, false)
       inst.outreg[0].add_type(type, tup)
       nil
     end
@@ -476,10 +488,15 @@ module MTypeInf
 
     define_inf_rule_method :length, Array do |infer, inst, node, tup|
       intypes = inst.inreg[0].get_type(tup)
-      if intypes.size == 1 and intypes[0].immidiate_only then
-        type = LiteralType.new(Fixnum, intypes[0].element.size - 1)
-      else
-        type = NumericType.new(Fixnum, true)
+      type = NumericType.new(Fixnum, true)
+      if intypes.size == 1 then
+        if intypes[0].element.size < 2 then
+        # do nothing
+        elsif intypes[0].element_num
+          type = LiteralType.new(Fixnum, intypes[0].element_num)
+        elsif intypes[0].immidiate_only then
+          type = LiteralType.new(Fixnum, intypes[0].element.size - 1)
+        end
       end
 
       inst.outreg[0].add_type(type, tup)
@@ -511,6 +528,18 @@ module MTypeInf
       nil
     end
 
+
+    define_inf_rule_method :__svalue, Array do |infer, inst, node, tup|
+      inst.inreg[0].flush_type(tup)
+      ary = inst.inreg[0].type[tup][0]
+      if ary.element[0] then
+        inst.outreg[0].add_same ary.element[0]
+      else
+        inst.outreg[0].add_same inst.inreg[0]
+      end
+
+      nil
+    end
 
     define_inf_rule_method :__ary_cmp, Array do |infer, inst, node, tup|
       type1 = inst.inreg[1].get_type(tup)
@@ -673,6 +702,12 @@ module MTypeInf
     define_inf_rule_method :kind_of?, Object do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]
       arg = inst.inreg[1].flush_type(tup)[tup]
+      if slf == nil then
+        slf = inst.inreg[0].type.values[0]
+      end
+      if arg == nil then
+        arg = inst.inreg[1].type.values[0]
+      end
       if slf.size != 1 || slf[0].class_object == arg[0].val then
         type = LiteralType.new(TrueClass, true)
         inst.outreg[0].add_type(type, tup)
