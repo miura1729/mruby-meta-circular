@@ -47,17 +47,19 @@ class StringView
       yield nv
     end
 
-    case _simd_check(block)
-    when :find
+    a = _simd_check(block)
+    case a
+    when MMC_EXT::SIMD::Find
+      $foo = a
       pp "for find"
 
-    when :select
+    when MMC_EXT::SIMD::Select
       pp "for select"
 
     else
       nv = StringView.new(@strage, @capa)
       i = 1
-     while i < @ed
+      while i < @ed
         nv.st = @st + i
         yield nv
         i = i + 1

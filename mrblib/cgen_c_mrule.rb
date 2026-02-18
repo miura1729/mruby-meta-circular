@@ -441,7 +441,7 @@ module CodeGenC
         else
           ccgen.pcode << "v#{oreg.id} = 0;\n"
         end
-      else
+      elsif oreg.get_type(tup).size > 1 then
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)
       end
       nil

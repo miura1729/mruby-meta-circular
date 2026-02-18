@@ -130,6 +130,10 @@ module MTypeInf
                 if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
                   return false
                 end
+                if @class_object == MMC_EXT::SIMD::Select or
+                    @class_object == MMC_EXT::SIMD::Find then
+                  return false
+                end
 
               when MTypeInf::UserDefinedType, MTypeInf::StringType
                 if @level == ele.level and @place != ele.place then
@@ -531,7 +535,6 @@ module MTypeInf
     def initialize(co, ht, pht, level, *rest)
       super
     end
-
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object_core &&

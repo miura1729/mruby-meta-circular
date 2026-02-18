@@ -656,9 +656,38 @@ module MTypeInf
     end
 
     define_inf_rule_method :===, Kernel do |infer, inst, node, tup|
-      rule_compare_common(infer, inst, node, tup) {|x, y|
-        x === y
-      }
+      arg0types = inst.inreg[0].flush_type(tup)[tup]
+      arg1types = inst.inreg[1].flush_type(tup)[tup]
+      if arg0types and arg1types then
+        arg0type = arg0types[0]
+        arg1type = arg1types[0]
+        if arg0types.size == 1 and arg1types.size == 1 and
+            arg0type.is_a?(LiteralType) and
+            arg0type.val.is_a?(Class) then
+          if arg0type.val == arg1type.class_object then
+            type = LiteralType.new(TrueClass, true)
+          else
+            type = LiteralType.new(FalseClass, false)
+          end
+
+        elsif arg0types.size == 1 and arg1types.size == 1 and
+            arg0type.is_a?(LiteralType) and arg1type.is_a?(LiteralType) then
+          if arg0type.val == arg1type.val then
+            type = LiteralType.new(TrueClass, true)
+          else
+            type = LiteralType.new(FalseClass, false)
+          end
+
+        else
+          type = LiteralType.new(TrueClass, true)
+          inst.outreg[0].add_type(type, tup)
+          type = LiteralType.new(FalseClass, false)
+        end
+
+        inst.outreg[0].add_type(type, tup)
+      end
+
+      nil
     end
 
     define_inf_rule_method :!, BasicObject do |infer, inst, node, tup|

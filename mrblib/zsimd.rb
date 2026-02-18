@@ -3,6 +3,11 @@ end
 
 module MMC_EXT
   module SIMD
+    class Find
+    end
+
+    class Select
+    end
   end
 end
 
@@ -23,15 +28,22 @@ module MTypeInf
             arg0 = refinement.args[0][0]
             arg1 = refinement.args[1][0]
             if predicate == :start_with and arg1.is_a?(LiteralType) and arg1.val.is_a?(String) and arg1.val.size < 8 and effects[:return].size == 1 then
-              inst.outreg[0].type[tup] =  [SymbolType.instance(Symbol, :find)]
+              level = infer.callstack.size
+              previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+              type = ContainerType.new(MMC_EXT::SIMD::Find, inst, previrep, level)
+              inst.outreg[0].type[tup] =  [type]
 
             elsif predicate == :include? and arg0.is_a?(RangeType)  and
                 arg0.element[0].type.values[0][0].is_a?(LiteralType) and
                 arg0.element[1].type.values[0][0].is_a?(LiteralType) then
-              inst.outreg[0].type[tup] =  [SymbolType.instance(Symbol, :select)]
+              level = infer.callstack.size
+              previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+              type = ContainerType.new(MMC_EXT::SIMD::Select, inst, previrep, level)
+              inst.outreg[0].type[tup] =  [type]
+              p inst.outreg[0].type
 
             else
-              inst.outreg[0].type[tup] =  [LiteralType.new(NilClass, nil)]
+              inst.outreg[0].type[tup] =  [PrimitiveType.new(NilClass)]
               break
             end
           end
