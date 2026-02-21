@@ -228,6 +228,9 @@ module MTypeInf
       @escape_cache = plist.any? {|e, val|
         case e
         when :return
+# this debug print is useful for unnessory escape
+#            p e.class_object
+#            p e.place.keys
           true
 
         when :return_fst
@@ -235,10 +238,16 @@ module MTypeInf
 
         when ProcType
           # for debug ProcType is independing.
+# this debug print is useful for unnessory escape
+#            p e.class_object
+#            p e.place.keys
           e.is_escape?(hist)
 
         when UserDefinedType, ContainerType
           if e.is_escape?(hist) then
+# this debug print is useful for unnessory escape
+#            p e.class_object
+#            p e.place.keys
             true
 
           elsif @level <= e.level then
@@ -281,6 +290,9 @@ module MTypeInf
 
         else
           # true ... etc
+# this debug print is useful for unnessory escape
+#            p e.class_object
+#            p e.place.keys
           true
         end
       }

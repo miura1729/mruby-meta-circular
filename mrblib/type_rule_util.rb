@@ -129,12 +129,13 @@ module MTypeInf
               #            genp = genp.inreg[0].genpoint
 
             when :===
-              type = genp.inreg[1].get_type(tup)[0]
+              type = genp.inreg[0].get_type(tup)[0]
               pt = nil
               if type.is_a?(MTypeInf::LiteralType) then
                 genp = genp.inreg[1].genpoint
                 typemethodp = true
-                pt = PrimitiveType.new(type.class_object)
+                tt = genp.outreg[0].type[tup][0]
+                pt = [ContainerType.new(type.val, tt.hometown, tt.phometowns, tt.level)]
               end
 
               if genp.outreg[0] and pt then
@@ -150,6 +151,11 @@ module MTypeInf
                   atype = [pt]
                   atype_spec_pos = addtional_type_spec
                   atype_spec_neg = addtional_type_spec
+                else
+                  addtional_type_spec = pt
+                  atype = [pt]
+                  atype_spec_pos = addtional_type_spec
+                  atype_spec_neg = addtional_type_spec
                 end
               end
               atype_reg = get_original_reg(infer, genp, tup)
@@ -157,8 +163,8 @@ module MTypeInf
             when :start_with
               if (atype = genp.inreg[0].type.values[0][0]).class_object ==  StringView then
                 typemethodp = true
-                arg0 = genp.inreg[0].get_type(tup)
-                arg1 = genp.inreg[1].get_type(tup)
+                arg0 = genp.inreg[0]
+                arg1 = genp.inreg[1]
                 args = [arg0, arg1]
                 atype = RefinementType.new(StringView, :start_with, args)
                 atype_spec_pos = [atype]
@@ -173,8 +179,8 @@ module MTypeInf
             when :include?
               if (atype = genp.inreg[0].type.values[0][0]).class_object == Range then
                 typemethodp = true
-                arg0 = genp.inreg[0].get_type(tup)
-                arg1 = genp.inreg[1].get_type(tup)
+                arg0 = genp.inreg[0]
+                arg1 = genp.inreg[1]
                 args = [arg0, arg1]
                 atype = RefinementType.new(Range, :include?, args)
                 atype_spec_pos = [atype]

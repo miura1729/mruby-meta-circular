@@ -7,7 +7,7 @@ class StringView
   end
 
   def start_with(str)
-    @strage[st] == str[0]
+    @strage == str._fetch(0)
   end
 
   def strage
@@ -42,19 +42,21 @@ class StringView
   end
 
   def each(&block)
+    nv = StringView.new(@strage, @capa)
     if _not_execute then
-      nv = StringView.new(@strage, @capa)
       yield nv
     end
 
     a = _simd_check(block)
     case a
     when MMC_EXT::SIMD::Find
-      $foo = a
+      pp a.to_simd
       pp "for find"
+      return 0
 
     when MMC_EXT::SIMD::Select
       pp "for select"
+      return 0
 
     else
       nv = StringView.new(@strage, @capa)
@@ -64,28 +66,24 @@ class StringView
         yield nv
         i = i + 1
       end
+      return 0
+    end
+    0
+  end
+
+  def ttt_aux
+    each do |sview|
+      if (0..0x20).include?(sview[0]) then
+        return sview.st
+
+      elsif (0x30..0x30).include?(sview[0]) then
+        return sview.st
+      end
     end
   end
 
-  def find(target)
-    each do |sview|
-      if sview.start_with target then
-        return sview.st
-      end
-    end
-  end
-
-  def fff(target)
-    each do |sview|
-      ch = sview[@st]
-      if (0..0x20).include?(ch) then
-        return sview.st
-      end
-
-      if (0x30..0x30).include?(ch) then
-        return sview.st
-      end
-    end
+  def fff
+    ttt_aux
   end
 end
 
@@ -104,11 +102,40 @@ class String
   end
 end
 
-MTypeInf::inference_main {
+def foo(a)
+  a.each do |sstr|
+    if sstr then return sstr.st end
+  end
+  -1
+end
+
+def main
   a = "foo".to_stringbuf
-  a.find("oo")
+  a.each { |sview|
+    if sview.start_with "aaa" then
+      return sview.st
+    end
+    -1
+  }
+  a.each { |sview|
+    if sview.start_with "bbb" then
+      return sview.st
+    end
+    -1
+  }
+  a.each { |sview|
+    if sview.start_with "ccc" then
+      return sview.st
+    end
+    -1
+  }
   a.fff
- a.each {|sstr| if sstr then return sstr.st end}
-  pp a[2]
+  a.fff
+#  foo(a)
+#  pp a[2]
   nil
+end
+
+MTypeInf::inference_main {
+  main
 }

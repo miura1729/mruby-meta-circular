@@ -588,7 +588,7 @@ EOS
       @gccomplex_size = 0
       @gcobject_size = 0
       @caller_alloc_size = 0
-      @callstack.push [proc, nil, nil, usereturn] # 2nd need mrb_gc_arena_restore generate
+      @callstack.push [proc, nil, nil, usereturn, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       intype[0...-2].each_with_index do |tys, i|
         ereg = topnode.enter_reg[i]
@@ -671,7 +671,7 @@ EOS
       @gccomplex_size = 0
       @gcobject_size = 0
       @caller_alloc_size = 0
-      @callstack.push [proc, nil, procty, true] # 2nd need mrb_gc_arena_restore generate
+      @callstack.push [proc, nil, procty, true, nil] # 2nd need mrb_gc_arena_restore generate
       topnode = block.nodes[0]
       recvr = topnode.enter_reg[0]
       if !recvr.get_type(tup) then

@@ -17,38 +17,58 @@ module MTypeInf
       block = inst.inreg[1].get_type(tup)[0].irep
       effects = block.effects
       inst.outreg[0].type[tup] =  [LiteralType.new(NilClass, nil)]
-      effects[:return].values.each do |reteff|
-        genvalins = reteff[0].genpoint
-        if genvalins.is_a?(RiteSSA::Inst) and genvalins.op == :SEND then
+      if !effects[:return].nil? then
+        type = nil
+        effects[:return].values.each do |reteff|
+          genvalins = reteff[0].genpoint
+          if !genvalins.is_a?(RiteSSA::Inst) or genvalins.op != :SEND then
+            break
+          end
           slfreg = genvalins.inreg[0]
           positive = reteff[1]
-          if genvalins.para[0] == :st and  positive and positive.size == 1 then
-            refinement = positive[0]
-            predicate = refinement.predicate
-            arg0 = refinement.args[0][0]
-            arg1 = refinement.args[1][0]
-            if predicate == :start_with and arg1.is_a?(LiteralType) and arg1.val.is_a?(String) and arg1.val.size < 8 and effects[:return].size == 1 then
-              level = infer.callstack.size
-              previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
-              type = ContainerType.new(MMC_EXT::SIMD::Find, inst, previrep, level)
-              inst.outreg[0].type[tup] =  [type]
+          if genvalins.para[0] != :st or  !positive or positive.size > 1 then
+            break
+          end
 
-            elsif predicate == :include? and arg0.is_a?(RangeType)  and
-                arg0.element[0].type.values[0][0].is_a?(LiteralType) and
-                arg0.element[1].type.values[0][0].is_a?(LiteralType) then
-              level = infer.callstack.size
-              previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
-              type = ContainerType.new(MMC_EXT::SIMD::Select, inst, previrep, level)
-              inst.outreg[0].type[tup] =  [type]
-              p inst.outreg[0].type
+          refinement = positive[0]
+          if !refinement.is_a?(RefinementType) then
+            break
+          end
+          predicate = refinement.predicate
+          arg0reg = refinement.args[0]
+          arg1reg = refinement.args[1]
+          arg0ty = arg0reg.type.values[0][0]
+          arg1ty = arg1reg.type.values[0][0]
 
-            else
-              inst.outreg[0].type[tup] =  [PrimitiveType.new(NilClass)]
-              break
-            end
+          if predicate == :start_with and arg1ty.is_a?(LiteralType) and arg1ty.val.is_a?(String) and arg1ty.val.size < 8 and effects[:return].size == 1 then
+            level = infer.callstack.size
+            previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+            type = ContainerType.new(MMC_EXT::SIMD::Find, inst, previrep, level)
+            type.element[0] = arg1reg
+            inst.outreg[0].type[tup] =  [type]
+
+          elsif predicate == :include? and arg0ty.is_a?(RangeType)  and
+              arg0ty.element[0].type.values[0][0].is_a?(LiteralType) and
+              arg0ty.element[1].type.values[0][0].is_a?(LiteralType) then
+            level = infer.callstack.size
+            previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+            type ||= ContainerType.new(MMC_EXT::SIMD::Select, inst, previrep, level)
+            type.element[type.element.size] = arg0reg
+            inst.outreg[0].type[tup] =  [type]
+
+          else
+            inst.outreg[0].type[tup] =  [PrimitiveType.new(NilClass)]
+            break
           end
         end
       end
+      nil
+    end
+
+    define_inf_rule_method :to_simd, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
+      type = inst.inreg[0].type[tup][0]
+      types = type.element[0].type.values[0]
+      inst.outreg[0].type[tup] = types
       nil
     end
   end
@@ -58,6 +78,18 @@ module CodeGenC
   class CodeGen
     define_ccgen_rule_method :_simd_check, StringView do |ccgen, inst, node, infer, history, tup|
       # No code generate this methed only for type
+      nil
+    end
+
+    define_ccgen_rule_method :to_simd, MMC_EXT::SIMD::Find do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      type = ireg.type[tup][0]
+      types = type.element[0].type.values[0]
+      src = types[0].val
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = \"#{src}\";\n"
       nil
     end
   end
