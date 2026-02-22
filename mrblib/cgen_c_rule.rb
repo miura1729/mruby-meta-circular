@@ -1039,6 +1039,9 @@ module CodeGenC
 
       rtypesize = rtype.size
       cls0 = rtype[0].class_object
+      if cls0 == MMC_EXT::Vector then
+        return [:vector, rtype[0].etype, rtype[0].size]
+      end
 
       if rtype.any? {|ty| ty.is_escape?} then
         if cls0 == MMC_EXT::Mutex then
@@ -1162,7 +1165,24 @@ module CodeGenC
       end
       type = get_ctype_aux_aux(ccgen, reg, tup, infer)
       if type.is_a?(Array) then
-        type.join
+        if type[0] == :vector then
+          case type[1]
+          when :uchar
+            "v#{type[2]}uc"
+          when :char
+            "v#{type[2]}sc"
+          when :int
+            "v#{type[2]/4}si"
+          when :float
+            "v#{type[2]/4}sf"
+          when :doblet
+            "v#{type[2]/2}sdf"
+          else
+            raise "Unknown vector type #{type[1]}"
+          end
+        else
+          type.join
+        end
       else
         type
       end

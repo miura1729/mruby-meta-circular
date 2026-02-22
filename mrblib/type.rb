@@ -342,6 +342,17 @@ module MTypeInf
     attr :positive
   end
 
+  class SIMDType<PrimitiveType
+    def initialize(co, etype, size, *rest)
+      super(co, *rest)
+      @etype = etype
+      @size = size
+    end
+
+    attr :etype
+    attr :size
+  end
+
   class ExceptionType<BasicType
     def is_gcobject?
       true
@@ -791,6 +802,7 @@ module MTypeInf
     if cl == ContainerType or
         cl == StringType or
         cl == RangeType then
+
       TypeTable[ty] = cl.new(ty, nil, nil, 0)
     else
       TypeTable[ty] = cl.new(ty)

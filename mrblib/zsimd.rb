@@ -66,9 +66,32 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_simd, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
-      type = inst.inreg[0].type[tup][0]
-      types = type.element[0].type.values[0]
-      inst.outreg[0].type[tup] = types
+      type = SIMDType.new(MMC_EXT::Vector, :uchar, 16)
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
+    define_inf_rule_method :to_simd, Array do |infer, inst, node, tup|
+      aryty = inst.inreg[0].type[tup][0]
+      if aryty.nil? then
+        aryty = inst.inreg[0].type.values[0][0]
+      end
+      aryele = aryty.element.values[0]
+      elecls = aryele.type.values[0][0].class_object
+      if elecls == CodeGenC::BYTE then
+        ntype = SIMDType.new(MMC_EXT::Vector, :uchar, 16)
+
+      elsif elecls == Float
+        ntype = SIMDType.new(MMC_EXT::Vector, :double, 16)
+
+      elsif elecls == Fixnum
+        ntype = SIMDType.new(MMC_EXT::Vector, :int, 16)
+
+      else
+        p "Unkonwn class #{aryele.type.values[0][0].class_object}"
+      end
+
+      inst.outreg[0].type[tup] = [ntype]
       nil
     end
   end
@@ -86,10 +109,26 @@ module CodeGenC
       ireg = inst.inreg[0]
       type = ireg.type[tup][0]
       types = type.element[0].type.values[0]
-      src = types[0].val
+      src = "{"
+      types[0].val.each_byte do |b|
+        src << "#{b}, "
+      end
+      src << "}"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = \"#{src}\";\n"
+      ccgen.pcode << "v#{nreg.id} = (#{get_ctype(ccgen, nreg, tup, infer)})#{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :to_simd, Array do |ccgen, inst, node, infer, history, tup|
+      off = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+      ary, aryt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+      nreg = inst.outreg[0]
+      src = "(#{ary} + #{off})"
+      src = "*(#{get_ctype(ccgen, nreg, tup, infer)} *)#{src}"
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = (#{src});\n"
       nil
     end
   end

@@ -136,6 +136,8 @@ struct mmc_system {
   pthread_mutex_t *gc_mutex;
 };
 
+typedef unsigned char v16uc __attribute__ ((vector_size (16)));
+
 void mrb_mark_local(mrb_state *mrb)
 {
   if (mrb->ud == NULL) {

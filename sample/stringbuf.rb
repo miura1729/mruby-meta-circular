@@ -41,6 +41,10 @@ class StringView
     @st
   end
 
+  def to_simd(offset)
+    @strage.to_simd(@st + offset)
+  end
+
   def each(&block)
     nv = StringView.new(@strage, @capa)
     if _not_execute then
@@ -50,7 +54,9 @@ class StringView
     a = _simd_check(block)
     case a
     when MMC_EXT::SIMD::Find
-      pp a.to_simd
+      tgsimd = a.to_simd
+      i = 0
+      visimd = to_simd(i)
       pp "for find"
       return 0
 
@@ -109,26 +115,38 @@ def foo(a)
   -1
 end
 
-def main
-  a = "foo".to_stringbuf
+def find1(a)
   a.each { |sview|
     if sview.start_with "aaa" then
       return sview.st
     end
     -1
   }
+end
+
+def find2(a)
   a.each { |sview|
     if sview.start_with "bbb" then
       return sview.st
     end
     -1
   }
+end
+
+def find3(a)
   a.each { |sview|
     if sview.start_with "ccc" then
       return sview.st
     end
     -1
   }
+end
+
+def main
+  a = "foo".to_stringbuf
+  find1(a)
+  find2(a)
+  find3(a)
   a.fff
   a.fff
 #  foo(a)
