@@ -71,6 +71,13 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :target, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
+      findtype = inst.inreg[0].type[tup][0]
+      types = findtype.element[0].type.values[0]
+      inst.outreg[0].type[tup] = types
+      nil
+    end
+
     define_inf_rule_method :to_simd, Array do |infer, inst, node, tup|
       aryty = inst.inreg[0].type[tup][0]
       if aryty.nil? then
@@ -117,6 +124,18 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = (#{get_ctype(ccgen, nreg, tup, infer)})#{src};\n"
+      nil
+    end
+
+    define_ccgen_rule_method :target, MMC_EXT::SIMD::Find do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      type = ireg.type[tup][0]
+      types = type.element[0].type.values[0]
+      src = types[0].val
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = \"#{src}\";\n"
       nil
     end
 

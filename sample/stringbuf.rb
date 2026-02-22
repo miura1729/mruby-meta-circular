@@ -55,9 +55,13 @@ class StringView
     case a
     when MMC_EXT::SIMD::Find
       tgsimd = a.to_simd
+      target = a.target
+      tsize = target.size
       i = 0
-      visimd = to_simd(i)
-      pp "for find"
+      while i < @ed
+        visimd = to_simd(i)
+        i = i + 16 - tsize
+      end
       return 0
 
     when MMC_EXT::SIMD::Select
@@ -65,10 +69,10 @@ class StringView
       return 0
 
     else
-      nv = StringView.new(@strage, @capa)
       i = 1
       while i < @ed
         nv.st = @st + i
+        nv.ed = @ed - i
         yield nv
         i = i + 1
       end
