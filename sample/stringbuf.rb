@@ -73,8 +73,23 @@ class StringView
       return -1
 
     when MMC_EXT::SIMD::Select
-      pp "for select"
-      return 0
+      tgsimd = a.to_simd
+      target = a.target
+      tsize = target.size
+      i = 0
+      while i < @ed
+        visimd = to_simd(i)
+        visize = @ed - i
+        if visize > 16 then
+          visize = 16
+        end
+        ret = tgsimd.pcmpestri128(tsize, visimd, visize, 4)
+        if ret < visize then
+          return i + ret
+        end
+        i = i + 16
+      end
+      return -1
 
     else
       i = 1
@@ -160,8 +175,8 @@ def main
   pp find1(a)
   pp find2(a)
   pp find3(a)
-  a.fff
-  a.fff
+  pp a.fff
+  pp a.fff
 #  foo(a)
 #  pp a[2]
   nil

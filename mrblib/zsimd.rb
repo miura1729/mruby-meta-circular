@@ -53,7 +53,7 @@ module MTypeInf
             level = infer.callstack.size
             previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
             type ||= ContainerType.new(MMC_EXT::SIMD::Select, inst, previrep, level)
-            type.element[type.element.size] = arg0reg
+            type.element[type.element.size - 1] = arg0reg
             inst.outreg[0].type[tup] =  [type]
 
           else
@@ -71,10 +71,24 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_simd, MMC_EXT::SIMD::Select do |infer, inst, node, tup|
+      type = SIMDType.new(MMC_EXT::Vector, :char, 16)
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
     define_inf_rule_method :target, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
       findtype = inst.inreg[0].type[tup][0]
       types = findtype.element[0].type.values[0]
       inst.outreg[0].type[tup] = types
+      nil
+    end
+
+    define_inf_rule_method :target, MMC_EXT::SIMD::Select do |infer, inst, node, tup|
+      seltype = inst.inreg[0].type[tup][0]
+      eles = seltype.element
+      type = LiteralType.new(String, " " * eles.size)
+      inst.outreg[0].type[tup] = [type]
       nil
     end
 
@@ -127,6 +141,25 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :to_simd, MMC_EXT::SIMD::Select do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      ireg = inst.inreg[0]
+      type = ireg.type[tup][0]
+      eles = type.element
+      src = "{"
+      (eles.size - 1).times do |i|
+        range = eles[i].type.values[0][0]
+        fst = range.element[0].type.values[0][0].val
+        lst = range.element[1].type.values[0][0].val
+        src << "#{fst}, #{lst}, "
+      end
+      src << "}"
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = (#{get_ctype(ccgen, nreg, tup, infer)})#{src};\n"
+      nil
+    end
+
     define_ccgen_rule_method :target, MMC_EXT::SIMD::Find do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[0]
@@ -136,6 +169,10 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = \"#{src}\";\n"
+      nil
+    end
+
+    define_ccgen_rule_method :target, MMC_EXT::SIMD::Select do |ccgen, inst, node, infer, history, tup|
       nil
     end
 
