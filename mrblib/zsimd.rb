@@ -66,7 +66,7 @@ module MTypeInf
     end
 
     define_inf_rule_method :to_simd, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
-      type = SIMDType.new(MMC_EXT::Vector, :uchar, 16)
+      type = SIMDType.new(MMC_EXT::Vector, :char, 16)
       inst.outreg[0].type[tup] = [type]
       nil
     end
@@ -86,7 +86,7 @@ module MTypeInf
       aryele = aryty.element.values[0]
       elecls = aryele.type.values[0][0].class_object
       if elecls == CodeGenC::BYTE then
-        ntype = SIMDType.new(MMC_EXT::Vector, :uchar, 16)
+        ntype = SIMDType.new(MMC_EXT::Vector, :char, 16)
 
       elsif elecls == Float
         ntype = SIMDType.new(MMC_EXT::Vector, :double, 16)
@@ -144,7 +144,7 @@ module CodeGenC
       ary, aryt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
       src = "(#{ary} + #{off})"
-      src = "*(#{get_ctype(ccgen, nreg, tup, infer)} *)#{src}"
+      src = "__builtin_ia32_loaddqu(#{src})"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = (#{src});\n"

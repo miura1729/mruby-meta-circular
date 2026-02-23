@@ -1168,15 +1168,15 @@ module CodeGenC
         if type[0] == :vector then
           case type[1]
           when :uchar
-            "v#{type[2]}uc"
+            "v#{type[2]}uqi"
           when :char
-            "v#{type[2]}sc"
+            "v#{type[2]}qi"
           when :int
             "v#{type[2]/4}si"
           when :float
             "v#{type[2]/4}sf"
           when :doblet
-            "v#{type[2]/2}sdf"
+            "v#{type[2]/2}df"
           else
             raise "Unknown vector type #{type[1]}"
           end

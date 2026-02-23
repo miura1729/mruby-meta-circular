@@ -60,9 +60,17 @@ class StringView
       i = 0
       while i < @ed
         visimd = to_simd(i)
+        visize = @ed - i
+        if visize > 16 then
+          visize = 16
+        end
+        ret = tgsimd.pcmpestri128(tsize, visimd, visize, 0xc)
+        if ret < visize - tsize then
+          return i + ret
+        end
         i = i + 16 - tsize
       end
-      return 0
+      return -1
 
     when MMC_EXT::SIMD::Select
       pp "for select"
@@ -121,7 +129,7 @@ end
 
 def find1(a)
   a.each { |sview|
-    if sview.start_with "aaa" then
+    if sview.start_with "awk" then
       return sview.st
     end
     -1
@@ -130,7 +138,7 @@ end
 
 def find2(a)
   a.each { |sview|
-    if sview.start_with "bbb" then
+    if sview.start_with "map" then
       return sview.st
     end
     -1
@@ -139,7 +147,7 @@ end
 
 def find3(a)
   a.each { |sview|
-    if sview.start_with "ccc" then
+    if sview.start_with "pet" then
       return sview.st
     end
     -1
@@ -147,10 +155,11 @@ def find3(a)
 end
 
 def main
-  a = "foo".to_stringbuf
-  find1(a)
-  find2(a)
-  find3(a)
+  #    0123456789abcdefghijklmnopqrstuvwxyz
+  a = "sadfsdmmmase@pmapeeqwaaaabbbcccpetaaa".to_stringbuf
+  pp find1(a)
+  pp find2(a)
+  pp find3(a)
   a.fff
   a.fff
 #  foo(a)
