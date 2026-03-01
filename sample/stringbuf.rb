@@ -113,6 +113,23 @@ class StringView
         return sview.st
       end
     end
+    -1
+  end
+
+  def aaa
+    res = Array.new
+    each do |sview|
+      if (0..0x20).include?(sview[0]) then
+        res << true
+
+      elsif (0x30..0x30).include?(sview[0]) then
+        res << true
+
+      else
+        res << false
+      end
+    end
+    res
   end
 
   def fff
@@ -177,6 +194,7 @@ def main
   pp find3(a)
   pp a.fff
   pp a.fff
+  pp a.aaa
 #  foo(a)
 #  pp a[2]
   nil

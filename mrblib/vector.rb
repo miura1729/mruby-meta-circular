@@ -1,6 +1,9 @@
 module MMC_EXT
   class Vector<Array
   end
+
+  class Bitmap
+  end
 end
 
 module MTypeInf

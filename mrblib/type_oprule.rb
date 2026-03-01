@@ -696,14 +696,14 @@ module MTypeInf
         inst.outreg[2].flush_type(otup, tup)
 
         valreg = inst.inreg[0]
-        valinst = valreg.genpoint
         slftype = nil
-        if valinst.is_a?(RiteSSA::Inst) and valinst.op == :SEND then
-          slfreg = valinst.inreg[0]
-          while slfreg.genpoint.is_a?(RiteSSA::Inst)
-            slfreg = slfreg.genpoint.inreg[0]
+        elink = node.enter_link
+        if elink.size == 1 and elink[0].ext_iseq[-1].is_a?(RiteSSA::Inst) then
+          einst = elink[0].ext_iseq[-1]
+          if einst.op == :JMPNOT then
+            slfreg = einst.inreg[0]
+            slftype = slfreg.positive_list[-1]
           end
-          slftype = slfreg.positive_list[-1]
         end
         effectinfo = [valreg, slftype]
         node.root.effects[:return] ||= {}

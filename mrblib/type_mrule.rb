@@ -424,6 +424,20 @@ module MTypeInf
     end
 
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
+      slftype = nil
+      valreg = inst.inreg[1]
+      elink = node.enter_link
+      if elink.size == 1 and elink[0].ext_iseq[-1].is_a?(RiteSSA::Inst) then
+        einst = elink[0].ext_iseq[-1]
+        if einst.op == :JMPNOT then
+          slfreg = einst.inreg[0]
+          slftype = slfreg.positive_list[-1]
+        end
+      end
+      effectinfo = [valreg, slftype]
+      node.root.effects[:apush] ||= {}
+      node.root.effects[:apush][inst] = effectinfo
+
       node.root.effects[:modify] ||= {}
       node.root.effects[:modify][inst] = inst.inreg[0].type
       rule_ary_push_common(infer, inst, node, tup)

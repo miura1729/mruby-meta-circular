@@ -135,7 +135,7 @@ module MTypeInf
                 genp = genp.inreg[1].genpoint
                 typemethodp = true
                 tt = genp.outreg[0].type[tup][0]
-                pt = [ContainerType.new(type.val, tt.hometown, tt.phometowns, tt.level)]
+                pt = ContainerType.new(type.val, tt.hometown, tt.phometowns, tt.level)
               end
 
               if genp.outreg[0] and pt then
@@ -169,10 +169,7 @@ module MTypeInf
                 atype = RefinementType.new(StringView, :start_with, args)
                 atype_spec_pos = [atype]
                 atype_spec_neg = []
-                creg = genp.inreg[0]
-                while creg.genpoint.is_a?(RiteSSA::Inst)
-                  creg = creg.genpoint.inreg[0]
-                end
+                creg = inst.inreg[0]
                 atype_reg = creg
               end
 
@@ -185,10 +182,7 @@ module MTypeInf
                 atype = RefinementType.new(Range, :include?, args)
                 atype_spec_pos = [atype]
                 atype_spec_neg = []
-                creg = genp.inreg[1]
-                while creg.genpoint.is_a?(RiteSSA::Inst)
-                  creg = creg.genpoint.inreg[0]
-                end
+                creg = inst.inreg[0]
                 atype_reg = creg
               end
 

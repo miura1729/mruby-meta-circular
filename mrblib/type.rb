@@ -27,18 +27,32 @@ module MTypeInf
     end
 
     def class_object
-      if is_gcobject? and
-          (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 and
-          !@locked then
-        # racing object. lock need when access
-        if @threads.values.include?(:canempty) then
-          MMC_EXT::MutexEmptyLock
-        else
-          MMC_EXT::Mutex
+      if is_gcobject? then
+
+        if (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 and
+            !@locked then
+          # racing object. lock need when access
+          if @threads.values.include?(:canempty) then
+            return MMC_EXT::MutexEmptyLock
+          else
+            return MMC_EXT::Mutex
+          end
         end
-      else
-        @class_object
+
+        if is_a?(ContainerType) and @class_object == Array and
+            !is_escape? and
+            @element[UNDEF_VALUE].type.values.size > 0 then
+          if @element[UNDEF_VALUE].type.values[0].all? {|e|
+              e.is_a?(LiteralType) and
+              (e.val == true or
+                e.val == false)
+            } then
+            return MMC_EXT::Bitmap
+          end
+        end
       end
+
+      @class_object
     end
 
     def class_object_core
@@ -518,7 +532,7 @@ module MTypeInf
 
     def inspect_aux(hist, level)
       if hist[self] then
-        return "<#{@class_object} ...> e=#{is_escape?} l=#{@level} thread=#{@threads}"
+        return "<#{class_object} ...> e=#{is_escape?} l=#{@level} thread=#{@threads}"
       end
       hist[self] = true
 
@@ -532,16 +546,16 @@ module MTypeInf
       end
       hist.delete(self)
       if level < 3 then
-        "#{@class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?} l=#{@level} th=#{@threads}"
-#        "#{@class_object.inspect}<#{elearr.uniq.join('|')}>"
+        "#{class_object.inspect}<#{elearr.uniq.join('|')}> e=#{is_escape?} l=#{@level} th=#{@threads}"
+#        "#{class_object.inspect}<#{elearr.uniq.join('|')}>"
       else
-        "#{@class_object.inspect}<> e=#{is_escape?} l=#{@level} th=#{@threads}"
-#        "#{@class_object.inspect}<>"
+        "#{class_object.inspect}<> e=#{is_escape?} l=#{@level} th=#{@threads}"
+#        "#{class_object.inspect}<>"
       end
     end
 
     def inspect_element(level)
-      "<#{@class_object} element=...>"
+      "<#{class_object} element=...>"
     end
 
     def is_gcobject?
