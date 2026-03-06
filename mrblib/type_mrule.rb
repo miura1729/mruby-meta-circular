@@ -426,6 +426,7 @@ module MTypeInf
     define_inf_rule_method :<<, Array do |infer, inst, node, tup|
       slftype = nil
       valreg = inst.inreg[1]
+      aryreg = inst.inreg[0]
       elink = node.enter_link
       if elink.size == 1 and elink[0].ext_iseq[-1].is_a?(RiteSSA::Inst) then
         einst = elink[0].ext_iseq[-1]
@@ -434,7 +435,7 @@ module MTypeInf
           slftype = slfreg.positive_list[-1]
         end
       end
-      effectinfo = [valreg, slftype]
+      effectinfo = [aryreg, valreg, slfreg, slftype]
       node.root.effects[:apush] ||= {}
       node.root.effects[:apush][inst] = effectinfo
 

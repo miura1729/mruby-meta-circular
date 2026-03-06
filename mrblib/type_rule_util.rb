@@ -129,30 +129,30 @@ module MTypeInf
               #            genp = genp.inreg[0].genpoint
 
             when :===
-              type = genp.inreg[0].get_type(tup)[0]
+              type0 = genp.inreg[0].get_type(tup)[0]
               pt = nil
-              if type.is_a?(MTypeInf::LiteralType) then
+              if type0.is_a?(MTypeInf::LiteralType) then
                 genp = genp.inreg[1].genpoint
                 typemethodp = true
                 tt = genp.outreg[0].type[tup][0]
-                pt = ContainerType.new(type.val, tt.hometown, tt.phometowns, tt.level)
+                pt = ContainerType.new(type0.val, tt.hometown, tt.phometowns, tt.level)
               end
 
               if genp.outreg[0] and pt then
-                type = genp.outreg[0].get_type(tup)[0]
-                if type.is_a?(MTypeInf::LiteralType) then
+                type1 = genp.outreg[0].get_type(tup)[0]
+                if type0.is_a?(MTypeInf::LiteralType) then
                   if !genp.inreg[0].is_a?(RiteSSA::ParmReg) then
                     genp = genp.inreg[0].genpoint
                   end
                   typemethodp = true
-                  bool = (type.class_object == pt.class_object)
+                  bool = (type0.val == type1.class_object)
                   pt = PrimitiveType.new(bool.class)
                   addtional_type_spec = [pt]
                   atype = [pt]
                   atype_spec_pos = addtional_type_spec
                   atype_spec_neg = addtional_type_spec
                 else
-                  addtional_type_spec = pt
+                  addtional_type_spec = [pt]
                   atype = [pt]
                   atype_spec_pos = addtional_type_spec
                   atype_spec_neg = addtional_type_spec
@@ -789,9 +789,13 @@ module MTypeInf
       arrtypes = inst.inreg[0].type[tup]
       valreg = inst.inreg[1]
       valreg.flush_type(tup)
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      curirep = infer.callstack[-1][0].irep
       if valreg.type[tup] then
         valreg.type[tup].each do |ty|
-          ty.place[true] = true
+          arrtypes.each do |at|
+           ty.place[at] = [curirep, previrep, :push, inst.line]
+          end
         end
       end
 

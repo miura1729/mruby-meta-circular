@@ -452,13 +452,19 @@ module CodeGenC
             ccgen.pcode << "#{fname}(mrb, #{args});\n"
           end
 
-          if proc.irep.have_return then
-            ccgen.have_ret_handler = true
-            val = reg_real_value(ccgen, nreg, node.root.retreg2, node, tup, infer, history)
-            ccgen.pcode << "if (gctab->ret_status) {\n"
-            ccgen.pcode << "prevgctab->ret_status = gctab->ret_status;\n"
-            ccgen.pcode << "return #{val};\n"
-            ccgen.pcode << "}\n"
+          bproc = inreg[-1].type[tup]
+          if bproc then
+            bproc = bproc[0]
+          end
+          if bproc and bproc.is_a?(MTypeInf::ProcType) then
+            if bproc.irep.have_return then
+              ccgen.have_ret_handler = true
+              val = reg_real_value(ccgen, nreg, node.root.retreg2, node, tup, infer, history)
+              ccgen.pcode << "if (gctab->ret_status) {\n"
+              ccgen.pcode << "prevgctab->ret_status = gctab->ret_status;\n"
+              ccgen.pcode << "return #{val};\n"
+              ccgen.pcode << "}\n"
+            end
           end
 
           if procexport then
@@ -1135,7 +1141,7 @@ module CodeGenC
           ccgen.using_class[clsssa][ivtup] = ["cls#{clsssa.id}_#{ivtup}", rtype[0].hometown]
         end
         if clsssa and clsssa.id != 0 then
-          ["struct cls#{clsssa.id}_#{ivtup} ", "*"]
+          ["struct cls#{clsssa.id}_#{ivtup} ", "*", nil]
         else
           :mrb_value
         end

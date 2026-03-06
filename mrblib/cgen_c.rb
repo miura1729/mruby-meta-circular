@@ -787,7 +787,7 @@ EOS
                 end
                 if !(nreg.refpoint.size == 1 and [:GETUPVAR].include?(nreg.refpoint[0].op)) then
                   argt = ti.typetupletab.rev_table[tup]
-                  if !is_virgin_reg?(node, sreg, argt) then
+                  if !is_virgin_reg?(node, sreg, argt) and nreg.type.size > 0 then
                     src = CodeGen::reg_real_value(self, sreg, nreg, node, tup, ti, history)
 #                    p sreg.genpoint
 #                    p sreg.refpoint

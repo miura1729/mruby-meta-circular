@@ -51,6 +51,7 @@ def main
     hobbitlist.each do |th|
       th.join
     end
+    nil
   end
 
   # Santa tonakai dev.
@@ -87,6 +88,7 @@ def main
     tonakailist.each do |th|
       th.join
     end
+    nil
   end
 
   cnt = 2

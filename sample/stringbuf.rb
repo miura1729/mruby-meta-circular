@@ -65,7 +65,7 @@ class StringView
           visize = 16
         end
         ret = tgsimd.pcmpestri128(tsize, visimd, visize, 0xc)
-        if ret < visize - tsize then
+        if ret < visize - tsize + 1 then
           return i + ret
         end
         i = i + 16 - tsize
@@ -91,6 +91,10 @@ class StringView
       end
       return -1
 
+    when MMC_EXT::SIMD::SelectBitmap
+      pp "foo"
+      return 0
+
     else
       i = 1
       while i < @ed
@@ -101,7 +105,6 @@ class StringView
       end
       return 0
     end
-    0
   end
 
   def ttt_aux
@@ -188,13 +191,13 @@ end
 
 def main
   #    0123456789abcdefghijklmnopqrstuvwxyz
-  a = "sadfsdmmmase@pmapeeqwaaaabbbcccpetaaa".to_stringbuf
+  a = "sadfsdmmmase@pmapeeqwaaaabbbcccpetaaaawk".to_stringbuf
   pp find1(a)
   pp find2(a)
   pp find3(a)
   pp a.fff
   pp a.fff
-  pp a.aaa
+  a.aaa
 #  foo(a)
 #  pp a[2]
   nil

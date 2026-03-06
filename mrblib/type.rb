@@ -66,6 +66,7 @@ module MTypeInf
     attr_accessor :version
     attr_accessor :threads
     attr_accessor :locked
+    attr_accessor :escape_cache
 
     def merge(arr, usevalue)
       clsobj = @class_object
@@ -145,6 +146,7 @@ module MTypeInf
                   return false
                 end
                 if @class_object == MMC_EXT::SIMD::Select or
+                    @class_object == MMC_EXT::SIMD::SelectBitmap or
                     @class_object == MMC_EXT::SIMD::Find then
                   return false
                 end
@@ -485,7 +487,7 @@ module MTypeInf
     end
 
     def is_escape?(hist = {})
-      if !@immidiate_only then
+      if !@immidiate_only and false then
         true
       else
         super(hist)

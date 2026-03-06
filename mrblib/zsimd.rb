@@ -8,6 +8,9 @@ module MMC_EXT
 
     class Select
     end
+
+    class SelectBitmap
+    end
   end
 end
 
@@ -62,6 +65,51 @@ module MTypeInf
           end
         end
       end
+
+      if !effects[:apush].nil? then
+        type = nil
+        elseflag = false
+        effects[:apush].values.each do |apheff|
+          valtype = apheff[1].type.values
+          slfreg = apheff[2]
+          positive = apheff[3]
+
+          refinement = nil
+          if positive then
+            refinement = positive[0]
+          end
+          if !refinement.is_a?(RefinementType) then
+            elseflag = true
+            next
+          end
+          predicate = refinement.predicate
+          arg0reg = refinement.args[0]
+          arg1reg = refinement.args[1]
+          arg0ty = arg0reg.type.values[0][0]
+          arg1ty = arg1reg.type.values[0][0]
+
+          if predicate == :include? and arg0ty.is_a?(RangeType)  and
+              arg0ty.element[0].type.values[0][0].is_a?(LiteralType) and
+              arg0ty.element[1].type.values[0][0].is_a?(LiteralType) then
+            level = infer.callstack.size
+            previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+            type ||= ContainerType.new(MMC_EXT::SIMD::SelectBitmap, inst, previrep, level)
+            type.element[type.element.size - 1] = arg0reg
+
+          else
+            inst.outreg[0].type[tup] =  [PrimitiveType.new(NilClass)]
+            elseflag = false
+            break
+          end
+        end
+
+        if elseflag then
+          effects[:apush].values.each do |apheff|
+           apheff[0].type.values[0][0].place.delete(true)
+          end
+          inst.outreg[0].type[tup] =  [type]
+        end
+      end
       nil
     end
 
@@ -95,7 +143,7 @@ module MTypeInf
     define_inf_rule_method :to_simd, Array do |infer, inst, node, tup|
       aryty = inst.inreg[0].type[tup][0]
       if aryty.nil? then
-        aryty = inst.inreg[0].type.values[0][0]
+        aryty = inst.inreg[0].type[tup][0]
       end
       aryele = aryty.element.values[0]
       elecls = aryele.type.values[0][0].class_object
