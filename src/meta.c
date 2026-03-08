@@ -2,6 +2,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/array.h>
+#include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/opcode.h>
@@ -334,6 +335,19 @@ mrb_irep_get_line(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "i", &pc);
 
   return mrb_fixnum_value(mrb_debug_get_line(irep, pc));
+}
+
+static mrb_value
+mrb_irep_get_lv(mrb_state *mrb, mrb_value self)
+{
+  int i;
+  mrb_irep *irep = mrb_get_datatype(mrb, self, &mrb_irep_type);
+  mrb_value lvh = mrb_hash_new(mrb);
+
+  for (i = 0; i < irep->nlocals - 1; i++) {
+    mrb_hash_set(mrb, lvh, mrb_symbol_value(irep->lv[i].name), mrb_fixnum_value(irep->lv[i].r));
+  }
+  return lvh;
 }
 
 static mrb_value
@@ -701,6 +715,7 @@ mrb_mruby_meta_circular_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, a, "nlocals=", mrb_irep_set_nlocals, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "filename", mrb_irep_get_filename, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "line", mrb_irep_get_line, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, a, "lv", mrb_irep_get_lv, MRB_ARGS_NONE());
 #if defined MRBJIT
   mrb_define_method(mrb, a, "reg_class", mrb_irep_regklass, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "reg_type", mrb_irep_regtype, MRB_ARGS_REQ(1));

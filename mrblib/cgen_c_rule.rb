@@ -1049,6 +1049,10 @@ module CodeGenC
         return [:vector, rtype[0].etype, rtype[0].size]
       end
 
+      if cls0 == MMC_EXT::Bitmap then
+        return [:uint64_t, "*"]
+      end
+
       if rtype.any? {|ty| ty.is_escape?} then
         if cls0 == MMC_EXT::Mutex then
           return :mrb_value_mutex

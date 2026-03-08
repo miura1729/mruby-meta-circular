@@ -1088,6 +1088,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :binding, Proc do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     def self.gen_get_strbuf(oreg, osize, tup)
       otype = oreg.get_type(tup)[0]
       size = otype.size

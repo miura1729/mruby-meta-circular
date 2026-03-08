@@ -1,6 +1,5 @@
 module MTypeInf
   class TypeInferencer
-
     @@ruletab ||= {}
 
     def self.define_inf_rule_method(name, rec, &block)
@@ -956,6 +955,17 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :binding, Proc do |infer, inst, node, tup|
+      #p ptype.id
+      #p ptype.parent.id
+      #p ptype.env
+      #p ptype.envno
+      #p ptype.parent.irep.irep.lv
+      preg = inst.inreg[0].genpoint.inreg[0]
+      inst.outreg[0].add_type BindingType.new(Binding, preg), tup
+      nil
+    end
+
     define_inf_rule_method :+, String do |infer, inst, node, tup|
       @@ruletab[:OP][:STRCAT].call(infer, inst, node, tup, nil)
       nil
@@ -1176,7 +1186,7 @@ module MTypeInf
           proc = eval("lambda { #{src} }")
           slf = inst.inreg[0].type[tup][0]
           irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
-          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil)
+          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil, nil)
           infer.inference_block(irep, [[slf]], tup, 2, bproc)
           inst.objcache ||= {}
           inst.objcache[src] = irep

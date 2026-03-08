@@ -115,6 +115,7 @@ module MTypeInf
                 MTypeInf::ExceptionType,
                 MTypeInf::FiberType,
                 MTypeInf::ProcType
+                MTypeInf::BindingType
                 return false
 
               when MTypeInf::LiteralType
@@ -174,6 +175,9 @@ module MTypeInf
                 return false
 
               when MTypeInf::ThreadType
+                return false
+
+              when MTypeInf::BindingType
                 return false
 
               else
@@ -603,7 +607,7 @@ module MTypeInf
       @@tab
     end
 
-    def initialize(co, irep, slf, slfreg, env, tups, pproc, *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, pproc, envno, *rest)
       super(co, *rest)
       @id = @@tab.size
       @@tab.push self
@@ -611,6 +615,7 @@ module MTypeInf
       @slf = slf
       @slfreg = slfreg
       @env = env
+      @envno = envno
       @tups = tups
       @using_tup = {}
       @parent = pproc
@@ -668,6 +673,7 @@ module MTypeInf
     attr_accessor  :slf
     attr :slfreg
     attr :env
+    attr :envno
     attr :tups
     attr :using_tup
     attr :parent
@@ -706,6 +712,39 @@ module MTypeInf
     attr :id
     attr :proc
     attr :ret
+  end
+
+  class BindingType<BasicType
+    @@tab = []
+
+    def initialize(co, preg, *rest)
+      super(co, *rest)
+      @id = @@tab.size
+      @@tab.push self
+      @preg = preg
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @preg == other.preg &&
+        is_escape? == other.is_escape? &&
+        locked == other.locked
+    end
+
+    def inspect(level = 0)
+      if level < 1 then
+        "#{@class_object.inspect}<preg=#{@preg}>"
+      else
+        "#{@class_object.inspect}<>"
+      end
+    end
+
+    def is_gcobject?
+      true
+    end
+
+    attr :id
+    attr :preg
   end
 
   class UserDefinedType<BasicType

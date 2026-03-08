@@ -1066,7 +1066,7 @@ module MTypeInf
       end
       pty = inst.objcache[previrep]
       if !pty then
-        pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc)
+        pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc, inst.para[2])
         inst.objcache[previrep] = pty
       end
       pty.slf = slf

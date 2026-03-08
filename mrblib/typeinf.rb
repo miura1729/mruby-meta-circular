@@ -1,4 +1,7 @@
 TOP_SELF = Object.new
+class Binding
+end
+
 module MTypeInf
   DEFAULT_OPTION = {
     :dump_level => 1
@@ -408,7 +411,7 @@ module MTypeInf
       ty = TypeTable[topobj] = LiteralType.new(topobj.class, topobj)
       intype = [[ty]]
       tup = @typetupletab.get_tupple_id(intype, PrimitiveType.new(NilClass), 0)
-      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil)
+      bproc = ProcType.new(Proc, saairep, ty, nil,  [], [], nil, nil)
       @thread.proc = bproc
       #bproc.place[true] = true
       inference_block(saairep, intype, tup, 2, bproc)

@@ -92,8 +92,20 @@ class StringView
       return -1
 
     when MMC_EXT::SIMD::SelectBitmap
-      pp "foo"
-      return 0
+      tgsimd = a.to_simd
+      target = a.target
+      tsize = target.size
+      i = 0
+      while i < @ed
+        visimd = to_simd(i)
+        visize = @ed - i
+        if visize > 16 then
+          visize = 16
+        end
+        ret = tgsimd.pcmpestre128(tsize, visimd, visize, 4)
+        res = block.binding.local_variable_get(:res)
+        i = i + 16
+      end
 
     else
       i = 1
@@ -120,8 +132,10 @@ class StringView
   end
 
   def aaa
-    res = Array.new
+    res = Array.new(256)
+    a = self
     each do |sview|
+      pp a
       if (0..0x20).include?(sview[0]) then
         res << true
 
