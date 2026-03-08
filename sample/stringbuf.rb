@@ -102,7 +102,7 @@ class StringView
         if visize > 16 then
           visize = 16
         end
-        ret = tgsimd.pcmpestre128(tsize, visimd, visize, 4)
+        ret = tgsimd.pcmpestrm128(tsize, visimd, visize, 4)
         res = block.binding.local_variable_get(:res)
         i = i + 16
       end

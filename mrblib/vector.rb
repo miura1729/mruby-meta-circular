@@ -21,8 +21,8 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :pcmpestre128, MMC_EXT::Vector do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, true)
+    define_inf_rule_method :pcmpestrm128, MMC_EXT::Vector do |infer, inst, node, tup|
+      type = SIMDType.new(MMC_EXT::Vector, :char, 16)
       inst.outreg[0].type[tup] = [type]
       nil
     end
@@ -43,7 +43,7 @@ module CodeGenC
       ccgen.pcode << "v#{nreg.id} = __builtin_ia32_pcmpestri128(#{base}, #{base_num}, #{target}, #{target_num}, #{para});\n"
     end
 
-    define_ccgen_rule_method :pcmpestre128, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :pcmpestrm128, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
       base = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
       base_num = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       target = (reg_real_value_noconv(ccgen, inst.inreg[2], node, tup, infer, history))[0]
@@ -52,7 +52,7 @@ module CodeGenC
       nreg = inst.outreg[0]
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = __builtin_ia32_pcmpestre128(#{base}, #{base_num}, #{target}, #{target_num}, #{para});\n"
+      ccgen.pcode << "v#{nreg.id} = __builtin_ia32_pcmpestrm128(#{base}, #{base_num}, #{target}, #{target_num}, #{para});\n"
     end
   end
 end
