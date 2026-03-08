@@ -132,7 +132,7 @@ class StringView
   end
 
   def aaa
-    res = Array.new(256)
+    res = Array.new((@ed + 7) / 8)
     a = self
     each do |sview|
       pp a

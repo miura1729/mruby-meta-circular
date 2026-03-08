@@ -585,6 +585,20 @@ module CodeGenC
       [src, srct]
     end
 
+    def self.allnum(str)
+      begin
+        Integer(str)
+        true
+      rescue ArgumentError
+        begin
+          Float(str)
+          true
+        rescue ArgumentError
+          false
+        end
+      end
+    end
+
     def self.gen_term(ccgen, gins, node, tup, ti, history, reg0, reg1, op)
       valuep = 0
       needdecl = true
@@ -596,9 +610,9 @@ module CodeGenC
           case reg0.get_type(tup).size
           when 1
             srcd0 = get_ctype(ccgen, reg0, tup, ti, false)
-            if reg0.get_type(tup)[0].is_a?(MTypeInf::LiteralType) and false then
+            if allnum(arg0) then
               srcs0 = srcd0
-              arg0 = reg0.get_type(tup)[0].val
+#              arg0 = reg0.get_type(tup)[0].val
               valuep |= 1
             end
           else
@@ -629,9 +643,9 @@ module CodeGenC
           case reg1.get_type(tup).size
           when 1
             srcd1 = get_ctype(ccgen, reg1, tup, ti, false)
-            if reg1.get_type(tup)[0].is_a?(MTypeInf::LiteralType) and false then
+            if allnum(arg1) then
               srcs1 = srcd1
-              arg1 = reg1.get_type(tup)[0].val
+#              arg1 = reg1.get_type(tup)[0].val
               valuep |= 2
             end
           else
@@ -667,8 +681,9 @@ module CodeGenC
           if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
             dsts = :mrb_float2
             if valuep == 3 then
-              #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
-              src = "(#{arg0} #{op} #{arg1})"
+              #[eval("(#{arg0} #{op} #{arg1})"), srcd0]
+              src = eval("(#{arg0} #{op} #{arg1})")
+              #src = "(#{arg0} #{op} #{arg1})"
             else
               term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history, nil)
               term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history, nil)
@@ -678,7 +693,8 @@ module CodeGenC
             dsts = :mrb_int
             if valuep == 3 then
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
-              src = "(#{arg0} #{op} #{arg1})"
+              src = eval("(#{arg0} #{op} #{arg1})").to_i
+              #src = "(#{arg0} #{op} #{arg1})"
             else
               term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history, nil)
               term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history, nil)
@@ -697,7 +713,7 @@ module CodeGenC
           if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
             if valuep == 3 then
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
-              src = "(#{arg0} #{op} #{arg1})"
+              src = eval("(#{arg0} #{op} #{arg1})")
             else
               term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history, nil)
               term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history, nil)

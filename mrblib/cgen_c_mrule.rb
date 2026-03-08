@@ -934,12 +934,12 @@ module CodeGenC
           rc = can_use_caller_area(otype)
           if rc == 2 then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
-            ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * #{initsize + 1};\n"
+            ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * (#{initsize} + 1);\n"
           elsif rc == 3 then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
-            ccgen.pcode << "prevgctab->prev->caller_alloc += sizeof(#{etype}) * #{initsize + 1};\n"
+            ccgen.pcode << "prevgctab->prev->caller_alloc += sizeof(#{etype}) * (#{initsize} + 1);\n"
           else
-            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * #{initsize + 1});\n"
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * (#{initsize} + 1);\n"
           end
 
           if etype == :mrb_value then
