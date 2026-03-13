@@ -811,7 +811,12 @@ module CodeGenC
         src = "ARY_LEN2(mrb_ary_ptr(#{src}))"
         src = gen_type_conversion(ccgen, dstt, :mrb_int, src, tup, node, infer, history, nreg)
       else
-        src = gen_type_conversion(ccgen, dstt, :mrb_int, inst.inreg[0].get_type(tup)[0].element.keys.size - 1, tup, node, infer, history, nreg)
+        type = inst.inreg[0].get_type(tup)[0]
+        if type.element_num then
+          src = type.element_num.to_s
+        else
+          src = gen_type_conversion(ccgen, dstt, :mrb_int, type.element.keys.size - 1, tup, node, infer, history, nreg)
+        end
       end
 
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -939,7 +944,7 @@ module CodeGenC
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->prev->caller_alloc += sizeof(#{etype}) * (#{initsize} + 1);\n"
           else
-            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * (#{initsize} + 1);\n"
+            ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * (#{initsize} + 1));\n"
           end
 
           if etype == :mrb_value then

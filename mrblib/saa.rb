@@ -263,6 +263,7 @@ module RiteSSA
     attr_accessor :setpoint
     attr :type
     attr :same
+    attr :same_parm
     attr :id
   end
 

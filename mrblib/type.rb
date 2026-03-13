@@ -28,7 +28,6 @@ module MTypeInf
 
     def class_object
       if is_gcobject? then
-
         if (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 and
             !@locked then
           # racing object. lock need when access
@@ -38,24 +37,24 @@ module MTypeInf
             return MMC_EXT::Mutex
           end
         end
-
-        if is_a?(ContainerType) and @class_object == Array and
-            !is_escape? and
-            @element[UNDEF_VALUE].type.values.size > 0 then
-          if @element[UNDEF_VALUE].type.values[0].all? {|e|
-              e.is_a?(LiteralType) and
-              (e.val == true or
-                e.val == false)
-            } then
-            return MMC_EXT::Bitmap
-          end
-        end
       end
 
-      @class_object
+      class_object_core
     end
 
     def class_object_core
+      if is_a?(ContainerType) and @class_object == Array and
+          !is_escape? and
+          @element[UNDEF_VALUE].type.values.size > 0 then
+        if @element[UNDEF_VALUE].type.values[0].all? {|e|
+            e.is_a?(LiteralType) and
+            (e.val == true or
+              e.val == false)
+          } then
+          return MMC_EXT::Bitmap
+        end
+      end
+
       @class_object
     end
 
@@ -308,6 +307,9 @@ module MTypeInf
           val[0].is_escape?(hist)
           #true
 
+        when :push
+          val[0][0]
+
         else
           # true ... etc
 # this debug print is useful for unnessory escape
@@ -360,17 +362,6 @@ module MTypeInf
     end
 
     attr :positive
-  end
-
-  class SIMDType<PrimitiveType
-    def initialize(co, etype, size, *rest)
-      super(co, *rest)
-      @etype = etype
-      @size = size
-    end
-
-    attr :etype
-    attr :size
   end
 
   class ExceptionType<BasicType

@@ -303,6 +303,14 @@ module MTypeInf
                 arrele[ContainerType::UNDEF_VALUE].flush_type(tup)
                 inst.outreg[0].add_same valreg
 
+              when MTypeInf::IndexOfArrayType
+                arrele.each do |idx, typ|
+                  typ.flush_type(tup)
+                  inst.outreg[0].add_same typ
+                end
+                arrt.immidiate_only = false
+                inst.outreg[0].flush_type_alltup(tup, false)
+
               when MTypeInf::PrimitiveType
                 arrele.each do |idx, reg|
                   reg.add_same valreg
@@ -504,12 +512,14 @@ module MTypeInf
       intypes = inst.inreg[0].get_type(tup)
       type = NumericType.new(Fixnum, true)
       if intypes.size == 1 then
-        if intypes[0].element.size < 2 then
-        # do nothing
-        elsif intypes[0].element_num
+        if intypes[0].element_num
           type = LiteralType.new(Fixnum, intypes[0].element_num)
+
         elsif intypes[0].immidiate_only then
           type = LiteralType.new(Fixnum, intypes[0].element.size - 1)
+
+        elsif intypes[0].element.size < 2 then
+          # do nothing
         end
       end
 

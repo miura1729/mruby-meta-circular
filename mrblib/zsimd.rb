@@ -105,7 +105,12 @@ module MTypeInf
 
         if elseflag then
           effects[:apush].values.each do |apheff|
-           apheff[0].type.values[0][0].place.delete(true)
+            ty = apheff[0].type.values[0][0]
+            ks = ty.place[:push]
+            if ks then
+              ty.escape_cache = nil
+              ks[0][0] = false
+            end
           end
           inst.outreg[0].type[tup] =  [type]
         end

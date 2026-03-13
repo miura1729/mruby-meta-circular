@@ -25,6 +25,10 @@ class StringView
     @strage[@st + idx]
   end
 
+  def size
+    @ed
+  end
+
   def ed=(val)
     @ed = val
   end
@@ -58,7 +62,7 @@ class StringView
       target = a.target
       tsize = target.size
       i = 0
-      while i < @ed
+      while i < @strage.size
         visimd = to_simd(i)
         visize = @ed - i
         if visize > 16 then
@@ -77,7 +81,7 @@ class StringView
       target = a.target
       tsize = target.size
       i = 0
-      while i < @ed
+      while i < @strage.size
         visimd = to_simd(i)
         visize = @ed - i
         if visize > 16 then
@@ -96,7 +100,7 @@ class StringView
       target = a.target
       tsize = target.size
       i = 0
-      while i < @ed
+      while i < @strage.size
         visimd = to_simd(i)
         visize = @ed - i
         if visize > 16 then
@@ -104,6 +108,7 @@ class StringView
         end
         ret = tgsimd.pcmpestrm128(tsize, visimd, visize, 4)
         res = block.binding.local_variable_get(:res)
+        res[i, 16] = ret
         i = i + 16
       end
 
@@ -132,10 +137,9 @@ class StringView
   end
 
   def aaa
-    res = Array.new((@ed + 7) / 8)
+    res = Array.new(@strage.size)
     a = self
     each do |sview|
-      pp a
       if (0..0x20).include?(sview[0]) then
         res << true
 
@@ -146,7 +150,7 @@ class StringView
         res << false
       end
     end
-    res
+    nil
   end
 
   def fff
