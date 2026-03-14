@@ -137,6 +137,7 @@ struct mmc_system {
 };
 
 typedef char v16qi __attribute__ ((vector_size (16)));
+typedef unsigned short v8usi __attribute__ ((vector_size (16)));
 typedef unsigned char v16uqi __attribute__ ((vector_size (16)));
 
 void mrb_mark_local(mrb_state *mrb)

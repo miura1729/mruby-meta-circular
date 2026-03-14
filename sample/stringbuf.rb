@@ -57,25 +57,6 @@ class StringView
 
     a = _simd_check(block)
     case a
-    when MMC_EXT::SIMD::Find
-      tgsimd = a.to_simd
-      target = a.target
-      tsize = target.size
-      i = 0
-      while i < @strage.size
-        visimd = to_simd(i)
-        visize = @ed - i
-        if visize > 16 then
-          visize = 16
-        end
-        ret = tgsimd.pcmpestri128(tsize, visimd, visize, 0xc)
-        if ret < visize - tsize + 1 then
-          return i + ret
-        end
-        i = i + 16 - tsize
-      end
-      return -1
-
     when MMC_EXT::SIMD::Select
       tgsimd = a.to_simd
       target = a.target
@@ -95,6 +76,25 @@ class StringView
       end
       return -1
 
+    when MMC_EXT::SIMD::Find
+      tgsimd = a.to_simd
+      target = a.target
+      tsize = target.size
+      i = 0
+      while i < @strage.size
+        visimd = to_simd(i)
+        visize = @ed - i
+        if visize > 16 then
+          visize = 16
+        end
+        ret = tgsimd.pcmpestri128(tsize, visimd, visize, 0xc)
+        if ret < visize - tsize + 1 then
+          return i + ret
+        end
+        i = i + 16 - tsize
+      end
+      return -1
+
     when MMC_EXT::SIMD::SelectBitmap
       tgsimd = a.to_simd
       target = a.target
@@ -111,6 +111,7 @@ class StringView
         res[i, 16] = ret
         i = i + 16
       end
+      return -1
 
     else
       i = 1
@@ -132,8 +133,8 @@ class StringView
       elsif (0x30..0x30).include?(sview[0]) then
         return sview.st
       end
+      -1
     end
-    -1
   end
 
   def aaa
@@ -209,7 +210,7 @@ end
 
 def main
   #    0123456789abcdefghijklmnopqrstuvwxyz
-  a = "sadfsdmmmase@pmapeeqwaaaabbbcccpetaaaawk".to_stringbuf
+  a = "sad  0fsd0m m0ma  se@pmapee qwaaaabbbc ccpetaaaawk".to_stringbuf
   pp find1(a)
   pp find2(a)
   pp find3(a)

@@ -110,16 +110,13 @@ module CodeGenC
               sizetypes[0].is_a?(MTypeInf::LiteralType) then
             size = sizetypes[0].val
             case size
-            when 8
-            when 16
+            when 8, 16, 32, 64
 #              val = gen_type_conversion(ccgen, :mrb_int, valt, val, tup, node, infer, history, nreg)
               ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
               ccgen.dcode << ";\n"
-              ccgen.pcode << "((uint16_t *)#{vec})[#{idx}] = (uint16_t)(#{val});\n"
-              ccgen.pcode << "v#{nreg.id} = (uint16_t)(#{val});\n"
+              ccgen.pcode << "((uint#{size}_t *)#{vec})[#{idx}/#{size}] = (uint#{size}_t)(((v#{128/size}usi)#{val})[0]);\n"
+              ccgen.pcode << "v#{nreg.id} = (#{val});\n"
 
-            when 32
-            when 64
             else
               raise "Not support this size"
             end

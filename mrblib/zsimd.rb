@@ -146,7 +146,7 @@ module MTypeInf
     define_inf_rule_method :target, MMC_EXT::SIMD::Select do |infer, inst, node, tup|
       seltype = inst.inreg[0].type[tup][0]
       eles = seltype.element
-      type = LiteralType.new(String, " " * eles.size)
+      type = LiteralType.new(String, "  " * (eles.size - 1))
       inst.outreg[0].type[tup] = [type]
       nil
     end
@@ -154,7 +154,7 @@ module MTypeInf
     define_inf_rule_method :target, MMC_EXT::SIMD::SelectBitmap do |infer, inst, node, tup|
       seltype = inst.inreg[0].type[tup][0]
       eles = seltype.element
-      type = LiteralType.new(String, " " * eles.size)
+      type = LiteralType.new(String, "  " * (eles.size - 1)) #- 1 means UNDEF
       inst.outreg[0].type[tup] = [type]
       nil
     end
