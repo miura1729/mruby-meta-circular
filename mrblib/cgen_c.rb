@@ -136,6 +136,7 @@ struct mmc_system {
   pthread_mutex_t *gc_mutex;
 };
 
+typedef uint64_t bitmap;
 typedef char v16qi __attribute__ ((vector_size (16)));
 typedef unsigned short v8usi __attribute__ ((vector_size (16)));
 typedef unsigned char v16uqi __attribute__ ((vector_size (16)));

@@ -26,7 +26,7 @@ class StringView
   end
 
   def size
-    @ed
+    @ed - @st
   end
 
   def ed=(val)
@@ -62,7 +62,7 @@ class StringView
       target = a.target
       tsize = target.size
       i = 0
-      while i < @strage.size
+      while i < size
         visimd = to_simd(i)
         visize = @ed - i
         if visize > 16 then
@@ -81,7 +81,7 @@ class StringView
       target = a.target
       tsize = target.size
       i = 0
-      while i < @strage.size
+      while i < size
         visimd = to_simd(i)
         visize = @ed - i
         if visize > 16 then
@@ -100,7 +100,7 @@ class StringView
       target = a.target
       tsize = target.size
       i = 0
-      while i < @strage.size
+      while i < size
         visimd = to_simd(i)
         visize = @ed - i
         if visize > 16 then
@@ -115,7 +115,7 @@ class StringView
 
     else
       i = 1
-      while i < @ed
+      while i < size
         nv.st = @st + i
         nv.ed = @ed - i
         yield nv
@@ -138,7 +138,7 @@ class StringView
   end
 
   def aaa
-    res = Array.new(@strage.size)
+    res = Array.new(size)
     a = self
     each do |sview|
       if (0..0x20).include?(sview[0]) then
@@ -151,7 +151,7 @@ class StringView
         res << false
       end
     end
-    nil
+    res
   end
 
   def fff
@@ -216,7 +216,7 @@ def main
   pp find3(a)
   pp a.fff
   pp a.fff
-  a.aaa
+  pp a.aaa[0, 32]
 #  foo(a)
 #  pp a[2]
   nil

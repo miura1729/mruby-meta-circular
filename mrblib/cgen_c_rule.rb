@@ -1066,7 +1066,7 @@ module CodeGenC
       end
 
       if cls0 == MMC_EXT::Bitmap then
-        return [:uint64_t, "*"]
+        return [:bitmap, "*"]
       end
 
       if rtype.any? {|ty| ty.is_escape?} then

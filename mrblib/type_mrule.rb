@@ -892,9 +892,16 @@ module MTypeInf
           elsif cls == ContainerType then
             previrep = infer.callstack.map {|e|  [e[0], e[4]]}
             type = cls.new(ntype, inst, previrep, level)
-            if ntype == Array and
-                intype[1][0] and intype[1][0].is_a?(LiteralType) and intype[1][0].class_object == Fixnum then
-              type.element_num = intype[1][0].val
+            idxreg = inst.inreg[1]
+            idxtype = intype[1]
+            if ntype == Array and idxtype[0] then
+              if idxtype[0].is_a?(LiteralType) and
+                  idxtype[0].class_object == Fixnum then
+                type.element_num = idxtype[0].val
+              elsif (sinst = idxreg.genpoint).is_a?(RiteSSA::Inst) and
+                  sinst.op == :SEND and sinst.para[0] == :size then
+                type.sizebase = sinst.inreg[0].type.values[0][0]
+              end
             end
 
           elsif cls then

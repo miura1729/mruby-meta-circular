@@ -470,6 +470,7 @@ module MTypeInf
       super(co, *rest)
       @element = {}
       @element_num = nil
+      @sizebase = nil
       @hometown = ht
       @phometowns = pht
       @level = level
@@ -561,6 +562,7 @@ module MTypeInf
 
     attr_accessor :element
     attr_accessor :element_num
+    attr_accessor :sizebase
     attr :key
     attr_accessor :immidiate_only
   end
