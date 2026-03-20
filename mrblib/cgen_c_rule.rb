@@ -1799,6 +1799,9 @@ EOS
             when :mrb_bool
               "((mrb_int)#{src})"
 
+            when "v16qi"
+              "((mrb_int)(#{src}[0]))"
+
             else
               p src
               raise "Not support yet #{dstt} #{srct}"

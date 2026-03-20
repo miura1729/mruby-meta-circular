@@ -1,4 +1,4 @@
-class StringView
+class View
   def initialize(buf, capa)
     @strage = buf
     @capa = capa
@@ -26,7 +26,7 @@ class StringView
   end
 
   def size
-    @ed - @st
+    @ed - @st + 1 # + 1 means sentinel
   end
 
   def ed=(val)
@@ -50,7 +50,7 @@ class StringView
   end
 
   def each(&block)
-    nv = StringView.new(@strage, @capa)
+    nv = View.new(@strage, @capa)
     if _not_execute then
       yield nv
     end
@@ -106,11 +106,12 @@ class StringView
         if visize > 16 then
           visize = 16
         end
-        ret = tgsimd.pcmpestrm128(tsize, visimd, visize, 4)
         res = block.binding.local_variable_get(:res)
+        ret = tgsimd.pcmpestrm128(tsize, visimd, visize, 4)
         res[i, 16] = ret
         i = i + 16
       end
+      res[i, 16] = 1
       return -1
 
     else
@@ -160,8 +161,8 @@ class StringView
 end
 
 class String
-  def to_stringbuf
-    res = StringView.new(Array.new(1024), 1024)
+  def to_view
+    res = View.new(Array.new(1024), 1024)
     i = 0
     len = self.size
     while i < len
@@ -210,14 +211,20 @@ end
 
 def main
   #    0123456789abcdefghijklmnopqrstuvwxyz
-  a = "sad  0fsd0m m0ma  se@pmapee qwaaaabbbc ccpetaaaawk".to_stringbuf
+  a = "sad  0fsd0m m0ma  se@pmapee qwaaaabbbc ccpetaaaawk".to_view
   pp find1(a)
   pp find2(a)
   pp find3(a)
   pp a.fff
   pp a.fff
-  pp a.aaa[0, 32]
-#  foo(a)
+  bb = a.aaa
+  pp bb.index(true)
+  pp bb[0, 16]
+  pp bb[16, 16]
+  pp bb[32, 16]
+  pp bb[48, 16]
+  pp bb[64, 16]
+#  foo(a
 #  pp a[2]
   nil
 end

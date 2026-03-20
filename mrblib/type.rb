@@ -145,11 +145,12 @@ module MTypeInf
                 if ele.element[UNDEF_VALUE] == @element[UNDEF_VALUE] then
                   return false
                 end
+
                 if @class_object == MMC_EXT::SIMD::Select or
-                    @class_object == MMC_EXT::SIMD::SelectBitmap or
-                    @class_object == MMC_EXT::SIMD::Find then
-                  return false
-                end
+                   @class_object == MMC_EXT::SIMD::SelectBitmap or
+                   @class_object == MMC_EXT::SIMD::Find then
+                   return false
+                 end
 
               when MTypeInf::UserDefinedType, MTypeInf::StringType
                 if @level == ele.level and @place != ele.place then
@@ -179,10 +180,15 @@ module MTypeInf
               when MTypeInf::BindingType
                 return false
 
+              when MTypeInf::SIMDType
+                return false
+
               else
                 raise self
               end
             end
+          elsif class_object_core == MMC_EXT::Bitmap then
+            return false
           end
 
           i += 1

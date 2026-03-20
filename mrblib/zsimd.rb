@@ -1,4 +1,4 @@
-class StringView
+class View
 end
 
 module MMC_EXT
@@ -16,7 +16,7 @@ end
 
 module MTypeInf
   class TypeInferencer
-    define_inf_rule_method :_simd_check, StringView do |infer, inst, node, tup|
+    define_inf_rule_method :_simd_check, View do |infer, inst, node, tup|
       block = inst.inreg[1].get_type(tup)[0].irep
       effects = block.effects
       inst.outreg[0].type[tup] =  [LiteralType.new(NilClass, nil)]
@@ -204,7 +204,7 @@ end
 
 module CodeGenC
   class CodeGen
-    define_ccgen_rule_method :_simd_check, StringView do |ccgen, inst, node, infer, history, tup|
+    define_ccgen_rule_method :_simd_check, View do |ccgen, inst, node, infer, history, tup|
       # No code generate this methed only for type
       nil
     end

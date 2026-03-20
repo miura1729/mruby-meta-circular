@@ -1230,6 +1230,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :ffs, Kernel do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :cos, Math.class do |infer, inst, node, tup|
       type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)

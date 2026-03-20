@@ -3,6 +3,18 @@ module MMC_EXT
   end
 
   class Bitmap
+    def index(target)
+      res = -1
+      if target then
+        i = 0
+        while (res = ffs(self[i, 32])) == 0
+          i = i + 32
+        end
+
+        res = res + i
+      end
+      res
+    end
   end
 end
 
@@ -20,8 +32,6 @@ module MTypeInf
 
   class TypeInferencer
     define_inf_rule_method :map_with_index!, MMC_EXT::Vector do |infer, inst, node, tup|
-      p inst.inreg[1].type
-      p inst.inreg[1].get_type(tup)[0].irep.nodes[0].enter_reg
       inst.outreg[0].add_same inst.inreg[0]
       nil
     end
@@ -136,6 +146,11 @@ module CodeGenC
             valid = true
           end
 
+        when MTypeInf::NumericType
+          if vectypes[0].element_num and idxtypes[0].val < vectypes[0].element_num then
+            valid = :check
+          end
+
         else
           raise "Cant use this index type"
         end
@@ -144,9 +159,13 @@ module CodeGenC
           size = sizetypes[0].val
           case size
           when 8, 16, 32, 64
-            #  val = gen_type_conversion(ccgen, :mrb_int, valt, val, tup, node, infer, history, nreg)
-              ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+            ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
             ccgen.dcode << ";\n"
+
+            if valid == :chack
+              # TODO add range check
+            end
+
             val = "((uint#{size}_t *)#{vec})[#{idx}/#{size}]"
             ccgen.pcode << "v#{nreg.id} = (#{val});\n"
 
@@ -201,7 +220,27 @@ module CodeGenC
             when 8, 16, 32, 64
               ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
               ccgen.dcode << ";\n"
-              ccgen.pcode << "((uint#{size}_t *)#{vec})[#{idx}/#{size}] = (uint#{size}_t)(((v#{128/size}usi)#{val})[0]);\n"
+              valx = gen_type_conversion(ccgen, :mrb_int, valt, val, tup, node, infer, history, nreg)
+              ccgen.pcode << "((uint#{size}_t *)#{vec})[#{idx}/#{size}] = (#{valx});\n"
+              ccgen.pcode << "v#{nreg.id} = (#{val});\n"
+
+            else
+              raise "Not support this size"
+            end
+          else
+            raise "Cant use this index type"
+          end
+
+        when MTypeInf::NumericType
+          if sizetypes[0].is_a?(MTypeInf::LiteralType) then
+            size = sizetypes[0].val
+            case size
+            when 8, 16, 32, 64
+              # TODO Add range check
+              ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+              ccgen.dcode << ";\n"
+              val = gen_type_conversion(ccgen, :mrb_int, valt, val, tup, node, infer, history, nreg)
+              ccgen.pcode << "((uint#{size}_t *)#{vec})[#{idx}/#{size}] = (#{val});\n"
               ccgen.pcode << "v#{nreg.id} = (#{val});\n"
 
             else
@@ -211,6 +250,7 @@ module CodeGenC
           else
             raise "Cant use this index type"
           end
+
         else
           raise "This index type not support yet in Bitmap::[]= #{idxtypes[0]}"
         end
