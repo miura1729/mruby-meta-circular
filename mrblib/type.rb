@@ -529,7 +529,7 @@ module MTypeInf
     end
 
     def type_equal(other, tup)
-      @class_object == other.class_object_core &&
+      class_object_core == other.class_object_core &&
         is_escape? == other.is_escape? &&
         locked == other.locked
     end

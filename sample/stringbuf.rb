@@ -108,10 +108,10 @@ class View
         end
         res = block.binding.local_variable_get(:res)
         ret = tgsimd.pcmpestrm128(tsize, visimd, visize, 4)
-        res[i, 16] = ret
+        res.bitmap[i, 16] = ret
         i = i + 16
       end
-      res[i, 16] = 1
+      res.bitmap[i, 16] = 1
       return -1
 
     else
@@ -139,17 +139,18 @@ class View
   end
 
   def aaa
-    res = Array.new(size)
+    bitmap = Array.new(size)
+    res = BitmapView.new(self, bitmap)
     a = self
     each do |sview|
       if (0..0x20).include?(sview[0]) then
-        res << true
+        res.bitmap << true
 
       elsif (0x30..0x30).include?(sview[0]) then
-        res << true
+        res.bitmap << true
 
       else
-        res << false
+        res.bitmap << false
       end
     end
     res
@@ -157,6 +158,39 @@ class View
 
   def fff
     ttt_aux
+  end
+end
+
+class BitmapView
+  def initialize(str, bitmap)
+    @string_view = str
+    @bitmap = bitmap
+  end
+
+  def string_view
+    @string_view
+  end
+
+  def bitmap
+    @bitmap
+  end
+
+  def index(target)
+    res = 0
+    if target then
+      i = 0
+      while (res = ffs(@bitmap[i, 32])) == 0
+        i = i + 32
+      end
+
+      res = res + i - 1
+    end
+
+    if res < @string_view.size then
+      res
+    else
+      -1
+    end
   end
 end
 
@@ -219,11 +253,12 @@ def main
   pp a.fff
   bb = a.aaa
   pp bb.index(true)
-  pp bb[0, 16]
-  pp bb[16, 16]
-  pp bb[32, 16]
-  pp bb[48, 16]
-  pp bb[64, 16]
+  bitmap = bb.bitmap
+  pp bitmap[0, 16]
+  pp bitmap[16, 16]
+  pp bitmap[32, 16]
+  pp bitmap[48, 16]
+  pp bitmap[64, 16]
 #  foo(a
 #  pp a[2]
   nil

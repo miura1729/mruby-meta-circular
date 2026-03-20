@@ -1,20 +1,8 @@
 module MMC_EXT
-  class Vector<Array
+  class Vector
   end
 
-  class Bitmap
-    def index(target)
-      res = -1
-      if target then
-        i = 0
-        while (res = ffs(self[i, 32])) == 0
-          i = i + 32
-        end
-
-        res = res + i
-      end
-      res
-    end
+  class Bitmap<Array
   end
 end
 
