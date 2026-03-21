@@ -269,7 +269,7 @@ module CodeGenC
     def self.op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
       regs =  proc.irep.allocate_reg[utup]
       if regs
-#        regs = regs.uniq
+        regs = regs.uniq
         rets = regs.inject([]) {|res, reg|
           rsize = gen_typesize(ccgen, reg, utup, infer)
           if rsize then
@@ -1404,6 +1404,7 @@ EOS
           return 3
         end
       end
+
       return nil
     end
 
@@ -1458,10 +1459,26 @@ EOS
           return "sizeof(struct range_#{etype})"
 
         else
+          num = 1
           if type.is_a?(Array) then
+            if otype.is_a?(MTypeInf::ContainerType) then
+              cls = otype.sizebase.class_object
+              clsssa = RiteSSA::ClassSSA::get_instance(cls)
+              clsssa.iv.each do |nm, reg|
+                ty = reg.type.values[0][0]
+                if ty.is_a?(MTypeInf::ContainerType) and ty.element_num then
+                  num = ty.element_num
+                  if otype.class_object == MMC_EXT::Bitmap then
+                    num = ((num + 7) / 8).to_i + 1
+                  end
+                  break
+                end
+              end
+            end
+
             type = type[0]
           end
-          return "(sizeof(#{type}))"
+          return "(sizeof(#{type}) * #{num})"
         end
       end
       nil

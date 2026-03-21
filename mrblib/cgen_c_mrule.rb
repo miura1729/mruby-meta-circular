@@ -952,6 +952,10 @@ module CodeGenC
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
 
           rc = can_use_caller_area(otype)
+#          p otype.place.keys
+#          p otype
+#          p inst.line
+#          p rc
           if rc == 2 then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * (#{initsize} + 1);\n"

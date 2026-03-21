@@ -164,7 +164,7 @@ end
 class BitmapView
   def initialize(str, bitmap)
     @string_view = str
-    @bitmap = bitmap
+    @bitmap = Array.new(str.size) #bitmap
   end
 
   def string_view
