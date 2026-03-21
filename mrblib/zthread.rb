@@ -287,9 +287,10 @@ module CodeGenC
 
           procvar = (reg_real_value_noconv(ccgen, proc, node, tup, infer, history))[0]
 
+          rets = []
           regs =  ptype.irep.allocate_reg[utup]
           if regs
-            regs = regs.uniq
+#            regs = regs.uniq
             regstr = ""
             rets = regs.inject([]) {|res, reg|
               if can_use_caller_area(otype) == 2 then
@@ -300,10 +301,30 @@ module CodeGenC
                 res
               end
             }
-            if rets.size > 0 then
-              ccgen.caller_alloc_size += 1
-              ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+          end
+
+          ptype.irep.call_blocks.each do |blk, val|
+            regs = blk.allocate_reg.values[0]
+            if regs then
+#              regs = regs.uniq
+              rets << regs.inject([]) {|res, reg|
+                otype = reg.get_type(tup)[0]
+                if can_use_caller_area(otype) == 3 then
+                  rsize = gen_typesize(ccgen, reg, utup, infer)
+                  if rsize then
+                    res << rsize
+                  end
+                end
+                res
+              }
             end
+          end
+
+          rets = rets.flatten
+
+          if rets.size > 0 then
+            ccgen.caller_alloc_size += 1
+            ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
           end
 
           codeno = ptype.using_tup[utup]

@@ -269,7 +269,8 @@ module CodeGenC
     def self.op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
       regs =  proc.irep.allocate_reg[utup]
       if regs
-        regs = regs.uniq
+        rets = []
+#        regs = regs.uniq
         rets = regs.inject([]) {|res, reg|
           otype = reg.get_type(tup)[0]
           if can_use_caller_area(otype) == 2 then
@@ -283,7 +284,7 @@ module CodeGenC
         proc.irep.call_blocks.each do |blk, val|
           regs = blk.allocate_reg.values[0]
           if regs then
-            regs = regs.uniq
+#            regs = regs.uniq
             rets << regs.inject([]) {|res, reg|
               otype = reg.get_type(tup)[0]
               if can_use_caller_area(otype) == 3 then
