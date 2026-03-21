@@ -952,15 +952,11 @@ module CodeGenC
           etype = get_ctype_aux(ccgen, ereg, etup, infer)
 
           rc = can_use_caller_area(otype)
-#          p otype.place.keys
-#          p otype
-#          p inst.line
-#          p rc
           if rc == 2 then
             ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
             ccgen.pcode << "prevgctab->caller_alloc += sizeof(#{etype}) * (#{initsize} + 1);\n"
           elsif rc == 3 then
-            ccgen.pcode << "v#{oreg.id} = prevgctab->caller_alloc;\n"
+            ccgen.pcode << "v#{oreg.id} = prevgctab->prev->caller_alloc;\n"
             ccgen.pcode << "prevgctab->prev->caller_alloc += sizeof(#{etype}) * (#{initsize} + 1);\n"
           else
             ccgen.pcode << "v#{oreg.id} = alloca(sizeof(#{etype}) * (#{initsize} + 1));\n"
@@ -997,9 +993,12 @@ module CodeGenC
             regs = regs.uniq
             regstr = ""
             rets = regs.inject([]) {|res, reg|
-              rsize = gen_typesize(ccgen, reg, utup, infer)
-              if rsize then
-                res << rsize
+              otype = reg.get_type(tup)[0]
+              if can_use_caller_area(otype) == 2 then
+                rsize = gen_typesize(ccgen, reg, utup, infer)
+                if rsize then
+                  res << rsize
+                end
               end
               res
             }

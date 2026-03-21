@@ -139,8 +139,7 @@ class View
   end
 
   def aaa
-    bitmap = Array.new(size)
-    res = BitmapView.new(self, bitmap)
+     res = BitmapView.new(self)
     a = self
     each do |sview|
       if (0..0x20).include?(sview[0]) then
@@ -162,9 +161,9 @@ class View
 end
 
 class BitmapView
-  def initialize(str, bitmap)
+  def initialize(str)
     @string_view = str
-    @bitmap = Array.new(str.size) #bitmap
+    @bitmap = Array.new(str.size)
   end
 
   def string_view

@@ -292,11 +292,13 @@ module CodeGenC
             regs = regs.uniq
             regstr = ""
             rets = regs.inject([]) {|res, reg|
-              rsize = gen_typesize(ccgen, reg, utup, infer)
-              if rsize then
-                res << rsize
+              if can_use_caller_area(otype) == 2 then
+                rsize = gen_typesize(ccgen, reg, utup, infer)
+                if rsize then
+                  res << rsize
+                end
+                res
               end
-              res
             }
             if rets.size > 0 then
               ccgen.caller_alloc_size += 1

@@ -498,6 +498,7 @@ EOS
       useheap = nil
       if aregs then
         useheap = aregs.any? {|reg|
+          CodeGen::can_use_caller_area(reg.get_type(tup)[0]) and
           !CodeGen::gen_typesize(self, reg, tup, ti)
         }
       end

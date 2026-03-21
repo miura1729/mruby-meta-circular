@@ -271,12 +271,34 @@ module CodeGenC
       if regs
         regs = regs.uniq
         rets = regs.inject([]) {|res, reg|
-          rsize = gen_typesize(ccgen, reg, utup, infer)
-          if rsize then
-            res << rsize
+          otype = reg.get_type(tup)[0]
+          if can_use_caller_area(otype) == 2 then
+            rsize = gen_typesize(ccgen, reg, utup, infer)
+            if rsize then
+              res << rsize
+            end
           end
           res
         }
+        proc.irep.call_blocks.each do |blk, val|
+          regs = blk.allocate_reg.values[0]
+          if regs then
+            regs = regs.uniq
+            rets << regs.inject([]) {|res, reg|
+              otype = reg.get_type(tup)[0]
+              if can_use_caller_area(otype) == 3 then
+                rsize = gen_typesize(ccgen, reg, utup, infer)
+                if rsize then
+                  res << rsize
+                end
+              end
+              res
+            }
+          end
+        end
+
+        rets = rets.flatten
+
         if rets.size > 0 then
           ccgen.caller_alloc_size += 1
           ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
@@ -1387,6 +1409,24 @@ EOS
         end
 
         if place_kind.all? {|e1|
+            if (e1.is_a?(MTypeInf::UserDefinedType) or
+                e1.is_a?(MTypeInf::ContainerType)) and
+                otype.level == e1.level + 1 and rc2 == nil and otype != e1 then
+              rc2 = can_use_caller_area(e1)
+            end
+            e1 == :return_fst or
+            (!(e1.is_a?(MTypeInf::UserDefinedType) or
+              e1.is_a?(MTypeInf::ContainerType)) or
+            otype.level <= e1.level + 1)
+          } then
+
+          # store object and store object is level + 1 is caller alloc
+          if rc2 then
+            return rc2 + 1
+          end
+        end
+
+        if place_kind.all? {|e1|
             !(e1.is_a?(MTypeInf::UserDefinedType) or
             e1.is_a?(MTypeInf::ContainerType)) or
             otype.level <= e1.level + 1
@@ -1410,76 +1450,73 @@ EOS
 
     def self.gen_typesize(ccgen, reg, tup, infer)
       otype = reg.get_type(tup)[0]
-      if can_use_caller_area(otype) then
+      type = get_ctype_aux_aux(ccgen, reg, tup, infer)
 
-        type = get_ctype_aux_aux(ccgen, reg, tup, infer)
-
-        case type
-        when :array
-          uv = MTypeInf::ContainerType::UNDEF_VALUE
-          elenum = otype.element_num
-          eele = reg.get_type(tup)[0].element
-          ereg = eele[uv]
-          if ereg == nil then
-            ereg = eele.values[0]
-          end
-          etup = tup
-          if ereg.get_type_or_nil(tup) == nil then
-            etup = ereg.type.keys[0]
-          end
-          etype = get_ctype_aux(ccgen, ereg, etup, infer)
-          if etype != :mrb_value then
-            if elenum then
-              return "(sizeof(#{etype}) * (#{elenum} + 1))"
-            else
-              return "(sizeof(#{etype}) * #{eele.size + 1})"
-            end
+      case type
+      when :array
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        elenum = otype.element_num
+        eele = reg.get_type(tup)[0].element
+        ereg = eele[uv]
+        if ereg == nil then
+          ereg = eele.values[0]
+        end
+        etup = tup
+        if ereg.get_type_or_nil(tup) == nil then
+          etup = ereg.type.keys[0]
+        end
+        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        if etype != :mrb_value then
+          if elenum then
+            return "(sizeof(#{etype}) * (#{elenum} + 1))"
           else
-            return nil
+            return "(sizeof(#{etype}) * #{eele.size + 1})"
           end
-
-        when :nil
-          return nil
-
-        when :mrb_value
-          return nil
-
-        when :string
-          if otype.size then
-            return "sizeof(char) * #{((otype.size / 4).to_i + 1) * 4}"
-          end
-
-        when :range
-          ereg = otype.element[0]
-          etup = tup
-          if ereg.get_type_or_nil(tup) == nil then
-            etup = ereg.type.keys[0]
-          end
-          etype = get_ctype_aux(ccgen, ereg, etup, infer)
-          return "sizeof(struct range_#{etype})"
-
         else
-          num = 1
-          if type.is_a?(Array) then
-            if otype.is_a?(MTypeInf::ContainerType) then
-              cls = otype.sizebase.class_object
-              clsssa = RiteSSA::ClassSSA::get_instance(cls)
-              clsssa.iv.each do |nm, reg|
-                ty = reg.type.values[0][0]
-                if ty.is_a?(MTypeInf::ContainerType) and ty.element_num then
-                  num = ty.element_num
-                  if otype.class_object == MMC_EXT::Bitmap then
-                    num = ((num + 7) / 8).to_i + 1
-                  end
-                  break
+          return nil
+        end
+
+      when :nil
+        return nil
+
+      when :mrb_value
+        return nil
+
+      when :string
+        if otype.size then
+          return "sizeof(char) * #{((otype.size / 4).to_i + 1) * 4}"
+        end
+
+      when :range
+        ereg = otype.element[0]
+        etup = tup
+        if ereg.get_type_or_nil(tup) == nil then
+          etup = ereg.type.keys[0]
+        end
+        etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        return "sizeof(struct range_#{etype})"
+
+      else
+        num = 1
+        if type.is_a?(Array) then
+          if otype.is_a?(MTypeInf::ContainerType) then
+            cls = otype.sizebase.class_object
+            clsssa = RiteSSA::ClassSSA::get_instance(cls)
+            clsssa.iv.each do |nm, reg|
+              ty = reg.type.values[0][0]
+              if ty.is_a?(MTypeInf::ContainerType) and ty.element_num then
+                num = ty.element_num
+                if otype.class_object == MMC_EXT::Bitmap then
+                  num = ((num + 7) / 8).to_i + 1
                 end
+                break
               end
             end
-
-            type = type[0]
           end
-          return "(sizeof(#{type}) * #{num})"
+
+          type = type[0]
         end
+        return "(sizeof(#{type}) * #{num})"
       end
       nil
     end
