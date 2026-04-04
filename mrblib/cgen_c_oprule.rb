@@ -837,7 +837,10 @@ module CodeGenC
             if elereg == nil then
               elereg = oreg.type[tup][0].element[MTypeInf::ContainerType::UNDEF_VALUE]
             end
-            eletype = elereg.type[tup][0]
+            if !eletypes = elereg.type[tup] then
+              eletypes = elereg.type.values[0]
+            end
+            eletype = eletypes[0]
             elety = get_ctype(ccgen, elereg, tup, infer)
             valereg = valtype.element[key]
             valety = get_ctype(ccgen, valereg, tup, infer)
