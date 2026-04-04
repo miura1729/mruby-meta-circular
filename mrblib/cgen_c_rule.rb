@@ -716,8 +716,9 @@ module CodeGenC
             dsts = :mrb_int
             if valuep == 3 then
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
-              src = eval("(#{arg0} #{op} #{arg1})").to_i
-              #src = "(#{arg0} #{op} #{arg1})"
+              src = "(#{arg0} #{op} #{arg1})"
+              #p src
+              #src = eval(src).to_i
             else
               term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history, nil)
               term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history, nil)

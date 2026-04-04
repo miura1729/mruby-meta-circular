@@ -132,15 +132,17 @@ module MTypeInf
               type0 = genp.inreg[0].get_type(tup)[0]
               pt = nil
               if type0.is_a?(MTypeInf::LiteralType) then
-                genp = genp.inreg[1].genpoint
-                typemethodp = true
-                tt = genp.outreg[0].type[tup][0]
-                pt = ContainerType.new(type0.val, tt.hometown, tt.phometowns, tt.level)
+                if type0.is_a?(Class) then
+                  genp = genp.inreg[1].genpoint
+                  typemethodp = true
+                  tt = genp.outreg[0].type[tup][0]
+                  pt = ContainerType.new(type0.val, tt.hometown, tt.phometowns, tt.level)
+                end
               end
 
               if genp.outreg[0] and pt then
                 type1 = genp.outreg[0].get_type(tup)[0]
-                if type0.is_a?(MTypeInf::LiteralType) then
+                if type0.is_a?(MTypeInf::LiteralType) and type0.is_a?(Class) then
                   if !genp.inreg[0].is_a?(RiteSSA::ParmReg) then
                     genp = genp.inreg[0].genpoint
                   end
