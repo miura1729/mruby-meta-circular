@@ -97,6 +97,8 @@ module MTypeInf
 
           case(genp.op)
           when :SEND
+            genp.inreg[0].flush_type(tup)
+            genp.inreg[1].flush_type(tup)
             addtional_type_spec = nil
             atype_spec_pos = nil
             atype_spec_neg = nil
@@ -202,6 +204,8 @@ module MTypeInf
             end
 
           when :EQ
+            genp.inreg[0].flush_type(tup)
+            genp.inreg[1].flush_type(tup)
             type = genp.inreg[0].get_type(tup)[0]
             genp1 = genp.inreg[1].genpoint
 
@@ -238,6 +242,8 @@ module MTypeInf
             atype_reg = get_original_reg(infer, genp, tup)
 
           when :GE
+            genp.inreg[0].flush_type(tup)
+            genp.inreg[1].flush_type(tup)
             type0 = genp.inreg[0].get_type(tup)[0]
             type1 = genp.inreg[1].get_type(tup)[0]
 
@@ -251,6 +257,8 @@ module MTypeInf
             end
 
           when :LT
+            genp.inreg[0].flush_type(tup)
+            genp.inreg[1].flush_type(tup)
             unless  genp.inreg[0].get_type(tup) and genp.inreg[1].get_type(tup)
               return nil
             end
