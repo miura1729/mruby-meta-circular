@@ -183,6 +183,15 @@ class BitmapView
       end
 
       res = res + i - 1
+    else
+      i = 0
+      bit = ~@bitmap[i, 32]
+      while (res = ffs(bit)) == 0
+        i = i + 32
+        bit = ~@bitmap[i, 32]
+      end
+
+      res = res + i - 1
     end
 
     if res < @string_view.size then
@@ -252,6 +261,7 @@ def main
   pp a.fff
   bb = a.aaa
   pp bb.index(true)
+  pp bb.index(false)
   bitmap = bb.bitmap
   pp bitmap[0, 16]
   pp bitmap[16, 16]

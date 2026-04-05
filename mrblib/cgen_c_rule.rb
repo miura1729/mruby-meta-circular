@@ -1516,7 +1516,11 @@ EOS
             end
           end
 
-          type = type[0]
+          if type[1] == "**" then
+            type = "#{type[0]} *"
+          else
+            type = type[0]
+          end
         end
         return "(sizeof(#{type}) * #{num})"
       end
