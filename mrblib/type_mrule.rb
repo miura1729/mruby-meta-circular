@@ -561,6 +561,7 @@ module MTypeInf
       else
         inst.outreg[0].add_same inst.inreg[0]
       end
+      inst.outreg[0].flush_type(tup)
 
       nil
     end
