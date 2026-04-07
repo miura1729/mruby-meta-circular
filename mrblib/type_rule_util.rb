@@ -280,7 +280,7 @@ module MTypeInf
                 (genp1.para[0] == :size or genp1.para[0] == :length) then
               atype = genp1.inreg[0].type.values[0][0]
               typemethodp = true
-              type = IndexOfArrayType.new(type0.class_object, atype, true)
+              type = IndexOfArrayType.new(type0.class_object, atype, type0.positive)
               atype_spec_pos = [type]
               atype_spec_neg = []
               atype_reg = genp.inreg[0].genpoint.inreg[0]

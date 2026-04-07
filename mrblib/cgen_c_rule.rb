@@ -2295,7 +2295,14 @@ EOS
       when  MTypeInf::NumericType
         posp = idxty.positive
         if !posp then
-          rc = "((#{idx} < 0) ? #{aryty.element.size} - #{idx}  : #{idx})"
+          size = nil
+          if aryty.element_num then
+            size = aryty.element_num
+          else
+            size = aryty.element.size
+          end
+
+          rc = "((#{idx} < 0) ? #{size} - #{idx}  : #{idx})"
         end
       end
       rc

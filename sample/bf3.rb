@@ -317,7 +317,7 @@ end
 
 def eval(bytes)
   mem = Array.new(1024)
-  1024.times do |i|
+  mem.length.times do |i|
     mem[i] = 0
   end
   pc = 0
@@ -331,59 +331,61 @@ def eval(bytes)
       inst = bytes[pc]
       pc += 1
     end
-    if (inst & 8) == 0 then
-      # Basic instruction
-      if (inst & 4) == 0 then
-        # + -
-        mem[ptr] += (inst >> 4) * ((inst & 2) - 1)
-
-      else
-        # . , [ ]
-        if (inst & 1) == 0 then
-          # . ,
-          if inst & 2 == 0 then
-            print(mem[inst].chr)
-          else
-            #mem[inst] = getc
-          end
+    if ptr < mem.size and ptr >= 0 then
+      if (inst & 8) == 0 then
+        # Basic instruction
+        if (inst & 4) == 0 then
+          # + -
+          mem[ptr] += (inst >> 4) * ((inst & 2) - 1)
 
         else
-          # [ ]
-          if (inst & 2) == 2 then
-            if  mem[ptr] == 0 then
-              pc += (inst >> 4)
+          # . , [ ]
+          if (inst & 1) == 0 then
+            # . ,
+            if inst & 2 == 0 then
+              print(mem[inst].chr)
+            else
+              #mem[inst] = getc
             end
+
           else
-            if mem[ptr] != 0 then
-              pc -= (inst >> 4)
+            # [ ]
+            if (inst & 2) == 2 then
+              if  mem[ptr] == 0 then
+                pc += (inst >> 4)
+              end
+            else
+              if mem[ptr] != 0 then
+                pc -= (inst >> 4)
+              end
             end
           end
-        end
-      end
-    else
-      # Extend instruction
-      if (inst & 4) == 0 then
-        if (inst & 1) == 0 then
-          # memory clear
-          mem[ptr] = 0
-        else
-          # add/sub memory
-          offset = bytes[pc + 1] >> 4
-          sign = (bytes[pc + 1] & 2) - 1
-          mem[ptr + offset * sign] += mem[ptr] * ((inst & 2) - 1)
-          mem[ptr] = 0
         end
       else
-        if (inst & 1) == 0 then
-          # search 0 cell
-          step = bytes[pc] >> 4
-          sign = (bytes[pc] & 2) - 1
-          while mem[ptr] != 0 do
-            ptr += step * sign
+        # Extend instruction
+        if (inst & 4) == 0 then
+          if (inst & 1) == 0 then
+            # memory clear
+            mem[ptr] = 0
+          else
+            # add/sub memory
+            offset = bytes[pc + 1] >> 4
+            sign = (bytes[pc + 1] & 2) - 1
+            mem[ptr + offset * sign] += mem[ptr] * ((inst & 2) - 1)
+            mem[ptr] = 0
+          end
+        else
+          if (inst & 1) == 0 then
+            # search 0 cell
+            step = bytes[pc] >> 4
+            sign = (bytes[pc] & 2) - 1
+            while mem[ptr] != 0 do
+              ptr += step * sign
+            end
           end
         end
+        pc += (inst >> 4)
       end
-      pc += (inst >> 4)
     end
   end
 end
