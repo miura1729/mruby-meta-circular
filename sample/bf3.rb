@@ -331,7 +331,7 @@ def eval(bytes)
       inst = bytes[pc]
       pc += 1
     end
-    if ptr < mem.size and ptr >= 0 then
+    if  ptr >= 0  and ptr < mem.size then
       if (inst & 8) == 0 then
         # Basic instruction
         if (inst & 4) == 0 then
