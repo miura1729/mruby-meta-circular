@@ -85,7 +85,13 @@ module MTypeInf
         while i < ed
           ele = arr[i]
           if ele.class_object_core == clsobj then
-            if ele.is_a?(primobj) then
+            if ele.is_a?(MTypeInf::NumericType)
+              if self.is_a?(MTypeInf::NumericType) and !self.positive then
+                ele.positive = false
+              end
+              return false
+
+            elsif ele.is_a?(primobj) then
               return false
 
             elsif selfprimp then
@@ -367,7 +373,7 @@ module MTypeInf
 #      "#{@class_object.inspect}"
     end
 
-    attr :positive
+    attr_accessor :positive
   end
 
   class ExceptionType<BasicType
