@@ -850,8 +850,8 @@ module MTypeInf
     end
 
     define_inf_rule_op :ADDI do |infer, inst, node, tup, history|
-      arg0type = inst.inreg[0].flush_type(tup)[tup]
-      arg1type = LiteralType.new(Fixnum, inst.para[1])
+      inst.inreg[0].flush_type(tup)
+      arg0type = inst.inreg[0].get_type(tup)
 
       if arg0type then
         arg0cls = arg0type[0].class_object
@@ -859,14 +859,33 @@ module MTypeInf
           @@ruletab[:METHOD][:+][arg0cls].call(infer, inst, node, tup)
 
         else
-          if arg0type then
-            arg0type.each do |ty|
-              if ty.is_a?(LiteralType) then
-                postive = ty.val >= 0 && inst.para[1] >= 0
-                ty = NumericType.new(ty.class_object, postive)
+          arg0type.each do |ty|
+            if ty.is_a?(LiteralType) then
+              postive = ty.val >= 0 && inst.para[1] >= 0
+              ty = NumericType.new(ty.class_object, postive)
+            end
+
+            inst.outreg[0].add_type ty, tup
+
+            # Inherit positive_list
+            if positive_list = inst.inreg[0].positive_list[-1] then
+              posl = []
+              positive_list.each do |ty|
+                if ty.is_a?(NumericType) and !ty.is_a?(IndexOfArrayType) then
+                  posl.push ty
+                end
               end
-              #ty = PrimitiveType.new(ty.class_object)
-              inst.outreg[0].add_type ty, tup
+              inst.outreg[0].positive_list.push posl
+            end
+
+            if negative_list = inst.inreg[0].negative_list[-1] then
+              negl = []
+              negative_list.each do |ty|
+                if ty.is_a?(NumericType) and !ty.is_a?(IndexOfArrayType) then
+                  negl.push ty
+                end
+              end
+              inst.outreg[0].negative_list.push negl
             end
           end
         end
