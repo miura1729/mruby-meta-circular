@@ -323,7 +323,8 @@ def eval(bytes)
   pc = 0
   ptr = 0
 
-  while pc >= 0 and pc < bytes.size do
+  while pc >= 0 and
+      pc < bytes.size do
     inst = bytes[pc]
     pc += 1
     if (inst & 0b1101) == 0 then

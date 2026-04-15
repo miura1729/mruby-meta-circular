@@ -86,7 +86,8 @@ module MTypeInf
 
         genp = inst.inreg[0].genpoint
         if genp.is_a?(Fixnum) then
-          genp = history[nil][-1].exit_reg[genp].genpoint
+#          genp = history[nil][-1].exit_reg[genp].genpoint
+          genp = node.enter_link[-1].exit_reg[genp].genpoint
         end
 
         if genp.is_a?(RiteSSA::Inst) then
@@ -253,7 +254,7 @@ module MTypeInf
               type = NumericType.new(type0.class_object, true)
               atype_spec_pos = [type]
               atype_spec_neg = []
-              atype_reg = genp.inreg[0].genpoint.inreg[0]
+              atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, tup)
             end
 
           when :LT
@@ -284,7 +285,10 @@ module MTypeInf
               type = IndexOfArrayType.new(type0.class_object, atype, true)
               atype_spec_pos = [type]
               atype_spec_neg = []
-              atype_reg = genp.inreg[0].genpoint.inreg[0]
+              atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, tup)
+              if atype_reg.genpoint.is_a?(Fixnum) then
+                atype_reg = node.exit_reg[atype_reg.genpoint]
+              end
             end
 
           when :ENTER

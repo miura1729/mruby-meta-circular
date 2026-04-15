@@ -868,20 +868,26 @@ module MTypeInf
             inst.outreg[0].add_type ty, tup
 
             # Inherit positive_list
-            if positive_list = inst.inreg[0].positive_list[-1] then
-              posl = []
-              positive_list.each do |ty|
-                if ty.is_a?(NumericType) and !ty.is_a?(IndexOfArrayType) then
-                  posl.push ty
+            if inst.inreg[0].positive_list.size > 0 then
+              inst.inreg[0].positive_list.each do |plist|
+                posl = []
+                plist.each do |ty|
+                  if ty.is_a?(NumericType) and
+                      !ty.is_a?(IndexOfArrayType) then
+                    posl.push ty
+                  end
                 end
+                inst.outreg[0].positive_list.push posl
               end
-              inst.outreg[0].positive_list.push posl
             end
+          end
 
-            if negative_list = inst.inreg[0].negative_list[-1] then
+          if inst.inreg[0].negative_list.size > 0 then
+            inst.inreg[0].negative_list.each do |nlist|
               negl = []
-              negative_list.each do |ty|
-                if ty.is_a?(NumericType) and !ty.is_a?(IndexOfArrayType) then
+              nlist.each do |ty|
+                if ty.is_a?(NumericType) and
+                    !ty.is_a?(IndexOfArrayType) then
                   negl.push ty
                 end
               end

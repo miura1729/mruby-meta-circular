@@ -552,6 +552,7 @@ module MTypeInf
           end
           node.enter_reg[i].add_same ireg
           node.enter_reg[i].flush_type(tup)
+
           node.enter_reg[i].negative_list = ireg.negative_list.clone
           node.enter_reg[i].positive_list = ireg.positive_list.clone
         end
