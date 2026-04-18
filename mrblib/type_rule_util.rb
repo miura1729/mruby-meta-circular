@@ -290,10 +290,24 @@ module MTypeInf
                 type0.positive then
               atype = genp1.inreg[0].type.values[0][0]
               typemethodp = true
-              type = IndexOfArrayType.new(type0.class_object, atype, true)
+              type = IndexOfArrayType.new(type0.class_object, atype, 0, true)
               atype_spec_pos = [type]
               atype_spec_neg = []
               atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, node, tup)
+
+            elsif genp1.is_a?(RiteSSA::Inst) and
+                genp1.op == :SUBI then
+              genp2 = genp1.inreg[0].genpoint
+              if genp2.is_a?(RiteSSA::Inst) and
+                  genp2.op == :SEND and
+                  (genp2.para[0] == :size or genp2.para[0] == :length) and
+                  type0.positive
+                typemethodp = true
+                type = IndexOfArrayType.new(type0.class_object, atype, genp1.para[1], true)
+                atype_spec_pos = [type]
+                atype_spec_neg = []
+                atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, node, tup)
+              end
             end
 
           when :ENTER

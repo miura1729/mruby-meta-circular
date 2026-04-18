@@ -142,7 +142,7 @@ PROG = "       A mandelbrot set fractal viewer in brainf*** written by Erik Bosm
 -<<[-<<<<<<+>>>>>>]<<<<<<[->>>>>>+<<<<<<<<<<<<<<<[<<<<<<<<<]>>>[-]+>>>>>>[>>>>>>
 >>>]>[-]+<]]+>[-<[>>>>>>>>>]<<<<<<<<]>>>>>>>>]<<<<<<<<<[<<<<<<<<<]>>>>[-]<<<++++
 +[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<
-<<<<<]]>>>]"
+<<<<<]]>>>]...."
 
 def compile(prog0)
   prog1 = ""
@@ -324,7 +324,7 @@ def eval(bytes)
   ptr = 0
 
   while pc >= 0 and
-      pc < bytes.size do
+      pc < bytes.size - 3 do
     inst = bytes[pc]
     pc += 1
     if (inst & 0b1101) == 0 then

@@ -872,8 +872,16 @@ module MTypeInf
               inst.inreg[0].positive_list.each do |plist|
                 posl = []
                 plist.each do |ty|
-                  if ty.is_a?(NumericType) and
-                      !ty.is_a?(IndexOfArrayType) then
+                  if ty.is_a?(NumericType) then
+                    if ty.is_a?(IndexOfArrayType) then
+
+                      if inst.para[1] <= ty.index_offset then
+                        ty = IndexOfArrayType.new(ty.class_object, ty.base_array, ty.index_offset - inst.para[1], true)
+                      else
+                        next
+                      end
+                    end
+
                     posl.push ty
                   end
                 end

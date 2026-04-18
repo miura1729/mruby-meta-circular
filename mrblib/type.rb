@@ -787,9 +787,10 @@ module MTypeInf
   end
 
   class IndexOfArrayType<NumericType
-    def initialize(co, array, *rest)
+    def initialize(co, array, offset, *rest)
       super(co, *rest)
       @base_array = array
+      @index_offset = offset
       @positive = true
       self  # for mruby JIT Bug
     end
@@ -810,6 +811,7 @@ module MTypeInf
     end
 
     attr :base_array
+    attr :index_offset
   end
 
   class ByteType<NumericType
