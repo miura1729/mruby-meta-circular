@@ -16,7 +16,15 @@ module MTypeInf
       nil
     end
 
-    def self.get_original_reg(infer, inst, tup)
+    def self.get_original_reg(infer, inst, node, tup)
+      ret = get_original_reg_aux(infer, inst, tup)
+      if ret.is_a?(RiteSSA::ParmReg) then
+        ret = node.exit_reg[ret.genpoint]
+      end
+      ret
+    end
+
+    def self.get_original_reg_aux(infer, inst, tup)
       case inst.op
       when :MOVE, :GETUPVAR, :START
         return inst.inreg[0]
@@ -108,7 +116,7 @@ module MTypeInf
               typemethodp = true
               tcls = genp.inreg[1].flush_type(tup)[tup]
               genp = genp.inreg[0].genpoint
-              atype_reg = get_original_reg(infer, genp, tup)
+              atype_reg = get_original_reg(infer, genp, node, tup)
               cls = nil
               if tcls.size == 1 and tcls[0].val.class == Class then
                 cls = tcls[0].val
@@ -123,7 +131,7 @@ module MTypeInf
             when :nil?
               typemethodp = true
               genp = genp.inreg[0].genpoint
-              atype_reg = get_original_reg(infer, genp, tup)
+              atype_reg = get_original_reg(infer, genp, node, tup)
               type = PrimitiveType.new(NilClass)
 
               addtional_type_spec = [type]
@@ -163,7 +171,7 @@ module MTypeInf
                   atype_spec_neg = addtional_type_spec
                 end
               end
-              atype_reg = get_original_reg(infer, genp, tup)
+              atype_reg = get_original_reg(infer, genp, node, tup)
 
             when :start_with
               if (atype = genp.inreg[0].type.values[0][0]).class_object ==  View then
@@ -194,7 +202,7 @@ module MTypeInf
             else
               #typemethodp = true
               #genp = genp.inreg[0].genpoint
-              #atype_reg = get_original_reg(infer, genp, tup)
+              #atype_reg = get_original_reg(infer, genp, node, tup)
               #notp = !notp
               #type0 = PrimitiveType.new(NilClass)
               #type1 = PrimitiveType.new(FalseClass)
@@ -240,7 +248,7 @@ module MTypeInf
                 end
               end
             end
-            atype_reg = get_original_reg(infer, genp, tup)
+            atype_reg = get_original_reg(infer, genp, node, tup)
 
           when :GE
             genp.inreg[0].flush_type(tup)
@@ -254,7 +262,7 @@ module MTypeInf
               type = NumericType.new(type0.class_object, true)
               atype_spec_pos = [type]
               atype_spec_neg = []
-              atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, tup)
+              atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, node, tup)
             end
 
           when :LT
@@ -285,10 +293,7 @@ module MTypeInf
               type = IndexOfArrayType.new(type0.class_object, atype, true)
               atype_spec_pos = [type]
               atype_spec_neg = []
-              atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, tup)
-              if atype_reg.genpoint.is_a?(Fixnum) then
-                atype_reg = node.exit_reg[atype_reg.genpoint]
-              end
+              atype_reg = get_original_reg(infer, genp.inreg[0].genpoint, node, tup)
             end
 
           when :ENTER
@@ -300,7 +305,7 @@ module MTypeInf
             atype_spec_pos = addtional_type_spec
             atype_spec_neg = addtional_type_spec
             notp = !notp
-            atype_reg = get_original_reg(infer, genp, tup)
+            atype_reg = get_original_reg(infer, genp, node, tup)
 
           else
             typemethodp = true
@@ -311,7 +316,7 @@ module MTypeInf
             atype_spec_pos = addtional_type_spec
             atype_spec_neg = addtional_type_spec
             notp = !notp
-            atype_reg = get_original_reg(infer, genp, tup)
+            atype_reg = get_original_reg(infer, genp, node, tup)
           end
         end
 
@@ -651,7 +656,7 @@ module MTypeInf
             if irepssa.effects[:iv_read] or irepssa.effects[:iv_write] then
               orgrecreg = inst.inreg[0]
               if orgrecreg.genpoint.is_a?(RiteSSA::Inst) then
-                tmpreg = get_original_reg(infer, orgrecreg.genpoint, tup)
+                tmpreg = get_original_reg(infer, orgrecreg.genpoint, node, tup)
                 if tmpreg.is_a?(RiteSSA::Inst) then
                   orgrecreg = tmpreg
                 end

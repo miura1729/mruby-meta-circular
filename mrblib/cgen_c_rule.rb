@@ -536,7 +536,7 @@ module CodeGenC
       slfreg = inst.inreg[0]
       slfinst = slfreg.genpoint
       if slfinst.is_a?(RiteSSA::Inst) then
-        unlock_recreg = MTypeInf::TypeInferencer::get_original_reg(infer, slfinst, tup)
+        unlock_recreg = MTypeInf::TypeInferencer::get_original_reg_aux(infer, slfinst, tup)
       else
         unlock_recreg = slfreg
       end
