@@ -1038,6 +1038,8 @@ module MTypeInf
       nil
     end
 
+    alias_inf_rule_method :length, :size, String
+
     define_inf_rule_method :bytes, String do |infer, inst, node, tup|
       level = infer.callstack.size
       previrep = infer.callstack.map {|e|  [e[0], e[4]]}
