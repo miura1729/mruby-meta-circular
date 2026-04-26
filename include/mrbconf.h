@@ -112,7 +112,7 @@
 //#define MRB_DISABLE_STDIO /* use of stdio */
 
 /* -DMRB_ENABLE_XXXX to enable following features */
-//#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
+#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
 
 /* end of configuration */
 
@@ -122,6 +122,7 @@
 #endif
 
 /* define MRB_ENABLE_XXXX from ENABLE_XXX (for compatibility) */
+#define ENABLE_DEBUG
 #ifdef ENABLE_DEBUG
 #define MRB_ENABLE_DEBUG_HOOK
 #endif
