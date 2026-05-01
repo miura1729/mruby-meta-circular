@@ -324,10 +324,11 @@ module MTypeInf
           else
             typemethodp = true
             type0 = PrimitiveType.new(NilClass)
-            type1 = PrimitiveType.new(false.class)
+            type1 = PrimitiveType.new(FalseClass)
+            type2 = PrimitiveType.new(TrueClass)
 
             addtional_type_spec = [type0, type1]
-            atype_spec_pos = addtional_type_spec
+            atype_spec_pos = []
             atype_spec_neg = addtional_type_spec
             notp = !notp
             atype_reg = get_original_reg(infer, genp, node, tup)
@@ -347,7 +348,8 @@ module MTypeInf
             (atscl = addtional_type_spec.map {|e| e.class_object}).size > 0 and
             (atype.all? {|e| atscl.include?(e.class_object)} or
             atype.all? {|e| !atscl.include?(e.class_object)}) then
-          condtype = atscl.include?(atype[0].class_object).class
+#          condtype = atscl.include?(atype[0].class_object).class
+          condtype = nil
         else
           condtype = nil
         end
