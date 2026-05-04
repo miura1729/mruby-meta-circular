@@ -268,9 +268,9 @@ module CodeGenC
 
     def self.op_send_genarg(ccgen, inst, inreg, outreg, node, infer, history, tup, name, utup, fname, proc)
       regs =  proc.irep.allocate_reg[utup]
+      rets = []
       if regs
-        rets = []
-#        regs = regs.uniq
+        regs = regs.uniq
         rets = regs.inject([]) {|res, reg|
           otype = reg.get_type(tup)[0]
           if can_use_caller_area(otype) == 2 then
@@ -281,30 +281,28 @@ module CodeGenC
           end
           res
         }
-        proc.irep.call_blocks.each do |blk, val|
-          regs = blk.allocate_reg.values[0]
-          if regs then
-#            regs = regs.uniq
-            rets << regs.inject([]) {|res, reg|
-              otype = reg.get_type(tup)[0]
-              if can_use_caller_area(otype) == 3 then
-                rsize = gen_typesize(ccgen, reg, utup, infer)
-                if rsize then
-                  res << rsize
-                end
+      end
+      proc.irep.call_blocks.each do |blk, val|
+        regs = blk.allocate_reg.values[0]
+        if regs then
+          rets << regs.inject([]) {|res, reg|
+            otype = reg.get_type(tup)[0]
+            if can_use_caller_area(otype) == 3 then
+              rsize = gen_typesize(ccgen, reg, utup, infer)
+              if rsize then
+                res << rsize
               end
-              res
-            }
-          end
-        end
-
-        rets = rets.flatten
-
-        if rets.size > 0 then
-          ccgen.caller_alloc_size += 1
-          ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+            end
+            res
+          }
         end
       end
+      rets = rets.flatten
+      if rets.size > 0 then
+        ccgen.caller_alloc_size += 1
+        ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+      end
+
       procexport = false
       i = 0
 
@@ -737,7 +735,7 @@ module CodeGenC
           if (srcd0 == :mrb_float2 or srcd1 == :mrb_float2) then
             if valuep == 3 then
               #          [eval("(#{arg0} #{op} #{arg1})"), srcd0]
-              src = eval("(#{arg0} #{op} #{arg1})")
+              src = eval("((#{arg0} #{op} #{arg1}) ? 1 : 0)")
             else
               term0 = gen_type_conversion(ccgen, :mrb_float2, srcs0, arg0, tup, node, ti, history, nil)
               term1 = gen_type_conversion(ccgen, :mrb_float2, srcs1, arg1, tup, node, ti, history, nil)
@@ -745,7 +743,7 @@ module CodeGenC
             end
           else
             if valuep == 3 then
-              src = eval("(#{arg0} #{op} #{arg1})")
+              src = eval("((#{arg0} #{op} #{arg1}) ? 1 : 0)")
             else
               term0 = gen_type_conversion(ccgen, :mrb_int, srcs0, arg0, tup, node, ti, history, nil)
               term1 = gen_type_conversion(ccgen, :mrb_int, srcs1, arg1, tup, node, ti, history, nil)
@@ -763,7 +761,7 @@ module CodeGenC
         dsts = :mrb_bool
         if srcd0 == :mrb_float2 or srcd0 == :mrb_int then
           if valuep == 3 then
-            src = eval("(#{arg0} #{op} #{arg1})")
+            src = eval("((#{arg0} #{op} #{arg1}) ? 1 : 0)")
           else
             arg0 = gen_type_conversion(ccgen, srcs1, srcs0, arg0, tup, node, ti, history, nil)
             src = "(#{arg0} #{op} #{arg1})"
@@ -1433,6 +1431,7 @@ EOS
             e1.is_a?(MTypeInf::ContainerType)) or
             otype.level <= e1.level + 1
           } then
+#          p "rc2"
           # 1 level caller alloc
           return 2
         end
@@ -1442,11 +1441,21 @@ EOS
             e1.is_a?(MTypeInf::ContainerType)) or
             otype.level <= e1.level + 2
           } then
+#          p "rc3"
           # 2 level caller alloc
           return 3
         end
       end
 
+#      p "nil"
+#      p otype.level
+#      p place_kind.map {|e|
+#        if e.is_a?(MTypeInf::ContainerType) then
+#          e.level
+#        else
+#          e
+#        end
+#      }
       return nil
     end
 
@@ -1468,14 +1477,24 @@ EOS
           etup = ereg.type.keys[0]
         end
         etype = get_ctype_aux(ccgen, ereg, etup, infer)
+        etype2 = get_ctype_to_c(ccgen, reg, etup, infer, etype)
         if etype != :mrb_value then
           if elenum then
-            return "(sizeof(#{etype}) * (#{elenum} + 1))"
+            return "(sizeof(#{etype2}) * (#{elenum} + 1))"
           else
-            return "(sizeof(#{etype}) * #{eele.size + 1})"
+            return "(sizeof(#{etype2}) * #{eele.size + 1})"
           end
         else
-          return nil
+          if eele.size > 1 then
+            rc = []
+            (eele.size - 1).times do |i|
+              etype = get_ctype_aux(ccgen, eele[i], etup, infer)
+              rc << "(sizeof(#{etype2}))"
+            end
+            return rc.join(" + ")
+          else
+            return nil
+          end
         end
 
       when :nil

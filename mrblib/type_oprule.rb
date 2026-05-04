@@ -959,7 +959,7 @@ module MTypeInf
         stype.keys.each do |ttup|
           types = stype[ttup]
           types.each do |ty|
-            ty.place[type] = :ARRAY
+            ty.place[type] = [:ARRAY, inst]
           end
         end
         type.element[i] = nreg
