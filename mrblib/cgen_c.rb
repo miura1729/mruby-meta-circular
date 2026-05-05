@@ -42,6 +42,9 @@ module CodeGenC
       @unlock_instruction = {}
       @lock_stack = []
       @lock_tuple = {}
+
+      @reservno = 0
+
       init_code
     end
 
@@ -221,6 +224,8 @@ EOS
 
     attr :lock_stack
     attr :lock_tuple
+
+    attr_accessor :reservno
 
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then

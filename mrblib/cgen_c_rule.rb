@@ -285,6 +285,7 @@ module CodeGenC
       proc.irep.call_blocks.each do |blk, val|
         regs = blk.allocate_reg.values[0]
         if regs then
+          regs = regs.uniq
           rets << regs.inject([]) {|res, reg|
             otype = reg.get_type(tup)[0]
             if can_use_caller_area(otype) == 3 then
@@ -300,7 +301,9 @@ module CodeGenC
       rets = rets.flatten
       if rets.size > 0 then
         ccgen.caller_alloc_size += 1
-        ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+        ccgen.dcode << "void *reserv#{ccgen.reservno} = alloca(#{rets.join(' + ')});\n"
+        ccgen.pcode << "gctab->caller_alloc = reserv#{ccgen.reservno};\n"
+        ccgen.reservno += 1
       end
 
       procexport = false

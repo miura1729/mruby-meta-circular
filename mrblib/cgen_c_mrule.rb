@@ -1026,7 +1026,9 @@ module CodeGenC
 
           if rets.size > 0 then
             ccgen.caller_alloc_size += 1
-            ccgen.pcode << "gctab->caller_alloc = alloca(#{rets.join(' + ')});\n"
+            ccgen.dcode << "void *reserv#{ccgen.reservno} = alloca(#{rets.join(' + ')});\n"
+            ccgen.pcode << "gctab->caller_alloc = reserv#{ccgen.reservno};\n"
+            ccgen.reservno += 1
           end
 
           codeno = ptype.using_tup[utup]

@@ -776,11 +776,11 @@ module CodeGenC
 
             if rc == 2 then
               ccgen.pcode << "v#{reg.id} = prevgctab->caller_alloc;\n"
-              ccgen.pcode << "prevgctab->caller_alloc += (sizeof(#{etype}) * #{asize + 1});\n"
+              ccgen.pcode << "prevgctab->caller_alloc += (sizeof(#{etype}) * #{asize - 1});\n"
 
             elsif rc == 3 then
               ccgen.pcode << "v#{reg.id} = prevgctab->prev->caller_alloc;\n"
-              ccgen.pcode << "prevgctab->prev->caller_alloc += (sizeof(#{etype}) * #{asize + 1});\n"
+              ccgen.pcode << "prevgctab->prev->caller_alloc += (sizeof(#{etype}) * #{asize - 1});\n"
             end
 
             vals.each_with_index do |src, i|
@@ -789,12 +789,14 @@ module CodeGenC
           else
             ccgen.pcode << "#{etype} v#{reg.id}[#{asize + 1}] = {\n"
             ccgen.pcode << vals.join(', ')
-            ccgen.pcode << "};\n"
+            ccgen.pcode << "\n};\n"
           end
           if etype == :mrb_value then
-            ccgen.pcode << "v#{reg.id}[#{valnum}].value.ttt = MRB_TT_FREE;\n"
-            (asize - valnum).times do |i|
-              ccgen.pcode << "v#{reg.id}[#{valnum + i + 1}].value.ttt = MRB_TT_FREE;\n"
+            if rc and false then
+              ccgen.pcode << "v#{reg.id}[#{valnum}].value.ttt = MRB_TT_FREE;\n"
+              (asize - valnum).times do |i|
+                ccgen.pcode << "v#{reg.id}[#{valnum + i + 1}].value.ttt = MRB_TT_FREE;\n"
+              end
             end
             csize = ccgen.gccomplex_size
             ccgen.gccomplex_size += 1
