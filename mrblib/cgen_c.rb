@@ -14,6 +14,7 @@ module CodeGenC
       @gccode = ""              # GC function definition
       @scode = ""               # structure definition
       @hcode = ""               # prototype, variable
+      @micode = ""              # initalize code in main function
       @lfcode = ""              # local function defnition
       @dcode = ""               # local declaration
       @pcode = ""               # program code
@@ -185,6 +186,7 @@ EOS
     attr :gccode
     attr :scode
     attr :hcode
+    attr :micode
     attr :lfcode
     attr :ccode
     attr :dcode
@@ -444,7 +446,7 @@ EOS
         end
       end
 
-      main = <<'EOS'
+      main = <<"EOS"
 int main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
@@ -479,6 +481,7 @@ int main(int argc, char **argv)
   mrb->ud = (void *)mmc_system;
 
   MRB_SET_INSTANCE_TT(((struct mmc_system *)mrb->ud)->pthread_class, MRB_TT_DATA);
+  #{@micode}
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;

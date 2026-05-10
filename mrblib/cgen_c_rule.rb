@@ -471,7 +471,11 @@ module CodeGenC
             nreg = outreg[0]
             ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
             ccgen.dcode << ";\n"
-            ccgen.pcode << "v#{nreg.id} = #{fname}(mrb, #{args});\n"
+            srct = get_ctype(ccgen, proc.irep.retreg, utup, infer)
+            dstt = get_ctype(ccgen, nreg, tup, infer)
+            src = "#{fname}(mrb, #{args})"
+            src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
+            ccgen.pcode << "v#{nreg.id} = #{src};\n"
           else
             ccgen.pcode << "#{fname}(mrb, #{args});\n"
           end

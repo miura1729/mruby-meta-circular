@@ -571,6 +571,38 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :send, Kernel do |ccgen, inst, node, infer, history, tup|
+      nreg = inst.outreg[0]
+      mname = inst.inreg[1].type[tup]
+      ccgen.micode << "int sum = 0;\n"
+      centry = []
+      mnvar, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
+      mnvarc = gen_type_conversion(ccgen, :mrb_sym, srct, mnvar, tup, node, infer, history, nil)
+      inreg = [inst.inreg[0]] + inst.inreg[2..-1]
+      ccgen.pcode << "{\n"
+      ccgen.pcode << "mrb_sym mname = #{mnvarc};\n"
+      infix = ""
+
+      mname.each do |msym|
+        mstr = msym.val.to_s
+        mnm = gen_name_marshal(mstr)
+        ccgen.hcode << "mrb_sym sym_#{mnm};\n"
+        ccgen.micode << "sym_#{mnm} = mrb_intern_cstr(mrb, \"#{mstr}\");\n"
+        ccgen.micode << "sum += sym_#{mnm};\n"
+        ccgen.pcode << "#{infix} if (mname == sym_#{mnm}) {\n"
+        MTypeInf::TypeInferencer::make_intype(infer, inreg, node, tup, mstr) do |intype, argc|
+          op_send_aux(ccgen, inst, inreg, inst.outreg, node, infer, history, tup, msym.val, inst.inreg[0])
+          set_closure_env(ccgen, inst, node, infer, history, tup)
+        end
+        ccgen.pcode << "}\n"
+        infix = "else"
+      end
+
+      ccgen.pcode << "}\n"
+
+      nil
+    end
+
     define_ccgen_rule_method :ffs, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
