@@ -1,7 +1,7 @@
 MTypeInf::inference_main {
 class Foo
   def top
-    [:a, :b, :c, :d].map do |m|
+    [:abaa, :bcaa, :cdaa, :dddd].map do |m|
       send(m, 1)
     end
   end
@@ -9,26 +9,26 @@ class Foo
   def initialize
   end
 
-  def a(x)
+  def abaa(x)
     x
   end
 
-  def b(x)
+  def bcaa(x)
     x.to_f
   end
 
-  def c(x)
+  def cdaa(x)
     :a
   end
 
-  def d(x)
-    3.134
+#  def dddd(x)
+#    3.134
+#  end
+
+  def method_missing(n, m)
+    n
   end
 end
-
-  #def method_missing(n, *m)
-  #  m
-  #end
 
 pp Foo.new.top
 }

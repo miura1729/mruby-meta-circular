@@ -579,17 +579,29 @@ module CodeGenC
       mnvar, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
       mnvarc = gen_type_conversion(ccgen, :mrb_sym, srct, mnvar, tup, node, infer, history, nil)
       inreg = [inst.inreg[0]] + inst.inreg[2..-1]
+      msize = mname.size
       ccgen.pcode << "{\n"
       ccgen.pcode << "mrb_sym mname = #{mnvarc};\n"
+      ccgen.pcode << "if (send#{ccgen.sendno}_seqp) {\n"
+      ccgen.pcode << "static void *jmptab[] = {\n"
+      labs = []
+      msize.times {|i| labs.push "&&label#{i}"}
+      ccgen.pcode << labs.join(", ")
+      ccgen.pcode << "\n};\n"
+      tname = gen_name_marshal(mname[0].val.to_s)
+      ccgen.pcode << "goto *jmptab[mname - sym_#{tname}];"
+      ccgen.pcode << "}\n"
       infix = ""
 
-      mname.each do |msym|
+      mname.each_with_index do |msym, n|
         mstr = msym.val.to_s
         mnm = gen_name_marshal(mstr)
         ccgen.hcode << "mrb_sym sym_#{mnm};\n"
+        ccgen.hcode << "int send#{ccgen.sendno}_seqp;\n"
         ccgen.micode << "sym_#{mnm} = mrb_intern_cstr(mrb, \"#{mstr}\");\n"
         ccgen.micode << "sum += sym_#{mnm};\n"
         ccgen.pcode << "#{infix} if (mname == sym_#{mnm}) {\n"
+        ccgen.pcode << "label#{n}:\n"
         MTypeInf::TypeInferencer::make_intype(infer, inreg, node, tup, mstr) do |intype, argc|
           op_send_aux(ccgen, inst, inreg, inst.outreg, node, infer, history, tup, msym.val, inst.inreg[0])
           set_closure_env(ccgen, inst, node, infer, history, tup)
@@ -599,6 +611,7 @@ module CodeGenC
       end
 
       ccgen.pcode << "}\n"
+      ccgen.micode << "send#{ccgen.sendno}_seqp = ((mrb->symidx * #{mname.size} - sum) == #{msize * (msize - 1) / 2});\n"
 
       nil
     end

@@ -45,6 +45,7 @@ module CodeGenC
       @lock_tuple = {}
 
       @reservno = 0
+      @sendno = 0
 
       init_code
     end
@@ -228,6 +229,7 @@ EOS
     attr :lock_tuple
 
     attr_accessor :reservno
+    attr_accessor :sendno
 
     def get_reg_pos(reg)
       if reg.is_a?(RiteSSA::ParmReg) then

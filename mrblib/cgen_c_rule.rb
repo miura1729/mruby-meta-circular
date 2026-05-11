@@ -356,6 +356,7 @@ module CodeGenC
       inreg = inreg.clone
       inreg[0] = recreg
       rectypes = recreg.get_type(tup)
+      mtab = MTypeInf::TypeInferencer.get_ruby_methodtab
       MTypeInf::TypeInferencer::make_intype(infer, inreg, node, tup, inst.para[1]) do |intype, argc|
         #      intype[0] = [intype[0][0]]
         if !intype[0][0]
@@ -521,17 +522,35 @@ module CodeGenC
           end
 
         elsif name != :initialize then
-          p "missing3"
-          p rectypes
-          p inst.filename
-          p inst.line
-          p name
-          p tup
-          #intype[0].each { |ty| p ty.is_escape?}
-          p intype[0]
-          #intype[0].each { |ty| p ty.class_object}
-          p intype[1]
-          ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+          mf = true
+          if  mtab[:method_missing] then
+            rectype.class_object_core.ancestors.each do |rt|
+              if mtab[:method_missing][rt] then
+                symt = MTypeInf::SymbolType.instance(Symbol, name)
+                symr = RiteSSA::Reg.new(nil)
+                symr.type = {}
+                symr.type[tup] = [symt]
+                inreg = [inreg[0], symr] + inreg[1..-1]
+                op_send_aux(ccgen, inst, inreg, outreg, node, infer, history, tup, :method_missing, recreg)
+                mf = false
+                break
+              end
+            end
+          end
+
+          if mf then
+            p "missing3"
+            p rectypes
+            p inst.filename
+            p inst.line
+            p name
+            p tup
+            #intype[0].each { |ty| p ty.is_escape?}
+            p intype[0]
+            #intype[0].each { |ty| p ty.class_object}
+            p intype[1]
+            ccgen.pcode << "mrb_no_method_error(mrb, mrb_intern_lit(mrb, \"#{name}\"), mrb_nil_value(), \"undefined method #{name}\");\n"
+          end
         end
       end
       nil
@@ -872,7 +891,11 @@ module CodeGenC
       end
 
       if !gins then
-        return ["mrb_nil_value()", :mrb_value]
+        if (tys = reg.type[tup]).size == 1 and tys[0].is_a?(MTypeInf::SymbolType) then
+          return ["mrb_intern_lit(mrb, \"#{tys[0].val.to_s}\")", :mrb_sym]
+        else
+          return ["mrb_nil_value()", :mrb_value]
+        end
       end
       case gins.op
       when :MOVE
@@ -1969,6 +1992,14 @@ EOS
   mutexobj;
 })
 EOS
+        when :mrb_sym
+          case srct
+          when :mrb_value
+            "mrb_symbol(#{src})"
+
+          else
+            p "Not support yet #{dstt} #{srct} bar"
+          end
 
         else
           p src
