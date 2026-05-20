@@ -654,9 +654,17 @@ module MTypeInf
     end
 
     define_inf_rule_op :SUPER do |infer, inst, node, tup, history|
-      intype = inst.inreg.map { |reg|
-        reg.flush_type(tup)[tup]
-      }
+      argc = inst.para[0]
+      if argc == 127 then
+        argc = infer.callstack[-1][2]
+        intype = inst.inreg[0..argc].map { |reg|
+          reg.flush_type(tup)[tup]
+        }
+      else
+        intype = inst.inreg.map { |reg|
+          reg.flush_type(tup)[tup]
+        }
+      end
       name = infer.callstack[-2][4][0]
 
       reccls = intype[0][0].class_object
@@ -667,7 +675,7 @@ module MTypeInf
       recreg = RiteSSA::Reg.new(nil)
       recreg.add_type rect, tup
       oreg = inst.outreg[0]
-      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, oreg, inst.para[1], nil)
+      rule_send_common_aux(infer, inst, node, tup, name, intype, recreg, oreg, argc, nil)
 #      rule_send_common(infer, inst, node, tup, history)
       nil
     end

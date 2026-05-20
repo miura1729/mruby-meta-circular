@@ -1017,6 +1017,17 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_sym, String do |infer, inst, node, tup|
+      slfstr = inst.inreg[0].type[tup][0]
+      if slfstr.is_a?(LiteralType) then
+        type = SymbolType.new(Symbol, slfstr.val)
+      else
+        type = SymbolType.new(Symbol, nil)
+      end
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :ord, String do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, true)
       inst.outreg[0].add_type(type, tup)

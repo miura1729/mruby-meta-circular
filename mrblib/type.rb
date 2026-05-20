@@ -26,7 +26,7 @@ module MTypeInf
         locked == other.locked
     end
 
-    def class_object
+    def class_object(outescape = true)
       if is_gcobject? then
         if (@threads.select {|k, v| v != :iv_write_lockfree}).size > 1 and
             !@locked then
@@ -39,11 +39,11 @@ module MTypeInf
         end
       end
 
-      class_object_core
+      class_object_core(outescape)
     end
 
-    def class_object_core
-      if is_a?(ContainerType) and @class_object == Array and
+    def class_object_core(outescape =  true)
+      if is_a?(ContainerType) and @class_object == Array and outescape and
           !is_escape? and
           @element[UNDEF_VALUE].type.values.size > 0 then
         if @element[UNDEF_VALUE].type.values[0].all? {|e|
@@ -294,7 +294,7 @@ module MTypeInf
             reg2 = @hometown.outreg[0]
             ctup = reg2.type.keys[0]
             objty = reg2.type[ctup][0]
-            clsobj = objty.class_object
+            clsobj = objty.class_object(false)
             nty = UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
             base.each do |ptup, regs|
               reg.add_type nty, ptup

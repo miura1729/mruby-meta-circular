@@ -844,22 +844,22 @@ module RiteSSA
 
         when :SUPER
           a = getarg_a(code)
+          slfreg = regtab[0]
+          slfreg.refpoint.push inst
+          inst.inreg.push slfreg  # push self
           num = getarg_c(code)
-          inreg = regtab[0]
-          inreg.refpoint.push inst
-          inst.inreg.push inreg  # push self
           inst.para.push num
           if num == 127 then
-            reg = regtab[a + 1]
-            inreg.refpoint.push inst
-            inst.inreg.push reg
-            reg = regtab[a + 2]
-            inreg.refpoint.push inst
-            inst.inreg.push reg
+            num2 = inst.irep.nlocals
+            num2.times do |i|
+              reg = regtab[1 + i]
+              reg.refpoint.push inst
+              inst.inreg.push reg
+            end
           else
             num.times do |i|
-              reg = regtab[a + 1 + i]
-              inreg.refpoint.push inst
+              reg = regtab[a + i]
+              reg.refpoint.push inst
               inst.inreg.push reg
             end
           end

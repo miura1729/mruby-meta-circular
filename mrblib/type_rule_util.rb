@@ -17,7 +17,10 @@ module MTypeInf
     end
 
     def self.get_original_reg(infer, inst, node, tup)
-      ret = get_original_reg_aux(infer, inst, tup)
+      ret = nil
+      if inst.is_a?(RiteSSA::Inst) then
+        ret = get_original_reg_aux(infer, inst, tup)
+      end
       if ret.is_a?(RiteSSA::ParmReg) then
         ret = node.exit_reg[ret.genpoint]
       end
