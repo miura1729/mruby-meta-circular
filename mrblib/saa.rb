@@ -1065,6 +1065,14 @@ module RiteSSA
           regtab[a] = dstreg
           inst.outreg.push dstreg
 
+
+        when :SCLASS
+          a = getarg_a(code)
+          inst.inreg.push regtab[a]
+          dstreg = Reg.new(inst)
+          regtab[a] = dstreg
+          inst.outreg.push dstreg
+
         when :RANGE
           initno = getarg_b(code)
           flg = getarg_c(code)

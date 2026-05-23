@@ -1273,6 +1273,15 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_op :SCLASS do |infer, inst, node, tup, history|
+      slf = inst.inreg[0].get_type(tup)[0]
+      p slf
+      single = slf.val.singleton_class
+      sslf = LiteralType.new(single.class, single)
+      inst.outreg[0].add_type sslf, tup
+      nil
+    end
+
     define_inf_rule_op :RANGE do |infer, inst, node, tup, history|
       type = inst.objcache[nil]
       if !type then
