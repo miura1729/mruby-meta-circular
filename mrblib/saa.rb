@@ -1304,6 +1304,7 @@ module RiteSSA
       @constant = {}
       @method = {}
       @id = @@num
+      @module_functionp = false
       @@num += 1
     end
 
@@ -1313,6 +1314,7 @@ module RiteSSA
     attr :constant
     attr :method
     attr :id
+    attr_accessor :module_functionp
 
     def const_get(sym)
       cls = @class_object

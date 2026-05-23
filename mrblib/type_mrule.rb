@@ -864,6 +864,15 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :module_function, Module do |infer, inst, node, tup|
+      mod = inst.inreg[0].type[tup][0].val
+      modobj = RiteSSA::ClassSSA.get_instance(mod)
+      modobj.module_functionp = true
+      type = PrimitiveType.new(NilClass)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :new, Class do |infer, inst, node, tup|
       recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       intype = nil
