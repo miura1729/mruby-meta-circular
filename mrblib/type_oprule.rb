@@ -255,14 +255,26 @@ module MTypeInf
           proc = proc.parent
         end
 
-        if const == notfound then
+        tgclass = node.root.target_class
+        i = 1
+        while const == notfound
           begin
-            const = node.root.target_class.class_object.const_get(name)
+            const = tgclass.class_object.const_get(name)
           rescue NameError
             begin
               const = Object.const_get(name)
             rescue NameError
             end
+          end
+          i = i + 1
+          blk = infer.callstack[-i][0]
+          if blk then
+            tgclass = blk.target_class
+            unless tgclass.class_object.is_a?(Class)
+              break
+            end
+          else
+            break
           end
         end
 
