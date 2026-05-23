@@ -1282,14 +1282,20 @@ module MTypeInf
     define_inf_rule_op :METHOD do |infer, inst, node, tup, history|
       tclass = inst.inreg[0].flush_type(tup)[tup][0].val
       method = inst.inreg[1].flush_type(tup)[tup][0]
+      tclobj = RiteSSA::ClassSSA.get_instance(tclass)
       name = inst.para[0]
       ruby_methodtab = get_ruby_methodtab
       ruby_methodtab[name] ||= {}
       ruby_methodtab[name][tclass] = method
-      tclobj = RiteSSA::ClassSSA.get_instance(tclass)
       saairep = method.irep
       tclobj.method[name] = saairep
       saairep.strict = true
+      if tclobj.module_functionp then
+        singcls = tclass.singleton_class
+        ruby_methodtab[name][singcls] = method
+        singclobj = RiteSSA::ClassSSA.get_instance(singcls)
+        singclobj.method[name] = saairep
+      end
       nil
     end
 
