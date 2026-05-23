@@ -129,6 +129,18 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :round, Float do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
+    define_inf_rule_method :freeze, Object do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :<=>, Object do |infer, inst, node, tup|
       type = NumericType.new(Fixnum, false)
       inst.outreg[0].add_type(type, tup)
@@ -1366,6 +1378,11 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_hash, Hash do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      nil
+    end
+
     define_inf_rule_method :[], Hash do |infer, inst, node, tup|
       if inst.inreg.size != 3 then
         raise "multiple argument not support yet in Hash::[]"
@@ -1525,6 +1542,30 @@ module MTypeInf
       type = ExceptionType.new(EOFError)
       reg.add_type(type, tup)
       infer.exception.push reg
+      nil
+    end
+
+    define_inf_rule_class_method :binread, File do |infer, inst, node, tup|
+      node.root.effects[:io] ||= {}
+      node.root.effects[:io][inst] = inst.inreg[0].type
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      type = StringType.new(String, inst, previrep, level)
+      inst.outreg[0].add_type(type, tup)
+      reg = RiteSSA::Reg.new(nil)
+      type = ExceptionType.new(EOFError)
+      reg.add_type(type, tup)
+      infer.exception.push reg
+      nil
+    end
+
+    define_inf_rule_class_method :basename, File do |infer, inst, node, tup|
+      node.root.effects[:io] ||= {}
+      node.root.effects[:io][inst] = inst.inreg[0].type
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      type = StringType.new(String, inst, previrep, level)
+      inst.outreg[0].add_type(type, tup)
       nil
     end
   end
