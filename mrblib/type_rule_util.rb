@@ -844,10 +844,14 @@ module MTypeInf
         if arrt.class_object_core == Array then
           arrele = arrt.element
 
-          arrele[1] ||= RiteSSA::Reg.new(nil)
-          arrele[1].add_same valreg
-          valreg.add_same arrele[1]
-          arrele[1].flush_type(tup)
+          i = 0
+          while arrele[i] != nil
+            i = i + 1
+          end
+          arrele[i] = RiteSSA::Reg.new(nil)
+          arrele[i].add_same valreg
+#          valreg.add_same arrele[i]
+          arrele[i].flush_type(tup)
 
           arrele[ContainerType::UNDEF_VALUE].add_same valreg
           valreg.add_same  arrele[ContainerType::UNDEF_VALUE]
