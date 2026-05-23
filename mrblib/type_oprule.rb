@@ -786,7 +786,12 @@ module MTypeInf
 
       arg0cls = arg0type[0].class_object
       if !(arg0cls == Fixnum or arg0cls == Float) then
-        @@ruletab[:METHOD][:+][arg0cls].call(infer, inst, node, tup)
+        prc = @@ruletab[:METHOD][:+][arg0cls]
+        if prc then
+            prc.call(infer, inst, node, tup)
+        else
+          rule_send_common(infer, inst, node, tup, history)
+        end
 
       else
         if arg1type and arg1type[0].class_object == Float then
@@ -817,7 +822,12 @@ module MTypeInf
       arg0cls = arg0type[0].class_object
 
       if !(arg0cls == Fixnum or arg0cls == Float) then
-        @@ruletab[:METHOD][:-][arg0cls].call(infer, inst, node, tup)
+        prc = @@ruletab[:METHOD][:-][arg0cls]
+        if prc then
+            prc.call(infer, inst, node, tup)
+        else
+          rule_send_common(infer, inst, node, tup, history)
+        end
 
       else
         if arg1type and arg1type[0].class_object == Float then
@@ -876,7 +886,12 @@ module MTypeInf
       if arg0type then
         arg0cls = arg0type[0].class_object
         if !(arg0cls == Fixnum or arg0cls == Float) then
-          @@ruletab[:METHOD][:+][arg0cls].call(infer, inst, node, tup)
+          prc = @@ruletab[:METHOD][:+][arg0cls]
+          if prc then
+            prc.call(infer, inst, node, tup)
+          else
+            rule_send_common(infer, inst, node, tup, history)
+          end
 
         else
           arg0type.each do |ty|
@@ -938,7 +953,7 @@ module MTypeInf
           if @@ruletab[:METHOD][:-] then
             @@ruletab[:METHOD][:-][arg0cls].call(infer, inst, node, tup)
           else
-            @@ruletab[:METHOD][:method_missing][arg0cls].call(infer, inst, node, tup)
+            rule_send_common(infer, inst, node, tup, history)
           end
 
         else
