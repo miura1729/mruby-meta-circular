@@ -235,7 +235,7 @@ module MTypeInf
               end
             end
 
-            if genp.inreg[1] then
+            if genp.is_a?(RiteSSA::Inst) and genp.inreg[1] then
               type = genp.inreg[1].get_type(tup)[0]
               if type.is_a?(MTypeInf::LiteralType) then
                 genp = genp.inreg[0].genpoint
