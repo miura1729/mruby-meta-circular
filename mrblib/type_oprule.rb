@@ -324,18 +324,18 @@ module MTypeInf
       case types[0]
       when LiteralType
         value = types[0].val
+        node.root.target_class.const_set(inst.para[0], value)
 
       when ContainerType
         value = realvalue_from_container_type(types[0], tup)
+        node.root.target_class.const_set(inst.para[0], value)
 
-      when ContainerType
-        value = realvalue_from_container_type(types[0], tup)
+      when NumericType
 
       else
         raise "Not support yet #{types[0]}"
       end
 
-      node.root.target_class.const_set(inst.para[0], value)
       # update place infomation
       if types then
         types.each do |ty|
