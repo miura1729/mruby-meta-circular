@@ -144,7 +144,7 @@ mrbjit_exec_send_c(mrb_state *mrb, mrbjit_vmstatus *status,
   //puts(mrb_sym2name(mrb, mid));
 
   if (MRB_DMETHOD_CFUNC_P(m)) {
-    regs[a] = MRB_DMETHOD_CFUNC(m)(mrb, regs, n);
+    regs[a] = MRB_DMETHOD_CFUNC(m)(mrb, regs + a, n);
 
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc) return status->gototable[0]; /* L_RAISE */
