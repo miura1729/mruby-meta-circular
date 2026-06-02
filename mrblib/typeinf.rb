@@ -140,6 +140,7 @@ module MTypeInf
       @exception = []
       @fiber = nil
       @allocate_object = []
+      @ensure = []
       @must_execute = false
       @@threadtab[0] = @thread = ThreadType.new(MMC_EXT::Thread, nil)
     end
@@ -149,6 +150,7 @@ module MTypeInf
     attr :callstack
     attr :messages
     attr :exception
+    attr :ensure
     attr_accessor :fiber
     attr_accessor :continue
     attr_accessor :must_execute

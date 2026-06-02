@@ -832,10 +832,11 @@ module RiteSSA
           inst.outreg.push dstreg
 
         when :EPUSH
-          inst.para.push @irep.pool[getarg_bx(code)]
+          bn = getarg_bx(code)
+          enblk = Block.new(@irep.reps[bn], @root, @root.target_class.class_object, nil)
+          inst.para.push enblk
 
         when :EPOP
-          inst.para.push @irep.pool[getarg_a(code)]
 
         when :CALL
           dstreg = Reg.new(inst)
@@ -1106,10 +1107,6 @@ module RiteSSA
     end
 
     def rescuetab
-      @root.rescuetab
-    end
-
-    def ensuretab
       @root.rescuetab
     end
 

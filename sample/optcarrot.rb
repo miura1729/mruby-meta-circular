@@ -3965,7 +3965,6 @@ end
             level1 = (level1 * (1 - 0.79399) + 0.0782838) * 0.5
             y -= level1 * 0.5
             y -= level1 *= 0.6 if [3, 5, 6].include?(tint)
-            $foo = iq
             iq += Complex.polar(level1, Math::PI / 12 * ([0, 6, 10, 8, 2, 4, 0, 0][tint] * 2 - 7))
           end
         end
@@ -4312,7 +4311,6 @@ end
               end
             end
             current = @options[key]
-            $foo = key
             if current == true || current == false
               @options[key] = true
             elsif current.is_a?(Integer)
@@ -4344,5 +4342,6 @@ def main
   i = 0; while i < ARGV.length; argv << ARGV[i]; i += 1; end
   Optcarrot::NES.new(argv).run
 end
+
   main
 }

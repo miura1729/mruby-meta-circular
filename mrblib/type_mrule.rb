@@ -111,6 +111,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :[], Fixnum do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :**, Float do |infer, inst, node, tup|
       type = NumericType.new(Float, false)
       inst.outreg[0].add_type(type, tup)
@@ -160,10 +166,6 @@ module MTypeInf
     end
 
     define_inf_rule_method :[], Array do |infer, inst, node, tup|
-      if inst.inreg.size != 3 then
-        raise "multiple argument not support yet in Array::[]"
-      end
-
       inst.inreg[0].flush_type(tup)
       inst.inreg[1].flush_type(tup)
       arrtypes = inst.inreg[0].get_type(tup)
@@ -175,6 +177,10 @@ module MTypeInf
           if arrt.class_object. == Array then
             arrele = arrt.element
             altele = arrele[ContainerType::UNDEF_VALUE]
+            if inst.inreg.size == 4 then
+              inst.outreg[0].add_same inst.inreg[0]
+            end
+
             if idxtypes.size == 1 then
               idxtype = idxtypes[0]
               if idxtype.class_object == Fixnum then
@@ -288,10 +294,6 @@ module MTypeInf
     end
 
     define_inf_rule_method :[]=, Array do |infer, inst, node, tup|
-      if inst.inreg.size != 4 then
-        raise "multiple argument not support yet in Array::[]="
-      end
-
       node.root.effects[:arrayset] ||= {}
       node.root.effects[:arrayset][inst] = [inst.inreg[0].type, inst.inreg[2].type]
       idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
@@ -303,6 +305,10 @@ module MTypeInf
           arrele = arrt.element
           idxtypes.each do |idxtype|
             if idxtype.class_object == Fixnum then
+              if inst.inreg.size == 5 then
+                inst.outreg[0].add_same valreg
+              end
+
               case idxtype
               when MTypeInf::LiteralType
                 no = idxtype.val
@@ -660,6 +666,19 @@ module MTypeInf
     define_inf_rule_method :to_a, Array do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
+      nil
+    end
+
+    define_inf_rule_method :slice!, Array do |infer, inst, node, tup|
+      slftype = inst.inreg[0].get_type(tup)[0]
+      slftype.place[true] = true
+      level = infer.callstack.size
+      previrep = infer.callstack.map {|e|  [e[0], e[4]]}
+      ud = ContainerType::UNDEF_VALUE
+      type = ContainerType.new(Array, inst, previrep, level)
+      type.element[ud].add_same slftype.element[ud]
+      type.place[true] = true
+      inst.outreg[0].add_type type, tup
       nil
     end
 

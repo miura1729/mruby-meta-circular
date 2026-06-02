@@ -295,13 +295,29 @@ module MTypeInf
             ctup = reg2.type.keys[0]
             objty = reg2.type[ctup][0]
             clsobj = objty.class_object(false)
-            nty = UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
+            case self
+            when UserDefinedType
+              nty = UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
+
+            when ContainerType
+              nty = ContainerType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
+            end
+            oldcachenty = nty.escape_cache
+            nty.escape_cache = :cont
+            oldcache = @escape_cache
+            @escape_cache = :cont
+
             base.each do |ptup, regs|
-              reg.add_type nty, ptup
+              reg.type[ptup] ||= []
+              if !reg.type[ptup].include?(nty) then
+                reg.type[ptup].push nty
+              end
               if !regs.include?(reg) then
                 regs.push reg
               end
             end
+            nty.escape_cache = oldcachenty
+            @escape_cache  = oldcache
             false
 
           else

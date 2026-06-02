@@ -497,6 +497,17 @@ module MTypeInf
       true
     end
 
+    define_inf_rule_op :EPUSH do |infer, inst, node, tup, history|
+      infer.ensure.push inst.para[0]
+      nil
+    end
+
+    define_inf_rule_op :EPOP do |infer, inst, node, tup, history|
+      eblk = infer.ensure.pop
+      infer.inference_node(eblk.nodes[0], tup, node.exit_reg, history)
+      nil
+    end
+
     define_inf_rule_op :ENTER do |infer, inst, node, tup, history|
       rc = nil
       ax = inst.para[0]
@@ -1046,7 +1057,12 @@ module MTypeInf
 
       arrtype.each do |at|
         if at.class_object == Array then
-          types = at.element[idx].get_type(tup)
+          p at
+          if at.element[idx] then
+            types = at.element[idx].get_type(tup)
+          else
+            types = at.element[ContainerType::UNDEF_VALUE].get_type(tup)
+          end
           types.each do |ty|
             inst.outreg[0].add_type ty, tup
           end
