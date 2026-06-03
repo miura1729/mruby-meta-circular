@@ -224,6 +224,15 @@ def foo(a)
   -1
 end
 
+def find(a, t)
+  a.each { |sview|
+    if sview.start_with t then
+      return sview.st
+    end
+    -1
+  }
+end
+
 def find1(a)
   a.each { |sview|
     if sview.start_with "awk" then
@@ -254,6 +263,8 @@ end
 def main
   #    0123456789abcdefghijklmnopqrstuvwxyz
   a = "sad  0fsd0m m0ma  se@pmapee qwaaaabbbc ccpetaaaawk".to_view
+  pp find(a, "sad")
+  pp find(a, "sd0m")
   pp find1(a)
   pp find2(a)
   pp find3(a)

@@ -17,11 +17,13 @@ end
 module MTypeInf
   class TypeInferencer
     define_inf_rule_method :_simd_check, View do |infer, inst, node, tup|
-      block = inst.inreg[1].get_type(tup)[0].irep
+      blockreg = inst.inreg[1]
+      blockty = blockreg.get_type(tup)[0]
+      block = blockty.irep
       effects = block.effects
       inst.outreg[0].type[tup] =  [LiteralType.new(NilClass, nil)]
+      type = nil
       if !effects[:return].nil? then
-        type = nil
         effects[:return].values.each do |reteff|
           genvalins = reteff[0].genpoint
           if !genvalins.is_a?(RiteSSA::Inst) or genvalins.op != :SEND then
@@ -43,7 +45,10 @@ module MTypeInf
           arg0ty = arg0reg.type.values[0][0]
           arg1ty = arg1reg.type.values[0][0]
 
-          if predicate == :start_with and arg1ty.is_a?(LiteralType) and arg1ty.val.is_a?(String) and arg1ty.val.size < 8 and effects[:return].size == 1 then
+          if predicate == :start_with and
+              ((arg1ty.is_a?(LiteralType) and arg1ty.val.is_a?(String) and arg1ty.val.size < 8) or
+              arg1ty.is_a?(StringType)) and
+              effects[:return].size == 1 then
             level = infer.callstack.size
             previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
             type = ContainerType.new(MMC_EXT::SIMD::Find, inst, previrep, level)
@@ -115,10 +120,16 @@ module MTypeInf
           inst.outreg[0].type[tup] =  [type]
         end
       end
+
+      if type.is_a?(ContainerType) then
+        type.element[:block] = blockreg
+      end
+
       nil
     end
 
     define_inf_rule_method :to_simd, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
+      type =  inst.inreg[0].type[tup][0]
       type = SIMDType.new(MMC_EXT::Vector, :char, 16)
       inst.outreg[0].type[tup] = [type]
       nil
@@ -146,7 +157,7 @@ module MTypeInf
     define_inf_rule_method :target, MMC_EXT::SIMD::Select do |infer, inst, node, tup|
       seltype = inst.inreg[0].type[tup][0]
       eles = seltype.element
-      type = LiteralType.new(String, "  " * (eles.size - 1))
+      type = LiteralType.new(String, "  " * (eles.size - 2)) #- 2 means UNDEF and :block
       inst.outreg[0].type[tup] = [type]
       nil
     end
@@ -154,7 +165,7 @@ module MTypeInf
     define_inf_rule_method :target, MMC_EXT::SIMD::SelectBitmap do |infer, inst, node, tup|
       seltype = inst.inreg[0].type[tup][0]
       eles = seltype.element
-      type = LiteralType.new(String, "  " * (eles.size - 1)) #- 1 means UNDEF
+      type = LiteralType.new(String, "  " * (eles.size - 2)) #- 2 means UNDEF and :block
       inst.outreg[0].type[tup] = [type]
       nil
     end
@@ -214,14 +225,24 @@ module CodeGenC
       ireg = inst.inreg[0]
       type = ireg.type[tup][0]
       types = type.element[0].type.values[0]
-      src = "{"
-      types[0].val.each_byte do |b|
-        src << "#{b}, "
+      if types[0].is_a?(MTypeInf::LiteralType) then
+        src = "{"
+        types[0].val.each_byte do |b|
+          src << "#{b}, "
+        end
+        src << "}"
+        src = "v#{nreg.id} = (#{get_ctype(ccgen, nreg, tup, infer)})#{src};\n"
+      else
+        breg = type.element[0].genpoint.inreg[0]
+        reg = type.element[:block]
+        regnm = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)[0]
+        procid = reg.type[tup][0].id
+        src = "(((struct proc#{procid} *)#{regnm})->env->v#{breg.id})"
+        src = "memcpy(&v#{nreg.id}, #{src}, 16);\n"
       end
-      src << "}"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = (#{get_ctype(ccgen, nreg, tup, infer)})#{src};\n"
+      ccgen.pcode << src
       nil
     end
 
@@ -231,7 +252,7 @@ module CodeGenC
       type = ireg.type[tup][0]
       eles = type.element
       src = "{"
-      (eles.size - 1).times do |i|
+      (eles.size - 2).times do |i|
         range = eles[i].type.values[0][0]
         fst = range.element[0].type.values[0][0].val
         lst = range.element[1].type.values[0][0].val
@@ -250,7 +271,7 @@ module CodeGenC
       type = ireg.type[tup][0]
       eles = type.element
       src = "{"
-      (eles.size - 1).times do |i|
+      (eles.size - 2).times do |i|
         range = eles[i].type.values[0][0]
         fst = range.element[0].type.values[0][0].val
         lst = range.element[1].type.values[0][0].val
@@ -268,10 +289,18 @@ module CodeGenC
       ireg = inst.inreg[0]
       type = ireg.type[tup][0]
       types = type.element[0].type.values[0]
-      src = types[0].val
+      if types[0].is_a?(MTypeInf::LiteralType) then
+        src = "\"#{types[0].val}\""
+      else
+        breg = type.element[0].genpoint.inreg[0]
+        reg = type.element[:block]
+        regnm = reg_real_value_noconv(ccgen, reg, node, tup, infer, history)[0]
+        procid = reg.type[tup][0].id
+        src = "(((struct proc#{procid} *)#{regnm})->env->v#{breg.id})"
+      end
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = \"#{src}\";\n"
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
       nil
     end
 
