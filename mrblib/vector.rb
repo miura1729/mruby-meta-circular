@@ -16,6 +16,10 @@ module MTypeInf
 
     attr :etype
     attr :size
+
+    def inspect(level = 0)
+      "#{@class_object.inspect}<type=#{@etype} size=#{@size}>"
+    end
   end
 
   class TypeInferencer
@@ -33,6 +37,24 @@ module MTypeInf
     define_inf_rule_method :pcmpestrm128, MMC_EXT::Vector do |infer, inst, node, tup|
       type = SIMDType.new(MMC_EXT::Vector, :char, 16)
       inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
+    define_inf_rule_method :add128, MMC_EXT::Vector do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, true)
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
+    define_inf_rule_method :sub128, MMC_EXT::Vector do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, true)
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
+    define_inf_rule_method :mul128, MMC_EXT::Vector do |infer, inst, node, tup|
+      slftype = inst.inreg[0].type[tup][0]
+      inst.outreg[0].type[tup] = [slftype]
       nil
     end
 
@@ -75,6 +97,11 @@ module MTypeInf
 
       nil
     end
+
+    define_inf_rule_method :copy, Array  do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+    end
   end
 end
 
@@ -102,6 +129,15 @@ module CodeGenC
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = __builtin_ia32_pcmpestrm128(#{base}, #{base_num}, #{target}, #{target_num}, #{para});\n"
+    end
+
+    define_ccgen_rule_method :mul128, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
+      arg0 = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+      arg1 = (reg_real_value_noconv(ccgen, inst.inreg[2], node, tup, infer, history))[0]
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      ccgen.pcode << "v#{nreg.id} = (#{arg0}) * (#{arg1});\n"
     end
 
     define_ccgen_rule_method :[], MMC_EXT::Bitmap do |ccgen, inst, node, infer, history, tup|
@@ -245,6 +281,12 @@ module CodeGenC
       else
         raise "multiple argument not support yet in Array::[]="
       end
+    end
+
+    define_ccgen_rule_method :copy, Array do |ccgen, inst, node, infer, history, tup|
+      dst = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
+      src = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+      ccgen.pcode << "__builtin_memcpy(#{dst}, &#{src}, 16);\n"
     end
   end
 end

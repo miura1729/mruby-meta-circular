@@ -21,7 +21,7 @@ class View
     end
   end
 
-  def [](idx, val)
+  def [](idx)
     @strage[@st + idx]
   end
 
@@ -264,7 +264,7 @@ def main
   #    0123456789abcdefghijklmnopqrstuvwxyz
   a = "sad  0fsd0m m0ma  se@pmapee qwaaaabbbc ccpetaaaawk".to_view
   pp find(a, "sad")
-  pp find(a, "sd0m")
+  pp find(a, "s0m")
   pp find1(a)
   pp find2(a)
   pp find3(a)

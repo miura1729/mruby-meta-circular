@@ -154,7 +154,10 @@ module MTypeInf
 
                 if @class_object == MMC_EXT::SIMD::Select or
                    @class_object == MMC_EXT::SIMD::SelectBitmap or
-                   @class_object == MMC_EXT::SIMD::Find then
+                   @class_object == MMC_EXT::SIMD::Find or
+                   @class_object == MMC_EXT::SIMD::AddVec or
+                   @class_object == MMC_EXT::SIMD::SubVec or
+                   @class_object == MMC_EXT::SIMD::MulVec then
                    return false
                  end
 

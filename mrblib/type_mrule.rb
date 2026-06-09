@@ -793,11 +793,14 @@ module MTypeInf
       if arg == nil then
         arg = inst.inreg[1].type.values[0]
       end
-      if slf.size != 1 || slf[0].class_object == arg[0].val then
+
+      if slf.size != 1 ||
+          slf[0].class_object.ancestors.include?(arg[0].val) then
         type = LiteralType.new(TrueClass, true)
         inst.outreg[0].add_type(type, tup)
       end
-      if slf.size != 1 || slf[0].class_object != arg[0].val then
+      if slf.size != 1 ||
+          !(slf[0].class_object.ancestors.include?(arg[0].val)) then
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
       end

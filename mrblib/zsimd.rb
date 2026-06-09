@@ -11,7 +11,20 @@ module MMC_EXT
 
     class SelectBitmap
     end
+
+    class NumericVec
+    end
+
+    class AddVec<NumericVec
+    end
+
+    class SubVec<NumericVec
+    end
+
+    class MulVec<NumericVec
+    end
   end
+
 end
 
 module MTypeInf
@@ -128,6 +141,79 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :_simd_check, Array do |infer, inst, node, tup|
+      blockreg = inst.inreg[1]
+      blockty = blockreg.get_type(tup)[0]
+      block = blockty.irep
+      effects = block.effects
+      inst.outreg[0].type[tup] =  [LiteralType.new(NilClass, nil)]
+      type = nil
+
+      if !effects[:apush].nil? then
+        type = nil
+        effects[:apush].values.each do |apheff|
+          valreg = apheff[1]
+          valins = valreg.genpoint
+          if !valins.is_a?(RiteSSA::Inst) then
+            next
+          end
+
+          arg0 = valins.inreg[0]
+          arg1 = valins.inreg[1]
+          tins0 = nil
+          while (!arg0.is_a?(RiteSSA::ParmReg)) and (tins0 = arg0.genpoint).op == :MOVE
+            arg0 = tins0.inreg[0]
+          end
+
+          tins1 = nil
+          while (!arg1.is_a?(RiteSSA::ParmReg)) and (tins1 = arg1.genpoint).op == :MOVE
+            arg1 = tins1.inreg[0]
+          end
+
+          unless (arg0.is_a?(RiteSSA::ParmReg) and arg1.is_a?(RiteSSA::ParmReg)) or
+              (tins0.op == :ENTER and tins1.op == :ENTER)
+            next
+          end
+
+          level = infer.callstack.size
+          previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+
+          case valins.op
+          when :ADD
+            type ||= ContainerType.new(MMC_EXT::SIMD::AddVec, inst, previrep, level)
+
+          when :SUB
+            type ||= ContainerType.new(MMC_EXT::SIMD::SubVec, inst, previrep, level)
+
+          when :MUL
+            type ||= ContainerType.new(MMC_EXT::SIMD::MulVec, inst, previrep, level)
+          end
+          type.element[0] = valreg
+          inst.outreg[0].type[tup] =  [type]
+        end
+
+      else
+        inst.outreg[0].type[tup] =  [PrimitiveType.new(NilClass)]
+        elseflag = false
+        return
+      end
+
+      effects[:apush].values.each do |apheff|
+        ty = apheff[0].type.values[0][0]
+        ks = ty.place[:push]
+        if ks then
+          ty.escape_cache = nil
+          ks[0][0] = false
+        end
+      end
+
+      if type.is_a?(ContainerType) then
+        type.element[:block] = blockreg
+      end
+
+      nil
+    end
+
     define_inf_rule_method :to_simd, MMC_EXT::SIMD::Find do |infer, inst, node, tup|
       type =  inst.inreg[0].type[tup][0]
       type = SIMDType.new(MMC_EXT::Vector, :char, 16)
@@ -138,6 +224,19 @@ module MTypeInf
     define_inf_rule_method :to_simd, MMC_EXT::SIMD::Select do |infer, inst, node, tup|
       type = SIMDType.new(MMC_EXT::Vector, :char, 16)
       inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
+    define_inf_rule_method :to_simd, MMC_EXT::SIMD::NumericVec do |infer, inst, node, tup|
+      type =  inst.inreg[0].type[tup][0]
+      restype = type.element[0].type.values[0][0].class_object
+      if restype == Fixnum
+        type = SIMDType.new(MMC_EXT::Vector, :int, 4)
+        inst.outreg[0].type[tup] = [type]
+      else
+        type = SIMDType.new(MMC_EXT::Vector, :double, 2)
+        inst.outreg[0].type[tup] = [type]
+      end
       nil
     end
 
@@ -173,7 +272,7 @@ module MTypeInf
     define_inf_rule_method :to_simd, Array do |infer, inst, node, tup|
       aryty = inst.inreg[0].type[tup][0]
       if aryty.nil? then
-        aryty = inst.inreg[0].type[tup][0]
+        aryty = inst.inreg[0].type.values[0][0]
       end
       aryele = aryty.element.values[0]
       elecls = aryele.type.values[0][0].class_object
@@ -181,10 +280,10 @@ module MTypeInf
         ntype = SIMDType.new(MMC_EXT::Vector, :char, 16)
 
       elsif elecls == Float
-        ntype = SIMDType.new(MMC_EXT::Vector, :double, 16)
+        ntype = SIMDType.new(MMC_EXT::Vector, :double, 2)
 
       elsif elecls == Fixnum
-        ntype = SIMDType.new(MMC_EXT::Vector, :int, 16)
+        ntype = SIMDType.new(MMC_EXT::Vector, :int, 4)
 
       else
         p "Unkonwn class #{aryele.type.values[0][0].class_object}"
@@ -216,6 +315,11 @@ end
 module CodeGenC
   class CodeGen
     define_ccgen_rule_method :_simd_check, View do |ccgen, inst, node, infer, history, tup|
+      # No code generate this methed only for type
+      nil
+    end
+
+    define_ccgen_rule_method :_simd_check, Array do |ccgen, inst, node, infer, history, tup|
       # No code generate this methed only for type
       nil
     end
@@ -284,6 +388,10 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :to_simd, MMC_EXT::SIMD::NumericVec do |ccgen, inst, node, infer, history, tup|
+      nil
+    end
+
     define_ccgen_rule_method :target, MMC_EXT::SIMD::Find do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       ireg = inst.inreg[0]
@@ -316,11 +424,27 @@ module CodeGenC
       off = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       ary, aryt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
+      ty = nreg.type.values[0][0]
+      elety = ty.etype
       src = "(#{ary} + #{off})"
-      src = "__builtin_ia32_loaddqu(#{src})"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
-      ccgen.pcode << "v#{nreg.id} = (#{src});\n"
+
+      case elety
+      when :char
+        src = "__builtin_ia32_loaddqu(#{src})"
+        ccgen.pcode << "v#{nreg.id} = (#{src});\n"
+
+      when :int
+        ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
+
+      when :double
+        ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
+
+      else
+        p "Unkonwn class #{ty}"
+      end
+
       nil
     end
 
@@ -330,6 +454,14 @@ module CodeGenC
       if varsymt.is_a?(MTypeInf::LiteralType) then
         varsym = varsymt.val
         preg = binding.preg
+        cnode = node
+        if preg.is_a?(RiteSSA::ParmReg) then
+          while cnode
+            preg = cnode.enter_reg[preg.genpoint]
+            cnode = cnode.enter_link[0]
+          end
+        end
+
         block = preg.type.values[0][0]
         lv = block.parent.irep.irep.lv
         env = block.env

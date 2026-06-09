@@ -1250,11 +1250,11 @@ module CodeGenC
           when :char
             "v#{type[2]}qi"
           when :int
-            "v#{type[2]/4}si"
+            "v#{type[2]}si"
           when :float
-            "v#{type[2]/4}sf"
+            "v#{type[2]}sf"
           when :doblet
-            "v#{type[2]/2}df"
+            "v#{type[2]}df"
           else
             raise "Unknown vector type #{type[1]}"
           end
