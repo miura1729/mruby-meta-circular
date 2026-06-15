@@ -607,44 +607,40 @@ module MTypeInf
         slf.ancestors.each do |slfcls|
           irep = nil
           procssa = @@ruby_methodtab[name][slfcls]
+          irep = Irep::get_irep_instance(slf, name)
+          name2 = name
+          if irep and Irep::OPTABLE_SYM[Irep::get_opcode(irep.iseq[0])] == :CALL then
+            name2 = :call
+            irep = nil
+          end
+
           if procssa.nil? then
-            irep = Irep::get_irep_instance(slf, name)
-            name2 = name
-            if irep and Irep::OPTABLE_SYM[Irep::get_opcode(irep.iseq[0])] == :CALL then
-              name2 = :call
-              irep = nil
-            end
+            # TODO current class override method whose name is predefined method
+            if @@ruletab[:METHOD][name2] and @@ruletab[:METHOD][name2][slfcls] then
+              # written in C or method mmsing  or no method error
+              existf = true
+              cont = @@ruletab[:METHOD][name2][slfcls]
+              if cont == :reader then
+                clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
+                name2ins = "@#{name2.to_s}".to_sym
+                ivreg = clsobj.get_iv(name2ins)
+                inst.outreg[0].add_same(ivreg)
+                inst.outreg[0].flush_type(tup, -1)
+                inst.line # for bug (reason is unkown)
+                #p name2ins
+                #p ivreg.id
 
-            if irep.nil? then
-              if @@ruletab[:METHOD][name2] and @@ruletab[:METHOD][name2][slfcls] then
-                # written in C or method mmsing  or no method error
-                existf = true
-                cont = @@ruletab[:METHOD][name2][slfcls]
-                if cont == :reader then
-                  clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
-                  name2ins = "@#{name2.to_s}".to_sym
-                  ivreg = clsobj.get_iv(name2ins)
-                  inst.outreg[0].add_same(ivreg)
-                  inst.outreg[0].flush_type(tup, -1)
-                  inst.line # for bug (reason is unkown)
-                  #p name2ins
-                  #p ivreg.id
-
-                elsif cont == :writer then
-                  clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
-                  name2ins = "@#{name2.to_s.chop}".to_sym
-                  ivreg = clsobj.get_iv(name2ins)
-                  ivreg.add_same(inst.inreg[1])
-                  ivreg.flush_type(-1, tup)
-
-                else
-                  cont.call(infer, inst, node, tup, intype)
-                end
+              elsif cont == :writer then
+                clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
+                name2ins = "@#{name2.to_s.chop}".to_sym
+                ivreg = clsobj.get_iv(name2ins)
+                ivreg.add_same(inst.inreg[1])
+                ivreg.flush_type(-1, tup)
 
               else
-                # No method found
+                cont.call(infer, inst, node, tup, intype)
               end
-            else
+            elsif irep then
               p0 = Proc::search_proc(slf, name)
               procssa = make_ssablock(p0)
               @@ruby_methodtab[name][slfcls] = procssa

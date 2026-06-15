@@ -1273,6 +1273,9 @@ module CodeGenC
           tys = reg.get_type_or_nil(tup)
           uv = MTypeInf::ContainerType::UNDEF_VALUE
           ereg = tys[0].element[uv]
+          if ereg.type.size == 0 then
+            ereg = tys[0].element[0]
+          end
           size = tys[0].element.size - 1
           rc = nil
           etup = tup
@@ -1346,6 +1349,9 @@ module CodeGenC
       when :array
         uv = MTypeInf::ContainerType::UNDEF_VALUE
         ereg = reg.get_type(tup)[0].element[uv]
+        if ereg.type.size == 0 then
+          ereg = reg.get_type(tup)[0].element[0]
+        end
         etup = tup
         if ereg.get_type_or_nil(tup) == nil then
           etup = ereg.type.keys[0]
@@ -1766,12 +1772,26 @@ EOS
               end
 
             when :mrb_int
-              <<"EOS"
+              if srct[2] > 1 then
+                num = srct[2]
+                src2 = []
+                num.times do |n|
+                  src2 << "mrb_fixnum_value(#{src}[#{n}])"
+                end
+                <<"EOS"
+({
+  mrb_value vals[] = {#{src2.join(',')}};
+  mrb_ary_new_from_values(mrb, #{num}, vals);
+})
+EOS
+              else
+                <<"EOS"
 ({
   mrb_value val = mrb_fixnum_value(#{src});
   mrb_ary_new_from_values(mrb, #{srct[2]}, &val);
 })
 EOS
+              end
 
             when :thread
               "(mrb_obj_value(mrb_data_object_alloc(mrb, ((struct mmc_system *)mrb->ud)->pthread_class, #{src}, &thread_data_header)))"

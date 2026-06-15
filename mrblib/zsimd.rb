@@ -271,22 +271,24 @@ module MTypeInf
 
     define_inf_rule_method :to_simd, Array do |infer, inst, node, tup|
       aryty = inst.inreg[0].type[tup][0]
-      if aryty.nil? then
-        aryty = inst.inreg[0].type.values[0][0]
-      end
-      aryele = aryty.element.values[0]
-      elecls = aryele.type.values[0][0].class_object
-      if elecls == CodeGenC::BYTE then
-        ntype = SIMDType.new(MMC_EXT::Vector, :char, 16)
+      if (ntype = aryty.is_simd) == nil then
+        if aryty.nil? then
+          aryty = inst.inreg[0].type.values[0][0]
+        end
+        aryele = aryty.element.values[0]
+        elecls = aryele.type.values[0][0].class_object
+        if elecls == CodeGenC::BYTE then
+          ntype = SIMDType.new(MMC_EXT::Vector, :char, 16)
 
-      elsif elecls == Float
-        ntype = SIMDType.new(MMC_EXT::Vector, :double, 2)
+        elsif elecls == Float
+          ntype = SIMDType.new(MMC_EXT::Vector, :double, 2)
 
-      elsif elecls == Fixnum
-        ntype = SIMDType.new(MMC_EXT::Vector, :int, 4)
+        elsif elecls == Fixnum
+          ntype = SIMDType.new(MMC_EXT::Vector, :int, 4)
 
-      else
-        p "Unkonwn class #{aryele.type.values[0][0].class_object}"
+        else
+          p "Unkonwn class #{aryele.type.values[0][0].class_object}"
+        end
       end
 
       inst.outreg[0].type[tup] = [ntype]
@@ -421,6 +423,11 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :to_simd, Array do |ccgen, inst, node, infer, history, tup|
+      slfty = inst.inreg[0].type[tup][0]
+      if slfty.is_a?(MTypeInf::ContainerType) and slfty.is_simd then
+        return
+      end
+
       off = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
       ary, aryt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
@@ -455,6 +462,8 @@ module CodeGenC
         varsym = varsymt.val
         preg = binding.preg
         cnode = node
+        block = preg.type.values[0][0]
+        lv = block.parent.irep.irep.lv
         if preg.is_a?(RiteSSA::ParmReg) then
           while cnode
             preg = cnode.enter_reg[preg.genpoint]
@@ -462,8 +471,6 @@ module CodeGenC
           end
         end
 
-        block = preg.type.values[0][0]
-        lv = block.parent.irep.irep.lv
         env = block.env
         envno = block.envno
         regno = envno.index(lv[varsym])

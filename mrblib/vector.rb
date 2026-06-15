@@ -58,6 +58,42 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :to_a, MMC_EXT::Vector do |infer, inst, node, tup|
+      orgtype = inst.inreg[0].type[tup][0]
+      level = infer.callstack.size
+      previrep =  infer.callstack.map {|e|  [e[0], e[4]]}
+      type = ContainerType.new(Array, inst, previrep, level)
+      orgtype.size.times do |i|
+        type.element[i] = RiteSSA::Reg.new(inst)
+        nelet = nil
+        case orgtype.etype
+        when :int
+          nelet = NumericType.new(Fixnum, false)
+        when :double
+          nelet = NumericType.new(Float, false)
+        else
+          p "Unkown type #{orgtype.etype}\n"
+        end
+
+        type.element[i].type[tup] = [nelet]
+      end
+      #type.element[ContainerType::UNDEF_VALUE].type[tup] = [orgtype.etype]
+
+      # You can translate array <-> vector(SIMD) by zero cost. Only type conversion
+      # Because vectir us akugbed need from CPU
+      # is_simd stored original vector type or nil
+      type.is_simd = orgtype
+
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
+    define_inf_rule_method :to_simd, MMC_EXT::Vector do |infer, inst, node, tup|
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
+      nil
+    end
+
     define_inf_rule_method :[], MMC_EXT::Bitmap do |infer, inst, node, tup|
       if inst.inreg.size == 3 then
         type = LiteralType.new(TrueClass, true)
@@ -281,6 +317,24 @@ module CodeGenC
       else
         raise "multiple argument not support yet in Array::[]="
       end
+    end
+
+    define_ccgen_rule_method :to_a, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
+      ireg = inst.inreg[0]
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      src = (reg_real_value_noconv(ccgen, ireg, node, tup, infer, history))[0]
+      ccgen.pcode << "v#{nreg.id} = (void *)&#{src};\n"
+    end
+
+    define_ccgen_rule_method :to_simd, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
+      ireg = inst.inreg[0]
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      src = reg_real_value(ccgen, ireg, nreg, node, tup, infer, history)
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
     end
 
     define_ccgen_rule_method :copy, Array do |ccgen, inst, node, infer, history, tup|

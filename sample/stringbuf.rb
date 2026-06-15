@@ -139,7 +139,7 @@ class View
   end
 
   def aaa
-     res = BitmapView.new(self)
+    res = BitmapView.new(self)
     a = self
     each do |sview|
       if (0..0x20).include?(sview[0]) then

@@ -22,24 +22,27 @@ class Array
       rsimd = a.to_simd
       asimd = self.to_simd(0)
       bsimd = other.to_simd(0)
-      ret = rsimd.mul128(asimd, bsimd)
-      res = block.binding.local_variable_get(:res)
-      res.copy ret
-      nil
+      rsimd.mul128(asimd, bsimd)
     else
     end
   end
 end
 
-def main
+def mul(a, b)
   res = []
-  [1, 2, 3].zip([4, 5, 6]) {|x, y|
+  a.to_a.zip(b.to_a) {|x, y|
     res << (x * y)
   }
-  pp res
+end
+
+def main
+  r = mul([1, 2, 3], [4, 5, 5])
+  r = mul(r, r)
+  pp r.to_a
   nil
 end
 
 MTypeInf::inference_main {
   main
 }
+

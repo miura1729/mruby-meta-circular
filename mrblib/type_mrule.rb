@@ -669,6 +669,8 @@ module MTypeInf
       nil
     end
 
+    alias_inf_rule_method :to_ary, :to_a, Array
+
     define_inf_rule_method :slice!, Array do |infer, inst, node, tup|
       slftype = inst.inreg[0].get_type(tup)[0]
       slftype.place[true] = true
@@ -681,9 +683,6 @@ module MTypeInf
       inst.outreg[0].add_type type, tup
       nil
     end
-
-    alias_inf_rule_method :to_ary, :to_a, Array
-
 
     define_inf_rule_method :nil?, Object do |infer, inst, node, tup|
       slf = inst.inreg[0].flush_type(tup)[tup]

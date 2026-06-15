@@ -717,6 +717,17 @@ module CodeGenC
       nil
     end
 
+    define_ccgen_rule_method :to_a, Array do |ccgen, inst, node, infer, history, tup|
+      ireg = inst.inreg[0]
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+      src = reg_real_value(ccgen, ireg, nreg, node, tup, infer, history)
+      ccgen.pcode << "v#{nreg.id} = #{src};\n"
+    end
+
+    alias_ccgen_rule_method :to_ary, :to_a, Array
+
     define_ccgen_rule_method :[], Array do |ccgen, inst, node, infer, history, tup|
       gen_array_aref(ccgen, inst, node, infer, history, tup, inst.inreg[1])
     end

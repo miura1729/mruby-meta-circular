@@ -511,6 +511,7 @@ module MTypeInf
       reg = RiteSSA::Reg.new(nil)
       @key = reg
       @immidiate_only = true
+      @is_simd = nil
     end
 
     def is_escape?(hist = {})
@@ -596,6 +597,7 @@ module MTypeInf
     attr_accessor :sizebase
     attr :key
     attr_accessor :immidiate_only
+    attr_accessor :is_simd
   end
 
   class RangeType<ContainerType
