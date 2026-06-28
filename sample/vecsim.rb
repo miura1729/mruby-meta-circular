@@ -39,6 +39,8 @@ def main
   r = mul([1, 2, 3], [4, 5, 5])
   r = mul(r, r)
   pp r.to_a
+  r = r[:a, :b, :c, :d][:a, :c, :b, :d]
+  pp r.to_a
   nil
 end
 

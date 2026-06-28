@@ -2,7 +2,13 @@ module MMC_EXT
   class Vector
   end
 
+  class TaggedVector
+  end
+
   class Bitmap<Array
+  end
+
+  class ASTNode
   end
 end
 
@@ -22,7 +28,89 @@ module MTypeInf
     end
   end
 
+  class TaggedSIMDType<PrimitiveType
+    def initialize(co, *rest)
+      super(co, *rest)
+      @offtab = {}
+      @vectab = {}
+    end
+
+    attr :offtab
+    attr :vectab
+
+    def inspect(level = 0)
+      "#{@class_object.inspect}<off=#{@offtab} vec=#{@vectab}>"
+    end
+  end
+
+  class ASTNodeType<PrimitiveType
+    def initialize(co, name, child, *rest)
+      super(co, *rest)
+      @name = name
+      @child = child
+    end
+
+    attr :child
+    attr :name
+
+    def inspect(level = 0)
+      "#{@class_object.inspect}<name=#{@name} child=#{@child}>"
+    end
+  end
+
   class TypeInferencer
+    define_inf_rule_method :[], MMC_EXT::Vector do |infer, inst, node, tup|
+      valnum = inst.inreg.size - 2
+      vec = inst.inreg[0]
+      vect = vec.type[tup][0]
+      if valnum != vect.size then
+        p "Not match vector and tag #{vect} in #{inst.filename}:#{inst.line}"
+      end
+      otype = TaggedSIMDType.new(MMC_EXT::TaggedVector)
+      valnum.times do |i|
+        sym = inst.inreg[i + 1].type.values[0][0].val
+        otype.offtab[sym] = i
+        otype.vectab[sym] = vec
+      end
+
+      inst.outreg[0].type[tup] = [otype]
+      nil
+    end
+
+    define_inf_rule_method :[], MMC_EXT::TaggedVector do |infer, inst, node, tup|
+      slf = inst.inreg[0].type[tup][0]
+      valnum = inst.inreg.size - 2
+      syms = []
+      allsym = true
+      valnum.times do |i|
+        nsym = inst.inreg[i + 1].type.values[0][0]
+        if nsym.is_a?(SymbolType) then
+          sym = nsym.val
+          syms << sym
+
+        elsif nsym.is_a?(ASTNodeType) then
+          syms << [nsym.name, nsym.child[0], nsym.child[1]]
+          allsym = false
+        end
+      end
+
+      if allsym then
+        inst.outreg[0].add_type(slf.vectab.values[0].type.values[0][0], tup)
+      else
+        raise "Not support yet"
+      end
+
+      nil
+    end
+
+    define_inf_rule_method :+, Symbol do |infer, inst, node, tup|
+      ty0 = inst.inreg[0].type.values[0][0]
+      ty1 = inst.inreg[1].type.values[0][0]
+      type = ASTNodeType.new(MMC_EXT::ASTNode, :+, [ty0, ty1])
+      inst.outreg[0].type[tup] = [type]
+      nil
+    end
+
     define_inf_rule_method :map_with_index!, MMC_EXT::Vector do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       nil
@@ -143,6 +231,46 @@ end
 
 module CodeGenC
   class CodeGen
+    define_ccgen_rule_method :[], MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
+    end
+
+    define_ccgen_rule_method :[], MMC_EXT::TaggedVector do |ccgen, inst, node, infer, history, tup|
+      slf = inst.inreg[0].type[tup][0]
+      valnum = inst.inreg.size - 2
+      syms = []
+      srcvecs = []
+      offs = []
+      allsym = true
+      valnum.times do |i|
+        nsym = inst.inreg[i + 1].type.values[0][0]
+        if nsym.is_a?(MTypeInf::SymbolType) then
+          sym = nsym.val
+          syms << sym
+          offs << slf.offtab[sym]
+          srcvecs << slf.vectab[sym]
+
+        elsif nsym.is_a?(MTypeInf::ASTNodeType) then
+          syms << [nsym.name, nsym.child[0], nsym.child[1]]
+          allsym = false
+        end
+      end
+
+      nreg = inst.outreg[0]
+      ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
+      ccgen.dcode << ";\n"
+
+      if allsym then
+        if srcvecs.all? {|e| srcvecs[0] == e} then
+          mask = offs.map {|e| e.to_s}.join(' ,')
+          inreg = srcvecs[0]
+          src = (reg_real_value_noconv(ccgen, inreg, node, tup, infer, history))[0]
+          src = "v#{nreg.id} = __builtin_shuffle(#{src}, (v4si){#{mask}});\n"
+          ccgen.pcode << src
+        end
+      else
+      end
+    end
+
     define_ccgen_rule_method :pcmpestri128, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
       base = (reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history))[0]
       base_num = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
