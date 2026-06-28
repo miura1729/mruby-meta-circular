@@ -434,12 +434,18 @@ module CodeGenC
       type1 = inst.inreg[1].type[tup][0]
       oreg = inst.outreg[0]
       if type0.is_a?(MTypeInf::LiteralType) and type0.class_object.singleton_class? then
-        ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
-        ccgen.dcode << ";\n"
-        if type0.val == type1.class_object then
-          ccgen.pcode << "v#{oreg.id} = 1;\n"
-        else
-          ccgen.pcode << "v#{oreg.id} = 0;\n"
+        oop = nil
+        if oreg.refpoint.size == 2 and oreg.refpoint[1].op == :NOP then
+          oop = oreg.refpoint[0].op
+        end
+        if oop != :JMPIF and oop != :JMPNOT then
+          ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+          ccgen.dcode << ";\n"
+          if type0.val == type1.class_object then
+            ccgen.pcode << "v#{oreg.id} = 1;\n"
+          else
+            ccgen.pcode << "v#{oreg.id} = 0;\n"
+          end
         end
       elsif oreg.get_type(tup).size > 1 then
         gen_term_top(ccgen, inst, node, tup, infer, history, inst.inreg[0], inst.inreg[1], :==)

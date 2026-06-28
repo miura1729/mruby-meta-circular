@@ -864,7 +864,12 @@ module CodeGenC
               end
             end
           end
-          preg = node.enter_reg[reg.genpoint]
+          cnode = node
+          preg = reg
+          while preg.is_a?(RiteSSA::ParmReg) and cnode.enter_link.size > 0
+            preg = node.enter_reg[reg.genpoint]
+            cnode = cnode.enter_link[0]
+          end
           return ["v#{preg.id}", srct]
 
         elsif node.enter_link.size == 1 then
