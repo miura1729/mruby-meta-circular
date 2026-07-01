@@ -1,3 +1,4 @@
+MTypeInf::inference_main {
 class Array
   def zip(other, &block)
     if _not_execute then
@@ -37,14 +38,16 @@ end
 
 def main
   r = mul([1, 2, 3], [4, 5, 5])
+  s = [2, -2, 1].to_simd(0)
   r = mul(r, r)
   pp r.to_a
-  r = r[:a, :b, :c, :d][:a, :c, :b, :d]
+  r = (r[:a, :b, :c, :d] + s[:e, :f,:g, :h])[:a, :e, :b, :d]
+  r1 = (r[:a, :b, :c, :d] + s[:e, :f,:g, :h])[:a + :b, :c + :d, :e + :f, :g + :h]
   pp r.to_a
+  pp r1.to_a
   nil
 end
 
-MTypeInf::inference_main {
   main
 }
 

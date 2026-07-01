@@ -82,11 +82,13 @@ module MTypeInf
       valnum = inst.inreg.size - 2
       syms = []
       allsym = true
+      alladd = true
       valnum.times do |i|
         nsym = inst.inreg[i + 1].type.values[0][0]
         if nsym.is_a?(SymbolType) then
           sym = nsym.val
           syms << sym
+          alladd = false
 
         elsif nsym.is_a?(ASTNodeType) then
           syms << [nsym.name, nsym.child[0], nsym.child[1]]
@@ -94,12 +96,39 @@ module MTypeInf
         end
       end
 
-      if allsym then
+      if allsym or alladd then
         inst.outreg[0].add_type(slf.vectab.values[0].type.values[0][0], tup)
       else
         raise "Not support yet"
       end
 
+      nil
+    end
+
+    define_inf_rule_method :+, MMC_EXT::TaggedVector do |infer, inst, node, tup|
+      slf = inst.inreg[0].type.values[0][0]
+      oth = inst.inreg[1].type.values[0][0]
+
+      rtype = TaggedSIMDType.new(MMC_EXT::TaggedVector)
+      slf.offtab.each do |sym, off|
+        rtype.offtab[sym] = off
+      end
+      oth.offtab.each do |sym, off|
+        if rtype.offtab[sym] then
+          p "Duplicate symbol #{sym}"
+        end
+        rtype.offtab[sym] = off
+      end
+
+      slf.vectab.each do |sym, vec|
+        rtype.vectab[sym] = vec
+      end
+
+      oth.vectab.each do |sym, vec|
+        rtype.vectab[sym] = vec
+      end
+
+      inst.outreg[0].type[tup] = [rtype]
       nil
     end
 
@@ -238,20 +267,35 @@ module CodeGenC
       slf = inst.inreg[0].type[tup][0]
       valnum = inst.inreg.size - 2
       syms = []
+      vregs = []
       srcvecs = []
       offs = []
       allsym = true
+      alladd = true
       valnum.times do |i|
         nsym = inst.inreg[i + 1].type.values[0][0]
         if nsym.is_a?(MTypeInf::SymbolType) then
           sym = nsym.val
           syms << sym
           offs << slf.offtab[sym]
-          srcvecs << slf.vectab[sym]
+          nreg = slf.vectab[sym]
+          srcvecs << nreg
+          if !vregs.include?(nreg) then
+            vregs.push nreg
+          end
+          alladd = false
 
         elsif nsym.is_a?(MTypeInf::ASTNodeType) then
-          syms << [nsym.name, nsym.child[0], nsym.child[1]]
+          sym0 = nsym.child[0].val
+          sym1 = nsym.child[1].val
+          sym = [nsym.name, sym0, sym1]
+          syms << sym
+          off = [slf.offtab[sym0], slf.offtab[sym1]]
+          offs << off
+          nreg = [slf.vectab[sym0], slf.vectab[sym1]]
+          srcvecs << [sym[0], nreg, off]
           allsym = false
+
         end
       end
 
@@ -260,15 +304,28 @@ module CodeGenC
       ccgen.dcode << ";\n"
 
       if allsym then
-        if srcvecs.all? {|e| srcvecs[0] == e} then
-          mask = offs.map {|e| e.to_s}.join(' ,')
-          inreg = srcvecs[0]
-          src = (reg_real_value_noconv(ccgen, inreg, node, tup, infer, history))[0]
-          src = "v#{nreg.id} = __builtin_shuffle(#{src}, (v4si){#{mask}});\n"
-          ccgen.pcode << src
-        end
-      else
+        mask = offs.zip(srcvecs).map {|off, creg| off + ((creg == vregs[0]) ? 0 : 4) }.join(' ,')
+        src = vregs.map {|inreg|
+          (reg_real_value_noconv(ccgen, inreg, node, tup, infer, history))[0]
+        }.join(", ")
+        src = "v#{nreg.id} = __builtin_shuffle(#{src}, (v4si){#{mask}});\n"
+
+      elsif alladd then
+        src = srcvecs.map {|op, reg, off|
+          r0 = (reg_real_value_noconv(ccgen, reg[0], node, tup, infer, history))[0]
+          r1 = (reg_real_value_noconv(ccgen, reg[1], node, tup, infer, history))[0]
+          "(#{r0}[#{off[0]}] #{op} #{r1}[#{off[1]}])"
+        }
+        src = "v#{nreg.id} = (v4si){#{src.join(', ')}};\n"
       end
+
+      ccgen.pcode << src
+    end
+
+    define_ccgen_rule_method :+, MMC_EXT::TaggedVector do |ccgen, inst, node, infer, history, tup|
+    end
+
+    define_ccgen_rule_method :+, Symbol do |ccgen, inst, node, infer, history, tup|
     end
 
     define_ccgen_rule_method :pcmpestri128, MMC_EXT::Vector do |ccgen, inst, node, infer, history, tup|
