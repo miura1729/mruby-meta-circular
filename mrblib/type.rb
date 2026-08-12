@@ -37,9 +37,10 @@ module MTypeInf
             return MMC_EXT::Mutex
           end
         end
+        class_object_core(outescape)
+      else
+        @class_object
       end
-
-      class_object_core(outescape)
     end
 
     def class_object_core(outescape =  true)
@@ -292,24 +293,26 @@ module MTypeInf
 
           elsif e.hometown.irep == @phometowns[-3][0].irep then
             base = @phometowns[-2][0].allocate_reg
-            reg = @phometowns[-2][1][1].outreg[0]
+#            reg = @phometowns[-2][1][1].outreg[0]
 #            reg = @hometown.outreg[0]
             reg2 = @hometown.outreg[0]
             ctup = reg2.type.keys[0]
             objty = reg2.type[ctup][0]
             clsobj = objty.class_object(false)
+            newhometown = @phometowns[-2][1][1]
             case self
             when UserDefinedType
-              nty = UserDefinedType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
+              nty = UserDefinedType.new(clsobj, newhometown, @phometowns[0..-2], @phometowns.size - 1)
 
             when ContainerType
-              nty = ContainerType.new(clsobj, @phometowns[-2][1][1], @phometowns[0..-2], @phometowns.size - 1)
+              nty = ContainerType.new(clsobj, newhometown, @phometowns[0..-2], @phometowns.size - 1)
             end
             oldcachenty = nty.escape_cache
             nty.escape_cache = :cont
             oldcache = @escape_cache
             @escape_cache = :cont
 
+            reg = RiteSSA::Reg.new(newhometown)
             base.each do |ptup, regs|
               reg.type[ptup] ||= []
               if !reg.type[ptup].include?(nty) then
@@ -353,7 +356,7 @@ module MTypeInf
 
     def is_gcobject?
       a = TypeSource[@class_object]
-      !(a and a != ContainerType and a != StringType)
+      (a == nil or a == ContainerType or a == StringType)
     end
   end
 
@@ -784,7 +787,7 @@ module MTypeInf
     end
 
     def inspect_aux(hist, level)
-      "#{@class_object.inspect} e=#{is_escape?} l=#{@level} var=#{@version} home=#{@hometown}"
+      "#{@class_object.inspect} e=#{is_escape?} l=#{@level} var=#{@version} home=[#{@hometown.op}, #{@hometown.line}]"
     end
 
     def is_gcobject?
