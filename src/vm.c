@@ -2860,7 +2860,7 @@ RETRY_TRY_BLOCK:
 		  p = mrb_proc_new(mrb, cirep);
 		}
 		p->flags = proc->flags;
-		p->body.irep->refcnt++;
+		//p->body.irep->refcnt++;
 		p->e.env = proc->e.env;
 		p->upper = proc->upper;
 		irep->pool[ipos] = mrb_fixnum_value((uintptr_t)cirep - (uintptr_t)mrb);
@@ -2875,14 +2875,17 @@ RETRY_TRY_BLOCK:
 	      }
 	    }
 	    else {
+	      /* inc/dec for GC in Proc allocate */
+	      mrb_irep_incref(mrb, nirep);
 	      if (irep->shared_lambda == 1) {
 		p = get_local_proc(mrb, nirep);
 	      }
 	      else {
 		p = mrb_proc_new(mrb, nirep);
 	      }
+	      mrb_irep_decref(mrb, nirep);
 	      p->flags = proc->flags;
-	      p->body.irep->refcnt++;
+	      //p->body.irep->refcnt++;
 	      p->e.env = proc->e.env;
 	      p->upper = proc->upper;
 	      mrb->c->ci->proc = proc = p;

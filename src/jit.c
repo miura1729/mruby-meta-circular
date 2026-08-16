@@ -533,14 +533,17 @@ mrbjit_exec_enter(mrb_state *mrb, mrbjit_vmstatus *status)
 	  }
 	}
 	else {
-	  if (irep->shared_lambda == 1) {
+	  /* inc/dec for GC in Proc allocate */
+	  mrb_irep_incref(mrb, nirep);
+	  if (nirep->shared_lambda == 1) {
 	    p = mrbjit_get_local_proc(mrb, nirep);
 	  }
 	  else {
 	    p = mrb_proc_new(mrb, nirep);
 	  }
+	  mrb_irep_decref(mrb, nirep);
 	  p->flags = proc->flags;
-	  p->body.irep->refcnt++;
+	  //p->body.irep->refcnt++;
 	  p->e.env = proc->e.env;
 	  p->upper = proc->upper;
 	  mrb->c->ci->proc = proc = p;
