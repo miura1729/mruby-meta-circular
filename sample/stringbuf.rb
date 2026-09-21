@@ -108,7 +108,8 @@ class View
         end
         res = block.binding.local_variable_get(:res)
         ret = tgsimd.pcmpestrm128(tsize, visimd, visize, 4)
-        res.bitmap[i, 16] = ret
+        bit = res.bitmap
+        bit[i, 16] = ret
         i = i + 16
       end
       res.bitmap[i, 16] = 1
@@ -287,3 +288,18 @@ end
 MTypeInf::inference_main {
   main
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

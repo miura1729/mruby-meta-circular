@@ -465,8 +465,9 @@ module CodeGenC
             when 8, 16, 32, 64
               ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
               ccgen.dcode << ";\n"
-              valx = gen_type_conversion(ccgen, :mrb_int, valt, val, tup, node, infer, history, nreg)
-              ccgen.pcode << "((uint#{size}_t *)#{vec})[#{idx}/#{size}] = (#{valx});\n"
+              inttype = "uint#{size}_t".intern
+              valx = gen_type_conversion(ccgen, inttype, valt, val, tup, node, infer, history, nreg)
+              ccgen.pcode << "((#{inttype} *)#{vec})[#{idx}/#{size}] = (#{valx});\n"
               ccgen.pcode << "v#{nreg.id} = (#{val});\n"
 
             else
@@ -484,8 +485,9 @@ module CodeGenC
               # TODO Add range check
               ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
               ccgen.dcode << ";\n"
-              val = gen_type_conversion(ccgen, :mrb_int, valt, val, tup, node, infer, history, nreg)
-              ccgen.pcode << "((uint#{size}_t *)#{vec})[#{idx}/#{size}] = (#{val});\n"
+              inttype = "uint#{size}_t".intern
+              valx = gen_type_conversion(ccgen, inttype, valt, val, tup, node, infer, history, nreg)
+              ccgen.pcode << "((#{inttype} *)#{vec})[#{idx}/#{size}] = (#{valx});\n"
               ccgen.pcode << "v#{nreg.id} = (#{val});\n"
 
             else

@@ -1811,6 +1811,9 @@ EOS
             when "foo"
 
             else
+              p src
+              p node.ext_iseq[0].line
+              p node.ext_iseq[0].filename
               raise "Not support yet #{dstt} #{srct}"
             end
 
@@ -2024,6 +2027,20 @@ EOS
 
           else
             p "Not support yet #{dstt} #{srct} bar"
+            raise
+          end
+
+        when :uint16_t
+          case srct
+          when "v16qi"
+            "*((uint16_t *)&#{src})"
+
+          when :mrb_int
+            "(#{src})"
+
+          else
+            p "Not support yet #{dstt} #{srct} bar"
+            raise
           end
 
         else
