@@ -1,5 +1,10 @@
+class Method
+end
+
 module MTypeInf
   class BasicType
+    @@escape_regs = {}
+
     UNDEF_VALUE = [:undef]
     def initialize(co, *rest)
       @class_object = co
@@ -120,7 +125,8 @@ module MTypeInf
               when primobj,
                 MTypeInf::ExceptionType,
                 MTypeInf::FiberType,
-                MTypeInf::ProcType
+                MTypeInf::ProcType,
+                MTypeInf::MethodType,
                 MTypeInf::BindingType
                 return false
 
@@ -194,6 +200,7 @@ module MTypeInf
                 return false
 
               else
+                p ele
                 raise self
               end
             end
@@ -246,7 +253,11 @@ module MTypeInf
         return false
       end
 
-      if @escape_cache then
+#      if @escape_cache == :cont then
+#        return false
+#      end
+
+      if @escape_cache #!= nil then
         return @escape_cache
       end
 
@@ -276,6 +287,9 @@ module MTypeInf
 # this debug print is useful for unnessory escape
 #            p e.class_object
 #            p e.place.keys
+          e.is_escape?(hist)
+
+        when MethodType
           e.is_escape?(hist)
 
         when UserDefinedType, ContainerType
@@ -312,7 +326,8 @@ module MTypeInf
             oldcache = @escape_cache
             @escape_cache = :cont
 
-            reg = RiteSSA::Reg.new(newhometown)
+            @@escape_regs[newhometown] ||= RiteSSA::Reg.new(newhometown)
+            reg = @@escape_regs[newhometown]
             base.each do |ptup, regs|
               reg.type[ptup] ||= []
               if !reg.type[ptup].include?(nty) then
@@ -468,18 +483,18 @@ module MTypeInf
     def ==(other)
 #      other.class == LiteralType &&
       other.class == self.class &&
-        @class_object == other.class_object_core &&
-        @val == other.val &&
-        is_escape? == other.is_escape? &&
-        locked == other.locked
+        @class_object == other.class_object_core #&&
+#        @val == other.val &&
+#        is_escape? == other.is_escape? &&
+#        locked == other.locked
     end
 
     def type_equal(other, tup)
       self.class == other.class &&
-        @class_object == other.class_object_core &&
-        @val == other.val &&
-        is_escape? == other.is_escape? &&
-        locked == other.locked
+        @class_object == other.class_object_core #&&
+#        @val == other.val &&
+#        is_escape? == other.is_escape? &&
+#        locked == other.locked
     end
 
     def self.instance(klass, val)
@@ -528,28 +543,28 @@ module MTypeInf
     def ==(other)
       self.class == other.class &&
         @class_object == other.class_object_core &&
-        #        @element.size == other.element.size &&
-        (@hometown == other.hometown ||
-           (other.element[UNDEF_VALUE].type.all? {|key, types|
-             types.all? {|type|
-               tys2 = @element[UNDEF_VALUE].type[key]
-               if tys2 then
-                 tys2.include?(type)
-               else
-                 nil
-               end
-             }
-          } &&
-          @element[UNDEF_VALUE].type.all? {|key, types|
-            types.all? {|type|
-              tys2 = other.element[UNDEF_VALUE].type[key]
-              if tys2 then
-                tys2.include?(type)
-              else
-                true
-              end
-            }
-          })) &&
+        @element.size == other.element.size &&
+#        (@hometown == other.hometown ||
+#           (other.element[UNDEF_VALUE].type.all? {|key, types|
+#             types.all? {|type|
+#               tys2 = @element[UNDEF_VALUE].type[key]
+#               if tys2 then
+#                 tys2.include?(type)
+#               else
+#                 nil
+#               end
+#             }
+#          } &&
+#          @element[UNDEF_VALUE].type.all? {|key, types|
+#            types.all? {|type|
+#              tys2 = other.element[UNDEF_VALUE].type[key]
+#              if tys2 then
+#                tys2.include?(type)
+#              else
+#                true
+#             end
+#            }
+#          })) &&
 
         #        @element == other.element &&
         is_escape? == other.is_escape? &&
@@ -706,6 +721,54 @@ module MTypeInf
     attr :tups
     attr :using_tup
     attr :parent
+  end
+
+  class MethodType<BasicType
+    @@tab = []
+
+    def self.gettab
+      @@tab
+    end
+
+    def initialize(co, slf, slfreg, name, *rest)
+      super(co, *rest)
+      @id = @@tab.size
+      @@tab.push self
+      @slf = slf
+      @slfreg = slfreg
+      @name = name
+    end
+
+    def type_equal(other, tup)
+      self.class == other.class &&
+        @class_object == other.class_object_core &&
+        @slf == other.slf &&
+        @name == other.name
+        is_escape? == other.is_escape? &&
+        locked == other.locked
+    end
+
+    def ==(other)
+      self.class == other.class &&
+        @class_object == other.class_object_core &&
+        @slf == other.slf &&
+        @name == other.name
+        is_escape? == other.is_escape? &&
+        locked == other.locked
+    end
+
+    def inspect_aux(hist, level)
+      "#{@class_object.inspect} e= #{is_escape?} slf=#{@slf} name=#{@name}"
+    end
+
+    def is_gcobject?
+      true
+    end
+
+    attr :id
+    attr_accessor  :slf
+    attr :slfreg
+    attr :name
   end
 
   class FiberType<BasicType

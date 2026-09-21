@@ -141,6 +141,12 @@ module MTypeInf
       nil
     end
 
+    define_inf_rule_method :floor, Float do |infer, inst, node, tup|
+      type = NumericType.new(Fixnum, false)
+      inst.outreg[0].add_type(type, tup)
+      nil
+    end
+
     define_inf_rule_method :freeze, Object do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0]
       inst.outreg[0].flush_type(tup)
@@ -189,7 +195,7 @@ module MTypeInf
                   no = idxtype.val
                   if arrele[no].nil? then
                     arrt.immidiate_only = false
-                    if no != 0 then
+                    if no != 0 and false then
                       inst.outreg[0].add_type nilobj, tup
                       altele.add_type nilobj, tup
                     end
@@ -232,6 +238,10 @@ module MTypeInf
         end
 
         inst.outreg[0].flush_type(tup)
+        if inst.outreg[0].type[tup] == nil then
+          type = PrimitiveType.new(NilClass)
+          inst.outreg[0].add_type type, tup
+        end
       end
       nil
     end
@@ -312,11 +322,13 @@ module MTypeInf
               case idxtype
               when MTypeInf::LiteralType
                 no = idxtype.val
-                if arrele[no].nil? then
+                if arrele[no].nil? and arrele.size < 20 then
                   arrele[no] = RiteSSA::Reg.new(nil)
                 end
-                arrele[no].add_same valreg
-                arrele[no].flush_type(tup)
+                if arrele[no] then
+                  arrele[no].add_same valreg
+                  arrele[no].flush_type(tup)
+                end
                 arrele[ContainerType::UNDEF_VALUE].add_same valreg
                 arrele[ContainerType::UNDEF_VALUE].flush_type(tup)
                 inst.outreg[0].add_same valreg
@@ -698,6 +710,20 @@ module MTypeInf
       if slf.size != 1 || slf[0].class_object != NilClass then
         type = LiteralType.new(FalseClass, false)
         inst.outreg[0].add_type(type, tup)
+      end
+      nil
+    end
+
+    define_inf_rule_method :method, Object do |infer, inst, node, tup|
+      slf = inst.inreg[0].flush_type(tup)[tup]
+      mnamet = inst.inreg[1].flush_type(tup)[tup]
+      if mnamet.size == 1 and mnamet[0].is_a?(LiteralType) then
+        mname = mnamet[0].val
+        ntype = MethodType.new(Method, slf, inst.inreg[0], mname)
+        inst.outreg[0].add_type(ntype, tup)
+        slf.each do |slftype|
+          slftype.place[ntype] = [:method, inst.line]
+        end
       end
       nil
     end
@@ -1409,8 +1435,8 @@ module MTypeInf
         raise "multiple argument not support yet in Hash::[]"
       end
 
-      hashtypes = inst.inreg[0].flush_type(tup)[tup] || []
-      idxtypes = inst.inreg[1].flush_type(tup)[tup] || []
+      hashtypes = inst.inreg[0].get_type(tup) || []
+      idxtypes = inst.inreg[1].get_type(tup) || []
 
       hashtypes.each do |hasht|
         if hasht.class_object. == Hash then
@@ -1425,10 +1451,13 @@ module MTypeInf
               end
               hashele[idx].flush_type_alltup(tup)
               inst.outreg[0].add_same hashele[idx]
+              inst.outreg[0].flush_type(tup)
 
-            when MTypeInf::PrimitiveType, MTypeInf::ContainerType
+            when MTypeInf::PrimitiveType,
+                 MTypeInf::ContainerType,
+                 MTypeInf::MethodType
               inst.outreg[0].add_same hashele[ContainerType::UNDEF_VALUE]
-              hashele[ContainerType::UNDEF_VALUE].flush_type_alltup(tup)
+              inst.outreg[0].flush_type_alltup(tup)
 
             else
               raise "Not supported in Hash::[] #{idxtype.class}"
@@ -1467,9 +1496,11 @@ module MTypeInf
             case idxtype
             when MTypeInf::LiteralType
               idx = idxtype.val
-              hashele[idx] ||= RiteSSA::Reg.new(nil)
-              hashele[idx].add_same valreg
-              hashele[idx].flush_type(tup)
+              if hashele.size < 20 or hashele[idx] then
+                hashele[idx] ||= RiteSSA::Reg.new(nil)
+                hashele[idx].add_same valreg
+                hashele[idx].flush_type(tup)
+              end
               hashele[ContainerType::UNDEF_VALUE].add_same valreg
               hashele[ContainerType::UNDEF_VALUE].flush_type(tup)
               inst.outreg[0].add_same valreg
@@ -1477,7 +1508,8 @@ module MTypeInf
             when MTypeInf::PrimitiveType,
                  MTypeInf::StringType,
                  MTypeInf::ContainerType,
-                 MTypeInf::ProcType
+                 MTypeInf::ProcType,
+                 MTypeInf::MethodType
               hashele.each do |idx, reg|
                 reg.add_same valreg
                 reg.flush_type(tup)

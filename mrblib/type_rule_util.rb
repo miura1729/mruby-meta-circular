@@ -142,6 +142,19 @@ module MTypeInf
               atype_spec_neg = addtional_type_spec
               #            genp = genp.inreg[0].genpoint
 
+            when :[]
+              typemethodp = true
+              genp = genp.inreg[0].genpoint
+              tmpreg = get_original_reg(infer, genp, node, tup)
+              uv = ContainerType::UNDEF_VALUE
+              atype_reg = tmpreg.get_type(tup)[0].element[uv]
+              notp = !notp
+              type = PrimitiveType.new(NilClass)
+              addtional_type_spec = [type]
+#              atype_spec_pos = addtional_type_spec
+              atype_spec_neg = addtional_type_spec
+              #            genp = genp.inreg[0].genpoint
+
             when :===
               type0 = genp.inreg[0].get_type(tup)[0]
               pt = nil

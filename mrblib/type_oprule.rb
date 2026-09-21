@@ -142,6 +142,13 @@ module MTypeInf
           p "#{tp} #{tys.map {|ty| ty.place.keys}}"
 #          p "#{tp} #{tys.map {|ty| ty.place}}"
         end
+        clstab = {}
+        ObjectSpace.each_object {|obj|
+         clstab[obj.class] ||= 0
+         clstab[obj.class] += 1
+        }
+        p clstab
+        clstab = nil
       end
       nil
     end
@@ -1018,6 +1025,8 @@ module MTypeInf
       reg = inst.outreg[0]
       regs.push reg #if !regs.include?(reg)
       inst.outreg[0].add_type type, tup
+#      p "ARRAY #{inst.line} #{inst.outreg[0].type.values.map {|e| e.size}}"
+      nil
     end
 
     define_inf_rule_op :ARYCAT do |infer, inst, node, tup, history|
@@ -1057,14 +1066,17 @@ module MTypeInf
 
       arrtype.each do |at|
         if at.class_object == Array then
-          p at
           if at.element[idx] then
             types = at.element[idx].get_type(tup)
           else
-            types = at.element[ContainerType::UNDEF_VALUE].get_type(tup)
+            if inst.outreg[0].type[tup] == nil then
+              types = at.element[ContainerType::UNDEF_VALUE].get_type(tup)
+            end
           end
-          types.each do |ty|
-            inst.outreg[0].add_type ty, tup
+          if types then
+            types.each do |ty|
+              inst.outreg[0].add_type ty, tup
+            end
           end
 
         else
@@ -1077,6 +1089,7 @@ module MTypeInf
         end
       end
       inst.outreg[0].flush_type(tup)
+#      p "AREF #{inst.line} #{inst.inreg[0].type[tup].map {|e| e.class_object}}"
       nil
     end
 
@@ -1174,7 +1187,7 @@ module MTypeInf
       end
       type.element[ContainerType::UNDEF_VALUE] ||= RiteSSA::Reg.new(nil)
       udefreg = type.element[ContainerType::UNDEF_VALUE]
-      udefreg.add_type PrimitiveType.new(NilClass), tup
+#      udefreg.add_type PrimitiveType.new(NilClass), tup
       inst.para[0].times do |i|
         nreg = type.element[i] || RiteSSA::Reg.new(nil)
         nreg.add_same inst.inreg[i * 2 + 1]

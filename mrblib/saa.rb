@@ -96,9 +96,9 @@ module RiteSSA
       @same = []
       samecp.each do |var|
         var.flush_type(stup, nil, true)
-        tys = var.type[stup]
+        tys = var.filter_type(var.type[stup])
         if tys then
-          tys.each do |ty|
+          filter_type(tys).each do |ty|
             add_type(ty, dtup)
           end
         end
@@ -124,7 +124,7 @@ module RiteSSA
       samecp.each do |var|
         var.flush_type_alltup(dtup)
         types = var.type
-        tys = types.values.flatten(1)
+        tys = var.filter_type(types.values.flatten(1))
         filter_type(tys).each do |ty|
           add_type(ty, dtup)
         end
@@ -166,8 +166,10 @@ module RiteSSA
                 e.class == ele.class and
                   e.class_object == ele.class_object and
                   e.val == ele.val
-              else
+              elsif e then
                 e.class_object == ele.class_object
+              else
+                false
               end
             }
           }

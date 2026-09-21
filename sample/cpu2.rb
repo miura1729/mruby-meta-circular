@@ -17,11 +17,12 @@ MTypeInf::inference_main({
 
       def op(opcodes, args)
 #        #$foo = args[2]
+        $foo = 1
         opcodes.each do |opcode|
           if args.kind_of?(Array) && [:r_op, :w_op, :rw_op].include?(args[0])
             kind, op0, mode = args
 #            $foo = mode
-#            $foo = ADDRESSING_MODES
+            $foo = ADDRESSING_MODES
             mode = ADDRESSING_MODES[mode][opcode >> 2 & 7]
             send_args = [kind, op0, mode]
             send_args << (mode.to_s.start_with?("zpg") ? :store_zpg : :store_mem) if kind != :r_op

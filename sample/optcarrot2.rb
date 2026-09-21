@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 # === nes.rb ===
+class Hash
+  def each_value(&block)
+    return to_enum :each_value unless block
+
+    self.keys.each{|k| block.call(self[k])}
+    self
+  end
+end
+
 module Enumerable
   def map(&block)
     ary = []
@@ -61,7 +70,6 @@ end
       @conf = Config.new(conf)
 
       a = Driver.load(@conf)
-      $foo = a
       @video, @audio, @input = a
 
       @cpu =            CPU.new(@conf)
@@ -2718,6 +2726,11 @@ end
         nmt_bank = @nmt_ref[i >> 10 & 3]
         nmt_idx = i & 0x03ff
         fixed = (i >> 12 & 7) | (i[15] << 12)
+#        (((@lut_update[nmt_bank] ||= []) [nmt_idx] ||= [nil, nil]))
+        foo = (@lut_update[nmt_bank] ||= [])
+        $foo = foo
+foo[nmt_idx]
+        (foo[nmt_idx] ||= [nil, nil])[0]
         (((@lut_update[nmt_bank] ||= [])[nmt_idx] ||= [nil, nil])[0] ||= []) << [i, fixed]
         @nmt_mem[nmt_bank][nmt_idx] << 4 | fixed
       end
@@ -2729,7 +2742,8 @@ end
         nmt_idx = io_addr & 0x03ff
         attr_shift = (i & 2) | (i >> 4 & 4)
         key = [io_addr, attr_shift]
-        entries[key] ||= [io_addr, TILE_LUT[@nmt_mem[nmt_bank][nmt_idx] >> attr_shift & 3], attr_shift]
+        a = [io_addr, TILE_LUT[@nmt_mem[nmt_bank][nmt_idx] >> attr_shift & 3], attr_shift]
+      entries[key] ||= a
         (((@lut_update[nmt_bank] ||= [])[nmt_idx] ||= [nil, nil])[1] ||= []) << entries[key]
         entries[key]
       end.freeze
@@ -4075,7 +4089,7 @@ end
     def initialize(opt)
       opt = { romfile: opt } if opt.is_a?(String)
       opt = Parser.new(opt).options if opt.is_a?(Array)
-      opt = DEFAULT_OPTIONS.merge(opt)
+      opt = DEFAULT_OPTIONS # .merge(opt)
       # `.to_s` / `.to_i` / `!!` casts pin each ivar to a single
       # type for AOT type inference; Ruby semantics are preserved
       # because every value coming in via DEFAULT_OPTIONS / Parser

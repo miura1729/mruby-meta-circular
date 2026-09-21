@@ -2189,19 +2189,23 @@ EOS
     end
 
     def self.gen_array_aref(ccgen, inst, node, infer, history, tup, idx)
-      if idx.type[tup] == nil then
-        tup = idx.type.keys[0]
-      end
+      if idx.is_a?(Fixnum) then
+        index = idx
+      else
+        if idx.type[tup] == nil then
+          tup = idx.type.keys[0]
+        end
 
-      if idx.type[tup][0].class == MTypeInf::RangeType then
-        gen_array_aref_range(ccgen, inst, node, infer, history, tup, idx)
-        return nil
-      end
+        if idx.type[tup][0].class == MTypeInf::RangeType then
+          gen_array_aref_range(ccgen, inst, node, infer, history, tup, idx)
+          return nil
+        end
 
-      uv = MTypeInf::ContainerType::UNDEF_VALUE
-      index = uv
-      if idx.type[tup] and idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
-        index = idx.type[tup][0].val
+        uv = MTypeInf::ContainerType::UNDEF_VALUE
+        index = uv
+        if idx.type[tup] and idx.type[tup][0].is_a?(MTypeInf::LiteralType) then
+          index = idx.type[tup][0].val
+        end
       end
       aryreg = inst.inreg[0]
       arytypes = aryreg.get_type(tup)
@@ -2289,7 +2293,11 @@ EOS
         if valt == :nil then
           src = "mrb_nil_value()"
         else
-          src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)}]"
+          if idx.is_a?(Fixnum) then
+            src = "#{src}[#{idx}]"
+          else
+            src = "#{src}[#{gen_array_range_check(ccgen, inst, tup, idx, node, infer, history)}]"
+          end
           src = gen_type_conversion(ccgen, dstt, valt, src, tup, node, infer, history, nreg)
         end
       end
