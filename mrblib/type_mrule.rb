@@ -53,39 +53,39 @@ module MTypeInf
     end
 
     define_inf_rule_method :>>, Fixnum do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
     define_inf_rule_method :<<, Fixnum do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
 
     define_inf_rule_method :&, Fixnum do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
     define_inf_rule_method :|, Fixnum do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
     define_inf_rule_method :^, Fixnum do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 
     define_inf_rule_method :~, Fixnum do |infer, inst, node, tup|
-      type = NumericType.new(Fixnum, false)
-      inst.outreg[0].add_type(type, tup)
+      inst.outreg[0].add_same inst.inreg[0]
+      inst.outreg[0].flush_type(tup)
       nil
     end
 

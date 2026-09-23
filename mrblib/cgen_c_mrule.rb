@@ -50,8 +50,7 @@ module CodeGenC
       ireg = inst.inreg[0]
       dstt = get_ctype(ccgen, nreg, tup, infer)
       src, srct = reg_real_value_noconv(ccgen, ireg, node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_int, srct, src, tup, node, infer, history, nreg)
-      src = gen_type_conversion(ccgen, dstt, :mrb_int, "~#{src}", tup, node, infer, history, nreg)
+      src = gen_type_conversion(ccgen, dstt, srct, "~#{src}", tup, node, infer, history, nreg)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"
@@ -625,11 +624,10 @@ module CodeGenC
     define_ccgen_rule_method :ffs, Kernel do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history)
-      src = gen_type_conversion(ccgen, :mrb_int, srct, src, tup, node, infer, history, nreg)
+      src = gen_type_conversion(ccgen, :uint32_t, srct, src, tup, node, infer, history, nreg)
       src = "(__builtin_ffs(#{src}))"
 
       dstt = get_ctype(ccgen, nreg, tup, infer)
-      src = gen_type_conversion(ccgen, dstt, srct, src, tup, node, infer, history, nreg)
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
       ccgen.pcode << "v#{nreg.id} = #{src};\n"

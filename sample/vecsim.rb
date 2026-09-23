@@ -2,7 +2,7 @@ MTypeInf::inference_main {
 class Array
   def zip(other, &block)
     if _not_execute then
-      yield self[0], other[0]
+      block.call(self[0], other[0])
     end
 
     a = _simd_check(block)

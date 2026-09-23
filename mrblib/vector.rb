@@ -223,7 +223,8 @@ module MTypeInf
         size = inst.inreg[2].type[tup][0].val
         case size
         when 8, 16, 32, 64
-          type = NumericType.new(Fixnum, true)
+          uintt = eval "UINT#{size}_T"
+          type = NumericType.new(uintt, true)
           inst.outreg[0].add_type(type, tup)
         end
 

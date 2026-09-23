@@ -175,18 +175,21 @@ class BitmapView
     @bitmap
   end
 
-  def index(target)
+  def index(target, start)
     res = 0
     if target then
-      i = 0
-      while (res = ffs(@bitmap[i, 32])) == 0
+      i = (start/32)*32
+      bit = @bitmap[i, 32] & (~((1 << ((start + 1) & 31)) - 1))
+      ffs(bit)
+      while (res = ffs(bit)) == 0
         i = i + 32
+        bit = @bitmap[i, 32]
       end
 
       res = res + i - 1
     else
-      i = 0
-      bit = ~@bitmap[i, 32]
+      i = (start/32)*32
+      bit = (~@bitmap[i, 32]) & (~((1 << ((start + 1) & 31)) - 1))
       while (res = ffs(bit)) == 0
         i = i + 32
         bit = ~@bitmap[i, 32]
@@ -272,12 +275,41 @@ def main
   pp a.fff
   pp a.fff
   bb = a.aaa
-  pp bb.index(true)
-  pp bb.index(false)
+  a = bb.index(true, 0)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
+  a = bb.index(false, a)
+  pp a
+  a = bb.index(true, a)
+  pp a
   bitmap = bb.bitmap
-  pp bitmap[0, 16]
-  pp bitmap[16, 16]
-  pp bitmap[32, 16]
+  a = bitmap[0, 32]
+  pp a & (a >> 1)
+  pp bitmap[32, 32]
+  pp bitmap[64, 32]
   pp bitmap[48, 16]
   pp bitmap[64, 16]
 #  foo(a
@@ -288,18 +320,6 @@ end
 MTypeInf::inference_main {
   main
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

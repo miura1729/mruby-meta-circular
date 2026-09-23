@@ -1,6 +1,3 @@
-class Method
-end
-
 module MTypeInf
   class BasicType
     @@escape_regs = {}
@@ -204,7 +201,12 @@ module MTypeInf
                 raise self
               end
             end
-          elsif class_object_core == MMC_EXT::Bitmap then
+          elsif class_object_core == MMC_EXT::Bitmap or
+              class_object_core == Fixnum or
+              class_object_core == UINT8_T or
+              class_object_core == UINT16_T or
+              class_object_core == UINT32_T or
+              class_object_core == UINT64_T then
             return false
           end
 
@@ -945,6 +947,11 @@ module MTypeInf
     Array => ContainerType,
     Hash => ContainerType,
     Range => RangeType,
+
+    UINT8_T => NumericType,
+    UINT16_T => NumericType,
+    UINT32_T => NumericType,
+    UINT64_T => NumericType,
   }
   TypeTable = {}
   TypeSource.each do |ty, cl|

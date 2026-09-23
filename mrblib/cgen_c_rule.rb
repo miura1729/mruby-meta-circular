@@ -1,3 +1,11 @@
+class Method
+end
+
+class UINT8_T <Fixnum;end
+class UINT16_T <Fixnum;end
+class UINT32_T <Fixnum;end
+class UINT64_T <Fixnum;end
+
 module CodeGenC
   class BYTE
   end
@@ -749,6 +757,14 @@ module CodeGenC
               src = "(#{term0} #{op} #{term1})"
             end
           end
+        elsif srcd0 == :uint8_t or
+            srcd0 == :uint16_t or
+            srcd0 == :uint32_t or
+            srcd0 == :uint64_t then
+          dsts = srcs0
+          dstd = srcd0
+          src = "((#{arg0}) #{op} (#{arg1}))"
+
         else
           op_send(ccgen, gins, node, ti, history, tup)
           needdecl = false
@@ -1086,6 +1102,10 @@ module CodeGenC
     end
 
     TTABLE = {
+      UINT8_T => :uint8_t,
+      UINT16_T => :uint16_t,
+      UINT32_T => :uint32_t,
+      UINT64_T => :uint64_t,
       Fixnum => :mrb_int,
       CodeGenC::BYTE => :uint8_t,
       Float => :mrb_float2,
@@ -1825,6 +1845,12 @@ EOS
             when :mrb_int
               "(mrb_fixnum_value(#{src}))"
 
+            when :uint8_t,
+                 :uint16_t,
+                 :uint32_t,
+                 :uint64_t
+              "(mrb_fixnum_value(#{src}))"
+
             when :uint8_t
               "(mrb_fixnum_value(#{src}))"
 
@@ -1939,10 +1965,35 @@ EOS
             when "v16qi"
               "((mrb_int)(#{src}[0]))"
 
+            when :uint8_t,
+                 :uint16_t,
+                 :uint32_t,
+                 :uint64_t
+              "(#{src})"
+
             else
               p src
               raise "Not support yet #{dstt} #{srct}"
             end
+          end
+
+        when :uint8_t,
+             :uint16_t,
+             :uint32_t,
+             :uint64_t
+          case srct
+          when :mrb_value
+            "(mrb_fixnum(#{src}))"
+
+          when :mrb_int
+            "(#{src})"
+
+          when "v16qi"
+            "(((#{dstt.to_s} *)(&#{src}))[0])"
+
+          else
+            p src
+            raise "Not support yet #{dstt} #{srct}"
           end
 
         when :mrb_float2
@@ -2024,19 +2075,6 @@ EOS
           case srct
           when :mrb_value
             "mrb_symbol(#{src})"
-
-          else
-            p "Not support yet #{dstt} #{srct} bar"
-            raise
-          end
-
-        when :uint16_t
-          case srct
-          when "v16qi"
-            "*((uint16_t *)&#{src})"
-
-          when :mrb_int
-            "(#{src})"
 
           else
             p "Not support yet #{dstt} #{srct} bar"
