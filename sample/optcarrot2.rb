@@ -15,6 +15,31 @@ module Enumerable
     self.each{|val| ary.push(block.call(val))}
     ary
   end
+
+  def max(&block)
+    flag = true  # 1st element?
+    result = nil
+    self.each{|*val|
+      val = val.__svalue
+      if flag
+        # 1st element
+        result = val
+        flag = false
+    $foo = result
+      else
+        if block
+          result = val if block.call(val, result) > 0
+          returt = val
+        else
+          if (val <=> result) > 0
+            result = val
+             else
+          end
+        end
+      end
+    }
+    result
+  end
 end
 
 MTypeInf::inference_main {
@@ -2728,7 +2753,6 @@ end
         fixed = (i >> 12 & 7) | (i[15] << 12)
 #        (((@lut_update[nmt_bank] ||= []) [nmt_idx] ||= [nil, nil]))
         foo = (@lut_update[nmt_bank] ||= [])
-        $foo = foo
 foo[nmt_idx]
         (foo[nmt_idx] ||= [nil, nil])[0]
         (((@lut_update[nmt_bank] ||= [])[nmt_idx] ||= [nil, nil])[0] ||= []) << [i, fixed]

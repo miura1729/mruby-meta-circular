@@ -112,7 +112,6 @@ class View
         bit[i, 16] = ret
         i = i + 16
       end
-      res.bitmap[i, 16] = 1
       return -1
 
     else

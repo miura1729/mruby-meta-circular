@@ -424,32 +424,47 @@ module CodeGenC
 
     define_ccgen_rule_method :to_simd, Array do |ccgen, inst, node, infer, history, tup|
       slfty = inst.inreg[0].type[tup][0]
-      if slfty.is_a?(MTypeInf::ContainerType) and slfty.is_simd then
-        return
-      end
-
-      off = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
-      ary, aryt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       nreg = inst.outreg[0]
-      ty = nreg.type.values[0][0]
-      elety = ty.etype
-      src = "(#{ary} + #{off})"
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
       ccgen.dcode << ";\n"
+      if slfty.is_a?(MTypeInf::ContainerType) and slfty.is_simd
+        src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
 
-      case elety
-      when :char
-        src = "__builtin_ia32_loaddqu(#{src})"
-        ccgen.pcode << "v#{nreg.id} = (#{src});\n"
+        case slfty.is_simd.etype
+        when :char
+          src = "__builtin_ia32_loaddqu(#{src})"
+          ccgen.pcode << "v#{nreg.id} = (#{src});\n"
 
-      when :int
-        ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
+        when :int
+          ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
 
-      when :double
-        ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
+        when :double
+          ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
 
+        else
+          p "Unkonwn class #{slfty.is_simd}"
+        end
       else
-        p "Unkonwn class #{ty}"
+        off = (reg_real_value_noconv(ccgen, inst.inreg[1], node, tup, infer, history))[0]
+        ary, aryt = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
+        ty = nreg.type.values[0][0]
+        elety = ty.etype
+        src = "(#{ary} + #{off})"
+
+        case elety
+        when :char
+          src = "__builtin_ia32_loaddqu(#{src})"
+          ccgen.pcode << "v#{nreg.id} = (#{src});\n"
+
+        when :int
+          ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
+
+        when :double
+          ccgen.pcode << "__builtin_memcpy(&v#{nreg.id}, #{src}, 16);\n"
+
+        else
+          p "Unkonwn class #{ty}"
+        end
       end
 
       nil

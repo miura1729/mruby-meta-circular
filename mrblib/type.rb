@@ -201,12 +201,10 @@ module MTypeInf
                 raise self
               end
             end
-          elsif class_object_core == MMC_EXT::Bitmap or
-              class_object_core == Fixnum or
-              class_object_core == UINT8_T or
-              class_object_core == UINT16_T or
-              class_object_core == UINT32_T or
-              class_object_core == UINT64_T then
+          elsif NUMERIC_CLASS[ele.class_object_core] and NUMERIC_CLASS[class_object_core] then
+            return false
+
+          elsif class_object_core == MMC_EXT::Bitmap
             return false
           end
 
@@ -249,6 +247,14 @@ module MTypeInf
         end
       end
     end
+
+    NUMERIC_CLASS = {
+      Fixnum => true,
+      UINT64_T => true,
+      UINT32_T => true,
+      UINT16_T => true,
+      UINT8_T => true,
+    }
 
     def is_escape?(hist = {})
       if !is_gcobject? then

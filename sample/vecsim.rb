@@ -24,7 +24,23 @@ class Array
       asimd = self.to_simd(0)
       bsimd = other.to_simd(0)
       rsimd.mul128(asimd, bsimd)
+
     else
+      ary = []
+      arg = arg.map{|a|a.to_a}
+      i = 0
+      self.each do |*val|
+        a = []
+        a.push(val.__svalue)
+        idx = 0
+        while idx < arg.size
+          a.push(arg[idx][i])
+          idx += 1
+        end
+        ary.push(a)
+        i += 1
+      end
+      ary
     end
   end
 end

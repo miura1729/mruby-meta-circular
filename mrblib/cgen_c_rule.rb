@@ -117,13 +117,9 @@ module CodeGenC
         val, srct = yield
         dstt = get_ctype(ccgen, outr, tup, infer)
         val = gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, outr)
-        if val == nil then
-          p outr.type[tup]
-          p outr.refpoint.size
-          p dstt
-          p srct
+        if val then
+          ccgen.pcode << "v#{outr.id} = #{val};\n"
         end
-        ccgen.pcode << "v#{outr.id} = #{val};\n"
       end
     end
 
@@ -768,7 +764,7 @@ module CodeGenC
         else
           op_send(ccgen, gins, node, ti, history, tup)
           needdecl = false
-          src = "v#{gins.outreg[0].id}"
+          src = nil
         end
       elsif [:>, :>=, :<, :<=].include?(op) then
         if (srcd0 == :mrb_int or srcd0 == :mrb_float2) and
