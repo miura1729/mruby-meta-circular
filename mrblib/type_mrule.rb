@@ -172,6 +172,9 @@ module MTypeInf
     end
 
     define_inf_rule_method :[], Array do |infer, inst, node, tup|
+      node.root.effects[:arrayget] ||= {}
+      node.root.effects[:arrayget][inst] = [inst.inreg[0].type, inst.inreg[2].type]
+
       inst.inreg[0].flush_type(tup)
       inst.inreg[1].flush_type(tup)
       arrtypes = inst.inreg[0].get_type(tup)

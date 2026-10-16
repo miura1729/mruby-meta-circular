@@ -377,6 +377,16 @@ module MTypeInf
 #            end
           end
 
+        when :arrayget
+          value.each do |inst, typetups|
+            # array self
+            typetups[0].values.each do |types|
+              types.each do |type|
+                type.threads[thread] = [:modify, inst.line, inst.para[0]]
+              end
+            end
+          end
+
         when :canempty
           value.each do |inst, typetups|
             typetups.values.each do |types|

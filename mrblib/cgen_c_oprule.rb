@@ -22,8 +22,7 @@ module CodeGenC
 
       slftype = ireg.type[tup][0]
       slfobj = slftype.class_object_core
-      if !slfobj.ancestors.include?(MMC_EXT::LockPolicy::NoLock) and
-          irep.effects[:iv_write] then
+      if !slfobj.ancestors.include?(MMC_EXT::LockPolicy::NoLock) then
         oreg.type[tup].each_with_index do |type|
           type.threads = []
         end

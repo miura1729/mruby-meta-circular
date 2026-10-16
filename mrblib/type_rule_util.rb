@@ -684,19 +684,16 @@ module MTypeInf
             if irepssa.effects[:iv_read] or irepssa.effects[:iv_write] then
               orgrecreg = inst.inreg[0]
               if orgrecreg.genpoint.is_a?(RiteSSA::Inst) then
-                tmpreg = get_original_reg(infer, orgrecreg.genpoint, node, tup)
-                if tmpreg.is_a?(RiteSSA::Inst) then
-                  orgrecreg = tmpreg
-                end
+                orgrecreg = get_original_reg(infer, orgrecreg.genpoint, node, tup)
               end
               curirep.objregtab[orgrecreg] ||= {}
               if irepssa.effects[:iv_read] and !irepssa.effects[:iv_write] then
                 ivevent = [:iv_read, irepssa.effects[:iv_read][0]]
-                curirep.objregtab[orgrecreg][inst] = ivevent
+                curirep.objregtab[orgrecreg][:iv_read] = ivevent
               end
               if irepssa.effects[:iv_write] and !irepssa.effects[:iv_read] then
                 ivevent = [:iv_write, irepssa.effects[:iv_write][0]]
-                curirep.objregtab[orgrecreg][inst] = ivevent
+                curirep.objregtab[orgrecreg][:iv_write] = ivevent
               end
 
               if curirep.objregtab[orgrecreg].size > 1 then
