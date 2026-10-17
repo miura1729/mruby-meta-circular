@@ -220,6 +220,7 @@ module CodeGenC
             "tpargv->#{mem}"
           }.join(", ")
           ccgen.lfcode << ");\n"
+          ccgen.lfcode << "delete_thread_list(tpargv);\n"
           ccgen.lfcode << "return NULL;\n"
           ccgen.lfcode << "}\n"
 

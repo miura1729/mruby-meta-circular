@@ -2088,7 +2088,7 @@ EOS
     end
 
     def self.gen_get_iv_start(ccgen, inst, node, infer, history, tup, slf, ivreg)
-      slfsrc = "mutexself"
+      slfsrc = "self"
 
       if slf.is_escape?(tup) then
         idx = ivreg.genpoint

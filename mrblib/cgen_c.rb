@@ -174,7 +174,7 @@ void mrb_mark_local(mrb_state *mrb)
 	for (int i = curtab->csize; i--;) {
 	  mrb_value *cptr = curtab->complex[i];
 	  for (int j = 0; cptr[j].value.ttt != MRB_TT_FREE; j++) {
-	    if (!mrb_immediate_p(cptr[i])) {
+	    if (!mrb_immediate_p(cptr[j])) {
 	      mrb_gc_mark(mrb, mrb_basic_ptr(cptr[j]));
 	    }
 	  }
@@ -183,6 +183,26 @@ void mrb_mark_local(mrb_state *mrb)
       }
   }
 }
+
+#define delete_thread_list(tpargv)                             \
+do {                                                          \
+  mrb_state *omrb = tpargv->mrb;                              \
+  struct mmc_system *msys = (struct mmc_system *)omrb->ud;    \
+  struct thread_list *tlist = msys->thread_list;              \
+  if (tlist->mrb == omrb) {                                   \
+    msys->thread_list = tlist->next;                          \
+  }                                                           \
+  else {                                                      \
+    while (tlist->next) {                                     \
+      if (tlist->next->mrb == omrb) {                         \
+        tlist->next = tlist->next->next;                      \
+	break;                                                \
+      }                                                       \
+      tlist = tlist->next;                                    \
+    }                                                         \
+  }                                                           \
+} while(0)                                                    \
+
 EOS
     end
 

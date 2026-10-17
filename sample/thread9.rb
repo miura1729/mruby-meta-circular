@@ -46,13 +46,13 @@ def foo
   th3 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
     cnt.cnt = cnt.cnt + 1
-    pp c.cnt
+    pp cnt.cnt
   }
 
   th4 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
     aaa(cnt)
-    pp c.cnt
+    pp cnt.cnt
  }
 
   th.join
