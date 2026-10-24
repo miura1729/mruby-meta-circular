@@ -23,6 +23,7 @@ def foo
   r1 = [0, 0, nil]
   r2 = [0, 0, nil]
 
+  p "foo"
   th = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
     cnt.lock do |c|
@@ -31,6 +32,7 @@ def foo
       end
     end
   }
+
   th2 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
     res.lock do |r|
@@ -40,8 +42,22 @@ def foo
     end
   }
 
+  th3 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
+    n = 0
+    res.lock do |r|
+      c.cnt = c.cnt + 1
+    end
+  }
+
+  th4 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
+    n = 0
+    c.cnt = c.cnt + 1
+  }
+
   th.join
   th2.join
+  th3.join
+  th4.join
 end
 
 

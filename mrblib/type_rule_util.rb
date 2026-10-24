@@ -633,6 +633,7 @@ module MTypeInf
               # written in C or method mmsing  or no method error
               existf = true
               cont = @@ruletab[:METHOD][name2][slfcls]
+              slftyp = intype[0][0]
               if cont == :reader then
                 clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
                 name2ins = "@#{name2.to_s}".to_sym
@@ -676,11 +677,13 @@ module MTypeInf
             infer.callstack[-1][4] = [name, inst]
 
             irepssa.rasing = node.root.rasing
+            slftyp = intype[0][0]
             rc = infer.inference_block(irepssa, intype, ntup, argc, procssa)
-            curirep.call_blocks[irepssa] ||= {}
+            tytab = {}
             recvtypes.each do |ty|
-              curirep.call_blocks[irepssa][ty] = nil
+              tytab[ty] = name
             end
+            curirep.call_blocks[irepssa] = tytab
             if irepssa.effects[:iv_read] or irepssa.effects[:iv_write] then
               orgrecreg = inst.inreg[0]
               if orgrecreg.genpoint.is_a?(RiteSSA::Inst) then
@@ -696,7 +699,7 @@ module MTypeInf
                 curirep.objregtab[orgrecreg][:iv_write] = ivevent
               end
 
-              if curirep.objregtab[orgrecreg].size > 1 then
+              if orgrecreg and curirep.objregtab[orgrecreg].size > 1 then
                 slfreg = orgrecreg.clone
                 slfreg.refpoint.push inst
                 slfreg.setpoint = orgrecreg.setpoint.clone

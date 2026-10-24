@@ -1030,8 +1030,8 @@ module MTypeInf
         infer.callstack[-1][4] = [nil, inst]
 
         curirep = infer.callstack[-1][0]
-        curirep.call_blocks[irepssa] ||= {}
-        curirep.call_blocks[irepssa][nil] = true
+        tytab = {nil => true}
+        curirep.call_blocks[irepssa] = tytab
 
         infer.inference_block(irepssa, intype, ntup, argc, ptype)
         inst.outreg[0].add_same irepssa.retreg

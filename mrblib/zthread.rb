@@ -62,6 +62,7 @@ module MTypeInf
       inreg = inst.inreg.clone
       inst.outreg[0].add_type(thtype, tup)
       rule_yield_passed_block(infer, inst, node, tup, proc, nil, inreg)
+      node.root.call_blocks[proc[0].irep][inst.inreg[0].type[tup][0]] = :new
       infer.thread = curth
       nil
     end
@@ -80,12 +81,17 @@ module MTypeInf
       inreg[1] = RiteSSA::Reg.new(nil)
       inreg[1].type[tup] = []
       tys = inreg[1].type[tup]
-      inst.inreg[0].type[tup].each do |typ|
-        ntyp = typ.clone
-        ntyp.locked = true
-        tys.push ntyp
+      if inst.inreg[0].type[tup].size > 1 then
+        raise "Multiple types lock"
       end
+
+      typ = inst.inreg[0].type[tup][0]
+      ntyp = typ.clone
+      ntyp.locked = true
+      tys.push ntyp
       rule_yield_passed_block(infer, inst, node, tup, proc, nil, inreg)
+      node.root.call_blocks[proc[0].irep][inst.inreg[0].type[tup][0]] = :lock
+
       type = LiteralType.new(NilClass, nil)
       inst.outreg[0].add_type(type, tup)
       inst.outreg[0].flush_type(tup)
@@ -271,7 +277,7 @@ module CodeGenC
     end
 
     define_ccgen_rule_method :lock, BasicObject do |ccgen, inst, node, infer, history, tup|
-              ccgen.pcode << "/* lockfoo */\n"
+      ccgen.pcode << "/* lockfoo */\n"
       procty = get_ctype(ccgen, inst.inreg[-1], tup, infer)
       nreg = inst.outreg[0]
       MTypeInf::TypeInferencer::make_intype(infer, inst.inreg, node, tup, inst.para[1]) do |intype, argc|
@@ -340,7 +346,7 @@ module CodeGenC
             nminf[1] = ptype
             nminf[2] = utup
             nminf[3] = dstt
-            nminf[5] = true     # self is locked
+            nminf[6] = true     # self is locked
             mtab[codeno] = nminf
           end
 
@@ -351,19 +357,9 @@ module CodeGenC
           ireg = inst.inreg[0]
           oreg = RiteSSA::Reg.new(nil)
           otypes = []
-          ireg.type[tup].each_with_index do |type, i|
-            if i > 0 then
-              raise "Multiple types lock"
-            end
-            ntype = type.clone
-            ntype.locked = true
-            otypes[i] = ntype
-            prevobj = ccgen.lock_stack[-1]
-            ccgen.lock_stack.push type
-            if add_lock_object(ccgen, type, prevobj) == nil then
-              p "Possible dead lock #{node.ext_iseq[0].line} in #{node.ext_iseq[0].filename}"
-            end
-          end
+          ntype = ireg.type[tup][0].clone
+          ntype.locked = true
+          otypes[0] = ntype
           oreg.type[tup] = otypes
           dstt = get_ctype(ccgen, oreg, tup, infer)
           args << gen_type_conversion(ccgen, dstt, srct, val, tup, node, infer, history, oreg, ireg)

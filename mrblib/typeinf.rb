@@ -18,6 +18,10 @@ module MTypeInf
     end
 
     #bproc = ti.inference_top(b)
+    ltupple = {}
+    TypeInferencer::threadtab.each do |th|
+      ti.check_dead_lock(th.proc.irep, ltupple)
+    end
 
     ti.messages.each do |message, cnt|
       print message
@@ -142,6 +146,8 @@ module MTypeInf
       @allocate_object = []
       @ensure = []
       @must_execute = false
+      @lock_stack = []
+      @lock_tuple = {}
       @@threadtab[0] = @thread = ThreadType.new(MMC_EXT::Thread, nil)
     end
 
@@ -154,6 +160,8 @@ module MTypeInf
     attr_accessor :fiber
     attr_accessor :continue
     attr_accessor :must_execute
+    attr :lock_stack
+    attr :lock_tuple
 
     attr :thread
     def thread=(val)
@@ -278,6 +286,55 @@ module MTypeInf
       end
 
       mess
+    end
+
+    def add_lock_object(ltupple, newobj, prevobj)
+      ltupple[newobj] ||= []
+      ltupple[prevobj] ||= []
+
+      if !ltupple[newobj].include?(prevobj) then
+        ltupple[newobj].push prevobj
+        ltupple[prevobj].each do |obj|
+          add_lock_object(ltupple, newobj, obj)
+        end
+      end
+
+      if ltupple[prevobj].include?(newobj) then
+        true
+      else
+        false
+      end
+    end
+
+    def check_dead_lock(tblk, ltupple)
+      check_dead_lock_aux(tblk, {}, 0, ltupple, [])
+    end
+
+    def check_dead_lock_aux(tblk, hist, level, ltupple, objstack)
+      if hist[tblk] == nil then
+        tblk.call_blocks.each do |nblk, val|
+          if val.values.include?(:new)  and
+              val.keys[1].class_object == MMC_EXT::Thread.singleton_class then
+            next
+          end
+
+          if val.values.include?(:lock)
+            prevobj = objstack[-1]
+            typ = val.keys[1]
+            objstack.push typ
+            if prevobj and
+                add_lock_object(ltupple, typ, prevobj) then
+              p "Possible dead lock #{prevobj} #{typ}"
+            end
+            check_dead_lock_aux(nblk, hist, level + 1, ltupple, objstack)
+            objstack.pop
+
+          else
+            check_dead_lock_aux(nblk, hist, level + 1, ltupple, objstack)
+          end
+        end
+      end
+      hist[tblk] = true
     end
 
     def update_effects(thread, tblk)

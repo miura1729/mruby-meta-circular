@@ -41,8 +41,6 @@ module CodeGenC
       @compiled_method = {}
 
       @unlock_instruction = {}
-      @lock_stack = []
-      @lock_tuple = {}
 
       @reservno = 0
       @sendno = 0
@@ -247,9 +245,6 @@ EOS
 
     attr :unlock_instruction
 
-    attr :lock_stack
-    attr :lock_tuple
-
     attr_accessor :reservno
     attr_accessor :sendno
 
@@ -402,7 +397,7 @@ EOS
       fin = false
       while !fin
         fin = true
-        @using_method.each do |name, proc, utup, pproc, namesym, usereturn|
+        @using_method.each do |name, proc, utup, pproc, namesym, usereturn, lockp|
           if !@defined_method[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
@@ -428,14 +423,14 @@ EOS
           end
         end
 
-        @using_block.each do |name, proc, utup, procty, pproc, is_self_locked|
+        @using_block.each do |name, proc, utup, procty, pproc, usereturn, lockp|
           if !@defined_block[name] then
             block = proc.irep
             block.is_export_env = block.repsreg.any? {|reg|
               CodeGen::get_ctype(self, reg, utup, ti) == :mrb_value
             }
             intype = ti.typetupletab.rev_table[utup]
-            if is_self_locked then
+            if lockp then
               intype[0].each do |ty|
                 ty.threads = []
               end

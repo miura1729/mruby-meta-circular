@@ -981,7 +981,7 @@ module CodeGenC
         bfunc = gen_block_func("p#{proc.id}", proc.slf[0].class_object, inst.para[3], tp)
 #        ccgen.pcode << "v#{regno}.code[#{i}] = (void *)#{bfunc};\n"
         pproc = ccgen.callstack[-1][0]
-        minf = [bfunc, proc, tp, dstt, pproc]
+        minf = [bfunc, proc, tp, dstt, pproc, nil, nil]
 #        @foo = minf.inspect # for gc bug
         ccgen.proctab[proc.irep] ||= []
         ccgen.proctab[proc.irep][i] = minf
@@ -1045,6 +1045,9 @@ module CodeGenC
       otype = get_ctype(ccgen, inst.outreg[0], tup, infer)
 
       ccgen.pcode << "#{otype} #{fname}(){\n"
+      if irepssa.export_regs.size > 0 then
+#        ccgen.dcode << "struct env#{proc.id} env;\n"
+      end
       ccgen.pcode << gen_declare_core(ccgen, inst.inreg[0], tup, infer, false,
 "self")
       ccgen.pcode << ";\n"
