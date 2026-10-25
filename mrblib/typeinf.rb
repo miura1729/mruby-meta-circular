@@ -292,6 +292,11 @@ module MTypeInf
       ltupple[newobj] ||= []
       ltupple[prevobj] ||= []
 
+
+      if ltupple[prevobj].include?(newobj) then
+        return true
+      end
+
       if !ltupple[newobj].include?(prevobj) then
         ltupple[newobj].push prevobj
         ltupple[prevobj].each do |obj|
@@ -299,11 +304,7 @@ module MTypeInf
         end
       end
 
-      if ltupple[prevobj].include?(newobj) then
-        true
-      else
-        false
-      end
+      false
     end
 
     def check_dead_lock(tblk, ltupple)
@@ -312,6 +313,7 @@ module MTypeInf
 
     def check_dead_lock_aux(tblk, hist, level, ltupple, objstack)
       if hist[tblk] == nil then
+        hist[tblk] = true
         tblk.call_blocks.each do |nblk, val|
           if val.values.include?(:new)  and
               val.keys[1].class_object == MMC_EXT::Thread.singleton_class then
@@ -324,7 +326,18 @@ module MTypeInf
             objstack.push typ
             if prevobj and
                 add_lock_object(ltupple, typ, prevobj) then
-              p "Possible dead lock #{prevobj} #{typ}"
+              p "Possible dead lock in #{tblk.irep.filename(0)}:#{tblk.irep.line(0)} #{prevobj.inspect} #{typ.inspect} lock"
+            end
+            check_dead_lock_aux(nblk, hist, level + 1, ltupple, objstack)
+            objstack.pop
+
+          elsif val.keys[0] and
+              (typ = val.keys[0]).class_object == MMC_EXT::Mutex then
+            prevobj = objstack[-1]
+            objstack.push typ
+            if prevobj and
+                add_lock_object(ltupple, typ, prevobj) then
+              p "Possible dead lock #{tblk.irep.filename(0)}:#{tblk.irep.line(0)} #{prevobj.inspect} #{typ.inspect} #{val.values[0]}"
             end
             check_dead_lock_aux(nblk, hist, level + 1, ltupple, objstack)
             objstack.pop
@@ -334,7 +347,6 @@ module MTypeInf
           end
         end
       end
-      hist[tblk] = true
     end
 
     def update_effects(thread, tblk)

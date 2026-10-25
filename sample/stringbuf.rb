@@ -319,6 +319,3 @@ end
 MTypeInf::inference_main {
   main
 }
-
-
-
