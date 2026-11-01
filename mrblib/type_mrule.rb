@@ -341,7 +341,7 @@ module MTypeInf
                   typ.flush_type(tup)
                   inst.outreg[0].add_same typ
                 end
-                arrt.immidiate_only = false
+                arrt.immidiate_only = false # idxtype is inside array
                 inst.outreg[0].flush_type_alltup(tup, false)
 
               when MTypeInf::PrimitiveType

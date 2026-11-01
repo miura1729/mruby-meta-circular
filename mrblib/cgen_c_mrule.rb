@@ -1455,7 +1455,7 @@ module CodeGenC
             else
               src1 = "#{src}[#{idx}]"
               src2 = "#{src}[strlen(#{src}) + #{idx}]"
-              src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+              src = "((#{idx} >= 0) ? (#{src1}) : (#{src2}))"
             end
           end
 
@@ -1497,7 +1497,7 @@ module CodeGenC
             else
               src1 = "(#{src} + #{idx})"
               src2 = "(#{src} + strlen(#{src}) + #{idx})"
-              src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+              src = "((#{idx} >= 0) ? (#{src1}) : (#{src2}))"
             end
           end
 
@@ -1547,7 +1547,7 @@ module CodeGenC
             else
               src1 = "#{src}[#{idx}]"
               src2 = "#{src}[strlen(#{src}) + #{idx}]"
-              src = "((#{idx} > 0) ? (#{src1}) : (#{src2}))"
+              src = "((#{idx} >= 0) ? (#{src1}) : (#{src2}))"
             end
           end
 

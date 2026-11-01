@@ -799,10 +799,13 @@ module MTypeInf
     end
 
     define_inf_rule_op :ADD do |infer, inst, node, tup, history|
-      arg0type = inst.inreg[0].flush_type(tup)[tup]
-      arg1type = inst.inreg[1].flush_type(tup)[tup]
+      inst.inreg[0].flush_type(tup)
+      inst.inreg[1].flush_type(tup)
 
+      arg0type = inst.inreg[0].get_type(tup)
+      arg1type = inst.inreg[1].get_type(tup)
       arg0cls = arg0type[0].class_object
+
       if !(arg0cls == Fixnum or arg0cls == Float) then
         prc = @@ruletab[:METHOD][:+][arg0cls]
         if prc then
@@ -1098,8 +1101,8 @@ module MTypeInf
     end
 
     define_inf_rule_op :STRCAT do |infer, inst, node, tup, history|
-      strty0 = inst.inreg[0].flush_type(tup)[tup].select {|e| e.is_a?(LiteralType)}
-      strty1 = inst.inreg[1].flush_type(tup)[tup].select {|e| e.is_a?(LiteralType)}
+      strty0 = inst.inreg[0].get_type(tup).select {|e| e.is_a?(LiteralType)}
+      strty1 = inst.inreg[1].get_type(tup).select {|e| e.is_a?(LiteralType)}
       if inst.outreg[0].use_value then
         # use value mode only
         if inst.outreg[0].type[tup] and inst.outreg[0].type[tup].size > 0 then

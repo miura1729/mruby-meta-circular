@@ -48,7 +48,7 @@ module MTypeInf
           end
           if rectype and rectype.size == 1 then
             if rectype[0].class_object == Array or rectype[0].class_object == Hash then
-              if idxtype.size == 1 and
+              if idxtype and idxtype.size == 1 and
                   idxtype[0].is_a?(MTypeInf::LiteralType) then
                 return inst.outreg[0]
               else
