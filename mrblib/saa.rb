@@ -78,6 +78,7 @@ module RiteSSA
           end
         end
       end
+      p nty if nty.is_a?(Symbol)
       nty.merge(type, @use_value)
     end
 

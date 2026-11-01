@@ -306,6 +306,7 @@ def main
   pp a
   bitmap = bb.bitmap
   a = bitmap[0, 32]
+  pp a
   pp a & (a >> 1)
   pp bitmap[32, 32]
   pp bitmap[64, 32]

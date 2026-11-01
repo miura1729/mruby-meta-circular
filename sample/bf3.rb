@@ -393,6 +393,6 @@ end
 
 MTypeInf::inference_main {
 bytes = compile(PROG)
-#disasm(bytes)
+disasm(bytes)
 eval(bytes)
 }

@@ -21,9 +21,7 @@ def foo
   i = 0
   c = Count.new
   r1 = [0, 0, nil]
-  r2 = [0, 0, nil]
 
-  p "foo"
   th = MMC_EXT::Thread.new(c, r1) {|cnt, res|
     n = 0
     cnt.lock do |c|
@@ -50,6 +48,7 @@ def foo
   }
 
   th4 = MMC_EXT::Thread.new(c, r1) {|cnt, res|
+
     n = 0
     c.cnt = c.cnt + 1
   }

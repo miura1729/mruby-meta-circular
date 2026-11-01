@@ -14,16 +14,16 @@ class Foo
   end
 
   def bcaa(x)
-    x.to_f
+    x.to_f * 10.5
   end
 
   def cdaa(x)
     :a
   end
 
-#  def dddd(x)
-#    3.134
-#  end
+  def dddd2(x)
+    3.134
+  end
 
   def method_missing(n, m)
     n

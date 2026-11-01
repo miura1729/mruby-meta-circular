@@ -2,7 +2,7 @@
 MTypeInf::inference_main {
 class Count
 #  include MMC_EXT::LockPolicy::NoLock
-  include MMC_EXT::LockPolicy::LockFree
+#  include MMC_EXT::LockPolicy::LockFree
 
   def initialize
     @c = 1

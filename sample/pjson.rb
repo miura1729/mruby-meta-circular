@@ -236,6 +236,9 @@ end
       when 'n'
         return self.parse_constant('null', nil)
       else
+        pp @buf[@index]
+        pp @buf
+        pp @index
         error 'Invalid sequence'
       end
     end
