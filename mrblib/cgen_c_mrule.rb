@@ -965,6 +965,28 @@ module CodeGenC
       nil
     end
 
+#    define_ccgen_rule_method :include?, Array do |ccgen, inst, node, infer, history, tup|
+#      uv = MTypeInf::ContainerType::UNDEF_VALUE
+#      oreg = inst.outreg[0]
+#      aryreg = inst.inreg[0]
+#      parareg = inst.inreg[1]
+#      arytype = aryreg.get_type(tup)[0]
+#      ary, aryt = reg_real_value_noconv(ccgen, aryreg, node, tup, infer, history)
+#      ary = gen_type_conversion(ccgen, :mrb_value, aryt, ary, tup, node, infer, history, nil)
+#
+#      aryelet = get_ctype(ccgen, arytype.element[uv], tup, infer)
+#
+#      para, parat = reg_real_value_noconv(ccgen, parareg, node, tup, infer, history)
+#      para = gen_type_conversion(ccgen, aryelet, parat, para, tup, node, infer, history, nil)
+#
+#      ccgen.dcode << gen_declare(ccgen, oreg, tup, infer)
+#      ccgen.dcode << ";\n"
+#      gen_global_lock(ccgen, node)
+#      p "v#{oreg.id} = #{ary} #{para} #{aryelet}"
+#      ccgen.pcode << "v#{oreg.id} = (mrb_str_index(mrb, #{str}, #{para}, strlen(#{para}), 0) >= 0);\n"
+#      gen_global_unlock(ccgen, node)
+#    end
+
     define_ccgen_rule_class_method :new, Array do |ccgen, inst, node, infer, history, tup|
       #recvtypes = inst.inreg[0].flush_type_alltup(tup)[tup]
       recvtypes = inst.inreg[0].flush_type(tup)

@@ -621,13 +621,13 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :include?, Array do |infer, inst, node, tup|
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
-      nil
-    end
+#    define_inf_rule_method :include?, Array do |infer, inst, node, tup|
+#      type = LiteralType.new(TrueClass, true)
+#      inst.outreg[0].add_type(type, tup)
+#      type = LiteralType.new(FalseClass, false)
+#      inst.outreg[0].add_type(type, tup)
+#      nil
+#    end
 
     define_inf_rule_method :+, Array do |infer, inst, node, tup|
       # TODO check element type is same to 1st arg.
@@ -1339,13 +1339,13 @@ module MTypeInf
       nil
     end
 
-    define_inf_rule_method :include?, Range do |infer, inst, node, tup|
-      type = LiteralType.new(TrueClass, true)
-      inst.outreg[0].add_type(type, tup)
-      type = LiteralType.new(FalseClass, false)
-      inst.outreg[0].add_type(type, tup)
-      nil
-    end
+#    define_inf_rule_method :include?, Range do |infer, inst, node, tup|
+#      type = LiteralType.new(TrueClass, true)
+#      inst.outreg[0].add_type(type, tup)
+#      type = LiteralType.new(FalseClass, false)
+#      inst.outreg[0].add_type(type, tup)
+#      nil
+#    end
 
     define_inf_rule_method :begin, Range do |infer, inst, node, tup|
       inst.outreg[0].add_same inst.inreg[0].type[tup][0].element[0]
