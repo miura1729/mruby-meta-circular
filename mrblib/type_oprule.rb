@@ -1148,10 +1148,11 @@ module MTypeInf
       else
         tups = [[cstop[0], cstop[1]]]
       end
-      pty = inst.objcache[previrep]
+      cent = (inst.objcache[previrep] ||= {})
+      pty = cent[tup]
       if !pty then
-        pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, cproc, inst.para[2])
-        inst.objcache[previrep] = pty
+        pty = ProcType.new(Proc, inst.para[0], slf, inst.inreg[0],  envtypes, tups, tup, cproc, inst.para[2])
+        inst.objcache[previrep][tup] = pty
       end
       pty.slf = slf
       pty.tups[0][1] = cstop[1]

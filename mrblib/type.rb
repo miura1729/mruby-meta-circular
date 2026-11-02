@@ -636,7 +636,7 @@ module MTypeInf
       @@tab
     end
 
-    def initialize(co, irep, slf, slfreg, env, tups, pproc, envno, *rest)
+    def initialize(co, irep, slf, slfreg, env, tups, ctup, pproc, envno, *rest)
       super(co, *rest)
       @id = @@tab.size
       @@tab.push self
@@ -646,6 +646,7 @@ module MTypeInf
       @env = env
       @envno = envno
       @tups = tups
+      @ctup = ctup
       @using_tup = {}
       @parent = pproc
       @inspect_stack = []
@@ -661,6 +662,7 @@ module MTypeInf
         @irep == other.irep &&
         @env == other.env &&
         ((!@tups[0] && !other.tups[0]) || @tups[0][1] == other.tups[0][1]) &&
+        @ctup == other.ctup &&
         is_escape? == other.is_escape? &&
         locked == other.locked
     end
@@ -668,7 +670,7 @@ module MTypeInf
     def inspect(level = 0)
       if @inspect_stack.include?(self) then
         if level < 1 then
-          "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=...>"
+          "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=...> ctup=#{@ctup}"
         else
           "#{@class_object.inspect}<>"
         end
@@ -683,8 +685,8 @@ module MTypeInf
           end
         }.join(', ')
         if level < 1 then
-#          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}] e=#{is_escape?}>"
-          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} #{@irep.irep.inspect}>"
+          #          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} env=[#{envstr}] e=#{is_escape?}> ctup=#{@ctup}"
+          rc = "#{@class_object.inspect}<irep=#{@irep.irep.id.to_s(16)} #{@irep.irep.inspect}> ctup=#{@ctup}"
         else
           rc = "#{@class_object.inspect}<>"
         end
@@ -704,6 +706,7 @@ module MTypeInf
     attr :env
     attr :envno
     attr :tups
+    attr :ctup
     attr :using_tup
     attr :parent
   end
