@@ -1,3 +1,15 @@
+MTypeInf::inference_main {
+class Array
+  def each_with_index(&block)
+    i = 0
+    self.each{|*val|
+      block.call(val.__svalue, i)
+      i += 1
+    }
+    self
+  end
+end
+
 PROG = "       A mandelbrot set fractal viewer in brainf*** written by Erik Bosman
 +++++++++++++[->++>>>+++++>++>+<<<<<<]>>>>>++++++>--->>>>>>>>>>+++++++++++++++[[
 >>>>>>>>>]+[<<<<<<<<<]>>>>>>>>>-]+[>>>>>>>>[-]>]<<<<<<<<<[<<<<<<<<<]>>>>>>>>[-]+
@@ -307,6 +319,7 @@ def disasm_one(byte)
   when 13
     res << ">s " + (byte >> 4).to_s
   end
+  res
 end
 
 def disasm(bytes)
@@ -391,7 +404,6 @@ def eval(bytes)
   end
 end
 
-MTypeInf::inference_main {
 bytes = compile(PROG)
 #disasm(bytes)
 eval(bytes)
