@@ -1288,7 +1288,7 @@ module MTypeInf
           proc = eval("lambda { #{src} }")
           slf = inst.inreg[0].type[tup][0]
           irep = RiteSSA::Block.new(Irep::get_proc_irep(proc), nil, slf.class_object, true)
-          bproc = ProcType.new(Proc, irep, slf, nil, [], [], nil, nil)
+          bproc = ProcType.new(Proc, irep, slf, nil, [], [], tup, nil, nil)
           infer.inference_block(irep, [[slf]], tup, 2, bproc)
           inst.objcache ||= {}
           inst.objcache[src] = irep

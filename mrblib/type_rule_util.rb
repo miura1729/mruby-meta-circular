@@ -536,12 +536,12 @@ module MTypeInf
       end
     end
 
-    def self.make_ssablock(p0)
+    def self.make_ssablock(p0, tup)
       upper = p0.upper
       tclass = p0.target_class
       parent = nil
       if upper then
-        pproc = make_ssablock(upper)
+        pproc = make_ssablock(upper, tup)
         if pproc then
           parent = pproc.irep
         end
@@ -549,7 +549,7 @@ module MTypeInf
       irep = Irep::get_proc_irep(p0)
       if irep then
         blk = RiteSSA::Block.new(irep, parent, tclass, p0.strict?)
-        ProcType.new(Proc, blk, tclass, nil,  [], [], pproc, nil)
+        ProcType.new(Proc, blk, tclass, nil,  [], [], tup, pproc, nil)
       else
         nil
       end
@@ -656,7 +656,7 @@ module MTypeInf
               end
             elsif irep then
               p0 = Proc::search_proc(slf, name)
-              procssa = make_ssablock(p0)
+              procssa = make_ssablock(p0, tup)
               @@ruby_methodtab[name][slfcls] = procssa
               irepssa = procssa.irep
               clsobj = RiteSSA::ClassSSA.get_instance(slfcls)
@@ -751,7 +751,7 @@ module MTypeInf
               missprocssa = @@ruby_methodtab[:method_missing][slfcls]
             else
               p0 = Proc::search_proc(slf, :method_missing)
-              missprocssa = make_ssablock(p0)
+              missprocssa = make_ssablock(p0, tup)
               @@ruby_methodtab[:method_missing] ||= {}
               @@ruby_methodtab[:method_missing][slfcls] = missprocssa
               irepss = missprocssa.irep
