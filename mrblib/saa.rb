@@ -96,9 +96,17 @@ module RiteSSA
       @same = []
       samecp.each do |var|
         var.flush_type(stup, nil, true)
+        tys2 = var.type[stup]
+        if false and tys2 != var.filter_type(tys2) then
+#          p var.positive_list
+#          p var.genpoint
+          p tys2
+          p var.filter_type(tys2)
+          p ""
+        end
         tys = var.filter_type(var.type[stup])
         if tys then
-          filter_type(tys).each do |ty|
+          tys.each do |ty|
             add_type(ty, dtup)
           end
         end
