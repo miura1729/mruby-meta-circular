@@ -433,7 +433,7 @@ module MTypeInf
           if atype_reg then
             atype_reg.positive_list.push atype_spec_pos
             atype_reg.refpoint.each do |ginst|
-              if ginst.outreg[0] then
+              if ginst.outreg[0] and ginst.op == :MOVE then
                 ginst.outreg[0].positive_list.push atype_spec_pos
               end
             end
@@ -448,7 +448,7 @@ module MTypeInf
             history[nil].pop
             atype_reg.positive_list.pop
             atype_reg.refpoint.each do |ginst|
-              if ginst.outreg[0] then
+              if ginst.outreg[0] and ginst.op == :MOVE then
                 ginst.outreg[0].positive_list.pop
               end
             end
@@ -457,7 +457,7 @@ module MTypeInf
             nd = get_jmp_target(node, idx, inst)
             atype_reg.negative_list.push atype_spec_neg
             atype_reg.refpoint.each do |ginst|
-              if ginst.outreg[0] then
+              if ginst.outreg[0] and ginst.op == :MOVE then
                 ginst.outreg[0].negative_list.push atype_spec_neg
               end
             end
@@ -486,7 +486,7 @@ module MTypeInf
 
             atype_reg.negative_list.pop
             atype_reg.refpoint.each do |ginst|
-              if ginst.outreg[0] then
+              if ginst.outreg[0] and ginst.op == :MOVE then
                 ginst.outreg[0].negative_list.pop
               end
             end

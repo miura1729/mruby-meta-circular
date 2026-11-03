@@ -1,4 +1,3 @@
-MTypeInf::inference_main {
 class Array
   def each_with_index(&block)
     i = 0
@@ -404,6 +403,7 @@ def eval(bytes)
   end
 end
 
+MTypeInf::inference_main {
 bytes = compile(PROG)
 disasm(bytes)
 eval(bytes)

@@ -337,12 +337,12 @@ module MTypeInf
                 inst.outreg[0].add_same valreg
 
               when MTypeInf::IndexOfArrayType
-                arrele.each do |idx, typ|
-                  typ.flush_type(tup)
-                  inst.outreg[0].add_same typ
+                arrele.each do |idx, reg|
+                  reg.add_same valreg
+                  reg.flush_type(tup)
                 end
                 arrt.immidiate_only = false # idxtype is inside array
-                inst.outreg[0].flush_type_alltup(tup, false)
+                inst.outreg[0].add_same valreg
 
               when MTypeInf::PrimitiveType
                 arrele.each do |idx, reg|
