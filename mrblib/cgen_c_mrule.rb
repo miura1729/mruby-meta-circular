@@ -799,6 +799,9 @@ module CodeGenC
     define_ccgen_rule_method :push, Array do |ccgen, inst, node, infer, history, tup|
       nreg = inst.outreg[0]
       loreg = inst.para[5]
+      if inst.inreg[0].type[tup] == nil then
+        tup = inst.inreg[0].type.keys[0]
+      end
       src, srct = reg_real_value_noconv(ccgen, inst.inreg[0], node, tup, infer, history)
       srclo = gen_type_conversion(ccgen, :mrb_value, srct, src, tup, node, infer, history, nreg, inst.inreg[0])
       ccgen.dcode << gen_declare(ccgen, nreg, tup, infer)
