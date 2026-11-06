@@ -904,7 +904,7 @@ module CodeGenC
           prevref = prevref + "->prev"
           block = block.parent
         end
-        return ["proc#{prevref}->env->v#{reg.id}", srct]
+        return ["proc->env#{prevref}->v#{reg.id}", srct]
       end
 
       if !gins then
